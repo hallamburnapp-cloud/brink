@@ -317,6 +317,7 @@
     flags_all: [cables:cut]
     flags_any: [blackout:started, cyber_ew:intrusion, debris:event, blockade:declared, proxy:clash]
     flags_none: [cables:repaired]
+    unseen: [blockade_11_the_queue]
   text: >-
     The underwriters met at eleven and by noon the Sorrel Straits are a listed
     war-risk zone, which is what they do when the second thing happens after
@@ -620,6 +621,7 @@
     pieces_any: [strategic_reserve]
     flags_all: [cables:cut]
     flags_none: [cables:repaired]
+    unseen: [blockade_24_eleven_days]
   text: >-
     Your ninety days are my nine. The Compact's clearing runs on the same cable
     and I have no reserve, because for twenty years your treasury told us yours

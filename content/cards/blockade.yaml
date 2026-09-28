@@ -198,7 +198,7 @@
   text: >-
     They boarded the Vale at the line, politely, with cameras, and forty
     containers of Caldor's winter fuel are now in a {rival_adj} port while our
-    destroyer filmed it. In {rival_capital} this is restraint; here it is
+    frigate filmed it. In {rival_capital} this is restraint; here it is
     humiliation; both are true, which is the trouble with lines. We could draw
     one of our own across the narrows and stop their ships in turn. Then there
     would be two lines, and we would all be standing on the wrong side of one
@@ -479,6 +479,7 @@
   conditions:
     flags_all: [blockade:declared]
     flags_none: [blockade:lifted]
+    unseen: [cables_11_war_risk]
   text: >-
     Ninety-one ships are anchored off Caldor Roads waiting for somebody to
     decide what a quarantine is, at forty thousand a day each in demurrage,
@@ -717,6 +718,7 @@
     pieces_any: [strategic_reserve, fortress]
     flags_all: [blockade:declared]
     flags_none: [blockade:lifted]
+    unseen: [cables_21_my_nine]
   text: >-
     You can outlast a closed strait; I cannot. The Compact has eleven days of
     fuel and you have, I am told, ninety, behind a border that closes on a

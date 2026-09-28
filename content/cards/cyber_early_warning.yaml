@@ -456,7 +456,7 @@
   acts: [2, 5]
   weight: 1.4
   tags: [cyber, nuclear, misperception, warning]
-  conditions: { flags_all: [cyber_ew:intrusion], flags_any: [false_alarm:reported] }
+  conditions: { flags_all: [cyber_ew:intrusion], flags_any: [false_alarm:reported], unseen: [falarm_23_poisoned_board] }
   note: Cross-arc hook with false_alarm. Clearing false_alarm_live here is deliberate.
   text: >-
     We have put Dr Vance's timeline beside the alerts that woke you this month, and

@@ -348,6 +348,7 @@
   conditions:
     flags_all: [debris:event]
     flags_none: [debris:moratorium]
+    unseen: [blackout_20_the_third_chair]
   text: >-
     Midnight, on the line, no translator: 'My tracking network sees the whole
     shell, and I will give you every fragment's path in real time for as long
@@ -425,6 +426,7 @@
     pieces_any: [commercial_sat]
     flags_all: [debris:event]
     flags_none: [debris:cascade]
+    unseen: [blackout_14_the_shareholders]
   text: >-
     Three of Halvard's birds are in the debris shell and our insurers want a
     statement that {us} does not regard them as military assets. {Rival} wants

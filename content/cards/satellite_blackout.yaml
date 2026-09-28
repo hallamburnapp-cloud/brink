@@ -395,6 +395,7 @@
     pieces_any: [commercial_sat]
     flags_all: [blackout:started]
     flags_none: [blackout:resolved]
+    unseen: [debris_16_supplier_or_combatant]
   text: >-
     Halvard's constellation crossed the same box an hour after your bird went
     dark, and two of ours are now showing degraded optics. Our imagery is on
@@ -575,6 +576,7 @@
   conditions:
     flags_all: [blackout:started]
     flags_none: [blackout:attributed_other, blackout:resolved]
+    unseen: [debris_13_the_offer]
   text: >-
     {Other}'s ambassador has offered their space tracking data for the Straits,
     in real time, for as long as this lasts. It is a generous offer and they are
@@ -597,7 +599,7 @@
   tags: [space, attribution, misperception]
   conditions:
     flags_all: [blackout:started]
-    flags_none: [blackout:accident, blackout:resolved]
+    flags_none: [blackout:accident, blackout:resolved, blackout:attributed_rival]
   text: >-
     The telemetry team finished the reconstruction at four this morning. Cell
     fourteen of the battery pack failed at 02:13:51 and took the bus down with

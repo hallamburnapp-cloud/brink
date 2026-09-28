@@ -874,7 +874,7 @@ function drawNext(content: Content, state: RunState, rng: Rng, events: RunEvent[
   for (const id of content.cardOrder) {
     const card = content.cards[id];
     if (!eligible(content, state, card, pieces)) continue;
-    let w = resolveWeight(card.weight, card.id, card.tags, ctx);
+    let w = resolveWeight(card.weight, card.id, card.tags, ctx, !!card.warning);
     if (card.arc && !arcs.has(card.arc) && arcs.size >= MAX_ACTIVE_ARCS) w *= 0.25;
     if (w <= 0) continue;
     ids.push(id);

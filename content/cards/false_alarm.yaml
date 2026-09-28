@@ -600,6 +600,7 @@
   conditions:
     flags_all: [false_alarm:reported]
     flags_any: [cyber_ew:intrusion, blackout:started, arc:satellite_blackout]
+    unseen: [cyberew_17_written_not_seen]
   note: Cross-arc hook. The ghosts may have been written to the board, not seen by it.
   text: >-
     We have put the ghosts beside the outages and the assessment has changed.

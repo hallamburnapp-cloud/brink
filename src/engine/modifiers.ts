@@ -241,7 +241,7 @@ export function resolveTimer(base: number | undefined, ctx: ModContext): number 
 }
 
 /** Draw weight for a card: base × Π(weight mults matching tags or id). */
-export function resolveWeight(base: number, id: string, tags: readonly string[], ctx: ModContext): number {
+export function resolveWeight(base: number, id: string, tags: readonly string[], ctx: ModContext, isWarningCard = tags.includes('warning')): number {
   let mult = 1;
   for (const m of allModifiers(ctx)) {
     if (m.kind !== 'weight') continue;
@@ -249,7 +249,8 @@ export function resolveWeight(base: number, id: string, tags: readonly string[],
     const byTag = m.tags && tagsMatch(m.tags, tags);
     if (byId || byTag) mult *= m.mult;
   }
-  if (tags.includes('warning')) mult *= 1 + ruleValue(ctx, 'warning_frequency');
+  // `warning_frequency` is about warning *cards* (those with a truth roll), not the domain tag.
+  if (isWarningCard) mult *= 1 + ruleValue(ctx, 'warning_frequency');
   return base * mult;
 }
 

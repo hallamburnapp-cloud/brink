@@ -215,6 +215,12 @@ Hotline de-escalations that should be free under Hotline Protocol carry
 `strike` · `proxy`. Always show what the roll is for in `label` ("Intercept", "They blink").
 
 ### 4.5 Arcs and their flags (cross-arc hooks must use these names)
+
+Canonical flag prefixes as the files actually use them (the arc name in the table below is
+the `arc:` value; the prefix is what goes before the colon in flags): `blackout:` (satellite_blackout),
+`debris:` (debris_cascade), `false_alarm:`, `cyber_ew:` (cyber_early_warning), `cables:`
+(undersea_cables; entries also set `undersea_cables:cut` for older hooks), `blockade:`, `proxy:`
+(proxy_incident), `defector:`, `ultimatum:`, `summit:`, `fp:` (flashpoint outcomes), `advisors:`.
 | Arc (`arc:`) | Flags (`<arc>:<state>`) | Piece hooks |
 | --- | --- | --- |
 | `satellite_blackout` | started, attributed_rival, attributed_other, accident, retaliated, resolved | cyber_director, early_warning, commercial_sat, cyber_unit |
