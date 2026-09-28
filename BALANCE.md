@@ -21,7 +21,7 @@ rules changed between them.
 | T2 | ≥ 10 archetypes reach the Endgame ≥ 10% of the time (runs where the archetype was assembled by act 3) | Every build must be playable, not just the best one |
 | T3 | No single piece in more than 35% of winning builds | No mandatory pick |
 | T4 | Median heuristic run 15–25 estimated minutes (cards × 11 s + rolls × 4 s + shops × 30 s + accidents × 3 s) | The run length the daily habit needs |
-| T5 | ≥ 3% of heuristic runs reach a score ≥ 100 × the final target (2,000,000 at DEFCON 5) | "Broke the game" runs must exist |
+| T5 | ≥ 3% of heuristic runs reach a score ≥ 100 × the final target (1,200,000 at DEFCON 5) | "Broke the game" runs must exist |
 
 Secondary readouts: every card reachable, piece buy rates 15–60% when offered, combos with
 a ≥ 10-point win-rate difference, ending distribution, act reached, ante met/missed/smashed
@@ -84,3 +84,62 @@ Next: runs now die in Weeks Three and Four at the top of the curve, mostly to ac
 Both are the loop working as designed against a bot that does not de-escalate hard enough and a deck that is still
 missing its 130 calm cards; hold further changes until the full deck validates, then re-read escalation drift and the
 accident curve.
+
+### Iteration 2 — the economy and the ante ladder (pressure, domestic, alliance and advisor decks now in: 450 cards)
+
+Read (`scratchpad/probe-antes.ts`, 300 heuristic runs): leverage banked per act against the targets.
+
+| Act | Target | Heuristic leverage p25 / median / p75 | Met |
+| --- | --- | --- | --- |
+| 1 | 250 | 273 / 299 / 333 | 94% |
+| 2 | 900 | 378 / 473 / 635 | 13% |
+| 3 | 2,500 | 804 / 1,373 / 2,257 | 18% |
+| 4 | 7,000 | 868 / 1,445 / 2,057 | 3% |
+
+Capital earned per run: median 7 → one piece per run. A missed ante paid nothing, so a build that missed Week Two never
+formed and missed everything after it: a death spiral with no way back, which is not the Balatro loop (there, money
+keeps coming while you are alive).
+
+Changes:
+- **Act stipend**: 2 PC at the start of every act after the first (`ACT_STIPEND`, engine).
+- **Consolation**: a missed ante still pays 2 PC when at least half the target was banked (`CONSOLATION`, `CONSOLATION_RATIO`).
+- **Targets** 250 / 900 / 2,500 / 7,000 / 20,000 → **250 / 500 / 1,600 / 4,500 / 12,000**. Week Two is now met by a
+  median calm run with one piece; Week Three needs a build or a climb to ~60; Week Four needs a brink posture or a strong
+  build; the Endgame needs both. The final target sets the "broke the game" line: 100 × 12,000 = 1,200,000.
+- **Bot calibration** (logged, not content): the heuristic prices escalation above 60 quadratically (/8 instead of /20),
+  treats 80 as its wall unless it holds a brink piece, and stops being paid for leverage as it nears that wall. Before
+  this it traded +10 escalation at 71 for a leverage credit under ante pressure and climbed to 100 chasing an ante it had
+  already met. It also weighs the expected escalation of an odds roll (p × success + (1 − p) × failure) from the card
+  definition, as a veteran would.
+
+| Measure | Iter 1 | Iter 2 |
+| --- | --- | --- |
+| Capital earned per run (median) | 7 | 16 |
+| Pieces bought per run | 1.55 | 2.49 |
+| Antes met: Week Two / Three / Four | 25% / 21% / 0% | 47% / 33% / 13% |
+| Reached Week Four or later | 23.6% | 35% |
+| Heuristic win | 0% | 0.17% |
+| Median estimated minutes | 12.2 | 13.2 |
+
+### Iteration 3 — where the escalation comes from
+
+Attribution over 300 heuristic runs (`scratchpad/probe-attrib.ts`), escalation gained per run by source:
+ordinary choices +25.7 · flashpoint choices +19.6 · accidents +11.9 · flashpoint odds outcomes +10.5 · ordinary odds
+outcomes +7.6 = **+75 per run** from a start of 20, over 53 cards. The deck's calm-side drift is −1.26 per card, so the
+climb is chosen under pressure from the other four meters, which is the game; but flashpoints (11 cards of 53) supplied
+40% of it and accidents another 16%, and both arrive when escalation is already high.
+
+Changes: flashpoint escalation climbs ×0.75 (71 values; de-escalating sides untouched; ≥ 30 kept); accident base
+escalation 7/5/9/5 → 5/4/7/4 (severity still ×1 → ×2 from 50 to 100).
+
+| Measure | Iter 2 | Iter 3 |
+| --- | --- | --- |
+| Escalation per run: flashpoint choice / odds / accident | 19.6 / 10.5 / 11.9 | 18.1 / 10.0 / 9.6 (over 11.5 flashpoint cards instead of 10.6: runs live longer) |
+| Cards per run | 52.9 | 56.3 |
+| Reached Week Four or later | 35% | 45.3% |
+| Heuristic win | 0.17% | 0.33% |
+| Average peak escalation | 96.4 | 93.8 |
+| Median estimated minutes | 13.2 | 14.0 |
+
+Still to explain before the full-scale runs: `special_resigned` at 8% (the advisor resignation card fires far more often
+than a weight-0.5 card should), and the calm build's inability to hold 60: the office meters push it up the ladder.

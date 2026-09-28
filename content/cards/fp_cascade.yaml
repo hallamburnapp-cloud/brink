@@ -24,7 +24,7 @@
     have is a telephone.
   left:
     text: "Alert state up. Assume attack."
-    effects: { escalation: 8, military: 5, intel: -8, public: -3 }
+    effects: { escalation: 6, military: 5, intel: -8, public: -3 }
     tags: [military, mobilise, escalatory, warning]
     follow: [{ card: fp_cascade_03_the_dark_board, in: 0 }]
   right:
@@ -72,7 +72,7 @@
     quietly.
   left:
     text: "Flush the force"
-    effects: { military: 8, escalation: 13, trust_primary: -16, public: 3 }
+    effects: { military: 8, escalation: 10, trust_primary: -16, public: 3 }
     tags: [mobilise, military, nuclear, escalatory]
     follow: [{ card: fp_cascade_11_the_blind_minute, in: 0 }]
   right:
@@ -96,7 +96,7 @@
     radars back in ninety minutes. Not both.
   left:
     text: "Get me the name"
-    effects: { military: -6, intel: 12, escalation: 4, economy: -3 }
+    effects: { military: -6, intel: 12, escalation: 3, economy: -3 }
     tags: [attribution, investigate, cyber, intel]
     odds:
       label: Attribution
@@ -113,7 +113,7 @@
         text: >-
           The traffic ends in a rented server in Amberline and, behind it, nothing.
           Six hours blind and no name.
-        effects: { intel: -10, military: -4, escalation: 4 }
+        effects: { intel: -10, military: -4, escalation: 3 }
         follow:
           - { card: fp_cascade_08a_the_operator, in: 0 }
           - { card: fp_cascade_08b_the_shrug, in: 0 }
@@ -137,7 +137,7 @@
     price.
   left:
     text: "Say it in public"
-    effects: { public: 6, escalation: 8, trust_primary: -14, allies: 4, commitment: 10 }
+    effects: { public: 6, escalation: 6, trust_primary: -14, allies: 4, commitment: 10 }
     tags: [attribution, public_commitment, transparency]
     follow: [{ card: fp_cascade_13_the_name, in: 0 }]
   right:
@@ -158,7 +158,7 @@
         text: >-
           "{Rival} rejects the accusation and notes that {us} has had six hours in
           which to invent it." The line closes.
-        effects: { escalation: 6, trust_primary: -8, public: -3 }
+        effects: { escalation: 5, trust_primary: -8, public: -3 }
         follow: [{ card: fp_cascade_13_the_name, in: 0 }]
 
 - id: fp_cascade_08a_the_operator
@@ -176,7 +176,7 @@
     to say any of this aloud.
   left:
     text: "Name them anyway. Moderate is enough."
-    effects: { public: 5, escalation: 8, trust_primary: -14, intel: -8, commitment: 8 }
+    effects: { public: 5, escalation: 6, trust_primary: -14, intel: -8, commitment: 8 }
     tags: [attribution, public_commitment, escalatory]
     follow: [{ card: fp_cascade_13_the_name, in: 0 }]
   right:
@@ -200,7 +200,7 @@
     neither of those is an assessment.
   left:
     text: "Name them anyway"
-    effects: { public: 5, escalation: 8, trust_primary: -14, intel: -8, commitment: 8 }
+    effects: { public: 5, escalation: 6, trust_primary: -14, intel: -8, commitment: 8 }
     tags: [attribution, public_commitment, escalatory]
     follow: [{ card: fp_cascade_13_the_name, in: 0 }]
   right:
@@ -241,11 +241,11 @@
         text: >-
           "The Premier does not negotiate blind." The line stays open while their
           bombers go to dispersal, and the General puts ours on the runways to match.
-        effects: { escalation: 10, military: 4, trust_primary: -8 }
+        effects: { escalation: 8, military: 4, trust_primary: -8 }
         follow: [{ card: fp_cascade_14_the_long_night, in: 0 }]
   right:
     text: "Ask him what he did to our radars"
-    effects: { escalation: 7, trust_primary: -12, public: 3, commitment: 8, intel: -6 }
+    effects: { escalation: 5, trust_primary: -12, public: 3, commitment: 8, intel: -6 }
     tags: [attribution, deterrence, escalatory]
     follow: [{ card: fp_cascade_13_the_name, in: 0 }]
 
@@ -271,7 +271,7 @@
     ending: nuclear_blind
   right:
     text: "Wait for Benn-Sato"
-    effects: { military: -7, escalation: 6, commitment: -8 }
+    effects: { military: -7, escalation: 5, commitment: -8 }
     tags: [stall, intel, nuclear]
     odds:
       label: Re-entry
@@ -329,12 +329,12 @@
     would tell them at nine.
   left:
     text: "Sanctions and expulsions by Friday"
-    effects: { escalation: 8, economy: -7, public: 4, trust_primary: -14, allies: 3 }
+    effects: { escalation: 6, economy: -7, public: 4, trust_primary: -14, allies: 3 }
     tags: [sanction, escalatory, economy, attribution]
     set: [fp:cascade_blamed]
   right:
     text: "The statement stands. Nothing else."
-    effects: { escalation: 5, public: -5, commitment: 8, trust_primary: -8, military: -3 }
+    effects: { escalation: 4, public: -5, commitment: 8, trust_primary: -8, military: -3 }
     tags: [stall, public_commitment, attribution]
     set: [fp:cascade_blamed]
 
@@ -352,11 +352,11 @@
     and where it lands is what they will be watching.
   left:
     text: "Keep the force up until dawn"
-    effects: { escalation: 14, military: 6, economy: -6, trust_primary: -12 }
+    effects: { escalation: 11, military: 6, economy: -6, trust_primary: -12 }
     tags: [mobilise, military, deterrence, nuclear, escalatory]
     set: [fp:cascade_escalated]
   right:
     text: "Bring them home now. On camera."
-    effects: { escalation: 9, military: -7, public: -4, trust_primary: 6, commitment: -8 }
+    effects: { escalation: 7, military: -7, public: -4, trust_primary: 6, commitment: -8 }
     tags: [deescalate, walk_back, transparency, nuclear]
     set: [fp:cascade_escalated]

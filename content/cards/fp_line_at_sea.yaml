@@ -25,7 +25,7 @@
     it. I have told him he will know in twelve minutes.
   left:
     text: "Board her"
-    effects: { military: 6, escalation: 7, economy: -4 }
+    effects: { military: 6, escalation: 5, economy: -4 }
     tags: [naval, military, blockade]
     odds:
       label: Boarding
@@ -42,7 +42,7 @@
           The Vesna puts a burst across the boats' bows. Two of ours in the water,
           both recovered, and the Sable Meridian is across the line with her horn
           going.
-        effects: { military: -6, public: -5, escalation: 5 }
+        effects: { military: -6, public: -5, escalation: 4 }
         follow: [{ card: fp_line_03_warned_off, in: 0 }]
   right:
     text: "Let her through. Shadow her."
@@ -67,7 +67,7 @@
     what he is for.
   left:
     text: "Take her into Caldor"
-    effects: { military: 6, escalation: 8, public: 5, trust_primary: -14, economy: -3 }
+    effects: { military: 6, escalation: 6, public: 5, trust_primary: -14, economy: -3 }
     tags: [naval, blockade, escalatory, military]
     follow: [{ card: fp_line_06_the_seizure, in: 0 }]
   right:
@@ -89,7 +89,7 @@
     Ostrova can be across the freighter's bow in twenty minutes if he goes now.
   left:
     text: "Put the Kestrel across her bow"
-    effects: { military: 6, escalation: 8, public: 4, trust_primary: -12 }
+    effects: { military: 6, escalation: 6, public: 4, trust_primary: -12 }
     tags: [naval, military, escalatory, blockade]
     follow: [{ card: fp_line_08_hands_on_the_switch, in: 0 }]
   right:
@@ -115,7 +115,7 @@
     carrier that has come to start something.
   left:
     text: "Bring the group up. The line is the line."
-    effects: { military: 8, escalation: 10, economy: -6, trust_primary: -14, allies: 3 }
+    effects: { military: 8, escalation: 8, economy: -6, trust_primary: -14, allies: 3 }
     tags: [naval, mobilise, deterrence, escalatory]
     follow: [{ card: fp_line_08_hands_on_the_switch, in: 0 }]
   right:
@@ -140,7 +140,7 @@
     What I do not have is a fleet, and they can count.
   left:
     text: "Close the Straits with the batteries"
-    effects: { military: 7, escalation: 11, trust_primary: -14, public: 4 }
+    effects: { military: 7, escalation: 8, trust_primary: -14, public: 4 }
     tags: [military, mobilise, escalatory, naval]
     follow: [{ card: fp_line_08_hands_on_the_switch, in: 0 }]
   right:
@@ -170,7 +170,7 @@
     follow: [{ card: fp_line_07_the_photographs, in: 0 }]
   right:
     text: "She goes to Caldor. All of her."
-    effects: { escalation: 10, military: 5, public: 5, trust_primary: -16, commitment: 10 }
+    effects: { escalation: 8, military: 5, public: 5, trust_primary: -16, commitment: 10 }
     tags: [naval, blockade, escalatory, public_commitment]
     odds:
       label: They blink
@@ -186,7 +186,7 @@
         text: >-
           At 12:04 the Vesna fires into the Kestrel's stern to stop her. Eleven of
           ours dead in the after steering compartment. Ostrova returns fire.
-        effects: { escalation: 12, military: -5, public: 4 }
+        effects: { escalation: 9, military: -5, public: 4 }
         follow: [{ card: fp_line_09_the_straits, in: 0 }]
 
 - id: fp_line_07_the_photographs
@@ -203,7 +203,7 @@
     evidence. To the press they are a story, and stories get answered.
   left:
     text: "Publish them tonight"
-    effects: { public: 7, escalation: 4, trust_primary: -12, allies: 5, commitment: 8 }
+    effects: { public: 7, escalation: 3, trust_primary: -12, allies: 5, commitment: 8 }
     tags: [transparency, public_commitment, naval]
     set: [fp:line_boarded]
   right:
@@ -228,7 +228,7 @@
     fired on. If I do not answer him, he will decide for himself.
   left:
     text: "He may fire first"
-    effects: { military: 7, escalation: 11, trust_primary: -14, public: 3 }
+    effects: { military: 7, escalation: 8, trust_primary: -14, public: 3 }
     tags: [naval, military, escalatory, strike]
     odds:
       label: They break off
@@ -245,7 +245,7 @@
         text: >-
           The Kestrel fires first and hits the Vesna twice. The Vesna hits her once,
           in the hangar, and forty of ours are dead before the fire is out.
-        effects: { escalation: 13, military: -6, public: 3 }
+        effects: { escalation: 10, military: -6, public: 3 }
         follow: [{ card: fp_line_09_the_straits, in: 0 }]
   right:
     text: "Hold fire unless fired on"
@@ -265,7 +265,7 @@
         text: >-
           The Vesna fires a warning burst. Ostrova's gunner reads it as the real thing
           and answers. Both ships are hit. Twenty-two of ours.
-        effects: { escalation: 12, military: -7, public: -4 }
+        effects: { escalation: 9, military: -7, public: -4 }
         follow: [{ card: fp_line_09_the_straits, in: 0 }]
 
 - id: fp_line_09_the_straits
@@ -282,7 +282,7 @@
     before that boat is in range, and I can do it in ninety minutes.
   left:
     text: "Clear the Straits"
-    effects: { military: 8, escalation: 14, trust_primary: -18, public: 4 }
+    effects: { military: 8, escalation: 11, trust_primary: -18, public: 4 }
     tags: [naval, strike, military, escalatory]
     odds:
       label: They stay conventional
@@ -320,7 +320,7 @@
         text: >-
           Their guns do not stop. The Kestrel's do, on your order, and she takes two
           more hits before Ostrova stops obeying it.
-        effects: { escalation: 10, military: -7, public: -5 }
+        effects: { escalation: 8, military: -7, public: -5 }
         follow: [{ card: fp_line_11_the_morning_count, in: 0 }]
 
 - id: fp_line_10a_the_second_line
@@ -338,7 +338,7 @@
     tomorrow.
   left:
     text: "This one holds. Reinforce it."
-    effects: { military: 6, escalation: 7, economy: -5, commitment: 10 }
+    effects: { military: 6, escalation: 5, economy: -5, commitment: 10 }
     tags: [naval, mobilise, public_commitment]
     set: [fp:line_stood_off]
   right:
@@ -362,7 +362,7 @@
     would rather not guess.
   left:
     text: "It holds tomorrow. Reinforce it."
-    effects: { military: 6, escalation: 7, economy: -5, commitment: 10 }
+    effects: { military: 6, escalation: 5, economy: -5, commitment: 10 }
     tags: [naval, mobilise, public_commitment]
     set: [fp:line_stood_off]
   right:
@@ -390,6 +390,6 @@
     set: [fp:line_shots]
   right:
     text: "They stay until the Vesna's log is ours"
-    effects: { escalation: 8, public: 4, trust_primary: -12, intel: 10 }
+    effects: { escalation: 6, public: 4, trust_primary: -12, intel: 10 }
     tags: [naval, stall, escalatory]
     set: [fp:line_shots]

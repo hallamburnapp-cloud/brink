@@ -79,7 +79,7 @@
     recommended. They are being made available, which is what a staff is for.
   left:
     text: "Put the folder on the table"
-    effects: { military: 4, trust_primary: -12, escalation: 4, public: 2, intel: -6 }
+    effects: { military: 4, trust_primary: -12, escalation: 3, public: 2, intel: -6 }
     tags: [deterrence, military, misperception]
   right:
     text: "Leave it in the car"
@@ -102,7 +102,7 @@
     the capability for?
   left:
     text: "Defensive. Say it once, then nothing"
-    effects: { public: 2, military: 3, trust_primary: -12, escalation: 4, intel: -2 }
+    effects: { public: 2, military: 3, trust_primary: -12, escalation: 3, intel: -2 }
     tags: [secrecy, misperception, deterrence]
   right:
     text: "Halt the deliveries for the week"
@@ -160,10 +160,10 @@
         effects: { escalation: -4, trust_primary: 4 }
       failure:
         text: "He opened it anyway, at the second item, and read for fifty minutes. Your delegation had brought its own, and it came out."
-        effects: { escalation: 5, trust_primary: -6, public: 2 }
+        effects: { escalation: 4, trust_primary: -6, public: 2 }
   right:
     text: "Let him read. We have a folder too"
-    effects: { public: 3, military: 2, trust_primary: -8, escalation: 4, allies: -1 }
+    effects: { public: 3, military: 2, trust_primary: -8, escalation: 3, allies: -1 }
     tags: [deterrence, domestic, misperception]
 
 # ---------------------------------------------------------------- the private session (timer)
@@ -195,7 +195,7 @@
       - { card: fp_summit_11_both_sides, in: 0 }
   right:
     text: "The battalion is not on the table"
-    effects: { trust_primary: -10, military: 4, public: 3, escalation: 4, commitment: 6 }
+    effects: { trust_primary: -10, military: 4, public: 3, escalation: 3, commitment: 6 }
     tags: [deterrence, stall, commitment_trap]
     follow:
       - { card: fp_summit_07_in_writing, in: 0 }
@@ -353,7 +353,7 @@
         follow: [{ card: fp_summit_13_witness, in: 0 }]
       failure:
         text: "He did not sign. At 05:20 his delegation asked for their cars, and then asked for them to wait, and they are still waiting."
-        effects: { escalation: 4, trust_primary: -6, public: -2 }
+        effects: { escalation: 3, trust_primary: -6, public: -2 }
         follow: [{ card: fp_summit_14_the_cars, in: 0 }]
 
 - id: fp_summit_12_the_third_chair
@@ -439,6 +439,6 @@
     set: [fp:summit_collapsed]
   right:
     text: "Wheels up. The front door, both flags"
-    effects: { public: 4, trust_primary: -14, escalation: 7, allies: -3, commitment: 8 }
+    effects: { public: 4, trust_primary: -14, escalation: 5, allies: -3, commitment: 8 }
     tags: [deterrence, public_commitment, domestic, escalatory]
     set: [fp:summit_walkout]

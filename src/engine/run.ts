@@ -67,6 +67,7 @@ import {
   accidentChance,
   accidentEffects,
   accidentModifiers,
+  ACT_STIPEND,
   actTarget,
   anteReward,
   computeLeverage,
@@ -969,6 +970,7 @@ function settleAnte(content: Content, state: RunState, events: RunEvent[]): bool
     return false;
   }
   state.stats.antesMissed++;
+  if (r.capital) addCapital(state, r.capital, 'consolation', events);
   addFlag(state, 'ante:missed');
   if (state.stats.antesMissed >= 2) addFlag(state, 'ante:missed_x2');
   return true;
@@ -1211,7 +1213,7 @@ function beginAct(content: Content, state: RunState, rng: Rng, events: RunEvent[
   state.actTarget = actTarget(content, state.act, diff.target_scale ?? 1);
   resetCharges(content, state);
   const ctx = ctxFor(content, state);
-  const perAct = ruleValue(ctx, 'capital_per_act');
+  const perAct = ruleValue(ctx, 'capital_per_act') + (state.act > 1 ? ACT_STIPEND : 0);
   if (perAct) addCapital(state, perAct, 'act', events);
   grow(content, state, 'act_start', undefined, events);
   const act = actDef(content, state.act);

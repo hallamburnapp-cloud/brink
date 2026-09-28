@@ -1,0 +1,357 @@
+# domestic_federation — seat-specific pressure for the Federation: a managed
+# press that blinds you as much as them, a strong army that toasts decision,
+# few friends, and an economy that was sanctioned before this began (queues,
+# reserves, cash from people who want to own things). No arc. At most four
+# conditioned cards: one lifeline (economy < 35), one piece hook
+# (strategic_reserve / fortress), two cross-arc hooks.
+
+# ---- week one / two -----------------------------------------------------------
+
+- id: dom_fed_01_two_bulletins
+  advisor: spin_doctor
+  seats: [federation]
+  acts: [1, 2]
+  tags: [domestic]
+  text: >-
+    The nine o'clock bulletin has two versions and both are cut. One has the
+    queue outside the Kaskad Savings Bank and a line blaming the sanctions.
+    One has a harvest. The queue is true and the harvest is also true, and the
+    ministry would like you to know that only one of them can be true at nine.
+  left:
+    text: "Run the queue. Blame the sanctions"
+    effects: { public: -3, trust_primary: -3, commitment: 2, intel: 1 }
+    tags: [domestic, transparency]
+  right:
+    text: "Run the harvest"
+    effects: { public: 3, intel: -3, commitment: 1 }
+    tags: [domestic, secrecy]
+
+- id: dom_fed_02_sixty_one_days
+  advisor: treasury
+  seats: [federation]
+  acts: [1, 2]
+  tags: [economy, domestic]
+  text: >-
+    The reserve covers sixty-one days of imports at the current burn. Fuel
+    rationing from Monday makes it ninety and puts a card in every wallet in
+    Kaskad with your signature on it. Not rationing keeps the wallets empty of
+    cards and, in about two months, of everything else. I have a dry joke
+    about this and I have decided against it.
+  left:
+    text: "Ration from Monday"
+    effects: { economy: 4, public: -6, military: -2 }
+    tags: [economy, domestic]
+  right:
+    text: "Burn the reserve"
+    effects: { economy: -6, public: 2, commitment: 2 }
+    tags: [economy, stall, domestic]
+
+- id: dom_fed_03_accreditation
+  advisor: press
+  seats: [federation]
+  acts: [1, 2]
+  tags: [domestic, intel]
+  text: >-
+    I am the last foreign correspondent in Kaskad with a working camera and
+    your ministry would like my accreditation pulled by Friday. I am asking for
+    an interview instead, twenty minutes, no topics excluded. If I go, the only
+    pictures of this city on {rival_adj} screens will be the ones your ministry
+    releases, and nobody there believes those. Neither, I suspect, do you.
+  left:
+    text: "Twenty minutes. Nothing excluded"
+    effects: { public: -2, trust_primary: 3, trust_secondary: 2, commitment: -1, intel: 1 }
+    tags: [transparency, domestic]
+  right:
+    text: "Pull it"
+    effects: { public: 2, trust_primary: -4, allies: -3, intel: -2 }
+    tags: [secrecy, domestic]
+
+# ---- week two / three ---------------------------------------------------------
+
+- id: dom_fed_04_the_savings_bank
+  advisor: spin_doctor
+  seats: [federation]
+  acts: [2, 3]
+  tags: [domestic, economy]
+  text: >-
+    The Kaskad Savings Bank opens at nine and the queue starts at five, and
+    tomorrow a {other_adj} camera crew will be there at four. I can have the
+    pavement resurfaced overnight, which moves the queue two streets and the
+    crew with it. Or the treasury opens the counters at six with cash in them,
+    which is a different kind of picture and costs actual money.
+  left:
+    text: "Open at six, with cash"
+    effects: { economy: -6, public: 5, trust_secondary: 1 }
+    tags: [economy, domestic, transparency]
+  right:
+    text: "Resurface the pavement"
+    effects: { public: -3, trust_secondary: -3, intel: -2, economy: -1 }
+    tags: [domestic, secrecy]
+
+- id: dom_fed_05_the_corridor
+  advisor: ally_leader
+  seats: [federation]
+  acts: [2, 3]
+  tags: [alliance, economy, diplomacy]
+  text: >-
+    I can open a grain corridor through the Compact to Kaskad from Monday,
+    forty trains a week, and my parliament will let me if there is a Compact
+    observer at your rail yards to confirm what goes back the other way. I
+    know what your generals will say about an observer. I also know what your
+    bakers will say about the trains.
+  left:
+    text: "Take the trains. Take the observer"
+    effects: { economy: 6, military: -3, intel: -2, trust_primary: 3 }
+    tags: [alliance, economy, diplomacy]
+    odds:
+      label: Her cabinet agrees
+      base: 0.55
+      tags: [alliance, diplomacy]
+      success:
+        effects: { allies: 4, public: 2 }
+      failure:
+        text: "Her coalition partner vetoes it. The trains stop at the border with the grain aboard."
+        effects: { economy: -3, allies: -2, public: -2 }
+  right:
+    text: "We don't take observers"
+    effects: { economy: -4, military: 2, allies: -3 }
+    tags: [secrecy, economy]
+
+- id: dom_fed_06_the_figures
+  advisor: opposition
+  seats: [federation]
+  acts: [2, 3]
+  conditions: { flags_any: [proxy:clash, proxy:advisers_in, proxy:brigade_deployed] }
+  tags: [domestic, military]
+  text: >-
+    My party has eleven seats and is allowed to keep them, and this morning I
+    am using one of them to ask for the casualty figures from Vestria to be
+    read in the chamber. The ministry says they are classified. The mothers
+    outside the ministry say they are not. I would rather hear them from you
+    than count the buses.
+  left:
+    text: "Read them out"
+    effects: { public: -5, military: -2, trust_primary: 2, intel: 3 }
+    tags: [transparency, domestic]
+  right:
+    text: "They stay classified"
+    effects: { public: 2, intel: -3, commitment: 2, military: 1 }
+    tags: [secrecy, domestic]
+
+- id: dom_fed_07_the_straits_price
+  advisor: treasury
+  seats: [federation]
+  acts: [2, 3]
+  conditions: { flags_any: [blockade:declared, cables:cut, undersea_cables:cut] }
+  tags: [economy, domestic]
+  text: >-
+    With the Straits the way they are, diesel in Kaskad costs twice what it
+    did on Monday and the haulage firms are parking their lorries. I can cap
+    the price, which costs the treasury eleven million a day and keeps the
+    shelves full. Or I let the price find its level and the shelves find
+    theirs. Levels are honest, and shelves vote.
+  left:
+    text: "Cap the price"
+    effects: { economy: -7, public: 4, commitment: 2 }
+    tags: [economy, domestic, public_commitment]
+  right:
+    text: "Let it find its level"
+    effects: { economy: -3, public: -6, military: -1 }
+    tags: [economy, domestic]
+
+# ---- week three / four --------------------------------------------------------
+
+- id: dom_fed_08_voskra
+  advisor: aide
+  seats: [federation]
+  acts: [3, 4]
+  timer: 10
+  timeout: right
+  tags: [domestic]
+  text: >-
+    The tractor plant at Voskra has been idle for three weeks and four thousand
+    people are in the square in front of it, quietly, which the governor finds
+    worse than loudly. He has asked twice for troops. The ministry has asked
+    once for you to go there, tomorrow, without troops. The square has asked
+    for nothing yet.
+  left:
+    text: "I'll go to Voskra tomorrow"
+    effects: { public: 5, military: -2, economy: -2, intel: 2 }
+    tags: [domestic, reassurance]
+  right:
+    text: "The governor gets his troops"
+    effects: { public: -6, military: 2, escalation: 1, trust_primary: -2 }
+    tags: [domestic, military]
+
+- id: dom_fed_09_two_hundred_letters
+  advisor: family
+  seats: [federation]
+  acts: [3, 4]
+  tags: [personal, domestic]
+  text: >-
+    The wives of the Third Division have written to me. Not to you, to me, two
+    hundred letters, because they think I will read them and they are right.
+    They want to know when the Division comes home and they have noticed that
+    nobody has said. I have read forty, and I would like you to read one.
+  left:
+    text: "Give me all of them"
+    effects: { public: 3, military: -3, intel: 2 }
+    tags: [personal, domestic, transparency]
+  right:
+    text: "Send them to the ministry"
+    effects: { public: -3, military: 2, commitment: 1 }
+    tags: [personal, domestic, stall]
+
+- id: dom_fed_10_ninety_days
+  advisor: treasury
+  seats: [federation]
+  acts: [3, 4]
+  conditions: { pieces_any: [strategic_reserve, fortress] }
+  tags: [economy, domestic, alliance]
+  text: >-
+    The stockpile works. Grain eighty-eight days, fuel seventy, and the
+    sanctions bounce off it the way it was designed. The Compact would sell us
+    grain at last year's price, which makes it a hundred and fifty days, but
+    only if the Amberline crossing opens to their lorries. Lorries, the General
+    notes, go both ways.
+  left:
+    text: "Open the Amberline crossing"
+    effects: { economy: 5, allies: 3, military: -4, intel: -2 }
+    tags: [economy, diplomacy, alliance]
+  right:
+    text: "The border stays shut"
+    effects: { economy: -3, allies: -3, public: 2, military: 1 }
+    tags: [economy, secrecy, domestic]
+
+- id: dom_fed_11_three_hundred_names
+  advisor: peace_leader
+  seats: [federation]
+  acts: [3, 4]
+  tags: [domestic]
+  text: >-
+    Three hundred students were taken from the vigil on Liberation Square at
+    two this morning and I have their names, all of them, because their
+    parents rang me and not the police. You can release them before the
+    {other_adj} channels have the list. You can charge them and have the list
+    read out abroad every night for a month.
+  left:
+    text: "Release them tonight"
+    effects: { public: 3, military: -3, trust_primary: 3, trust_secondary: 2 }
+    tags: [deescalate, domestic, reassurance]
+  right:
+    text: "Charge them"
+    effects: { public: 1, trust_primary: -4, trust_secondary: -3, intel: -2 }
+    tags: [domestic, secrecy]
+
+# ---- week four / endgame ------------------------------------------------------
+
+- id: dom_fed_12_the_word
+  advisor: spin_doctor
+  seats: [federation]
+  acts: [4, 5]
+  tags: [domestic, nuclear]
+  text: >-
+    The ministry wants a national address tonight with the word 'existential'
+    in it. I have tested the word. It buys you six points and a half-life of
+    three days, after which every bulletin has to be more existential than the
+    last one or the room notices. 'Difficult' buys you nothing and lasts.
+  left:
+    text: "Say existential"
+    effects: { public: 6, commitment: 7, escalation: 4, trust_primary: -5 }
+    tags: [public_commitment, nuclear, escalatory, domestic]
+  right:
+    text: "Say difficult"
+    effects: { public: -4, commitment: -1, trust_primary: 2 }
+    tags: [domestic, reassurance]
+
+- id: dom_fed_13_fourteen_billion
+  advisor: legal
+  seats: [federation]
+  acts: [4, 5]
+  tags: [economy, domestic]
+  text: >-
+    The decree seizes {rival_adj}-owned assets in Kaskad, fourteen billion at
+    yesterday's prices, and it is lawful under the emergency powers. Seizure is
+    permanent in effect whatever the decree says, because nobody buys back what
+    they were made to sell. A freeze is lawful, reversible, and worth nothing
+    to the treasury. I can draft either by noon.
+  left:
+    text: "Seize them"
+    effects: { economy: 6, trust_primary: -7, allies: -3, escalation: 3 }
+    tags: [sanction, escalatory, economy]
+  right:
+    text: "Freeze, don't seize"
+    effects: { economy: -2, public: -3, trust_primary: -2 }
+    tags: [sanction, stall, economy]
+
+- id: dom_fed_14_the_second_bulletin
+  advisor: press
+  seats: [federation]
+  acts: [4, 5]
+  timer: 10
+  timeout: right
+  tags: [domestic, intel]
+  text: >-
+    The square at Voskra is on every {other_adj} channel tonight and on none of
+    yours, and half of Kaskad has a cousin with a satellite dish. I am asking
+    how long you think that holds. Not as a threat. As the only person in this
+    building who has been in a country where it stopped holding.
+  left:
+    text: "Show it tonight. All of it"
+    effects: { public: -6, intel: 3, commitment: -2, trust_secondary: 2 }
+    tags: [transparency, domestic]
+  right:
+    text: "It holds long enough"
+    effects: { commitment: 2 }
+    tags: [secrecy, domestic]
+    odds:
+      label: It holds
+      base: 0.45
+      tags: [intel]
+      success:
+        effects: { public: 2, military: 1 }
+      failure:
+        text: "By Thursday the footage is on every phone in the city, with your bulletin beside it for comparison."
+        effects: { public: -10, military: -3, intel: -2 }
+
+- id: dom_fed_15_the_toast
+  advisor: aide
+  seats: [federation]
+  acts: [4, 5]
+  tags: [domestic, military]
+  text: >-
+    The Chief of Staff is giving a dinner for the colonels of the Third
+    Division tonight at the Officers' House. The toast, I am told, is to 'the
+    Premier who does not hesitate'. There is a place set for you at the head
+    of the table. There is also a version of this evening in which it stays
+    empty and they toast it anyway.
+  left:
+    text: "Take the seat"
+    effects: { military: 5, escalation: 3, commitment: 3, public: 2 }
+    tags: [military, domestic, public_commitment]
+  right:
+    text: "Send regrets"
+    effects: { military: -6, intel: 2, escalation: -1 }
+    tags: [domestic, stall]
+
+- id: dom_fed_16_the_yards
+  advisor: contractor
+  seats: [federation]
+  acts: [1, 5]
+  weight: 1.5
+  conditions: { values: { economy: { max: 34 } } }
+  tags: [economy, domestic]
+  text: >-
+    Halvard would like to buy the Kaskad naval yards. All three docks, the
+    workforce, the order book, for cash, this week, and I am not going to
+    insult you by pretending the cash is mine. It is {other_adj} money and it
+    would like to own where your ships are built. Your treasury has told me
+    what it has, and I am offering four times that.
+  left:
+    text: "Sell the yards"
+    effects: { economy: 10, military: -6, trust_secondary: 3, public: -3, allies: -2 }
+    tags: [economy, domestic]
+  right:
+    text: "Not for sale"
+    effects: { economy: -3, public: 2, military: 2 }
+    tags: [economy, public_commitment, domestic]

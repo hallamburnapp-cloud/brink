@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fixture } from './fixture';
+import { ACT_STIPEND } from './leverage';
 import { Rng } from './rng';
 import {
   buryCard,
@@ -519,7 +520,7 @@ describe('antes, flashpoints and the shop', () => {
     for (const o of s.shop!.offers) expect(o.price).toBeLessThanOrEqual(content.pieces[o.piece].price);
     const cap = s.capital;
     leaveShop(content, s);
-    expect(s.capital).toBe(cap + 2);
+    expect(s.capital).toBe(cap + 2 + ACT_STIPEND); // piece rule + the act stipend
   });
   it('reaches a run_end ending after the last act and can continue into endless', () => {
     const s = run('end');

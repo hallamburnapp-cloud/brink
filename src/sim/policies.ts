@@ -327,6 +327,10 @@ export const greedyPolicy: Policy = {
 export const EDGE_MARGIN = 8;
 /** ... or leaves escalation above this without lowering it. */
 export const ESCALATION_HARD = 88;
+/** The wall for builds that are not paid at the top of the curve. */
+export const ESCALATION_HARD_CALM = 80;
+/** Quadratic price of escalation above CALM_CEILING for calm builds (smaller = steeper). */
+export const HOT_DIVISOR = 8;
 /** Each "?" (hidden cost) is read as this much extra escalation. */
 export const HIDDEN_COST_ESCALATION = 6;
 /** Without an escalation-scaling build, live at or below this. */
@@ -439,7 +443,9 @@ export function evaluateSide(state: RunState, side: ChoiceView, hc: HeuristicCon
   // Hidden costs shown as "?" are read as +6 escalation each.
   const esc = m.escalation;
   const esc2 = clamp(esc + (side.preview.escalation ?? 0) + (expected.escalation ?? 0) + side.hiddenCosts.length * HIDDEN_COST_ESCALATION, 0, 100);
-  if (esc2 > ESCALATION_HARD && esc2 >= esc) hardAvoid = true;
+  // Brink builds are paid to sit just under the top; anyone else treats 80 as the wall.
+  const hardWall = hc.brink ? ESCALATION_HARD : ESCALATION_HARD_CALM;
+  if (esc2 > hardWall && esc2 >= esc) hardAvoid = true;
 
   if (hc.brink) {
     // (c) the build pays at the top of the curve: move toward 82..92 and never past it.
@@ -450,17 +456,20 @@ export function evaluateSide(state: RunState, side: ChoiceView, hc: HeuristicCon
     const overBefore = Math.max(0, esc - BRINK_BAND[1]);
     score -= (over * over - overBefore * overBefore) / 4;
   } else {
-    // (c) otherwise stay at or below 60: every point up costs more the hotter it is.
+    // (c) otherwise stay at or below 60: every point up costs more the hotter it is, and the
+    // region above the ceiling is priced like the edge of an office meter (accidents live there).
     score -= (esc2 - esc) * (1 + esc2 / 50);
     const hot = Math.max(0, esc2 - CALM_CEILING);
     const hotBefore = Math.max(0, esc - CALM_CEILING);
-    score -= (hot * hot - hotBefore * hotBefore) / 20;
+    score -= (hot * hot - hotBefore * hotBefore) / HOT_DIVISOR;
     if (esc >= CALM_CEILING && hasAny(side.tags, CALM_TAGS)) score += 8;
   }
 
   // (b) leverage, in units of what a card ought to score right now; heavy when the ante is slipping.
+  // A calm build stops being paid for leverage as it nears the wall: no ante is worth the accident curve.
   const rel = Math.min(LEVERAGE_REL_CAP, side.leverage.total / hc.unit);
-  score += (hc.ante.pressure ? LEVERAGE_WEIGHT_PRESSURE : LEVERAGE_WEIGHT_RELAXED) * LEVERAGE_SCALE * rel;
+  const heat = hc.brink ? 1 : Math.max(0, 1 - Math.max(0, esc2 - CALM_CEILING) / (ESCALATION_HARD_CALM - CALM_CEILING));
+  score += (hc.ante.pressure ? LEVERAGE_WEIGHT_PRESSURE : LEVERAGE_WEIGHT_RELAXED) * LEVERAGE_SCALE * rel * heat;
 
   // (e) odds: attractive at p ≥ 0.6, neutral 0.45..0.6, avoided below 0.45.
   if (side.odds) {

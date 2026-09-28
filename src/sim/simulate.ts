@@ -106,7 +106,10 @@ export interface RunSummary {
 
 /** Called once per presented card so the simulator can build the per-card table without keeping histories. */
 export interface RunObserver {
-  onCard(card: CardView, decision: Decision, applied: Effects | null, leverage: number): void;
+  /** Called after each card resolves; `state` is the live run state (read only). */
+  onCard(card: CardView, decision: Decision, applied: Effects | null, leverage: number, state: RunState): void;
+  /** Optional: the raw engine events of that step (for attribution probes). */
+  onEvents?(events: RunEvent[], state: RunState): void;
 }
 
 export interface RunOneOptions {
@@ -347,7 +350,7 @@ export function runOne(content: Content, opts: RunOneOptions): RunSummary {
     if (decision === 'bury') {
       const r = buryCard(content, state);
       tally.apply(r.events, state.act);
-      if (observer) observer.onCard(v, 'bury', null, 0);
+      if (observer) observer.onCard(v, 'bury', null, 0, state);
       noteAct();
       continue;
     }
@@ -358,7 +361,8 @@ export function runOne(content: Content, opts: RunOneOptions): RunSummary {
     tally.apply(r.events, state.act);
     if (observer) {
       const h = state.history[state.history.length - 1];
-      observer.onCard(v, decision, h ? h.applied : null, leverage);
+      observer.onCard(v, decision, h ? h.applied : null, leverage, state);
+      observer.onEvents?.(r.events, state);
     }
     noteAct();
   }

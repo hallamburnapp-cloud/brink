@@ -27,7 +27,7 @@
     for you.
   left:
     text: "Release the interceptors"
-    effects: { military: 6, escalation: 6, economy: -4, trust_primary: -8 }
+    effects: { military: 6, escalation: 5, economy: -4, trust_primary: -8 }
     tags: [missile_defence, military, nuclear]
     odds:
       label: Intercept
@@ -67,7 +67,7 @@
     their coast, and it would be understood.
   left:
     text: "Send the package"
-    effects: { military: 7, escalation: 10, trust_primary: -14, public: 3 }
+    effects: { military: 7, escalation: 8, trust_primary: -14, public: 3 }
     tags: [strike, military, escalatory, nuclear]
     follow: [{ card: fp_intercept_06_the_package, in: 0 }]
   right:
@@ -89,7 +89,7 @@
     commander would like it on record that he asked for the release at 04:53.
   left:
     text: "Answer it now. Same range, same sea."
-    effects: { military: 6, escalation: 11, trust_primary: -14, public: 5 }
+    effects: { military: 6, escalation: 8, trust_primary: -14, public: 5 }
     tags: [strike, military, escalatory, nuclear]
     follow: [{ card: fp_intercept_06_the_package, in: 0 }]
   right:
@@ -112,7 +112,7 @@
     and by tonight the country will know. I need something to give them.
   left:
     text: "Give them the package"
-    effects: { military: 8, escalation: 11, trust_primary: -14, public: 6 }
+    effects: { military: 8, escalation: 8, trust_primary: -14, public: 6 }
     tags: [strike, military, escalatory, nuclear]
     follow: [{ card: fp_intercept_06_the_package, in: 0 }]
   right:
@@ -135,7 +135,7 @@
     the answer was that we watched. They have that number now.
   left:
     text: "Give them a number of our own"
-    effects: { military: 7, escalation: 11, trust_primary: -12, public: 4 }
+    effects: { military: 7, escalation: 8, trust_primary: -12, public: 4 }
     tags: [strike, military, escalatory, nuclear]
     follow: [{ card: fp_intercept_06_the_package, in: 0 }]
   right:
@@ -164,7 +164,7 @@
     follow: [{ card: fp_intercept_07_the_morning_after, in: 0 }]
   right:
     text: "A fax is not a notice. Bombers up."
-    effects: { escalation: 8, military: 6, trust_primary: -12, public: 4, commitment: 8 }
+    effects: { escalation: 6, military: 6, trust_primary: -12, public: 4, commitment: 8 }
     tags: [mobilise, military, escalatory, public_commitment]
     follow: [{ card: fp_intercept_06_the_package, in: 0 }]
 
@@ -183,7 +183,7 @@
     harbourmaster does. What they do in those eleven minutes is not up to me.
   left:
     text: "Send it"
-    effects: { military: 6, escalation: 12, trust_primary: -16, public: 4 }
+    effects: { military: 6, escalation: 9, trust_primary: -16, public: 4 }
     tags: [strike, military, escalatory, nuclear]
     odds:
       label: They swallow it
@@ -199,7 +199,7 @@
         text: >-
           Their coastal battery fires at it and misses. Then two tracks rise out of
           the northern range, and this time the ellipses are on land.
-        effects: { escalation: 8, military: -3, intel: -6 }
+        effects: { escalation: 6, military: -3, intel: -6 }
         follow: [{ card: fp_intercept_08_second_track, in: 0 }]
   right:
     text: "Hold it. Bring the bombers home."
@@ -250,7 +250,7 @@
     ending: nuclear_intercept_exchange
   right:
     text: "Intercept. Only intercept."
-    effects: { military: 4, escalation: 7, economy: -5 }
+    effects: { military: 4, escalation: 5, economy: -5 }
     tags: [missile_defence, military, nuclear]
     odds:
       label: Intercept
@@ -302,11 +302,11 @@
           "The Premier has heard such words before." The line stays open. Behind it
           two more of their launchers move to firing positions and ours do the same.
           Nobody fires. Nobody comes down from it either.
-        effects: { escalation: 12, military: 4, trust_primary: -10 }
+        effects: { escalation: 9, military: 4, trust_primary: -10 }
         set: [fp:intercept_exchange]
   right:
     text: "Say nothing he can quote"
-    effects: { escalation: 13, military: 5, commitment: 10, trust_primary: -14, public: -3 }
+    effects: { escalation: 10, military: 5, commitment: 10, trust_primary: -14, public: -3 }
     tags: [secrecy, deterrence, nuclear, escalatory]
     set: [fp:intercept_exchange]
 
@@ -325,7 +325,7 @@
     tell you, and they say what comes next.
   left:
     text: "Bring the release authority in"
-    effects: { escalation: 8, military: 5, public: -4, commitment: 8 }
+    effects: { escalation: 6, military: 5, public: -4, commitment: 8 }
     tags: [nuclear, military, mobilise, warning]
     follow:
       - { card: fp_intercept_fa_02_the_doctrine, in: 0 }
@@ -362,7 +362,7 @@
     ending: nuclear_launch_on_warning
   right:
     text: "Ninety seconds. Second radar."
-    effects: { military: -7, commitment: -10, escalation: 5 }
+    effects: { military: -7, commitment: -10, escalation: 4 }
     tags: [stall, intel, nuclear]
     odds:
       label: Second radar
@@ -403,7 +403,7 @@
     confidence is the honest number.
   left:
     text: "Wait for the second chain"
-    effects: { military: -8, public: -6, intel: 10, escalation: 4 }
+    effects: { military: -8, public: -6, intel: 10, escalation: 3 }
     tags: [stall, intel, investigate, nuclear]
     set: [fp:intercept_false_alarm_caught]
     clear: [false_alarm_live]
@@ -412,7 +412,7 @@
       - { card: fp_intercept_fa_04_the_tape, in: 0 }
   right:
     text: "Top state. Bombers up. Then wait."
-    effects: { escalation: 13, military: 6, trust_primary: -16, public: -3 }
+    effects: { escalation: 10, military: 6, trust_primary: -16, public: -3 }
     tags: [mobilise, military, escalatory, nuclear]
     set: [fp:intercept_false_alarm_caught]
     clear: [false_alarm_live]
@@ -470,7 +470,7 @@
       - { card: fp_intercept_fa_04_the_tape, in: 0 }
   right:
     text: "Override the third key"
-    effects: { escalation: 11, military: 4, commitment: 10, trust_primary: -10 }
+    effects: { escalation: 8, military: 4, commitment: 10, trust_primary: -10 }
     tags: [military, nuclear, escalatory, secrecy]
     set: [fp:intercept_false_alarm_caught]
     clear: [false_alarm_live]

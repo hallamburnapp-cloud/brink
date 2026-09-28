@@ -87,7 +87,7 @@ weathering one that does not fire, feeds `scale` pieces (Iron Nerve, Paranoid Di
 
 ## 4. Antes and flashpoints
 
-Each act has a target (rules.yaml: 250, 900, 2,500, 7,000, 20,000; × difficulty
+Each act has a target (rules.yaml: 250, 500, 1,600, 4,500, 12,000; × difficulty
 `target_scale`; endless acts ×2.8 each). Leverage from ordinary cards accumulates in
 `actLeverage`; flashpoint cards add to the score but not to the ante. When the act's
 cards are spent:
@@ -95,7 +95,11 @@ cards are spent:
 - **met**: capital += 4 + act, plus +1 per extra 50% of the target (max +4); ≥ 2× the
   target is a **smash** (`ante_smashed` scale trigger, the big slam);
 - **missed**: the bluff is called: a `bluff: true` card (or the flashpoint's `bluff_entry`)
-  plays first, with two punishing choices, then the flashpoint sequence proceeds.
+  plays first, with two punishing choices, then the flashpoint sequence proceeds. With no
+  flashpoint left for the act the bluff card is dealt on its own. Banking at least half the
+  target still pays a consolation of 2 PC.
+- Every act after the first also pays a stipend of 2 PC at its start, so a build keeps growing
+  after a called bluff (constants in `leverage.ts`: `ACT_STIPEND`, `CONSOLATION`, `CONSOLATION_RATIO`).
 
 Flashpoints are chosen by act range and weight (×4 for a false-alarm entry when a false
 alarm is live), each once per run (repeatable in endless). Inside a flashpoint only

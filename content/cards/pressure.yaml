@@ -140,7 +140,7 @@
   text: >-
     Three orders are on your desk unsigned. Exercise Ironwood, the reserve
     call-up for two brigades, and the dispersal of the northern squadrons. My
-    staff have started saying you are afraid of the paper. I do not say it. I
+    staff have started saying you are afraid of the paper. I do not say it, I
     am saying they say it.
   left:
     text: "Sign Ironwood. The rest waits"
@@ -216,7 +216,7 @@
     The currency is down nine per cent in six sessions and the {other_adj}
     funds are the ones buying it. I can defend the rate with the reserve, which
     lasts about eleven days at this speed. Or I can let it float, and bread
-    costs what bread costs. Floating is honest. Honest is expensive.
+    costs what bread costs. Floating is honest, and honest is expensive.
   left:
     text: "Defend the rate"
     effects: { economy: -7, public: 3 }
@@ -687,7 +687,7 @@
   tags: [domestic, misperception]
   text: >-
     Are we at war? I am printing one of two front pages at midnight and I would
-    rather it was the right one. 'Yes' is a headline. 'No' is a headline.
+    rather it was the right one. 'Yes' is a headline and so is 'No'.
     '{Leader} declined to say' is also a headline, and it is the one they will
     read in {rival_capital}.
   left:
@@ -736,8 +736,8 @@
   text: >-
     I packed a bag for the children. It is by the door and I have not told them
     why. Your office says there is a place for them and for me at the site,
-    and a bed for you that you will not use. Tell me to unpack it and I will.
-    Tell me tonight.
+    and a bed for you that you will not use. Tell me to unpack it and I will,
+    but tell me tonight.
   left:
     text: "Send them tonight"
     effects: { public: -5, escalation: 2, intel: 1 }

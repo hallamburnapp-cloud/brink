@@ -53,9 +53,15 @@ export function actTarget(content: Content, act: number, difficultyScale = 1): n
 }
 
 /** Political capital for meeting an ante: 4 + act, plus 1 per extra 50% of target over 100% (max +4). */
+/** Political capital paid at the start of every act after the first: the budget that lets a build grow even after a called bluff. */
+export const ACT_STIPEND = 2;
+/** A missed ante still pays this when at least CONSOLATION_RATIO of the target was reached (the room saw you try). */
+export const CONSOLATION = 2;
+export const CONSOLATION_RATIO = 0.5;
+
 export function anteReward(leverage: number, target: number, act: number): { met: boolean; smashed: boolean; capital: number } {
-  if (leverage < target) return { met: false, smashed: false, capital: 0 };
   const ratio = leverage / Math.max(1, target);
+  if (leverage < target) return { met: false, smashed: false, capital: ratio >= CONSOLATION_RATIO ? CONSOLATION : 0 };
   const bonus = Math.min(4, Math.floor((ratio - 1) / 0.5));
   return { met: true, smashed: ratio >= 2, capital: 4 + Math.min(act, 5) + bonus };
 }
@@ -194,13 +200,13 @@ export function accidentEffects(type: AccidentType, escalation: number, severity
   const r = (n: number) => Math.round(n * s);
   switch (type) {
     case 'false_alarm':
-      return { escalation: r(7), military: r(-3), public: r(-3) };
+      return { escalation: r(5), military: r(-3), public: r(-3) };
     case 'misread':
-      return { escalation: r(5), trust_primary: r(-9) };
+      return { escalation: r(4), trust_primary: r(-9) };
     case 'rogue_commander':
-      return { escalation: r(9), allies: r(-5), military: r(2) };
+      return { escalation: r(7), allies: r(-5), military: r(2) };
     case 'attribution_error':
-      return { escalation: r(5), trust_secondary: r(-9), public: r(-4) };
+      return { escalation: r(4), trust_secondary: r(-9), public: r(-4) };
   }
 }
 

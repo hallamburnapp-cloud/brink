@@ -1,0 +1,368 @@
+# domestic_republic — seat-specific pressure for the Republic: a fickle public
+# that moves eleven points on a clip, deep alliances that expect to be
+# consulted before the newspapers, and a military that reads caution as
+# timidity. No arc. At most four conditioned cards: one lifeline (public < 35),
+# one piece hook (allied_basing / alliance_first), two cross-arc hooks.
+
+# ---- week one / two -----------------------------------------------------------
+
+- id: dom_rep_01_the_tracker
+  advisor: spin_doctor
+  seats: [republic]
+  acts: [1, 2]
+  tags: [domestic]
+  text: >-
+    The overnight tracker moved eleven points on a nine-second clip of you not
+    answering a question about Vestria. Not answering badly. Not answering. I
+    can have a line by seven that puts the eleven back, and you will have to
+    say it on camera and mean it for a month.
+  left:
+    text: "Give me the line by seven"
+    effects: { public: 4, commitment: 4, trust_primary: -1 }
+    tags: [domestic, public_commitment]
+  right:
+    text: "Let it breathe"
+    effects: { public: -5, commitment: -1, military: 1 }
+    tags: [domestic, stall]
+
+- id: dom_rep_02_eight_minutes
+  advisor: ally_leader
+  seats: [republic]
+  acts: [1, 2]
+  tags: [alliance, alliance_demand]
+  text: >-
+    Your ambassador briefed my staff on the readiness change eight minutes
+    after your press office briefed the newspapers. I checked the timestamps
+    myself. My parliament has a treaty that says 'consultation' and a
+    dictionary that says what it means. Tell me what you will do, and tell me
+    before you tell them.
+  left:
+    text: "You get the call first. Always"
+    effects: { allies: 5, commitment: 3, intel: -3, military: -2 }
+    tags: [alliance, public_commitment]
+  right:
+    text: "It was operational. It will happen again"
+    effects: { allies: -6, military: 3, trust_primary: -1 }
+    tags: [alliance, secrecy, military]
+
+- id: dom_rep_03_the_arden_club
+  advisor: aide
+  seats: [republic]
+  acts: [1, 2]
+  tags: [domestic, military]
+  text: >-
+    Three colonels from the planning staff dined with a columnist at the Arden
+    Club on Tuesday, and the columnist paid. The Chief of Staff knows and has
+    done nothing, which is his way of telling you something. The column runs
+    on Sunday. The word they used, twice, was 'timid'.
+  left:
+    text: "Address the staff college myself"
+    effects: { military: 4, public: -2, escalation: 1, commitment: 2 }
+    tags: [military, domestic, public_commitment]
+  right:
+    text: "Let the Chief handle his colonels"
+    effects: { military: -4, intel: 2, public: 1 }
+    tags: [domestic, stall]
+
+- id: dom_rep_04_the_dockers
+  advisor: treasury
+  seats: [republic]
+  acts: [1, 2]
+  tags: [economy, domestic]
+  text: >-
+    The Arden dockers voted last night to refuse {rival_adj} cargo from this
+    morning, and the port handles thirty per cent of what the country eats. It
+    is popular. It is also a sanction nobody in this building decided on. I can
+    back it and pay for it, or I can order the port open and pay for that
+    instead.
+  left:
+    text: "Back the boycott"
+    effects: { public: 4, economy: -6, trust_primary: -4 }
+    tags: [sanction, domestic, economy]
+  right:
+    text: "Order the port open"
+    effects: { public: -5, trust_primary: 2, commitment: -1 }
+    tags: [economy, domestic]
+
+# ---- week two / three ---------------------------------------------------------
+
+- id: dom_rep_05_day_twelve
+  advisor: legal
+  seats: [republic]
+  acts: [2, 3]
+  tags: [domestic, alliance]
+  text: >-
+    Under the war powers clause a deployment abroad lapses on day fourteen
+    without a vote of the Assembly, and this is day twelve. I can ask for the
+    vote, which you might lose. Or I can redefine the Caldor detachment as a
+    training mission, which is lawful, and which everyone in the chamber will
+    know is a redefinition.
+  left:
+    text: "Ask for the vote"
+    effects: { commitment: 4, allies: 2 }
+    tags: [domestic, transparency, public_commitment]
+    odds:
+      label: The house votes yes
+      base: 0.6
+      tags: [diplomacy]
+      success:
+        effects: { military: 3, public: 3, commitment: 2 }
+        capital: 1
+      failure:
+        text: "It fails by six. The detachment comes home on television."
+        effects: { military: -8, allies: -6, public: -4 }
+  right:
+    text: "Call it training"
+    effects: { public: -3, trust_primary: -2, military: 2, intel: -1 }
+    tags: [secrecy, stall, domestic]
+
+- id: dom_rep_06_the_premiums
+  advisor: treasury
+  seats: [republic]
+  acts: [2, 3]
+  tags: [economy, alliance]
+  text: >-
+    War-risk premiums on Arden-flagged hulls tripled overnight and two of the
+    big lines have paused sailings through the Straits. I can underwrite the
+    premiums from the exchequer, which is a subsidy to the shipping lines and
+    a signal to {rival_capital} that we intend to keep sailing. Or I let them
+    pause, and the shelves say so in nine days.
+  left:
+    text: "Underwrite the premiums"
+    effects: { economy: -6, public: 3, allies: 2, commitment: 2 }
+    tags: [economy, public_commitment]
+  right:
+    text: "Let them pause"
+    effects: { economy: -3, public: -4, trust_primary: 2 }
+    tags: [economy, stall]
+
+- id: dom_rep_07_the_letter_of_intent
+  advisor: contractor
+  seats: [republic]
+  acts: [2, 3]
+  tags: [military, economy]
+  text: >-
+    Halvard can have two hundred interceptor rounds on the quay at Arden in six
+    days. I need a letter of intent tonight, not a contract, and it needs your
+    signature because nobody else's moves the factory. I should mention that
+    {rival_capital} reads our shipping manifests. That is not a problem, that
+    is the capability working.
+  left:
+    text: "Sign the letter"
+    effects: { military: 5, economy: -5, trust_primary: -3, escalation: 2 }
+    tags: [military, deterrence, economy]
+  right:
+    text: "Not on a letter"
+    effects: { military: -4, public: -2, economy: 1 }
+    tags: [stall, economy]
+
+- id: dom_rep_08_say_it_aloud
+  advisor: peace_leader
+  seats: [republic]
+  acts: [2, 3]
+  conditions: { flags_any: [false_alarm:stood_down, false_alarm:investigated] }
+  tags: [domestic, nuclear]
+  text: >-
+    The papers say a radar saw something last week and you waited, and the
+    something was nothing. A million people in this country would sleep
+    tonight if you said that aloud. Your General will not sleep if you do, and
+    I am told he has not been sleeping anyway. You waited, so say so.
+  left:
+    text: "Tell the country what happened"
+    effects: { public: 5, trust_primary: 4, military: -5, intel: -2 }
+    tags: [transparency, nuclear, reassurance, domestic]
+  right:
+    text: "It never reached my desk"
+    effects: { public: -2, military: 3, commitment: 2, trust_primary: -1 }
+    tags: [secrecy, nuclear, domestic]
+
+# ---- week three / four --------------------------------------------------------
+
+- id: dom_rep_09_the_focus_group
+  advisor: spin_doctor
+  seats: [republic]
+  acts: [3, 4]
+  timer: 10
+  timeout: right
+  tags: [domestic, nuclear]
+  text: >-
+    Eight o'clock clip, forty seconds, and the focus group in Arden North wants
+    to hear 'we will not be the first to fire'. The General's office has sent
+    over 'all options remain on the table', with the word 'remain' underlined.
+    I can only write one of them. The van leaves in ten minutes.
+  left:
+    text: "We will not be the first to fire"
+    effects: { public: 5, commitment: 5, military: -4, trust_primary: 3 }
+    tags: [public_commitment, reassurance, nuclear, domestic]
+  right:
+    text: "All options remain on the table"
+    effects: { public: -3, military: 3, escalation: 3, trust_primary: -3, commitment: 2 }
+    tags: [deterrence, public_commitment, nuclear, domestic]
+
+- id: dom_rep_10_the_steps
+  advisor: family
+  seats: [republic]
+  acts: [3, 4]
+  tags: [personal, domestic]
+  text: >-
+    The families from the Caldor garrison are on the front steps. Forty of
+    them, with photographs, and it is cold, and the police have not moved them
+    because nobody has told the police anything. They asked for you by name.
+    One of them asked for me, which I did not expect.
+  left:
+    text: "Go down to them"
+    effects: { public: 4, military: 2, commitment: 3, intel: -1 }
+    tags: [personal, domestic, reassurance]
+  right:
+    text: "Send the Defence Secretary"
+    effects: { public: -4, military: -2, commitment: -1 }
+    tags: [personal, domestic, stall]
+
+- id: dom_rep_11_twenty_two
+  advisor: opposition
+  seats: [republic]
+  acts: [3, 4]
+  tags: [domestic]
+  text: >-
+    Twenty-two of your own back-benchers will vote with me tonight on the
+    amendment requiring consultation before any strike. I did not recruit
+    them. They came to me because your whips stopped returning calls in the
+    second week. Accept the amendment and it is a courtesy, fight it and it is
+    a defeat.
+  left:
+    text: "Accept the amendment"
+    effects: { military: -6, public: 3, allies: 4, commitment: 2 }
+    tags: [domestic, transparency, alliance]
+  right:
+    text: "Whip against it"
+    effects: { commitment: 2 }
+    tags: [domestic, public_commitment]
+    odds:
+      label: The whip holds
+      base: 0.5
+      tags: [diplomacy]
+      success:
+        effects: { public: 3, military: 3 }
+        capital: 1
+      failure:
+        text: "It passes by nine, and the nine are photographed leaving your party's rooms."
+        effects: { public: -7, military: -3 }
+        capital: -2
+
+- id: dom_rep_12_the_runways
+  advisor: ally_leader
+  seats: [republic]
+  acts: [3, 4]
+  conditions: { pieces_any: [allied_basing, alliance_first] }
+  tags: [alliance, basing, alliance_demand]
+  text: >-
+    Your squadrons on my runways are the most photographed aircraft in the
+    Compact, and my parliament votes Thursday on a motion to inspect what they
+    carry. I can defeat it if you agree in writing that nothing lands here
+    without my defence minister being told first. I am not asking to command
+    your aircraft. I am asking to know where they are.
+  left:
+    text: "Agreed. Nothing lands unannounced"
+    effects: { allies: 6, commitment: 4, intel: -3, military: -3 }
+    tags: [alliance, basing, public_commitment]
+  right:
+    text: "Sovereign aircraft. No conditions"
+    effects: { military: 3, commitment: 2 }
+    tags: [alliance, basing, secrecy]
+    odds:
+      label: Her vote holds
+      base: 0.45
+      tags: [alliance]
+      success:
+        effects: { allies: 2 }
+      failure:
+        text: "The motion passes. Inspectors arrive at the base on Monday with cameras."
+        effects: { allies: -9, military: -3, intel: -2, trust_primary: 2 }
+
+# ---- week four / endgame ------------------------------------------------------
+
+- id: dom_rep_13_the_list
+  advisor: press
+  seats: [republic]
+  acts: [4, 5]
+  timer: 10
+  timeout: right
+  tags: [domestic, intel, military]
+  text: >-
+    I have a target list. Twelve locations in {rival}, grid references, with a
+    note in the margin that says 'when he stops hesitating'. It came from
+    someone in uniform who thinks you are too slow and thinks I am the way to
+    hurry you. I have not decided whether to print it, and I am telling you
+    because I would like to be the kind of person who told you.
+  left:
+    text: "Don't print it. Give me the name"
+    effects: { intel: 3, military: -4, public: -2, trust_primary: 1 }
+    tags: [secrecy, intel, domestic]
+  right:
+    text: "Print it. Let them read it"
+    effects: { public: 3, military: 4, escalation: 5, trust_primary: -6 }
+    tags: [deterrence, escalatory, domestic]
+
+- id: dom_rep_14_the_truce
+  advisor: opposition
+  seats: [republic]
+  acts: [2, 5]
+  weight: 1.5
+  conditions: { values: { public: { max: 34 } } }
+  tags: [domestic, nuclear]
+  text: >-
+    Your approval is at thirty-one and I have never seen a leader come back
+    from thirty-one in a crisis. I am offering a truce: I stand beside you for
+    a fortnight and my people stop asking questions in the chamber. The price
+    is a sentence from you ruling out a first strike, in the chamber, tomorrow.
+    It is not a large price, it only feels large.
+  left:
+    text: "Rule it out. Tomorrow"
+    effects: { public: 9, military: -6, commitment: 6, trust_primary: 4 }
+    capital: 1
+    tags: [domestic, public_commitment, reassurance, nuclear]
+  right:
+    text: "I don't buy truces"
+    effects: { public: -4, military: 3 }
+    capital: -1
+    tags: [domestic, deterrence]
+
+- id: dom_rep_15_two_capitals
+  advisor: ally_leader
+  seats: [republic]
+  acts: [4, 5]
+  conditions: { flags_any: [ultimatum:received, blockade:declared, proxy:clash] }
+  tags: [alliance, alliance_demand]
+  text: >-
+    Two of my members have opened their own channel to {rival_capital}. They
+    did not tell me and they certainly did not tell you, and they are doing it
+    because they think you decide things and then inform us. I can hold the
+    Compact together if you put them in your room tonight, not mine. Or you
+    can warn them off and see how many follow them.
+  left:
+    text: "Bring them into the room tonight"
+    effects: { allies: 6, commitment: 4, intel: -4, military: -2 }
+    tags: [alliance, transparency, diplomacy]
+  right:
+    text: "Warn them off"
+    effects: { allies: -7, trust_primary: -2, military: 2, escalation: 1 }
+    tags: [alliance, deterrence]
+
+- id: dom_rep_16_the_open_letter
+  advisor: aide
+  seats: [republic]
+  acts: [4, 5]
+  tags: [domestic, military]
+  text: >-
+    Eleven retired generals have signed an open letter in this morning's papers
+    calling for 'decision'. The serving Chief did not sign it. He also did not
+    stop it, and two of his staff drafted it. He has asked to see you alone at
+    nine, and the letter has asked to see you in public.
+  left:
+    text: "Nine o'clock. Alone"
+    effects: { military: 4, intel: 2, public: -2, escalation: 1 }
+    tags: [military, domestic, secrecy]
+  right:
+    text: "Answer the letter at the podium"
+    effects: { public: 3, military: -5, commitment: 3, trust_primary: 1 }
+    tags: [domestic, public_commitment, transparency]

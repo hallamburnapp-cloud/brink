@@ -1,0 +1,368 @@
+# domestic_coalition — seat-specific pressure for the Coalition: an economy
+# woven into everyone else's, dual-use satellites, cables and factories that
+# everyone can hit, allies who are really customers, and a fleet that has
+# painted 'Untested' on its own wall. No arc. At most four conditioned cards:
+# one lifeline (economy < 35), one piece hook (commercial_sat), two cross-arc
+# hooks.
+
+# ---- week one / two -----------------------------------------------------------
+
+- id: dom_coa_01_the_order_book
+  advisor: treasury
+  seats: [coalition]
+  acts: [1, 2]
+  tags: [economy, domestic]
+  text: >-
+    Forty per cent of the Qorum fab's output ships to {rival}, under contracts
+    signed before anyone used the word crisis, and the board would like to know
+    by Friday whether it still does. Keep shipping and we are arming the people
+    we are deterring. Stop, and eleven thousand people in Qorum East find out
+    what deterrence costs per hour. The fab does not care either way, which I
+    find restful.
+  left:
+    text: "Keep shipping"
+    effects: { economy: 3, trust_primary: 3, military: -3, public: -3 }
+    tags: [economy, reassurance, domestic]
+  right:
+    text: "Stop the shipments"
+    effects: { economy: -6, trust_primary: -5, military: 3, public: 3 }
+    tags: [sanction, economy, domestic]
+
+- id: dom_coa_02_allies_or_customers
+  advisor: ally_leader
+  seats: [coalition]
+  acts: [1, 2]
+  tags: [alliance, economy, alliance_demand]
+  text: >-
+    The Compact buys imagery from your constellation at commercial rates, and
+    this morning your operator raised them nineteen per cent, citing 'elevated
+    risk'. My cabinet asked me whether we are your allies or your customers,
+    and what the difference costs. I did not have an answer. I am ringing for
+    one.
+  left:
+    text: "Allies. Imagery is free from tonight"
+    effects: { allies: 6, economy: -4, commitment: 3 }
+    tags: [alliance, economy, public_commitment]
+  right:
+    text: "Customers. The invoice stands"
+    effects: { allies: -5, economy: 2, trust_primary: 1 }
+    tags: [alliance, economy]
+
+- id: dom_coa_03_untested
+  advisor: aide
+  seats: [coalition]
+  acts: [1, 2]
+  tags: [military, domestic]
+  text: >-
+    Someone has painted the word 'Untested' on the wall of the fleet's junior
+    officers' mess in Qorum Roads, and the Chief of the Fleet has declined to
+    have it removed. He has instead sent a request for a live-fire exercise off
+    Caldor with the new frigates. The request is nine pages. The word is one.
+  left:
+    text: "Authorise the exercise"
+    effects: { military: 5, escalation: 4, trust_primary: -4, economy: -2 }
+    tags: [military, naval, mobilise]
+  right:
+    text: "Not off Caldor. Not now"
+    effects: { military: -5, allies: 2, escalation: -1 }
+    tags: [stall, reassurance]
+
+- id: dom_coa_04_the_dividend
+  advisor: press
+  seats: [coalition]
+  acts: [1, 2]
+  tags: [economy, domestic]
+  text: >-
+    Your satellite company paid a dividend at eight this morning, while two of
+    its birds were being jammed over the Straits and your foreign ministry was
+    calling that an attack on the Coalition. Sixty per cent of the shareholders
+    are in Qorum and forty are in {other_capital}. I am asking who the
+    Coalition is working for. I am asking on the record.
+  left:
+    text: "Suspend the dividend"
+    effects: { economy: -4, public: 4, trust_secondary: -2, commitment: 2 }
+    tags: [economy, domestic, public_commitment]
+  right:
+    text: "Business as usual"
+    effects: { public: -5, economy: 2, allies: -2 }
+    tags: [economy, domestic]
+
+# ---- week two / three ---------------------------------------------------------
+
+- id: dom_coa_05_the_component
+  advisor: spin_doctor
+  seats: [coalition]
+  acts: [2, 3]
+  timer: 10
+  timeout: right
+  tags: [domestic, economy]
+  text: >-
+    The drone that hit the school in Vestria had a guidance chip in it, and
+    the chip was made in Qorum, and a {rival_adj} channel has the serial
+    number and the factory gate on film. The clip runs at eight. I can
+    announce an export review at seven, which admits it. Or we say we have no
+    knowledge, which is true of you personally.
+  left:
+    text: "Announce the export review at seven"
+    effects: { economy: -4, public: 3, trust_primary: -3, commitment: 2 }
+    tags: [transparency, economy, domestic, sanction]
+  right:
+    text: "No knowledge"
+    effects: { commitment: 1 }
+    tags: [secrecy, domestic]
+    odds:
+      label: It holds
+      base: 0.5
+      tags: [intel]
+      success:
+        effects: { public: 2, economy: 1 }
+      failure:
+        text: "The channel has the invoice too. It has your trade minister's signature on it."
+        effects: { public: -8, allies: -4, trust_secondary: -2 }
+
+- id: dom_coa_06_the_lease
+  advisor: legal
+  seats: [coalition]
+  acts: [2, 3]
+  conditions: { pieces_any: [commercial_sat] }
+  tags: [space, economy, entanglement]
+  text: >-
+    The lease on the commercial constellation says the operator may refuse any
+    tasking 'inconsistent with civil use', and targeting is inconsistent with
+    civil use. The operator has asked, in writing, whether we are tasking for
+    targeting, and the letter is copied to their insurers and, I assume, to
+    {rival_capital}. I can answer it honestly or I can answer it lawfully.
+  left:
+    text: "Honestly. Yes, we are"
+    effects: { intel: 2, economy: -6, trust_primary: -4, military: 2 }
+    tags: [transparency, space, economy]
+  right:
+    text: "Civil use only. In writing"
+    effects: { intel: -4, economy: 2, trust_primary: 3, military: -3, commitment: 3 }
+    tags: [space, public_commitment, reassurance]
+
+- id: dom_coa_07_the_drills
+  advisor: family
+  seats: [coalition]
+  acts: [2, 3]
+  weight: 0.8
+  tags: [personal, filler]
+  text: >-
+    The school moved the children to the basement twice this week for drills.
+    Ana asked me whether the satellites can see her down there, and I said no,
+    and then I realised I did not know whose satellites she meant. She would
+    like you to come to the school. The head would like you not to.
+  left:
+    text: "I'll go to the school tomorrow"
+    effects: { public: 3, intel: -2, military: -1 }
+    tags: [personal, reassurance]
+  right:
+    text: "Not while it's like this"
+    effects: { public: -2, intel: 1, escalation: 1 }
+    tags: [personal, stall]
+
+- id: dom_coa_08_two_million_shareholders
+  advisor: peace_leader
+  seats: [coalition]
+  acts: [2, 3]
+  tags: [domestic, economy]
+  text: >-
+    Two million people sold their shares in the arms divisions this week
+    because I asked them to, and the price is down a fifth. I did not do it to
+    hurt you. I did it because a country whose pensions are invested in the war
+    has no reason to end it. Meet me and announce a review of the export
+    licences, or buy the shares back and tell them why.
+  left:
+    text: "Meet her. Announce the review"
+    effects: { public: 4, economy: -4, military: -3, trust_primary: 2 }
+    tags: [domestic, deescalate, economy]
+  right:
+    text: "Buy the shares back"
+    effects: { economy: -6, military: 3, public: -3 }
+    tags: [economy, domestic]
+
+# ---- week three / four --------------------------------------------------------
+
+- id: dom_coa_09_the_switch
+  advisor: legal
+  seats: [coalition]
+  acts: [3, 4]
+  tags: [cyber, economy, domestic]
+  text: >-
+    Thirty per cent of {rival_adj} logistics runs on software licensed from
+    Qorum, and there is a clause that lets us switch it off. It is lawful under
+    the export act. Under everyone else's law it is an act of war, and under
+    the law of markets it is the last piece of Qorum software anyone ever
+    licenses. I have the clause here, and it is one paragraph.
+  left:
+    text: "Switch it off"
+    effects: { military: 4, escalation: 8, trust_primary: -8, economy: -4 }
+    tags: [cyber, escalatory, sanction]
+  right:
+    text: "Leave the switch alone"
+    effects: { military: -4, trust_primary: 2, public: -2 }
+    tags: [stall, cyber]
+
+- id: dom_coa_10_museum_with_a_budget
+  advisor: aide
+  seats: [coalition]
+  acts: [3, 4]
+  conditions: { flags_any: [blockade:declared, proxy:clash, ultimatum:received] }
+  tags: [military, naval, domestic]
+  text: >-
+    The fleet has been in Qorum Roads for nineteen days and the Chief of the
+    Fleet has begun calling it 'a museum with a budget' in meetings you are
+    not in. He wants two frigates through the Straits by Sunday, for the flag,
+    he says. The last time the flag went through the Straits it came back with
+    a hole in it.
+  left:
+    text: "Sail. Show the flag"
+    effects: { military: 6, escalation: 4, economy: -3, trust_primary: -3 }
+    tags: [naval, military, deterrence]
+  right:
+    text: "They stay in the Roads"
+    effects: { military: -6, escalation: -1, allies: -2, trust_primary: 1 }
+    tags: [stall, naval, reassurance]
+
+- id: dom_coa_11_the_tender
+  advisor: ally_leader
+  seats: [coalition]
+  acts: [3, 4]
+  tags: [alliance, economy]
+  text: >-
+    The Compact tender for missile defence closes Friday and it is between
+    Halvard and a {other_adj} consortium. Halvard is dearer by a third and it
+    is yours, which is a fact and also, this month, a risk. I can steer the
+    committee. I need to know whether you would rather be our supplier or our
+    protector, because my ministers have noticed they are not the same job.
+  left:
+    text: "Undercut them. Win it"
+    effects: { economy: -5, allies: 5, military: 2, trust_secondary: -3 }
+    tags: [alliance, economy]
+  right:
+    text: "Let them buy elsewhere"
+    effects: { allies: -5, economy: 2, trust_secondary: 3 }
+    tags: [alliance, economy, stall]
+
+- id: dom_coa_12_the_relay_layer
+  advisor: contractor
+  seats: [coalition]
+  acts: [3, 4]
+  tags: [space, economy, military]
+  text: >-
+    Four hundred satellites, and every one of them can be dark by morning if
+    somebody in {rival_capital} decides so. Halvard has a hardened relay layer,
+    twelve birds, that keeps the constellation talking when the rest is blind.
+    It is expensive and it is visible, and it will be read as preparation.
+    Alternatively, the constellation is the deterrent, in the sense that it is
+    the hostage.
+  left:
+    text: "Buy the relay layer"
+    effects: { economy: -8, military: 4, intel: 3, escalation: 2, trust_primary: -2 }
+    tags: [space, deterrence, economy, military]
+  right:
+    text: "The constellation is the deterrent"
+    effects: { intel: -3, commitment: 3, economy: 1, trust_primary: 1 }
+    tags: [space, stall, entanglement]
+
+# ---- week four / endgame ------------------------------------------------------
+
+- id: dom_coa_13_nine_thousand
+  advisor: legal
+  seats: [coalition]
+  acts: [4, 5]
+  tags: [economy, naval, military]
+  text: >-
+    {Rival} has seized the Qorum-owned refinery at Vestria's port with nine
+    thousand of our nationals inside the fence, and the board has asked for a
+    naval escort to bring them out. A warship in a contested port is lawful
+    with the host's consent, and the host is the person who seized the
+    refinery. Civilian charters are lawful, slow, and uninsured. The board owns
+    the charters too.
+  left:
+    text: "Send the escort"
+    effects: { military: 5, escalation: 5, economy: -3, allies: 2, trust_primary: -4 }
+    tags: [naval, military, escalatory]
+  right:
+    text: "Charters. Uninsured"
+    effects: { economy: -6, military: -4, trust_primary: 2, public: -2 }
+    tags: [stall, deescalate, economy]
+
+- id: dom_coa_14_the_open
+  advisor: treasury
+  seats: [coalition]
+  acts: [4, 5]
+  once: false
+  timer: 10
+  timeout: right
+  conditions: { flags_any: [cables:cut, undersea_cables:cut, blackout:started, debris:event] }
+  tags: [economy]
+  text: >-
+    The Qorum exchange opens in twenty minutes and the futures are down
+    fourteen per cent, because the thing the world buys from us has just been
+    shown to be breakable. I can halt trading for the day, which tells everyone
+    it is that bad, or it opens and by lunch we find out how bad. Halting costs
+    a headline. Opening costs a number.
+  left:
+    text: "Halt trading"
+    effects: { economy: -4, public: -3, commitment: 1 }
+    tags: [economy, stall]
+  right:
+    text: "Open the exchange"
+    effects: { economy: -9, public: -5, trust_secondary: 3 }
+    tags: [economy, transparency]
+
+- id: dom_coa_15_dual_use
+  advisor: opposition
+  seats: [coalition]
+  acts: [4, 5]
+  tags: [economy, domestic]
+  text: >-
+    The chamber votes tonight on my bill barring dual-use exports to both
+    {rival} and {other}, and I have the numbers, because your own members have
+    factories and would rather have a law to blame than a choice to make. It
+    costs us a fifth of the export book. It also ends the argument about who
+    the Coalition is working for. I can lose the vote if you ask me to, and I
+    would like to be asked.
+  left:
+    text: "Back the bill"
+    effects: { economy: -8, trust_primary: -6, trust_secondary: -5, public: 5, military: 3 }
+    tags: [sanction, economy, domestic, public_commitment]
+  right:
+    text: "Fight it"
+    effects: { commitment: 1 }
+    capital: -1
+    tags: [economy, domestic]
+    odds:
+      label: The chamber holds
+      base: 0.45
+      tags: [diplomacy]
+      success:
+        effects: { economy: 2, public: -2, trust_primary: 2 }
+      failure:
+        text: "It passes by eleven, with an amendment naming the factories."
+        effects: { public: -6, economy: -6 }
+        capital: -2
+
+- id: dom_coa_16_thirty_per_cent
+  advisor: treasury
+  seats: [coalition]
+  acts: [1, 5]
+  weight: 1.5
+  conditions: { values: { economy: { max: 34 } } }
+  tags: [economy, domestic, entanglement]
+  text: >-
+    {Other} has offered to buy thirty per cent of the constellation and a
+    ninety-nine-year lease on the Qorum container port, for cash, by Friday.
+    It is a good price, which is how you know what they think of our position.
+    It fills the hole in the accounts, and it puts {other_adj} engineers inside
+    the birds and {other_adj} cranes over the port. I have run the numbers, and
+    they say yes, and the rest of me is not a number.
+  left:
+    text: "Sell"
+    effects: { economy: 10, trust_secondary: 5, allies: -4, intel: -3, military: -3 }
+    tags: [economy, domestic, entanglement]
+  right:
+    text: "Not for sale"
+    effects: { economy: -3, public: 2, trust_secondary: -2 }
+    tags: [economy, public_commitment, domestic]

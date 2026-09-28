@@ -38,7 +38,7 @@
     remember it.
   left:
     text: "The General takes the chair"
-    effects: { military: 6, commitment: 8, escalation: 4, trust_primary: -8 }
+    effects: { military: 6, commitment: 8, escalation: 3, trust_primary: -8 }
     tags: [military, deterrence, commitment_trap]
     follow:
       - { card: fp_midnight_02_their_hour, in: 0 }
@@ -80,7 +80,7 @@
       - { card: fp_midnight_05_four_minutes, in: 0 }
   right:
     text: "Everything has been said. Midnight is theirs"
-    effects: { commitment: 12, escalation: 5, trust_primary: -10, public: 3 }
+    effects: { commitment: 12, escalation: 4, trust_primary: -10, public: 3 }
     tags: [deterrence, public_commitment, commitment_trap]
     follow:
       - { card: fp_midnight_06_the_word_any, in: 0 }
@@ -114,7 +114,7 @@
       - { card: fp_midnight_05_four_minutes, in: 0 }
   right:
     text: "Midnight is midnight. Hold"
-    effects: { commitment: 10, escalation: 4, military: 3 }
+    effects: { commitment: 10, escalation: 3, military: 3 }
     tags: [deterrence, military, public_commitment]
     odds:
       label: They blink
@@ -126,7 +126,7 @@
         follow: [{ card: fp_midnight_14_they_blinked, in: 0 }]
       failure:
         text: "Midnight. The fuel truck moved. Nothing else did, and the package is still holding at the edge of their radar, burning fuel it cannot get back."
-        effects: { escalation: 5, military: -2, public: -2 }
+        effects: { escalation: 4, military: -2, public: -2 }
         follow: [{ card: fp_midnight_10_the_hour_after, in: 0 }]
 
 - id: fp_midnight_04_full_readiness
@@ -154,7 +154,7 @@
       - { card: fp_midnight_05_four_minutes, in: 0 }
   right:
     text: "Match it. Full readiness at 23:59"
-    effects: { military: 6, escalation: 6, commitment: 8, trust_primary: -10 }
+    effects: { military: 6, escalation: 5, commitment: 8, trust_primary: -10 }
     tags: [mobilise, military, deterrence, escalatory]
     odds:
       label: They blink
@@ -166,7 +166,7 @@
         follow: [{ card: fp_midnight_14_they_blinked, in: 0 }]
       failure:
         text: "Midnight. Both sides at full readiness, forty metres of river between two regiments, and their first registering round on the ridge at 00:09."
-        effects: { escalation: 6, allies: -3 }
+        effects: { escalation: 5, allies: -3 }
         follow: [{ card: fp_midnight_10_the_hour_after, in: 0 }]
 
 # ---------------------------------------------------------------- the call (hotline, spend_charge)
@@ -191,7 +191,7 @@
     follow: [{ card: fp_midnight_12_have_you_eaten, in: 0 }]
   right:
     text: "Four minutes is four minutes. They go first"
-    effects: { commitment: 10, escalation: 4, trust_primary: -6 }
+    effects: { commitment: 10, escalation: 3, trust_primary: -6 }
     tags: [deterrence, public_commitment, stall]
     odds:
       label: They blink
@@ -203,7 +203,7 @@
         follow: [{ card: fp_midnight_14_they_blinked, in: 0 }]
       failure:
         text: "00:30 passed. At 00:41 their guns began registering on the ridge, one round every six minutes, walking towards the battalion."
-        effects: { escalation: 8, allies: -3, military: 2 }
+        effects: { escalation: 6, allies: -3, military: 2 }
         follow: [{ card: fp_midnight_10_the_hour_after, in: 0 }]
 
 # ---------------------------------------------------------------- piece layer (one of four, no follows: the queue carries on)
@@ -223,7 +223,7 @@
     is quite relaxed about tonight, and the record is not.
   left:
     text: "The line holds. Say so again, now"
-    effects: { commitment: 12, public: 3, escalation: 4, trust_primary: -8 }
+    effects: { commitment: 12, public: 3, escalation: 3, trust_primary: -8 }
     tags: [public_commitment, commitment_trap, deterrence]
     odds:
       label: They blink
@@ -234,7 +234,7 @@
         effects: { escalation: -4, intel: 4, trust_primary: -2 }
       failure:
         text: "Their liaison did not ring. At 23:55 their guns fired one registering round, so that 'any' would have something to be."
-        effects: { escalation: 6, trust_primary: -8, military: 2 }
+        effects: { escalation: 5, trust_primary: -8, military: 2 }
   right:
     text: "Redraw it. Quietly, before midnight"
     effects: { commitment: -14, public: -5, trust_primary: 6, military: -3, intel: -4 }
@@ -294,7 +294,7 @@
         effects: { escalation: -4, trust_primary: 4 }
       failure:
         text: "At 23:58 the ambassador left without his coat. The crews stayed stood to, and at 00:10 two of their regiments left barracks."
-        effects: { escalation: 7, trust_primary: -10, intel: -6 }
+        effects: { escalation: 5, trust_primary: -10, intel: -6 }
 
 - id: fp_midnight_09_the_protocol
   flashpoint: fp_midnight
@@ -316,7 +316,7 @@
     tags: [deescalate, diplomacy, reassurance]
   right:
     text: "Let the ten minutes pass"
-    effects: { trust_primary: -12, commitment: 6, escalation: 5, public: 2, intel: 2 }
+    effects: { trust_primary: -12, commitment: 6, escalation: 4, public: 2, intel: 2 }
     tags: [stall, deterrence, secrecy]
 
 # ---------------------------------------------------------------- the hour after (timer)
@@ -337,7 +337,7 @@
     it and the night has an author; bring it home and it has a different one.
   left:
     text: "Deliver it"
-    effects: { military: 5, escalation: 8, public: 3, trust_primary: -14, allies: -3 }
+    effects: { military: 5, escalation: 6, public: 3, trust_primary: -14, allies: -3 }
     tags: [limited_strike, strike, military, escalatory, commitment_trap]
     odds:
       label: They hold
@@ -345,11 +345,11 @@
       tags: [adversary, strike]
       success:
         text: "The depot at Tessel burned for an hour. Their guns stopped at 01:10, and their liaison used the word 'exercise' twice, once for each side."
-        effects: { escalation: 4, public: 3, trust_primary: -6 }
+        effects: { escalation: 3, public: 3, trust_primary: -6 }
         follow: [{ card: fp_midnight_13_the_record, in: 0 }]
       failure:
         text: "'{Rival} will respond at a time and place of its choosing.' At 01:14 the northern radar reported a change in their launch posture, and nobody said the word software. The General has put the second package up without asking, because he did not need to."
-        effects: { escalation: 10, allies: -3, intel: -6 }
+        effects: { escalation: 8, allies: -3, intel: -6 }
         follow: [{ card: fp_midnight_11_nine_minutes, in: 0 }]
   right:
     text: "Bring it home"
@@ -390,7 +390,7 @@
         ending: nuclear_midnight
   right:
     text: "Tell him. Everything in the air"
-    effects: { military: -7, public: -4, commitment: -10, escalation: 7 }
+    effects: { military: -7, public: -4, commitment: -10, escalation: 5 }
     tags: [transparency, deescalate, nuclear, reassurance]
     odds:
       label: He believes you
