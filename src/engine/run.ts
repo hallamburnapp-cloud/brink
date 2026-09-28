@@ -678,10 +678,14 @@ function drawNext(content: Content, state: RunState, rng: Rng, events: RunEvent[
   }
   let idx = rng.weightedIndex(weights);
   if (idx < 0) {
-    // Content gap: allow repeats of any act-appropriate, unconditioned card.
+    // Content gap: allow repeats of any act-appropriate card whose conditions hold (ignoring `once`).
+    const lastId = state.history.length ? state.history[state.history.length - 1].card : null;
     const fallback = content.cardOrder.filter((id) => {
       const c = content.cards[id];
-      return !c.chained && !c.flashpoint && state.act >= c.acts[0] && state.act <= c.acts[1] && (!c.seats || c.seats.includes(state.seat)) && !c.conditions && !c.warning;
+      if (c.chained || c.flashpoint || c.warning || id === lastId) return false;
+      if (state.act < c.acts[0] || state.act > c.acts[1]) return false;
+      if (c.seats && !c.seats.includes(state.seat)) return false;
+      return checkConditions(c.conditions, state, pieces);
     });
     if (fallback.length === 0) {
       finishAct(content, state, rng, events);

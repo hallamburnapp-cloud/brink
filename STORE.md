@@ -64,7 +64,7 @@ game, downloaded or played here, with the Daily included.
   Federation with the big army, the Coalition everyone's infrastructure runs through.
 - Two-choice cards, 23 speakers with their own voices, timers on the cards that deserve them.
 - Five visible meters. Four hidden values carried by prose, never numbers.
-- Five acts, five flashpoints with visible odds, near misses reported to the percent.
+- Five acts, five flashpoints with visible odds, near misses reported to the percentage point.
 - 36 posture pieces (12 advisors, 12 doctrines, 12 assets) offered between acts; they combine.
 - 40+ endings, a "moment it went wrong" card, a compendium, lifetime statistics.
 - The Daily: one shared seed, one attempt, a streak. Endless: any seat, any seed, five DEFCON tiers.
@@ -154,7 +154,7 @@ attempt, and a streak. Endless gives you every seat, every seed and five DEFCON 
 [*] Three seats with different starting positions, allies and weaknesses
 [*] Two-choice cards with drag or tap; timers on about one card in five
 [*] 23 speakers, from the Duty Officer reading the board to your partner asking if you have eaten
-[*] Five acts, five flashpoints, visible odds, near misses to the percent
+[*] Five acts, five flashpoints, visible odds, near misses to the percentage point
 [*] 36 posture pieces that combine into builds; a compendium that tracks what you have seen
 [*] 40+ endings, each with the card where it went wrong or held
 [*] A shareable card with your five meters, day by day
@@ -267,12 +267,12 @@ set so the red wash tells its own story.
 
 | # | On screen | Moment | Caption | Why it sells |
 | --- | --- | --- | --- | --- |
-| 1 | `falarm_01_one_track`: Lt. Cmdr. Rennick, one track out of the polar sector, the 10-second timer bar half gone, the card tilted right with the stamp WAIT FOR THE SECOND RADAR fading in; preview dots on military and intel; HUD reads DAILY #3 · THE REPUBLIC · WEEK ONE | Week One, day 2, escalation ~22 (cool navy) | "Ninety seconds before I have to wake the release authority. Sir or ma'am, that is you." | Anyone who has played Reigns understands the whole interface in one second. The timer and the copy carry the tone |
+| 1 | `falarm_01_one_track`: Lt. Cmdr. Rennick, one track out of the polar sector, the 10-second timer bar half gone, the card tilted right with the stamp WAIT FOR THE SECOND RADAR fading in; preview dots on military and intel; HUD reads DAILY #4 · THE REPUBLIC · WEEK ONE | Week One, day 2, escalation ~22 (cool navy) | "Ninety seconds before I have to wake the release authority. Sir or ma'am, that is you." | Anyone who has played Reigns understands the whole interface in one second. The timer and the copy carry the tone |
 | 2 | The odds overlay at Midnight: label THEY BLINK, 47%, the needle mid-sweep in slow motion, red inset pulse on the frame; below it the resolved result FAILED · Missed by 3% | Endgame flashpoint, escalation ~78 (strong red wash) | "The odds are on the table before you choose. The margin is on the table after." | The signature mechanic and the sentence people will quote. Shows the flashpoint state visually |
 | 3 | The offer screen "Adjust your posture": three piece cards, one per pool — General Oren Vasska (the Hawk General), Launch on Warning, Commercial Satellite Deal — with their mechanics lines visible; the Hawk selected, button reads BRING IN VASSKA | Between Week One and Week Two | "Between weeks, three people want a word." | Signals build structure to the roguelite audience; the mechanics text shows there are real rules |
 | 4 | The HUD with a build in place: pieces row shows Hawk General + Defence Contractor; a card mid-drag with a "?" over escalation (hidden cost) and military +8 preview; the hidden-value line reads THEY EXPECT THE WORST · LOW CONFIDENCE · BOXED IN | Week Four, escalation ~66 | "Four values you never see as numbers. The General does not mention the fifth." | Depth without a tutorial: the "?" and the prose bands are the pitch for hidden information |
 | 5 | The ending screen: ending name in large serif with its emoji, the red stamp NUCLEAR, THE MOMENT IT WENT WRONG with the card and its speaker, the 1080 × 1350 share card rendered below with the five-row strip turning red on the bottom row, buttons SHARE · RUN AGAIN · REPLAY THIS SEED | Any nuclear ending, day 27 | "Forty-plus endings, each with the card where it went wrong. Replay the seed and find out if it had to." | The share artefact and the promise of replayability in one frame |
-| 6 | The home screen: DAILY #14 · 2026-10-11, THE COALITION in amber, "Same seed for everyone. One attempt. Streak 6.", the Endless card beneath, a compendium line reading 31% COMPLETE | Home, before play | "One crisis a day. Same seed for everyone. No account." | The habit and the frictionlessness; the Coalition accent shows the seat rotation |
+| 6 | The home screen: DAILY #15 · 2026-10-12, THE COALITION in amber, "Same seed for everyone. One attempt. Streak 6.", the Endless card beneath, a compendium line reading 31% COMPLETE | Home, before play | "One crisis a day. Same seed for everyone. No account." | The habit and the frictionlessness; the Coalition accent shows the seat rotation |
 
 Alternate for 6 if the page needs more drama: `falarm_26_the_call`, the Hotline speaker,
 translated text with the pauses, caption "The pauses are the message."

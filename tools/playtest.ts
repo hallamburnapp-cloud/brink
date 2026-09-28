@@ -163,6 +163,13 @@ async function main() {
   const exe = process.env.PW_CHROMIUM_PATH ?? (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
   const context = await browser.newContext({ ...devices['Pixel 7'], reducedMotion: 'reduce' });
+  // Playtests may use any seat or tier: pre-unlock everything in this throwaway profile.
+  const allUnlocks = ['seat_federation', 'seat_coalition', 'defcon_4', 'defcon_3', 'defcon_2', 'defcon_1', 'arsenal', 'false_alarm_survivor', 'limited_striker', 'late_hands', 'cool_head', 'low_survivor', 'bankrupt', 'no_backchannel_standdown', 'five_endings', 'unloved_peacemaker'];
+  await context.addInitScript((ids: string[]) => {
+    try {
+      if (!localStorage.getItem('brink.unlocks')) localStorage.setItem('brink.unlocks', JSON.stringify(ids));
+    } catch {}
+  }, allUnlocks);
   const page = await context.newPage();
   const log: string[] = [`# Playtest — style ${style}, seat ${seat}, seed ${seed}, DEFCON ${difficulty}`, '', `Started ${new Date().toISOString()}`, ''];
   const shots: string[] = [];
@@ -183,6 +190,12 @@ async function main() {
     await page.getByPlaceholder(/.+/).first().fill(seed);
     await shot('seat');
     await page.getByRole('button', { name: /Pick up the phone/ }).click();
+    // First-run standing orders
+    const intro = page.getByRole('dialog', { name: 'How this works' });
+    if (await intro.isVisible({ timeout: 1500 }).catch(() => false)) {
+      await shot('intro');
+      await intro.getByRole('button').click();
+    }
 
     let step = 0;
     let lastAct = '';

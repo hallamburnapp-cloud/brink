@@ -39,6 +39,8 @@ test.describe('Unlock flow with a stubbed Worker', () => {
     await page.locator('section').filter({ hasText: 'ENDLESS' }).getByRole('button', { name: 'Play' }).click();
     await expect(page.getByText('Take a seat')).toBeVisible();
     await page.getByRole('button', { name: /Pick up the phone/ }).click();
+    const intro = page.getByRole('dialog', { name: 'How this works' });
+    if (await intro.isVisible({ timeout: 2000 }).catch(() => false)) await intro.getByRole('button').click();
     await expect(page.getByRole('group', { name: /Card from/ })).toBeVisible();
 
     // Token survives reload

@@ -5,8 +5,9 @@ import { Card, ChoiceButtons } from '../components/Card';
 import { HiddenReadout, Meters } from '../components/Meters';
 import { Timer } from '../components/Timer';
 import { RollOverlay } from '../components/RollOverlay';
+import { Intro } from '../components/Intro';
 import { Offer } from './Offer';
-import { abandonRun, bury, busy, cardView, content, decide, lastApplied, rollOverlay, run, runMeta, toast } from '../store';
+import { abandonRun, bury, busy, cardView, content, decide, lastApplied, rollOverlay, run, runMeta, settings, toast } from '../store';
 import { Portrait } from '../art/Portrait';
 
 export function Run() {
@@ -27,7 +28,7 @@ export function Run() {
   const hidden: EffectKey[] = tilt.side ? v[tilt.side].hiddenCosts : [];
   const speakerName = template(c, s, v.advisor.name);
   const speakerRole = template(c, s, v.advisor.role);
-  const paused = busy.value || !!rollOverlay.value || menu;
+  const paused = busy.value || !!rollOverlay.value || menu || !settings.value.seenIntro;
 
   return (
     <div class="flex flex-1 flex-col gap-3">
@@ -98,6 +99,7 @@ export function Run() {
       </div>
 
       {rollOverlay.value && <RollOverlay result={rollOverlay.value.result} slow={rollOverlay.value.slow} />}
+      <Intro />
     </div>
   );
 }

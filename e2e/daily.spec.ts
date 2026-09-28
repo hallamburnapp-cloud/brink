@@ -10,6 +10,9 @@ test.describe('Daily run', () => {
 
     // Start the daily
     await page.getByRole('button', { name: 'Play' }).first().click();
+    // First-run standing orders
+    const intro = page.getByRole('dialog', { name: 'How this works' });
+    if (await intro.isVisible({ timeout: 2000 }).catch(() => false)) await intro.getByRole('button').click();
     await expect(page.getByText(/WEEK ONE/i).first()).toBeVisible();
     // The HUD shows the five meters
     for (const m of ['PUBLIC', 'MILITARY', 'ALLIES', 'ECONOMY', 'ESCALATION']) await expect(page.getByText(m, { exact: true }).first()).toBeVisible();
@@ -52,6 +55,8 @@ test.describe('Daily run', () => {
     await page.goto('/');
     // Endless is paywalled in the e2e build; use the daily then replay via ending screen
     await page.getByRole('button', { name: 'Play' }).first().click();
+    const intro = page.getByRole('dialog', { name: 'How this works' });
+    if (await intro.isVisible({ timeout: 2000 }).catch(() => false)) await intro.getByRole('button').click();
     const firstCardText = await page.getByRole('group', { name: /Card from/ }).locator('.serif').nth(1).innerText();
     await playToEnd(page, 'right');
     await expectEndingScreen(page);

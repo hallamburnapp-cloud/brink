@@ -1,0 +1,635 @@
+# DEFECTOR — Colonel Ivo Strand, deputy for plans on the {rival_adj} general staff,
+# arrives with fourteen hundred pages he calls Plan Lantern: a seizure of the Sorrel
+# Straits under the cover of a notified exercise. Their war plans, or a plant built
+# to make you overreact. Forces: misperception (believing a plant escalates; doubting
+# a truth costs you warning); intel reliability (paranoid_intel believes, cautious_intel
+# waits, signals_intercept corroborates via intel odds); spin_doctor wants him on
+# television; the transparency doctrine makes every secret cost more.
+# The central card (defector_04_lantern) is a warning: card — the engine decides the
+# truth against intel reliability. Keeping the alert on the plant branch sets the
+# engine flag false_alarm_live (a believed plant is a live false alarm).
+# Flags: defector:arrived, defector:believed, defector:doubted, defector:returned,
+# defector:public. Cross-hooks (flags_any): false_alarm:reported, ultimatum:received.
+
+# ---------------------------------------------------------------- entry 1 (acts 2–3)
+- id: defector_01_the_ferry
+  arc: defector
+  advisor: intel_director
+  acts: [2, 3]
+  weight: 1.6
+  tags: [intel, misperception]
+  conditions: { flags_none: [defector:arrived] }
+  note: Arc entry. A man off the Caldor ferry with a suitcase.
+  text: >-
+    At 05:40 a man walked off the Caldor ferry with a diplomatic passport and a
+    suitcase and asked the harbour police for me by name. Colonel Ivo Strand,
+    deputy for plans on the {rival_adj} general staff, or a man with his face and
+    his papers. The suitcase holds fourteen hundred pages he calls their war. We
+    assess nothing yet; I would like him off that island before anyone counts the
+    passengers.
+  left:
+    text: "Fly him in tonight"
+    effects: { intel: 5, trust_primary: -3, public: -1 }
+    tags: [intel, secrecy]
+    set: [defector:arrived]
+    follow: [{ card: defector_04_lantern, in: 2 }]
+  right:
+    text: "Leave him on Caldor. Send a team."
+    effects: { intel: -3, military: -2, public: -2 }
+    tags: [stall, investigate, intel]
+    set: [defector:arrived]
+    follow: [{ card: defector_04_lantern, in: 3 }]
+
+# ---------------------------------------------------------------- entry 2 (acts 3–4)
+- id: defector_02_the_embassy_gate
+  arc: defector
+  advisor: ambassador
+  acts: [3, 4]
+  weight: 1.4
+  tags: [intel, diplomacy, misperception]
+  conditions: { flags_none: [defector:arrived] }
+  note: Arc entry. The ambassador remembers the last colonel.
+  text: >-
+    A colonel rang the bell of our embassy in Amberline at two this morning and is
+    drinking our coffee with a briefcase on his knees. The last time a colonel did
+    that to us I was a third secretary, and we believed him for eleven days, which
+    was ten more than we could afford. Amberline's police will notice the car by
+    breakfast. The question is not whether he is genuine; it is who we will be
+    seen to have been talking to.
+  left:
+    text: "Get him out of Amberline"
+    effects: { intel: 5, trust_secondary: -5, public: -1 }
+    tags: [secrecy, intel]
+    set: [defector:arrived]
+    follow: [{ card: defector_04_lantern, in: 2 }]
+  right:
+    text: "Interview him there. Slowly."
+    effects: { intel: 2, trust_secondary: -2, military: -2, trust_primary: -3 }
+    tags: [stall, investigate, diplomacy]
+    set: [defector:arrived]
+    follow: [{ card: defector_04_lantern, in: 3 }]
+
+# ---------------------------------------------------------------- entry 3 (acts 4–5)
+- id: defector_03_the_basement
+  arc: defector
+  advisor: aide
+  acts: [4, 5]
+  weight: 1.3
+  timer: 10
+  timeout: right
+  tags: [intel, personal]
+  conditions: { flags_none: [defector:arrived] }
+  note: Late entry. Nine days on the plan; the timeout wakes the cabinet, the worse side.
+  text: >-
+    02:10. There is a {rival_adj} colonel in the basement of the Ministry who has
+    been there since eight, and I have only just been told. He says the plan in
+    his suitcase runs in nine days. Director Lyle wants ten minutes with you
+    before the General hears, and the General has been in the building since one.
+  left:
+    text: "Lyle. Ten minutes. Nobody else."
+    effects: { intel: 4, military: -3, public: -1 }
+    tags: [intel, secrecy]
+    set: [defector:arrived]
+    follow: [{ card: defector_04_lantern, in: 1 }]
+  right:
+    text: "Wake the cabinet"
+    effects: { military: 4, escalation: 5, trust_primary: -4, intel: -2 }
+    tags: [mobilise, military]
+    set: [defector:arrived]
+    follow: [{ card: defector_04_lantern, in: 1 }]
+
+# ---------------------------------------------------------------- the plan (warning card)
+- id: defector_04_lantern
+  arc: defector
+  advisor: intel_director
+  acts: [2, 5]
+  tags: [warning, intel, misperception]
+  warning: { true_follow: defector_05_the_exercise_order, false_follow: defector_06_the_seam, in: 2 }
+  note: Chained from every entry. Truth decided by intel reliability; queues the exercise order or the seam.
+  text: >-
+    Plan Lantern. Fourteen hundred pages, a seizure of the Sorrel Straits under the
+    cover of an exercise already notified to the Assembly, dated for the
+    nineteenth. The paper is right, the typeface is right, the annexes are signed
+    by men we know. We assess with low confidence that it is genuine, and I must
+    tell you that this is also exactly what a good plant looks like.
+  left:
+    text: "Plan for the nineteenth"
+    effects: { military: 5, escalation: 6, trust_primary: -5, intel: 2 }
+    tags: [military, mobilise, intel]
+    set: [defector:believed]
+  right:
+    text: "Not until you have a second source"
+    effects: { military: -3, public: -2, intel: 3 }
+    tags: [stall, investigate, intel]
+    set: [defector:doubted]
+
+- id: defector_05_the_exercise_order
+  arc: defector
+  advisor: intel_director
+  acts: [2, 5]
+  tags: [intel, military]
+  note: True branch. It is real; whether they mean it is another question.
+  text: >-
+    Their Fourth Army's exercise order came in through the Assembly yesterday, as
+    Lantern said it would. Forty thousand men, six landing ships, and a staging
+    area at Varn that is exactly where Lantern's annex puts it, on the date
+    Lantern gives. We now assess with high confidence that the plan is real.
+    Whether they intend to execute it is a different question, and the paper
+    cannot answer it.
+  left:
+    text: "Show them we have it"
+    effects: { trust_primary: -6, intel: -6, escalation: 3, commitment: 4 }
+    tags: [deterrence, diplomacy, transparency]
+    set: [defector:believed]
+    odds:
+      label: They call it off
+      base: 0.5
+      tags: [adversary, intel]
+      success:
+        text: "The exercise is rescheduled for weather twelve hours later. Their deputy chief of plans is reported to be on leave, which is what they said about the colonel."
+        effects: { escalation: -8, public: 5, trust_primary: 3 }
+      failure:
+        text: "The exercise proceeds as notified, and their statement asks how {us} came to hold a stolen document. The ships sail on the eighteenth."
+        effects: { escalation: 8, trust_primary: -6, military: 2 }
+  right:
+    text: "Quietly mirror the exercise"
+    effects: { military: 7, escalation: 7, trust_primary: -7, economy: -3 }
+    tags: [military, mobilise, secrecy]
+    set: [defector:believed]
+
+- id: defector_06_the_seam
+  arc: defector
+  advisor: intel_director
+  acts: [2, 5]
+  tags: [intel, misperception]
+  note: False branch. A dead general signed annex fourteen. Keeping the posture leaves the false alarm live.
+  text: >-
+    There is a seam. Annex fourteen is signed by General Casimir Holt on the
+    fourth of April, and General Holt was buried on the twenty-second of March
+    with a state band. Either Strand is a plant built by people who forgot to
+    check a date, or he is a genuine officer carrying a genuine forgery he was
+    meant to carry. We assess, moderate confidence, that Lantern was written for
+    us to read.
+  left:
+    text: "Stand everything down. Pull the logs."
+    effects: { military: -4, intel: 6, escalation: -4, public: -2 }
+    tags: [investigate, deescalate, intel]
+    set: [defector:doubted]
+    clear: [false_alarm_live]
+  right:
+    text: "Keep the posture. Half right is enough."
+    effects: { military: 3, escalation: 4, trust_primary: -4, intel: -3 }
+    tags: [military, stall, misperception]
+    set: [false_alarm_live, defector:believed]
+
+# ---------------------------------------------------------------- going public
+- id: defector_07_nine_oclock
+  arc: defector
+  advisor: spin_doctor
+  acts: [2, 5]
+  tags: [domestic, intel]
+  conditions:
+    flags_all: [defector:arrived]
+    flags_none: [defector:public, defector:returned]
+  note: Karrick wants him on television. Every week it replaces was worse.
+  text: >-
+    We put the colonel on television at nine, in uniform, with the annexes on the
+    table behind him. That is the story for a week, and every story it replaces
+    was worse for us. {Rival} will say forgery and nobody at home will hear them
+    over the man in the uniform. If it turns out he is theirs, that is also a
+    week, and by then it is a different week.
+  left:
+    text: "Nine o'clock. Uniform."
+    effects: { public: 7, commitment: 8, trust_primary: -8, escalation: 5, intel: -3 }
+    tags: [public_commitment, transparency, domestic]
+    set: [defector:public]
+  right:
+    text: "Nobody sees him"
+    effects: { public: -3, intel: 3 }
+    tags: [secrecy, domestic]
+
+- id: defector_08_on_background
+  arc: defector
+  advisor: spin_doctor
+  acts: [2, 5]
+  tags: [domestic, commitment_trap]
+  conditions:
+    flags_all: [defector:arrived]
+    flags_none: [defector:public, defector:returned]
+    pieces_any: [spin_doctor]
+  note: Complicates spin_doctor. He has already briefed; you can call it back once.
+  text: >-
+    I have briefed two editors on background, not for attribution, no names, that
+    we hold a senior defector and a plan. It runs at six unless I call them back,
+    and I can call them back once. I did it because the leak was coming out of
+    the Ministry anyway and I wanted it to be ours. You can be angry with me
+    after six.
+  left:
+    text: "Call them back. Now."
+    effects: { public: -5, commitment: -3, intel: 2, trust_primary: 2 }
+    tags: [secrecy, walk_back, domestic]
+  right:
+    text: "Let it run"
+    effects: { public: 5, commitment: 7, trust_primary: -6, escalation: 4 }
+    tags: [public_commitment, domestic]
+    set: [defector:public]
+
+# ---------------------------------------------------------------- the two directors
+- id: defector_09_everything_fits
+  arc: defector
+  advisor: intel_director
+  acts: [2, 5]
+  tags: [intel, misperception]
+  conditions:
+    flags_all: [defector:arrived]
+    flags_none: [defector:returned]
+    pieces_any: [paranoid_intel]
+  note: Paranoid director's moment. He knows how it sounds.
+  text: >-
+    Everything the colonel says fits everything I have brought you this year: the
+    exercise tempo, the rail movements, the silence on their staff net since March.
+    I am aware of how that sounds coming from me. A man who has been telling you
+    the roof is on fire is not the best judge of smoke. I am telling you anyway;
+    we assess it is real, and I would move.
+  left:
+    text: "Move to Lantern's timeline"
+    effects: { military: 6, escalation: 7, trust_primary: -6, intel: 2 }
+    tags: [military, mobilise, intel]
+    set: [defector:believed]
+  right:
+    text: "Second source. Then we move."
+    effects: { military: -3, intel: 4, public: -2, commitment: -2 }
+    tags: [investigate, stall, intel]
+
+- id: defector_10_nine_days
+  arc: defector
+  advisor: intel_director
+  acts: [2, 5]
+  tags: [intel]
+  conditions:
+    flags_all: [defector:arrived]
+    flags_none: [defector:returned]
+    pieces_any: [cautious_intel]
+  note: Cautious director's moment. Late rather than wrong, and he knows what late costs.
+  text: >-
+    I have not brought you anything this year that I could not stand behind, and I
+    am not going to start with a man from a ferry. Give me nine days and I will
+    tell you whether Lantern is real with a confidence you can act on. I know the
+    plan says the nineteenth. I would rather tell you late than tell you wrong,
+    and I am aware of what late can cost.
+  left:
+    text: "Nine days"
+    effects: { intel: 7, military: -5, commitment: -3 }
+    tags: [stall, intel]
+    set: [defector:doubted]
+  right:
+    text: "You have two"
+    effects: { intel: -4, military: 3, escalation: 3, trust_primary: -2 }
+    tags: [intel, military]
+
+# ---------------------------------------------------------------- signals intercept
+- id: defector_11_corroboration
+  arc: defector
+  advisor: intel_director
+  acts: [2, 5]
+  tags: [intel]
+  conditions:
+    flags_all: [defector:arrived]
+    flags_none: [defector:returned]
+    pieces_any: [signals_intercept]
+  note: Signals Intercept's moment. Asking has a price; the intel roll answers.
+  text: >-
+    We are reading their staff net, not all of it and not in real time. If Lantern
+    is real, someone on that net has said the word in the last month. I can task
+    the intercept on it tonight, and if we find it we will know, and if they
+    notice us looking they will know what we have. That is the price of asking.
+  left:
+    text: "Task it"
+    effects: { military: -2, trust_primary: -2 }
+    tags: [intel, investigate]
+    odds:
+      label: Corroboration
+      base: 0.55
+      tags: [intel]
+      success:
+        text: "Fourteen uses of the word since March, all from their plans directorate, two of them in the colonel's own hand. We assess it is real."
+        effects: { intel: 8, escalation: 3, military: 2 }
+        set: [defector:believed]
+      failure:
+        text: "Nothing. Not one use of the word, which is consistent with a plant and with a plan too secret for the net. The intercept has spent a week finding what is not there."
+        effects: { intel: -5, military: -2 }
+        set: [defector:doubted]
+  right:
+    text: "Do not burn the intercept on this"
+    effects: { intel: -3, military: -2, commitment: -2, public: -1 }
+    tags: [secrecy, stall, intel]
+
+- id: defector_12_the_package
+  arc: defector
+  advisor: intel_director
+  acts: [3, 5]
+  tags: [intel, misperception]
+  conditions:
+    flags_all: [defector:arrived]
+    flags_none: [defector:returned]
+    pieces_any: [signals_intercept]
+  note: Complicates signals_intercept. Their words, never their meaning.
+  text: >-
+    At 07:00 the morning after Strand landed, their staff net carried three words
+    to the plans directorate, "package delivered, proceed". That is consistent
+    with a plant announcing his arrival, and equally consistent with a staff that
+    has just learned it lost a colonel and is locking its doors. The intercept
+    gives us their words. It has never given us their meaning.
+  left:
+    text: "He is theirs. Send him back."
+    effects: { intel: -4, trust_primary: 4, public: -3, military: -2 }
+    tags: [concede, intel, misperception]
+    set: [defector:returned]
+  right:
+    text: "Keep him. Assume they know."
+    effects: { trust_primary: -4, intel: 2, military: 2, escalation: 2 }
+    tags: [secrecy, stall, intel]
+
+# ---------------------------------------------------------------- the register, the line, the lunch
+- id: defector_13_seventy_two_hours
+  arc: defector
+  advisor: legal
+  acts: [2, 5]
+  tags: [intel, domestic]
+  conditions:
+    flags_all: [defector:arrived]
+    flags_none: [defector:returned, defector:public]
+  note: Castellane on the two registers. There is no third.
+  text: >-
+    You may hold Colonel Strand as a voluntary guest of the state for seventy-two
+    hours, after which he is either an asylum claimant, on a register three
+    ministries can read, or a detainee, on a register a judge can read. There is
+    no third register. What you may do is keep him quiet for three days. What you
+    can later be seen to have done depends on which form I file on Thursday.
+  left:
+    text: "Asylum. File it."
+    effects: { public: 2, intel: -3, trust_primary: -4, commitment: 3 }
+    tags: [transparency, domestic]
+    follow: [{ card: defector_16_six_oclock, in: 2, chance: 0.6 }]
+  right:
+    text: "Detain him. Quietly."
+    effects: { public: -4, intel: 3, allies: -2 }
+    tags: [secrecy, domestic]
+
+- id: defector_14_absent_without_leave
+  arc: defector
+  advisor: hotline
+  acts: [2, 5]
+  tags: [diplomacy, intel]
+  conditions:
+    flags_all: [defector:arrived]
+    flags_none: [defector:returned]
+  note: They want him back. The pauses are the message.
+  text: >-
+    "{Rival} requests the return of Colonel Ivo Strand, who is absent without
+    leave, unwell, and carrying documents that are the property of the state." A
+    pause of some length. "His family is concerned. The return would be regarded
+    by {rival_leader} as a courtesy, and courtesies are remembered."
+  left:
+    text: "Return him. Keep the pages."
+    effects: { trust_primary: 8, escalation: -5, intel: -6, public: -4 }
+    tags: [concede, diplomacy]
+    set: [defector:returned]
+  right:
+    text: "We hold no such colonel"
+    effects: { intel: 2, commitment: 3 }
+    tags: [secrecy, stall, diplomacy]
+    odds:
+      label: They let it stand
+      base: 0.4
+      tags: [adversary, diplomacy]
+      success:
+        text: "A pause, and then the weather in {rival_capital}. The colonel is not mentioned again on the line, which is not the same as forgotten."
+        effects: { trust_primary: -2, escalation: 1 }
+      failure:
+        text: "Their statement at noon names the safe house by district and the colonel by rank, and calls him abducted. Two of our attachés are given a week to leave."
+        effects: { trust_primary: -8, escalation: 5, public: -3 }
+
+- id: defector_15_the_winter_colonel
+  arc: defector
+  advisor: ambassador
+  acts: [2, 5]
+  tags: [diplomacy, back_channel, misperception]
+  conditions:
+    flags_all: [defector:arrived]
+    flags_none: [defector:returned]
+  note: The anecdote is the warning. A lunch that will be noticed.
+  text: >-
+    In the winter crisis, before your time, a colonel came over with a plan for an
+    attack through Amberline, and we spent a year and eighty billion getting ready
+    for it. The attack was never coming; the plan was to make us spend the year.
+    I have a friend in {rival_capital} who would tell me over lunch whether they
+    have lost a colonel or lent one, and he would then know that I had asked.
+  left:
+    text: "Have the lunch"
+    effects: { trust_primary: -2, intel: -1 }
+    tags: [back_channel, diplomacy, intel]
+    odds:
+      label: He tells you
+      base: 0.5
+      tags: [back_channel, intel]
+      success:
+        text: "'We lost him,' the friend says, 'and a year ago I would not have told you that.' The lunch is not mentioned again by either of them."
+        effects: { intel: 8, trust_primary: 4 }
+        set: [defector:believed]
+      failure:
+        text: "The friend talks about his grandchildren for two hours. The next morning their embassy asks, formally, why our ambassador is asking about colonels."
+        effects: { intel: -3, trust_primary: -5, public: -2 }
+  right:
+    text: "No lunches. He is ours now."
+    effects: { trust_primary: -2, intel: -2, commitment: 3 }
+    tags: [secrecy, stall]
+
+- id: defector_16_six_oclock
+  arc: defector
+  advisor: press
+  acts: [2, 5]
+  chained: false
+  timer: 10
+  timeout: right
+  tags: [domestic, intel]
+  conditions:
+    flags_all: [defector:arrived]
+    flags_none: [defector:public, defector:returned]
+  note: Drawable, and also queued after the asylum form. Ferrante runs it either way; the timeout gives her the colonel.
+  text: >-
+    There is a {rival_adj} colonel in a safe house in the Wyle district and a plan
+    called Lantern, and I have both from two people in your building who do not
+    know each other. I run it at six. You can give me the plan and I will run the
+    plan, or you can give me nothing and I will run the colonel and the address.
+  left:
+    text: "Give her the plan. Not the address."
+    effects: { public: 3, trust_primary: -6, escalation: 5, commitment: 5, intel: -3 }
+    tags: [transparency, domestic]
+    set: [defector:public]
+  right:
+    text: "Kill the story"
+    effects: { public: -7, trust_primary: -4, escalation: 4, intel: -3 }
+    tags: [secrecy, domestic, stall]
+    set: [defector:public]
+
+- id: defector_17_tuesdays_assessment
+  arc: defector
+  advisor: intel_director
+  acts: [2, 5]
+  tags: [intel, transparency, domestic]
+  conditions:
+    flags_all: [defector:arrived]
+    flags_none: [defector:public, defector:returned]
+    pieces_any: [transparency]
+  note: Transparency doctrine's moment and its bill. The first assessment to leave something out.
+  text: >-
+    The published assessment goes out on Tuesday, as it has every Tuesday since
+    you promised it would. This one either mentions Lantern or it is the first one
+    that has left something out, and the people who read it closely will know
+    which. Publishing tells {rival_capital} what we hold. Not publishing tells
+    our own people what we are.
+  left:
+    text: "Publish it. Redacted."
+    effects: { public: 4, trust_primary: -5, escalation: 4, intel: -4, commitment: 4 }
+    tags: [transparency, public_commitment, intel]
+    set: [defector:public]
+  right:
+    text: "Skip a week"
+    effects: { public: -4, intel: 2, trust_primary: 1 }
+    tags: [secrecy, stall]
+
+# ---------------------------------------------------------------- consequences of belief and doubt
+- id: defector_18_the_straits_garrison
+  arc: defector
+  advisor: aide
+  acts: [2, 5]
+  timer: 10
+  timeout: left
+  tags: [military, misperception]
+  conditions:
+    flags_all: [defector:believed]
+    flags_none: [defector:returned]
+  note: Believing has a bill. The timeout signs the full order, the worse side.
+  text: >-
+    The General has asked for the Straits garrison to be doubled by the fifteenth,
+    on Lantern's timeline, and has the ships to do it. Marrow asks me to remind
+    you that every hull we move into the Straits is a hull they will have to
+    explain to themselves, and that they will explain it the way we explained
+    theirs. The order is on your desk. It needs a signature by six.
+  left:
+    text: "Sign it"
+    effects: { military: 7, escalation: 8, trust_primary: -9, allies: 2, economy: -3 }
+    tags: [military, mobilise, deterrence]
+  right:
+    text: "Half the ships. Tell them why."
+    effects: { military: 3, escalation: 3, trust_primary: -2, intel: -3, public: -2 }
+    tags: [deterrence, reassurance, transparency]
+
+- id: defector_19_the_guest
+  arc: defector
+  advisor: aide
+  acts: [2, 5]
+  tags: [intel, personal, misperception]
+  conditions:
+    flags_all: [defector:doubted]
+    flags_none: [defector:returned, defector:public]
+  note: Doubting has a bill too. The colonel knows another number.
+  text: >-
+    Colonel Strand has stopped eating. He told his minder this morning that if
+    {us} will not read what he brought, {other_capital} will, and that he knows
+    the number to call. He is a guest, not a prisoner, which was your decision.
+    The minder would like to know how much of a guest.
+  left:
+    text: "Let him make the call"
+    effects: { intel: -5, trust_secondary: 3, public: -2, trust_primary: -2 }
+    tags: [concede, stall, intel]
+    odds:
+      label: They laugh him off
+      base: 0.5
+      tags: [secondary, intel]
+      success:
+        text: "{Other} reads it for a day and sends him back to us with a note that says, in full, that he is ours, they think."
+        effects: { intel: 2, trust_secondary: 2, public: -2 }
+      failure:
+        text: "{Other} believes him. At midnight {other_leader} asks you why you did not, and their fleet sails for the Straits on the exercise's own timetable."
+        effects: { escalation: 7, allies: -3, trust_secondary: -3 }
+  right:
+    text: "Take his phone"
+    effects: { intel: 2, public: -3, commitment: 2 }
+    tags: [secrecy, personal]
+
+# ---------------------------------------------------------------- cross-arc hook
+- id: defector_20_page_forty
+  arc: defector
+  advisor: intel_director
+  acts: [2, 5]
+  timer: 9
+  timeout: left
+  tags: [intel, misperception, nuclear]
+  conditions:
+    flags_all: [defector:arrived]
+    flags_any: [false_alarm:reported, ultimatum:received]
+    flags_none: [defector:returned]
+  note: Cross-hook. The plan explains last week, if you want it to. Timeout moves, the worse side.
+  text: >-
+    Page forty of Lantern describes a spoof of our warning net in the week before
+    the crossing, to make us slow to believe the real thing. The General says that
+    what the watch centre saw last week was the spoof, and that the plan is
+    therefore running. We assess, low confidence, that last week was last week.
+    We are both reading the same page and I cannot prove him wrong from it.
+  left:
+    text: "Last week was the spoof. Move."
+    effects: { military: 6, escalation: 9, trust_primary: -8, intel: -2 }
+    tags: [military, mobilise, misperception]
+    set: [defector:believed]
+  right:
+    text: "Last week was last week"
+    effects: { military: -4, intel: 4, public: -2, commitment: -2 }
+    tags: [stall, intel]
+
+# ---------------------------------------------------------------- resolutions
+- id: defector_21_the_nineteenth
+  arc: defector
+  advisor: aide
+  acts: [3, 5]
+  tags: [military, misperception, intel]
+  conditions:
+    flags_all: [defector:believed]
+    flags_none: [defector:returned]
+  note: Resolution for belief. Nothing crossed, and three people know why.
+  text: >-
+    It is the nineteenth. Their exercise began at 04:00 as notified, forty
+    thousand men, six ships, and by noon none of it has crossed anything. The
+    General says that is because we were ready. Marrow says that is because there
+    was never anything to cross, and the colonel, who has been asked, says the
+    plan would have been postponed the moment we moved.
+  left:
+    text: "Stand the garrison down"
+    effects: { escalation: -9, military: -7, trust_primary: 6, public: -4 }
+    tags: [deescalate, reassurance]
+  right:
+    text: "Hold until the last ship is home"
+    effects: { escalation: 5, trust_primary: -5, military: 3, economy: -3, commitment: 3 }
+    tags: [military, deterrence, stall]
+
+- id: defector_22_courtesies
+  arc: defector
+  advisor: hotline
+  acts: [2, 5]
+  tags: [diplomacy, personal]
+  conditions: { flags_all: [defector:returned] }
+  note: Resolution for return. The next sentence is not said.
+  text: >-
+    "{Rival} thanks {us} for the return of Colonel Strand, who has been reunited
+    with his family and is receiving care." A pause. "It is noted that the
+    documents were not returned with him." A longer pause, and then the sound of
+    someone in {rival_capital} deciding not to say the next sentence.
+  left:
+    text: "Return the pages too"
+    effects: { trust_primary: 7, escalation: -6, intel: -8, public: -5, military: -3 }
+    tags: [concede, diplomacy, deescalate]
+  right:
+    text: "Ask what care means"
+    effects: { trust_primary: -4, public: 3, intel: 2, escalation: 2 }
+    tags: [diplomacy, personal]

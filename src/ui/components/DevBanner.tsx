@@ -9,7 +9,7 @@ export function DevBanner() {
   const errors = issues.filter((i) => i.level === 'error');
   if (issues.length === 0) return null;
   return (
-    <div class={`mono fixed left-0 right-0 top-0 z-[60] text-[11px] ${errors.length ? 'bg-red text-white' : 'bg-amber text-ink'}`}>
+    <div class={`mono sticky top-0 z-[60] text-[11px] ${errors.length ? 'bg-red text-white' : 'bg-amber text-ink'}`}>
       <button class="w-full px-3 py-1 text-left" onClick={() => setOpen(!open)}>
         content: {errors.length} error(s), {issues.length - errors.length} warning(s) — {open ? 'hide' : 'show'}
       </button>
