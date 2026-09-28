@@ -236,3 +236,90 @@ Probe (2,000 heuristic runs): T1 7.35%, T4 18.0 min, max score 93k → 234k afte
 still 1.24 acts on average (the endless flashpoint at the top of the curve is what kills). T5 remains 0%: a run needs
 ~700,000, which is a perfect build (Σmult +6, Madman ×3, a retrigger, held at 92 for 40 cards with accident mitigation
 = ~11k per card). That build exists in the engine and a strong human can assemble it; the heuristic does not.
+
+Full-scale (`--seed iter7`): T1 PASS 7.48%, T4 PASS 18.0 min; T2 9 of 15 (hair_trigger 6%, shield_wall 8% short;
+madman/deadman/the_ladder/cyber_ghost still assembled in fewer than 3 runs); T3 civil_defence 44%, early_warning 40%,
+paranoid_intel 36% (the accident-farming build had become the mandatory way to survive the top of the curve); **T5 3 runs
+≥ 700,000 (0.02%), max 985,709** — the game can be broken, once the endless climb compounds.
+
+### Iteration 8 — the mandatory picks
+
+Changes: civil_defence and early_warning **uncommon** (they were commons in every shop); legendary offer weight 0.8 →
+**1.2** and price 9 → **8** so a run sees a legendary it can afford about once.
+
+Full-scale (`--seed iter8`, 20,000 × 3 = 60,000 runs, 190 s):
+
+| Target | Result | Value |
+| --- | --- | --- |
+| T1 heuristic win 5–12% | **PASS** | 6.66% (0.09% stand-down, 6.57% survival) |
+| T2 ≥ 10 archetypes reach the Endgame ≥ 10% | **PASS** | 11 of 15 (war_economy 27%, alliance_engine 30%, peace_movement 21%, accident_farmer 35%, intel_machine 30%, red_lines_gambler 44%, ledger 29%, sea_power 20%, quiet_diplomat 38%, hair_trigger 11%, shield_wall 28%); deadman, cyber_ghost, the_ladder and madman are assembled in 6–9 runs each, too few to count |
+| T3 no piece in > 35% of winning builds | **PASS** | top allied_basing 22.9%, alliance_first 22.8%, paranoid_intel 21.8%, civil_defence 18.8% |
+| T4 median 15–25 estimated minutes | **PASS** | 17.85 (p10 9.0, p90 22.2; 69.6 cards, 6.5 shops) |
+| T5 ≥ 3% of runs score ≥ 100 × final target | **FAIL** | 0.03% (5 runs ≥ 700,000; max 1,449,326; p99 36,531) |
+
+Antes met by act: 94% / 46% / 30% / 15% / 6.5%; endless acts 8% / 13%. Deaths: 83% nuclear (bluff called ×2 is the
+single largest cause), 10% removed. Pieces bought 2.5 per run, orders 0.7.
+
+**On T5.** The ceiling is real: five heuristic runs broke the game and the best scored 1.45 million, so the compounding
+exists (scale caps, Madman's ×3 from 90, retriggers, the ×2 endless climb). The heuristic reaches it in 0.03% of runs
+because it is a survival bot: it holds a band and de-escalates on threat, and it does not deliberately farm the top of
+the curve for 40 cards with Perfect Intel and a Veto in hand, which is what the 700,000 line asks for. Three honest
+routes remain and none was taken tonight: (1) an aggressive "break it" bot as a fourth policy, so T5 measures the
+build rather than the heuristic's temperament; (2) stronger compounding on the legendaries (Brinkmanship uncapped,
+The Button ×4, retrigger-all on Open Line), which lifts every human's ceiling but also the bot's variance in the other
+four targets; (3) a lower final ante, which would make the Endgame trivial. Route (1) is recommended and is written up
+in RISKS.md and SUMMARY.md as the first post-launch balance task.
+
+## Final report (iteration 8)
+
+The report is `sim-output/report-latest.md` (regenerate with `npm run sim -- --runs 20000 --policy all --seed iter8`).
+The tables below are lifted from it.
+
+### The 15 weakest cards, with rewrites
+
+The simulator's impact score (mean visible-meter swing per play + mean gap between the two previews) undervalues cards
+whose stakes are hidden values, and it flags breather cards that exist for pacing. The rewrites below keep each card's
+job and give it visible teeth; where the two sides were near-identical they now diverge.
+
+| # | Card | Seen | Left % | Impact | Problem | Proposed rewrite |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | `defector_01_the_ferry` | 7,358 | 96% | 4.2 | Both sides set `defector:arrived` and queue Lantern with ±1..±3 effects; the choice is cosmetic | Left "Fly him in tonight": `intel: 4, trust_primary: -4, public: -2`, set `defector:flown`, Lantern in 1. Right "Leave him on Caldor. Send a team.": `intel: -2, military: -3, allies: 2` plus odds "The passengers are counted" 0.6 (intel): success `intel: 4`; failure `public: -4, trust_primary: -3`, follow `defector_16_six_oclock` |
+| 2 | `defector_02_the_embassy_gate` | 4,004 | 68% | 5.1 | Same shape as 01; extraction and patience cost the same | Left: `intel: 5, trust_secondary: -6, allies: -3` (Amberline notices the car). Right: `intel: 2, trust_secondary: 2, military: -3, trust_primary: -3, escalation: -1`, Lantern in 4, set `defector:slow` |
+| 3 | `defector_15_the_winter_colonel` | 2,611 | 84% | 6.0 | The lunch is all hidden values; nothing visible is at stake | Failure adds `public: -4, allies: -3` (the formal question is leaked). Right "No lunches": `military: 2, commitment: 4, intel: -3` |
+| 4 | `press_04_three_twenty` | 8,338 | 99.6% | 6.0 | Breather; the "sleep" side is strictly right (99.6%) | Left: `intel: -4, escalation: -2, public: 2`. Right: `intel: 3, escalation: 2, public: -2` (you look like this on camera at six) |
+| 5 | `press_24_the_birthday` | 3,968 | 99.4% | 7.1 | As 4 | Left: `intel: -3, escalation: -2, public: 3`. Right: `intel: 2, escalation: 2, public: -3` (the empty chair is photographed) |
+| 6 | `press_14_the_hospital` | 4,182 | 98.2% | 7.1 | As 4 | Left: `intel: -4, military: -2, public: 4`. Right: `intel: 3, escalation: 1, public: -3` |
+| 7 | `press_18_the_rumour` | 4,761 | 84% | 8.0 | 50/50 roll for ±2..±5 hidden points | Success `intel: 6, trust_primary: -2, military: 2`; failure `intel: -3, trust_primary: -6, escalation: 3`. Right (let it lie): `intel: -4, trust_primary: 2, public: -2` (it prints anyway) |
+| 8 | `dom_fed_01_two_bulletins` | 2,718 | 57% | 9.0 | Symmetric ±3 | Queue: `public: -5, economy: 2, trust_primary: -3, commitment: 2`. Harvest: `public: 4, intel: -3, economy: -2, commitment: 2` |
+| 9 | `dom_fed_11_three_hundred_names` | 1,475 | 28% | 9.0 | Charging the students looks free; releasing them costs military | Release: `public: 4, military: -5, trust_primary: 3, trust_secondary: 2, escalation: -2`. Charge: `public: -3, military: 3, trust_primary: -4, trust_secondary: -4, intel: -2` (the list leaks; the square fills) |
+| 10 | `blackout_03_eleven_hours` | 2,005 | 92% | 9.5 | Act 3–5 entry with act-1 numbers | Left: `public: 4, intel: -5, military: -3, commitment: -3`. Right: `public: 3, escalation: 6, military: 3, commitment: 6, trust_primary: -5` |
+| 11 | `proxy_05_no_insignia` | 7,724 | 95% | 9.5 | Denial is strictly worse tonight *and* later | Deny: `public: 2, intel: -2, trust_primary: -2, commitment: 4` (it holds tonight; the 70% follow carries the bill). Admit: `public: -4, commitment: 6, allies: 3, trust_primary: -2, escalation: 2` |
+| 12 | `dom_fed_03_accreditation` | 2,694 | 71% | 9.9 | Small, symmetric | Interview: `public: -3, trust_primary: 4, trust_secondary: 3, allies: 2, intel: 1`. Pull it: `public: 3, trust_primary: -5, allies: -4, intel: -2, economy: -1` |
+| 13 | `dom_coa_07_the_drills` | 1,424 | 91% | 11.0 | Breather, one-sided | Left: `public: 4, intel: -3, military: -2`. Right: `public: -3, intel: 2, escalation: 1` |
+| 14 | `defector_19_the_guest` | 1,187 | 34% | 11.5 | The doubted path's only card and it leads nowhere (the review's "doubted path has no ending") | Right "Take his phone": `intel: 3, public: -3, commitment: 2`, set `defector:held`, follow a new closer `defector_23_nothing_crossed` (aide, acts 3–5: the nineteenth passes; Lyle was right or the plan was never for the Straits; `intel: 4, public: 2` / `military: -3, trust_primary: 3`) |
+| 15 | `defector_13_seventy_two_hours` | 2,085 | 98% | 11.7 | Detention never chosen | Detain: `public: -2, intel: 5, allies: -2, military: 2`. Register him: `public: 3, intel: -4, trust_primary: -4, commitment: 3` with the existing 60% follow |
+
+Also flagged: `adv_01_a_senior_defence_source` was never seen by any policy in 60,000 runs (its `pieces_all` gate
+needs two specific advisors); loosen to `pieces_any` or attach it to the hawk alone.
+
+### The 5 weakest pieces, with rewrites
+
+Ranked by the lowest combined rank of buy rate and |Δ win| (pieces nobody wants, or that change nothing).
+
+| # | Piece | Rarity | Buy rate | Held runs | Δ win | Problem | Proposed rewrite |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | `missile_defence` | uncommon | 0.5% | 59 | +0.1 | A permanent trust drift (−1 per 5 cards) for +0.5 mult on tags that appear on ~8% of cards | Drop the drift to `-0.1`; make the Layer scale: `{ kind: scale, on: roll_success, tags: [intercept], mult_add: 0.4, max: 4 }`; keep the +20% intercept odds |
+| 2 | `quiet_room` | rare | 2.5% | 130 | −0.5 | ×1.6 on `back_channel` only; back-channel choices are ~3% of the deck, so the room is usually empty | Widen to `[back_channel, diplomacy]` at ×1.4 and add `+8 base` on the same tags; the trust ×1.2 stays |
+| 3 | `deterrence_by_denial` | uncommon | 0.5% | 60 | −1.7 | Two drifts' worth of trust for a mult on rare tags; the `deterrence` rule makes rivals dig in | Make the drift conditional: `when: { values: { escalation: { min: 60 } } }`; add `{ kind: leverage, tags: [deterrence], mult_add: 0.3 }` and `{ kind: accident, severity_mult: 0.85 }` (denial buys minutes) |
+| 4 | `cyber_director` | uncommon | 0.17% | 21 | −1.9 | Core of cyber_ghost (assembled 8 times in 20,000 runs); +6 base / +0.4 mult on cyber, attribution, space, but nothing that keeps a run alive | Add `{ kind: accident, mult: 0.85 }` (attribution errors are her job) and `{ kind: rule, rule: capital_per_act, value: 1 }` (the unit bills); raise the odds bonus to +0.2 |
+| 5 | `commercial_sat` | common | 0.69% | 134 | −2.2 | +2 escalation on every space choice cancels its own +6 base; the economy drift (+0.15) is invisible | Remove the escalation add; make it `{ kind: effect, key: economy, tags: [space], sign: pos, add: 2 }` and lift the capital rule to 2 per act; it becomes the economy piece of the space arcs |
+
+### Other reads from the final report
+
+- **Strongest pairs** (Δ win vs runs holding neither): admiral + dove_fm +45pp (113 runs), alliance_first + dove_fm
+  +35pp, allied_basing + dove_fm +35pp, bunker + iron_nerve +29pp, civil_defence + hardened_nc3 +28pp, bunker +
+  civil_defence +22pp (376 runs). dove_fm is now rare and sits in 16% of wins (was 83% in iteration 4).
+- **hawk_general** is the anti-piece: held in 355 runs, 6 wins, Δ win −5pp, Δ nuclear +7pp. Intended (SYNERGIES.md
+  "The General's War"), and the shop still sells him at 3% because he pays leverage.
+- **Timer expiry** 5% of timed cards (heuristic), 30% (random). Near-miss rate 9.9% of rolls, as designed.
+- **Deck coverage**: 449 of 450 cards seen; 1 never (adv_01).
