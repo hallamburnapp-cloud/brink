@@ -1,0 +1,1735 @@
+# ENDINGS — every way a run stops. Story endings sit at priority 10–40 so that the
+# scaling-core endings in scaling.yaml (accidents, the Deadman Switch, antes) win
+# when they apply. Forced endings are referenced by exact id from the flashpoint
+# decks (fp_intercept, fp_line_at_sea, fp_cascade, fp_midnight) and advisors.yaml.
+# Fallbacks are priority 0 and never chosen while an authored ending matches.
+#
+# Flags used here are the ones the decks set: proxy:*, blockade:*, summit:*,
+# debris:*, ultimatum:*, false_alarm:*, blackout:*, cyber_ew:* and fp:<id>_<outcome>.
+# Everything is flags_any so a missing hook never blocks an ending.
+
+# ================================================================== FORCED
+# Referenced by name from other files. Trigger forced; priority is irrelevant.
+
+- id: nuclear_launch_on_warning
+  name: "Nineteen Minutes"
+  kind: nuclear
+  trigger: { type: forced }
+  priority: 50
+  text: >-
+    Eleven tracks, nineteen minutes, two sensors. The doctrine you signed a year ago in
+    a quiet office was written for exactly this board, and it did what it was written
+    to do: it took the decision out of the room before the room could take it back.
+
+
+    The second radar chain rotated onto the polar sector ninety seconds later and saw
+    an empty sky. Rennick will say so, to a tape nobody will ever play. The eleven
+    tracks were a correlator fault and a sunrise. By then your first wave was eleven
+    minutes from {rival_capital}.
+
+
+    {Rival} had a doctrine too. Theirs waited the ninety seconds, and saw your first
+    wave, and stopped waiting.
+  moment_label: The moment the doctrine decided
+  compendium: "Launch on Warning met a false alarm. The doctrine did what it was for."
+  emoji: "⏱️"
+
+- id: nuclear_intercept_exchange
+  name: "Harrow Vale"
+  kind: nuclear
+  trigger: { type: forced }
+  priority: 50
+  text: >-
+    Two tracks out of the northern range at 05:31, both radars, nine minutes to the
+    Caldor battery and the bomber field at Harrow Vale. Whatever you chose in those
+    nine minutes, one thing came down on Harrow Vale, and it was not inert, and after
+    that nobody was choosing anything.
+
+
+    Vasska's response package was already spooled. It went. Theirs answered it. By
+    06:10 the board Rennick reads from had stopped being a board and become a map of a
+    country you used to run.
+
+
+    The inquiry into whether the first two tracks were a test will not sit. Lyle's last
+    assessment, unsigned, gives it moderate confidence.
+  moment_label: The moment the second track landed
+  compendium: "Two tracks, nine minutes, and an exchange over Harrow Vale."
+  emoji: "💥"
+
+- id: nuclear_straits
+  name: "Not Ordinary"
+  kind: nuclear
+  trigger: { type: forced }
+  priority: 50
+  text: >-
+    The Kestrel was burning and the Vesna was going down by the stern, and you gave
+    Vasska his ninety minutes to clear the Straits. The boat out of Greyholm was in
+    range at minute forty.
+
+
+    Their fleet doctrine has a paragraph everybody had read and nobody believed, and
+    the torpedo that was fired under it was not ordinary. Captain Ostrova's last signal
+    is four words long. Volanski has asked that it not be released, and it will not be.
+
+
+    A war that begins at sea does not stay there. By dawn the Sorrel Straits were the
+    quietest place on the board.
+  moment_label: The moment the Straits were cleared
+  compendium: "You cleared the Sorrel Straits. Their doctrine had a paragraph for that."
+  emoji: "⚓"
+
+- id: nuclear_blind
+  name: "Blind"
+  kind: nuclear
+  trigger: { type: forced }
+  priority: 50
+  text: >-
+    03:41. The processor that would have told Rennick whether the bloom over their
+    northern range was a launch or this morning's debris coming home was the one thing
+    on the board that was dark. The hotline was ringing. Nobody could say what the
+    flash was, so somebody decided.
+
+
+    It was re-entry. Eleven fragments of a twenty-year-old relay, burning up over their
+    own range, seen by their sensors as clearly as by yours. Benn-Sato had it at
+    moderate confidence and was right, and was right too late, because in the same
+    four minutes their bunker had a bloom of its own to explain and nobody there waited
+    for the third.
+
+
+    Two warning systems went dark in the same hour. Between them they had exactly
+    enough light left to see each other move.
+  moment_label: The moment nobody could see
+  compendium: "The warning systems were dark, and someone fired on a flash."
+  emoji: "🌑"
+
+- id: nuclear_midnight
+  name: "Midnight"
+  kind: nuclear
+  trigger: { type: forced }
+  priority: 50
+  text: >-
+    At 01:22 the man in {rival_capital} rang the line himself, because he would rather
+    ask you than his generals what was in the air. Whatever you told him, the men
+    counting behind him counted to nine, and the count was not translated.
+
+
+    Your second package reached its target. Theirs reached its. The deadline was
+    midnight; the clocks in the building still show it in red, because someone in
+    Facilities thought it would help, and they are the last things in the building
+    that work.
+
+
+    Mara Quell had a schedule for 02:00. It said: sleep.
+  moment_label: The moment the count ran out
+  compendium: "The deadline hour, both packages airborne, and a count that was not translated."
+  emoji: "🕛"
+
+- id: special_resigned
+  name: "The Line at the Bottom"
+  kind: special
+  trigger: { type: forced }
+  priority: 50
+  text: >-
+    You sign at 02:47, with Mara Quell's pen, because yours is in the other office and
+    there is no longer any reason to go there. She witnesses it and does not read past
+    the line, as promised.
+
+
+    The party chooses by noon. It chooses a man who has spent the fortnight agreeing
+    with everybody, which is to say the country gets a leader it can hear. The crisis
+    does not notice. The board Rennick reads from is exactly where you left it at
+    02:46, and at 14:00 someone else walks into the room and sits down in front of it.
+
+
+    Jonah is waiting in the car. He asks if you have eaten. It is the first question in
+    fourteen days that you know the answer to.
+  moment_label: The moment you signed
+  compendium: "You resigned. The country got a leader it could hear. The board did not move."
+  emoji: "🖋️"
+
+# ================================================================= NUCLEAR
+# Escalation reaches 100 without a forced card. Flavour by build and by arc.
+
+- id: nuclear_generals_war
+  name: "The General's War"
+  kind: nuclear
+  trigger: { type: meter, key: escalation, at: 100 }
+  conditions: { pieces_any: [hawk_general] }
+  priority: 30
+  text: >-
+    Vasska never said 'the enemy'. He said 'them', and he said 'window', and he said
+    'capability', and each time he said it a slide that used to show the cost went
+    missing from the deck. You noticed. You liked the slides better without it.
+
+
+    The last window was four minutes wide. He had a package for it. He always had a
+    package for it; that was the point of him, and you knew it when you gave him the
+    chair.
+
+
+    He is still in the chair. It is the only one in the room anyone is sitting in. He
+    is reading the board aloud in the passive voice: mistakes were made, cities were
+    lost.
+  moment_label: The moment you took his word for it
+  compendium: "The Hawk General had a package for every window. Escalation 100."
+  emoji: "🪖"
+
+- id: nuclear_vestria
+  name: "Vestria"
+  kind: nuclear
+  trigger: { type: meter, key: escalation, at: 100 }
+  conditions: { flags_any: [proxy:escalated, proxy:brigade_deployed] }
+  priority: 32
+  text: >-
+    It began as a border nobody could find on a map without a lawyer. Volunteers, then
+    advisers, then a brigade with the flags sewn off its sleeves, then a column at the
+    Aum that was either a relief in place or the attack, and only one of those readings
+    could be undone.
+
+
+    Nineteen of theirs were dead with papers in their coats. Then four hundred of yours
+    at Hollin Ridge. Then a town called Tessel that no one in {capital} had heard of,
+    and a bridge, and by the time the two capitals were talking directly there was no
+    longer a Vestria to talk about.
+
+
+    The Assembly of Nations has a resolution ready that refers to 'the disputed
+    territory'. There is nobody left to dispute it.
+  moment_label: The moment it stopped being a proxy
+  compendium: "A borderland war that stopped being a borderland war. Escalation 100."
+  emoji: "🗺️"
+
+- id: nuclear_forty_miles
+  name: "Forty Miles of Water"
+  kind: nuclear
+  trigger: { type: meter, key: escalation, at: 100 }
+  conditions: { flags_any: [blockade:shots_fired, fp:line_shots] }
+  priority: 31
+  text: >-
+    There was a line across the Sorrel Straits, and ships on both sides of it, and a
+    captain who asked twice what he should do when the freighter reached it. The first
+    shots were warning shots. The second were not, because nobody on the other bridge
+    could tell the difference at four thousand yards in the dark.
+
+
+    A blockade is a promise to shoot, made to people you hope will not test it. Yours
+    was tested. Theirs was too.
+
+
+    Volanski asked to be relieved at 04:00 and you said no. She was on the Kestrel's
+    bridge beside Ostrova when the Straits stopped being a place. You have that, at
+    least: she did not have to watch it from a room.
+  moment_label: The moment the shots were not warnings
+  compendium: "Shots fired across the line at sea, and then everywhere else. Escalation 100."
+  emoji: "🌊"
+
+- id: nuclear_standing_orders
+  name: "Standing Orders"
+  kind: nuclear
+  trigger: { type: meter, key: escalation, at: 100 }
+  conditions: { pieces_any: [predelegation] }
+  priority: 34
+  text: >-
+    You gave the authority away because a leader can be killed and a doctrine cannot,
+    and it seemed wise to have something that would go on making decisions if you
+    stopped. Something did.
+
+
+    A brigadier at the northern range lost his link to {capital} for eleven minutes.
+    His orders for that were written by you, in a calmer month, and he followed them
+    exactly. Nobody will ever be able to say he was wrong. That is what pre-delegation
+    is: a way to be right on your behalf when you are not there.
+
+
+    You were there. You were on the telephone. The line was working. He did not ring
+    it, because his orders did not say to.
+  moment_label: The moment you were not asked
+  compendium: "Pre-delegation. Someone followed your orders exactly, without you. Escalation 100."
+  emoji: "📋"
+
+- id: nuclear_ladder
+  name: "The Ladder"
+  kind: nuclear
+  trigger: { type: meter, key: escalation, at: 100 }
+  conditions: { pieces_any: [escalate_to_deescalate] }
+  priority: 33
+  text: >-
+    The theory was elegant. Go up one rung so they see how far down is, and they will
+    climb down with you. It worked at Sennet. It worked at Kestrel Bridge. It worked
+    the third time, which is when you stopped being able to tell the difference between
+    the theory working and the theory being tested.
+
+
+    {Rival} had read the same books. Their limited strike was also a message. So was
+    yours. Somewhere in the fourth exchange of messages the ladder ran out of rungs and
+    neither side had planned for the roof.
+
+
+    Marrow's resignation was on your desk by then. It is one sentence. It reads: a
+    ladder is a thing you climb.
+  moment_label: The moment the ladder ran out
+  compendium: "Escalate to De-escalate. You climbed to show them the way down. Escalation 100."
+  emoji: "↕️"
+
+- id: nuclear_believed
+  name: "Believed"
+  kind: nuclear
+  trigger: { type: meter, key: escalation, at: 100 }
+  conditions: { pieces_any: [madman_theory, brinkmanship] }
+  priority: 29
+  text: >-
+    The whole art was to make them believe you might. You practised it. You let a
+    general be quoted, let a deadline pass without explanation, let Karrick put the
+    word 'unpredictable' into three newspapers in a week. It worked. Lyle assessed with
+    high confidence that {rival_leader} believed you were not fully in control of
+    events.
+
+
+    He was right to. That was the trick, and the trouble with a trick is that the
+    audience acts on it.
+
+
+    At 02:15 {rival_capital} did the rational thing a rational government does about a
+    neighbour who might. It is the last rational thing on the record. Everything after
+    it is physics.
+  moment_label: The moment they took you at your word
+  compendium: "You made them believe you might. They believed you. Escalation 100."
+  emoji: "🎭"
+
+- id: nuclear_after_vellmar
+  name: "The Paper at Vellmar"
+  kind: nuclear
+  trigger: { type: meter, key: escalation, at: 100 }
+  conditions: { flags_any: [fp:summit_collapsed, fp:summit_walkout, summit:collapsed] }
+  priority: 28
+  text: >-
+    There was a house on a lake at Vellmar and a paper on the table, and for six hours
+    the paper was the whole world. Then one of you left, and the hundred and forty
+    cameras at the front door recorded which one, and the other had a domestic audience
+    to answer to.
+
+
+    A summit that fails is worse than no summit. Everyone in both delegations had said
+    so on the plane. Lindqvist said it in the room. The alternative to failing was a
+    paragraph about Vestria that nobody could sign and go home, so both of you went
+    home without it.
+
+
+    The paper is still on the table. The lake house is one of the few buildings in the
+    region with the lights on.
+  moment_label: The moment the cars left
+  compendium: "The summit failed, and the failure was the last thing left to escalate. Escalation 100."
+  emoji: "📝"
+
+- id: nuclear_after_midnight
+  name: "After Midnight"
+  kind: nuclear
+  trigger: { type: meter, key: escalation, at: 100 }
+  conditions: { flags_any: [fp:midnight_passed, fp:midnight_called_bluff, ultimatum:deadline_passed] }
+  priority: 27
+  text: >-
+    The first deadline passed and nothing happened, which is the most dangerous thing a
+    deadline can do. It taught the room that deadlines were survivable. It taught
+    {rival_capital} the same lesson about yours.
+
+
+    So there was a second deadline, drawn a little closer, and a third, drawn with
+    something behind it. By then there were four clocks in the room and everyone had
+    learned to sleep through the red.
+
+
+    The one that mattered was not announced. Rennick saw it on the board at 03:50, and
+    you were asleep, and by the time Mara Quell had crossed the corridor the question
+    was no longer one anyone in the building could answer.
+  moment_label: The moment the deadline meant nothing
+  compendium: "One deadline survived, and so nobody believed the last one. Escalation 100."
+  emoji: "⏰"
+
+- id: nuclear_dark_sky
+  name: "Dark Sky"
+  kind: nuclear
+  trigger: { type: meter, key: escalation, at: 100 }
+  conditions: { flags_any: [debris:cascade, fp:cascade_escalated, blackout:retaliated, cyber_ew:counterhacked] }
+  priority: 26
+  text: >-
+    Nobody can say who blinded whom first. Vance was careful about that to the end:
+    'consistent with', never 'is'. But by the second week every eye in orbit belonged
+    to someone who could no longer be sure what the other side's eyes were seeing, and
+    that is a worse place to be than blind.
+
+
+    The last satellite you could trust went dark at 03:09. The last one they could
+    trust went dark four minutes later, and each side's generals drew the only
+    conclusion generals draw from a coincidence.
+
+
+    Benn-Sato has a chart of the debris field. It will circle the planet for two
+    hundred years. He points out, as if it were weather, that it will outlast everyone
+    who argued about it.
+  moment_label: The moment the sky went dark
+  compendium: "Two sides went blind in the same hour and each assumed why. Escalation 100."
+  emoji: "🛰️"
+
+- id: nuclear_second_use
+  name: "The Second Use"
+  kind: nuclear
+  trigger: { type: meter, key: escalation, at: 100 }
+  conditions: { pieces_any: [no_first_use] }
+  priority: 25
+  text: >-
+    You said you would never be first. You put it in a doctrine, a speech, a letter to
+    the Assembly of Nations with your signature on it, and you meant every word. The
+    historians who do not yet exist will confirm this. You kept your word.
+
+
+    You were second. The doctrine has no paragraph for second; second is only
+    arithmetic. Vasska had the arithmetic ready, because he never believed the doctrine
+    changed anything about what he was for, and on this one point he was right.
+
+
+    Delacroix-Amin's last message is a text, sent at 03:02. It says she believed you.
+    It does not say it as a comfort.
+  moment_label: The moment the pledge stopped mattering
+  compendium: "No First Use, kept to the letter. The letter was not the problem. Escalation 100."
+  emoji: "✉️"
+
+- id: nuclear_deep_bunker
+  name: "The Deep Bunker"
+  kind: nuclear
+  trigger: { type: meter, key: escalation, at: 100 }
+  conditions: { pieces_any: [fortress, civil_defence, bunker] }
+  priority: 24
+  text: >-
+    The lift takes ninety seconds. The blast doors take four. Then there is a room with
+    your name on a chair, three hundred metres of rock overhead, eleven weeks of food
+    and a telephone that rings for a while and then does not.
+
+
+    You built this against exactly this night, and it works. That is the terrible part.
+    The sirens you paid for cleared the squares of {capital} in nine minutes; the
+    shelters you drilled the schools for are full. A country that was well prepared to
+    lose everything has lost it in good order.
+
+
+    Mara Quell has the schedule for tomorrow. Out of habit, she reads it aloud.
+  moment_label: The moment the doors closed
+  compendium: "Fortress doctrine. The bunker worked. Escalation 100."
+  emoji: "🚪"
+
+- id: nuclear_last_card
+  name: "The Last Card"
+  kind: nuclear
+  trigger: { type: meter, key: escalation, at: 100 }
+  priority: 10
+  text: >-
+    There is no single moment. Lyle will not find one and neither will you: only a
+    fortnight of decisions, each of which was defensible, each of which was slightly
+    closer to the edge than the one before it, because the one before it had not ended
+    the world and so the edge must be further off than it looked.
+
+
+    The last card was not the worst one. It was only the last.
+
+
+    Somewhere in {rival_capital} a man with your job is looking at a board very like
+    yours and reaching the same conclusion, in the same silence. You have never had
+    more in common.
+  moment_label: The moment it went wrong
+  compendium: "Escalation 100. It was not one decision; it was all of them."
+  emoji: "☢️"
+
+# ================================================================= REMOVED
+# An office meter hits 0 or 100 and the crisis goes on without you.
+
+# ---- public 0: impeachment, palace, party
+
+- id: removed_public_0_republic
+  name: "Impeached"
+  kind: removed
+  trigger: { type: meter, key: public, at: 0 }
+  seats: [republic]
+  priority: 20
+  text: >-
+    The vote is 312 to 96 and takes eleven minutes, which Ahlgren points out is less
+    time than you gave the Assembly of Nations. Reasonable tone, lethal timing. He has
+    waited the whole fortnight for exactly this ratio.
+
+
+    Castellane walks you through what you may still do, which is sign for the
+    transition, and what you may later be seen to have done, which is everything else.
+    Ferrante is outside the door with a question that is a statement.
+
+
+    A democracy is a country that can fire you in the middle. You knew that. You have
+    quoted it in speeches. Rennick's board is still live down the corridor, and for the
+    first time in fourteen days it is somebody else's.
+  moment_label: The moment the House stopped listening
+  compendium: "Public support at 0. The Republic impeached its President mid-crisis."
+  emoji: "🏛️"
+
+- id: removed_public_0_federation
+  name: "The Palace"
+  kind: removed
+  trigger: { type: meter, key: public, at: 0 }
+  seats: [federation]
+  priority: 20
+  text: >-
+    Nobody votes. At 05:10 the guard at the east gate is replaced by a guard you do not
+    recognise, and at 05:40 the Chancellor comes in without knocking and does not sit.
+    He has a car waiting. The car is a courtesy.
+
+
+    A managed press can manage anything except a country that has stopped believing
+    it, and the squares stopped a week ago; the cameras simply found something else to
+    film. The Marshals read the queues better than Karrick did.
+
+
+    The Premier who follows you is a competent man with a good jaw and a general behind
+    each shoulder. The crisis has not noticed the change. Neither, in the end, will the
+    crisis care.
+  moment_label: The moment the guard changed
+  compendium: "Public support at 0. The palace decided the Federation needed a new Premier."
+  emoji: "🏰"
+
+- id: removed_public_0_coalition
+  name: "The Party Withdraws"
+  kind: removed
+  trigger: { type: meter, key: public, at: 0 }
+  seats: [coalition]
+  priority: 20
+  text: >-
+    The Standing Committee meets at 04:00, which is not a time it has ever met, and its
+    communiqué is one line: the Party thanks you for your service. It does not say to
+    whom.
+
+
+    The Coalition does not have coups. It has meetings, and after the meeting a younger
+    man with an engineering degree and a patient face is the Chairman, and the
+    factories that have been idling since the second week resume by noon. Nkemelu
+    handled the cars. He will not say how.
+
+
+    You are permitted to keep the house. Your name is already gone from the archive of
+    the crisis, which is how you know the crisis is going to be a long one.
+  moment_label: The moment the Committee met
+  compendium: "Public support at 0. The Party withdrew its Chairman and kept the crisis."
+  emoji: "🪑"
+
+- id: removed_public_0_square
+  name: "The Square"
+  kind: removed
+  trigger: { type: meter, key: public, at: 0 }
+  conditions: { pieces_any: [peace_leader] }
+  priority: 25
+  text: >-
+    Delacroix-Amin never asked the crowd to come. She only kept telling them the truth,
+    unhurried, and the truth turned out to be more persuasive than your Director of
+    Communications.
+
+
+    There are four hundred thousand people in the square below the office. They are
+    not chanting. They have brought chairs. She is on the steps with a microphone, and
+    what she is saying, in the voice she uses for you when nobody else is listening, is
+    that she is sure you meant well.
+
+
+    The cabinet has counted the chairs and found its conscience. The letter is on your
+    desk. You do not have to read past the line.
+  moment_label: The moment they brought chairs
+  compendium: "Public support at 0. The peace movement did not shout; it sat down."
+  emoji: "🕯️"
+
+# ---- public 100: acclamation
+
+- id: removed_public_100
+  name: "Acclamation"
+  kind: removed
+  trigger: { type: meter, key: public, at: 100 }
+  priority: 15
+  text: >-
+    They love you. The polling is not a number any longer; Karrick has stopped
+    reporting it because it has stopped being informative. At the rally in {capital} a
+    woman holds up a sign that says you are the only one who tells the truth, and the
+    crowd repeats it until it is not a sentence.
+
+
+    This morning the legislature voted, by acclamation, to suspend the parts of the
+    constitution that were slowing you down. You did not ask. You did not have to. A
+    people frightened for long enough will hand anything to the person who says where
+    to stand.
+
+
+    The crisis outlives you. All crises outlive the leaders who were loved for them.
+    Somewhere in the building a young officer is already learning to say 'the
+    emergency' with your inflection.
+  moment_label: The moment they stopped voting
+  compendium: "Public support at 100. The constitution did not survive the applause."
+  emoji: "📣"
+
+- id: removed_public_100_managed
+  name: "The Only Channel"
+  kind: removed
+  trigger: { type: meter, key: public, at: 100 }
+  conditions: { pieces_any: [spin_doctor, propaganda, press_office] }
+  priority: 22
+  text: >-
+    Karrick was right about everything except the half-life. Every problem was framing,
+    and the framing worked, and it worked so well that by the second week there was
+    only one story in the country and it was yours.
+
+
+    A public that has stopped hearing anything else does not support you. It has no
+    other option. This morning it voted to make the arrangement permanent, and the
+    cheering on the only channel was very long and, Ferrante notes in her last column,
+    very evenly mixed.
+
+
+    Your Director of Communications has already drafted the announcement that the
+    emergency measures are temporary. He has not put a date on it. He says a date is a
+    hostage.
+  moment_label: The moment there was one story
+  compendium: "Public support at 100 with the truth managed. There is one channel now."
+  emoji: "📺"
+
+# ---- military 0: the officers stop obeying
+
+- id: removed_military_0
+  name: "Nobody Answers"
+  kind: removed
+  trigger: { type: meter, key: military, at: 0 }
+  priority: 15
+  text: >-
+    The order goes down the line at 06:00. At 06:20 Mara Quell reports that the
+    northern command has acknowledged receipt. At 06:40 she reports that acknowledging
+    receipt is not the same thing.
+
+
+    Nobody mutinies. There are no tanks in the square, because bringing tanks to the
+    square would be an order, and the whole point is that orders have stopped meaning
+    anything when they come from you. The officers are courteous. They are waiting for
+    a signature they can obey, and it is not yours.
+
+
+    You are still {leader}. It says so on the door. Vasska's replacement, a man you did
+    not appoint, has asked whether you would like the door left as it is.
+  moment_label: The moment the line went quiet
+  compendium: "Military standing at 0. The officers stopped obeying without saying so."
+  emoji: "📵"
+
+- id: removed_military_0_admiral
+  name: "Volanski's Signal"
+  kind: removed
+  trigger: { type: meter, key: military, at: 0 }
+  conditions: { pieces_any: [admiral] }
+  priority: 22
+  text: >-
+    Volanski was loyal to the end, which is why she is the one who tells you. She comes
+    in uniform at 05:30 and stands, because sitting would be a lie.
+
+
+    The fleet has stopped acknowledging. Not refusing; it does not refuse. Signals
+    arrive, are logged and are not acted on, and Ostrova on the Kestrel has been told
+    by someone who is not you what he does when he cannot reach you. She is telling you
+    because a captain deserves to know who is on the other end of the line, and this
+    morning it is not you.
+
+
+    She salutes. It is the last one you will get, and she means it, and both of you
+    know it changes nothing.
+  moment_label: The moment the Admiral stood
+  compendium: "Military standing at 0. The loyal Admiral came to tell you herself."
+  emoji: "🫡"
+
+- id: removed_military_0_unsigned
+  name: "Returned for Clarification"
+  kind: removed
+  trigger: { type: meter, key: military, at: 0 }
+  conditions: { pieces_any: [dove_fm, no_first_use, minimal_deterrence] }
+  priority: 20
+  text: >-
+    Every time you stepped back, Marrow said it counted for more abroad. She was right.
+    She did not say what it counted for in the mess at Sennet, where pilots who had
+    been stood down for the fourth time sat with their helmets in their laps.
+
+
+    This morning the readiness order came back unsigned from three commands. Not
+    refused: returned for clarification, which is a phrase officers learn in their
+    first year for exactly this purpose. Vasska's successor is very sorry. He would like
+    to know what the armed forces of {us} are for.
+
+
+    Marrow is on a plane to {rival_capital}. It is a genuine breakthrough. There will
+    be no one at home to enforce it.
+  moment_label: The moment the order came back
+  compendium: "Military standing at 0. The doves won every argument and lost the officers."
+  emoji: "🖇️"
+
+# ---- military 100: the junta no longer needs you
+
+- id: removed_military_100
+  name: "The Junta"
+  kind: removed
+  trigger: { type: meter, key: military, at: 100 }
+  priority: 15
+  text: >-
+    You gave them everything they asked for, and then things they had not thought to
+    ask for, and somewhere in the second week the arithmetic of the room changed.
+    Nobody took power. They simply stopped needing you to hand it over.
+
+
+    The security council now meets without you. You are briefed afterwards,
+    courteously, by a colonel who calls you 'sir or ma'am' once and then stops. The war
+    is going well, they say. It is difficult to say what they mean by 'well' or by
+    'the war'; nobody remembers declaring one.
+
+
+    Your signature is still required on some things. Mara Quell has begun to bring
+    them in a folder marked, in her own hand, ceremonial.
+  moment_label: The moment the room changed
+  compendium: "Military standing at 100. The generals no longer need you to say yes."
+  emoji: "⚔️"
+
+- id: removed_military_100_hawk
+  name: "Vasska's Chair"
+  kind: removed
+  trigger: { type: meter, key: military, at: 100 }
+  conditions: { pieces_any: [hawk_general, field_marshal, iron_nerve] }
+  priority: 22
+  text: >-
+    The General did not take power. He would find the suggestion vulgar. He simply
+    became, over fourteen days of being given what he asked for, the person the room
+    looked at when a decision was required, and at some point you noticed that you
+    were looking at him too.
+
+
+    The chair beside yours has been moved a few inches closer each night. This morning
+    it is at the head of the table and yours is beside it. Nobody moved it. Things were
+    moved.
+
+
+    He briefs you at 07:00, capabilities and windows, and at the end he asks if you
+    have any questions. You do. You have learned not to ask them.
+  moment_label: The moment you looked at him
+  compendium: "Military standing at 100 with the Hawk General. The chair moved."
+  emoji: "♟️"
+
+- id: removed_military_100_federation
+  name: "The Marshals"
+  kind: removed
+  trigger: { type: meter, key: military, at: 100 }
+  seats: [federation]
+  priority: 20
+  text: >-
+    The Federation has always had an army with a state attached, and for a fortnight
+    you fed the army and starved the state, and this morning the Marshals have decided
+    that the arrangement can be simplified.
+
+
+    They are respectful. There will be no announcement; the Premier is unwell, the
+    Premier is resting, the Premier has asked the Council of Marshals to carry the
+    burden of the emergency. Your name will appear on the decrees for another month,
+    until people stop noticing that it is always the same signature.
+
+
+    Kaskad is quiet. The queues have been moved. The war, they tell you, is going well.
+  moment_label: The moment they simplified it
+  compendium: "Military standing at 100. The Federation's Marshals carry the burden, and the Premier rests."
+  emoji: "🎩"
+
+# ---- allies 0: abandonment
+
+- id: removed_allies_0
+  name: "Alone"
+  kind: removed
+  trigger: { type: meter, key: allies, at: 0 }
+  priority: 15
+  text: >-
+    The Northern Compact's communiqué arrives at 08:00 and takes some reading, because
+    the operative sentence is in the eleventh paragraph. The Compact 'reaffirms its
+    commitment to the peaceful resolution of the present tension'. Your name is not in
+    it. Neither is {us}.
+
+
+    Varga rings afterwards, in private, where she is blunt. She asked what you would do
+    and you told her, and then you did other things, and now she has a parliament of
+    her own to answer. She is sorry. She means it. She will not be visiting.
+
+
+    A great power with no friends is only a large country. The board is still live,
+    and for the first time you notice how much of it was never yours.
+  moment_label: The moment the Compact moved on
+  compendium: "Allies at 0. The alliance reaffirmed its commitment to peace, and left you out."
+  emoji: "🧭"
+
+- id: removed_allies_0_republic
+  name: "The Empty Chair"
+  kind: removed
+  trigger: { type: meter, key: allies, at: 0 }
+  seats: [republic]
+  priority: 20
+  text: >-
+    The Republic was built on being the country everyone else called first. This
+    morning the Compact council met in emergency session and the chair with your flag
+    on it was moved to the wall before the cameras came in.
+
+
+    Varga did not do it gladly. She did it because you asked her people to trust you
+    and then decided things at three in the morning that she read about at seven, and
+    a leader who is consulted afterwards is not an ally; she is an audience. The
+    Republic has spent forty years explaining that distinction to others.
+
+
+    Okonkwo-Reyes has a story about the last time this happened. It ends with the
+    Assembly of Nations deciding something without you. He does not finish it. He does
+    not need to.
+  moment_label: The moment the chair was moved
+  compendium: "Allies at 0. The Republic, the country everyone called first, was not called."
+  emoji: "📞"
+
+- id: removed_allies_0_federation
+  name: "The Last Friend"
+  kind: removed
+  trigger: { type: meter, key: allies, at: 0 }
+  seats: [federation]
+  priority: 20
+  text: >-
+    The Federation never had many. It had Amberline, which needed your gas, and two
+    governments to the south that needed your silence, and a customer for the arms
+    plants who needed the arms. This morning Amberline announced it will buy from
+    {other}.
+
+
+    You were warned that a country with few friends cannot afford to spend them. You
+    spent them the way the Marshals spend battalions, and for the same reason; there
+    seemed to be a war on.
+
+
+    Kaskad is a very large city and it has never felt so small. Roke has the numbers.
+    He has stopped making the joke.
+  moment_label: The moment Amberline changed suppliers
+  compendium: "Allies at 0. The Federation's last friend found a better offer."
+  emoji: "🧊"
+
+# ---- allies 100: protectorate
+
+- id: removed_allies_100
+  name: "Protectorate"
+  kind: removed
+  trigger: { type: meter, key: allies, at: 100 }
+  priority: 15
+  text: >-
+    The alliance has never been closer. That is the official language and it is true.
+    The Compact's joint command now sits in {capital}, the Compact's intelligence flows
+    through Lyle's building, and the Compact's council decides at 06:00 what {us} will
+    announce at 09:00.
+
+
+    Varga is warm in public. In private she says she is sorry it had to happen this
+    way. It did not have to; you made it happen, one consultation at a time, each of
+    which was wise and each of which handed away a decision you would have preferred
+    to keep.
+
+
+    You are still {leader}. In the compendium of the crisis you will appear in the
+    index under 'see also'.
+  moment_label: The moment they decided for you
+  compendium: "Allies at 100. The alliance decides; you announce."
+  emoji: "🤝"
+
+- id: removed_allies_100_consulted
+  name: "Consulted"
+  kind: removed
+  trigger: { type: meter, key: allies, at: 100 }
+  conditions: { pieces_any: [alliance_first, allied_basing, tripwire] }
+  priority: 22
+  text: >-
+    Alliance First was a doctrine, then a habit, then a reflex, and finally an address:
+    the Compact's liaison office on the second floor, whose light is on before yours.
+
+
+    Nothing was seized. Every base you offered was accepted with thanks; every tripwire
+    you laid was theirs to trip; every hour you spent making sure the allies were
+    consulted was an hour in which they learned they did not have to ask. This morning
+    the joint command moved a squadron out of Sennet without a note. The note came at
+    lunch. It was warm.
+
+
+    Varga tells you, in the blunt voice, that this is the most successful alliance of
+    its generation. She does not say whose.
+  moment_label: The moment the light was on before yours
+  compendium: "Allies at 100 under Alliance First. Consultation became permission."
+  emoji: "🏢"
+
+- id: removed_allies_100_coalition
+  name: "The Customers"
+  kind: removed
+  trigger: { type: meter, key: allies, at: 100 }
+  seats: [coalition]
+  priority: 20
+  text: >-
+    The Coalition's allies were always customers, and this morning the customers held a
+    shareholders' meeting. Twelve capitals, one video link, and a resolution that the
+    satellites, cables and factories on which they all depend are 'too important to be
+    subject to a single government's crisis judgement'.
+
+
+    They did not take anything. They now hold it jointly. The Chairman of the Coalition
+    may of course attend the oversight board, in an advisory capacity.
+
+
+    Roke observes that the country is more secure than it has ever been, in the way
+    that a bank vault is secure. Then he says he will get his coat.
+  moment_label: The moment the customers met
+  compendium: "Allies at 100. The Coalition's customers took joint ownership of the crisis."
+  emoji: "🏦"
+
+# ---- economy 0: collapse
+
+- id: removed_economy_0
+  name: "The Queue"
+  kind: removed
+  trigger: { type: meter, key: economy, at: 0 }
+  priority: 15
+  text: >-
+    It is not the currency. Roke was clear about that; the currency is a symptom. It is
+    the queue outside the bank in {capital}, the one on camera, which on the ninth day
+    stopped being a queue and became a crowd, and on the eleventh day stopped being a
+    crowd.
+
+
+    A crisis is a balance sheet with a body count, he told you in the first week, and
+    made a joke, and you laughed. There is no joke this morning. There is a letter from
+    the central bank and a letter from the party, and both say the same thing in
+    different fonts.
+
+
+    The board down the corridor is still live. Nobody can afford to look at it.
+  moment_label: The moment the queue stopped moving
+  compendium: "Economy at 0. The crisis was a balance sheet, and the sheet ran out."
+  emoji: "🍞"
+
+- id: removed_economy_0_federation
+  name: "Bread"
+  kind: removed
+  trigger: { type: meter, key: economy, at: 0 }
+  seats: [federation]
+  priority: 20
+  text: >-
+    The Federation was sanctioned before this began; you knew the depth of the well
+    when you started drawing on it. What you did not know was the day it would come up
+    dry, and it turns out to be a Tuesday.
+
+
+    Kaskad has bread. The problem was never bread. The problem is the queue at the
+    bank on Marshal Avenue, on camera, with a managed press that has found it can no
+    longer manage where the cameras point. Roke opened the reserve on the fourth day.
+    There has been no reserve since the ninth.
+
+
+    The Marshals have been patient. They have offered to take the economy off your
+    hands, and the rest of you with it.
+  moment_label: The moment the well ran dry
+  compendium: "Economy at 0. The Federation held the line longer than anyone, and could not pay for it."
+  emoji: "🥖"
+
+- id: removed_economy_0_reserve
+  name: "The Bottom of the Barrel"
+  kind: removed
+  trigger: { type: meter, key: economy, at: 0 }
+  conditions: { pieces_any: [strategic_reserve, war_bonds, war_economy] }
+  priority: 22
+  text: >-
+    The reserve was for exactly this; that was what everyone said each time you opened
+    it. Roke put the number on one sheet in the first week and the sheet has been
+    getting shorter ever since, like a candle.
+
+
+    This morning the sheet is blank. The bonds that paid for the fortnight are trading
+    at a price he describes as 'a rumour'. The factories that were turned over to the
+    war cannot be turned back in a week, or a year, and the people who worked in them
+    are outside.
+
+
+    Roke has one last dry joke. It is that you were right, it was for exactly this.
+    Then he hands in his pass.
+  moment_label: The moment the sheet was blank
+  compendium: "Economy at 0. The reserve was for exactly this, and this was bigger."
+  emoji: "🛢️"
+
+# ---- economy 100: the war-profiteering scandal
+
+- id: removed_economy_100
+  name: "The Contracts"
+  kind: removed
+  trigger: { type: meter, key: economy, at: 100 }
+  priority: 15
+  text: >-
+    The economy has never done better. That was the first line of Roke's brief this
+    morning and it was the last line anyone heard, because Ferrante's paper had the
+    second line an hour before he did: who, exactly, has been doing better.
+
+
+    The contracts were legal. Castellane is clear on what you may do. What you can
+    later be seen to have done is a list of eleven companies, four of them founded this
+    month, all of them run by people who have been photographed with you, one of them
+    at a christening.
+
+
+    A country can forgive a leader for a war. It cannot forgive a leader for a good
+    quarter. The party has asked for your resignation by noon so the market does not
+    open on it.
+  moment_label: The moment the second line ran
+  compendium: "Economy at 100. Somebody made money on the crisis, and it was your friends."
+  emoji: "💰"
+
+- id: removed_economy_100_halvard
+  name: "Halvard Systems"
+  kind: removed
+  trigger: { type: meter, key: economy, at: 100 }
+  conditions: { pieces_any: [contractor] }
+  priority: 22
+  text: >-
+    Ashby-Tal never said weapon. He said capability, and he always had a product, and
+    by the end of the fortnight Halvard Systems had a product in every room where a
+    decision was made, and a seat at the table in three of them.
+
+
+    The share price is on the front page beside your face. The story underneath uses
+    the word 'capability' in quotation marks nine times. It has the christening
+    photograph. It has the yacht, which you had not known about, which is the problem:
+    a leader who did not know is a leader who was not looking.
+
+
+    He has sent flowers. The card says he will be there for the next government too.
+    Smooth, helpful, no threat implied.
+  moment_label: The moment the share price made the front page
+  compendium: "Economy at 100 with the Defence Contractor. Halvard Systems had a very good fortnight."
+  emoji: "💼"
+
+- id: removed_economy_100_coalition
+  name: "Everyone's Factory"
+  kind: removed
+  trigger: { type: meter, key: economy, at: 100 }
+  seats: [coalition]
+  priority: 20
+  text: >-
+    Every crisis needs satellites, cables and chips, and the Coalition makes them, and
+    a fortnight of the world buying everything it could carry has produced the best
+    quarter in Qorum's history.
+
+
+    The Standing Committee has studied the quarter. It has noticed that the Chairman's
+    brother-in-law sits on the board of the company that made most of it, that the
+    dual-use export licences were signed in a single afternoon, and that the afternoon
+    was the day of the column at the Aum. A rising power can afford many things. It
+    cannot afford to look like the old ones.
+
+
+    You are thanked for your service. The Party keeps the quarter.
+  moment_label: The moment the licences were counted
+  compendium: "Economy at 100. The Coalition had a record quarter, and someone counted the signatures."
+  emoji: "🏭"
+
+# =============================================================== STAND-DOWN
+# The endgame flashpoint finishes with escalation at 35 or below.
+
+- id: standdown_communique
+  name: "The Communiqué"
+  kind: standdown
+  trigger: { type: run_end }
+  conditions: { flags_any: [fp:summit_communique, summit:communique], values: { escalation: { max: 35 } } }
+  priority: 36
+  text: >-
+    It is two pages. Lindqvist drafted the first at Vellmar and the second in the car,
+    and the sentence that matters was argued over for four hours and now reads as if
+    nobody argued about anything. Both of you signed it at 05:50, at the lake door,
+    without cameras, and then again at the front door, with them.
+
+
+    It does not solve Vestria. It does not mention the Straits. It creates a working
+    group, a hotline protocol and a date, and it uses the word 'regret' in a way that
+    both delegations can read aloud at home.
+
+
+    Marrow says paper is what it looks like when two frightened countries agree to be
+    frightened together instead of separately. Then she goes to sleep for the first
+    time in fourteen days.
+  moment_label: The moment it held
+  compendium: "A stand-down by communiqué. Two pages, one word both sides could read aloud."
+  emoji: "🕊️"
+
+- id: standdown_quiet_room
+  name: "The Quiet Room"
+  kind: standdown
+  trigger: { type: run_end }
+  conditions: { pieces_any: [back_channel, ambassador, quiet_room], values: { escalation: { max: 35 } } }
+  priority: 30
+  text: >-
+    There is no communiqué. There will be no record. The crisis ended in a room above a
+    bookshop in {other_capital}, where an old ambassador and a man he has known for
+    thirty years drank tea and spoke of the crisis before this one, and the one before
+    that, and, around midnight, of this one.
+
+
+    Okonkwo-Reyes will not say what was agreed. He says only that both sides have
+    remembered how the last one ended, and how it was ended, and by whom, and that a
+    man with a domestic audience needs a way to climb down that his audience cannot
+    see.
+
+
+    At 06:00 {rival} announced a routine reduction in readiness. At 06:30 so did you.
+    Neither statement mentioned the other. That was the agreement.
+  moment_label: The moment it held
+  compendium: "A stand-down through the back channel. Nobody will ever know how."
+  emoji: "🫖"
+
+- id: standdown_red_telephone
+  name: "The Red Telephone"
+  kind: standdown
+  trigger: { type: run_end }
+  conditions: { pieces_any: [hotline_protocol, open_line], values: { escalation: { max: 35 } } }
+  priority: 31
+  text: >-
+    The line was used eleven times. Rennick has the log. Each call was formal,
+    translated, a beat late, and the pauses were the message; by the seventh call both
+    rooms could hear the other side breathing, which is not nothing.
+
+
+    It never said anything that would read well in a history. It said: that was an
+    exercise. It said: our ships are turning, do not read it as an attack. It said,
+    once, at 03:00, nothing at all for forty seconds, and then 'thank you', and the
+    readiness order that had been on your desk went into the drawer.
+
+
+    Marrow says the telephone did not end the crisis. It only made sure nobody ended it
+    by accident. She says that as if it were a small thing.
+  moment_label: The moment the line held
+  compendium: "A stand-down by hotline. Eleven calls, and one forty-second silence."
+  emoji: "🔴"
+
+- id: standdown_word_kept
+  name: "The Word Kept"
+  kind: standdown
+  trigger: { type: run_end }
+  conditions: { pieces_any: [no_first_use], values: { escalation: { max: 35 } } }
+  priority: 32
+  text: >-
+    You said you would never be first, and there was a night when being first was the
+    only thing the room wanted, and you were not. Vasska was correct that it cost you a
+    window. Lyle assesses, with moderate confidence, that {rival} had a window of their
+    own that night and also let it close, because they had read your doctrine and,
+    against their own analysts' advice, believed it.
+
+
+    That is all a doctrine is: a thing you say in a calm month so that a frightened one
+    has a shape.
+
+
+    Delacroix-Amin has not claimed credit. She has sent a card. It asks whether you
+    have slept. It is signed with only her first name, which she has never done before.
+  moment_label: The moment you were not first
+  compendium: "A stand-down under No First Use. You said it, and then you had to mean it."
+  emoji: "🤞"
+
+- id: standdown_longer_table
+  name: "The Longer Table"
+  kind: standdown
+  trigger: { type: run_end }
+  conditions: { flags_any: [fp:midnight_backed_down, ultimatum:backed_down], values: { escalation: { max: 35 } } }
+  priority: 34
+  text: >-
+    The deadline was midnight. At 23:52 you announced a pause. Not a withdrawal; a
+    pause, and the translator in {rival_capital} repeated the word twice and then, for
+    the first time in the crisis, laughed.
+
+
+    The morning papers are savage. Ahlgren has the word 'capitulation' in his first
+    sentence and 'weakness' in his third. Karrick has stopped counting. Vasska has
+    asked, in writing, for the record to show that he advised otherwise, and the record
+    will show it, and so will the world, which is why it will not matter.
+
+
+    The table at Vellmar has been extended by two metres for the talks. Marrow chose
+    the length herself. She says a longer table is what a climb-down looks like from
+    the other side.
+  moment_label: The moment you stepped back
+  compendium: "A stand-down after backing down at midnight. The papers were savage; the table was longer."
+  emoji: "📏"
+
+- id: standdown_moratorium
+  name: "Twelve Hundred Pieces"
+  kind: standdown
+  trigger: { type: run_end }
+  conditions: { flags_any: [debris:moratorium, fp:cascade_moratorium], values: { escalation: { max: 35 } } }
+  priority: 33
+  text: >-
+    There are twelve hundred pieces of a dead satellite circling the planet at eight
+    hundred kilometres, and this morning they are the only thing both governments agree
+    on. Benn-Sato's chart has the field in green, orange and red, and for the first
+    time in a fortnight it is on a screen in {rival_capital} too.
+
+
+    The moratorium is three paragraphs. No tests above six hundred kilometres. A shared
+    catalogue. A telephone number in each capital for when something comes apart at
+    03:05 and someone has to say what it was before someone else decides.
+
+
+    Vance signed the technical annex. She notes that 'consistent with' is now a phrase
+    both sides use, and calls this the only real arms control of the decade.
+  moment_label: The moment it held
+  compendium: "A stand-down by moratorium. Twelve hundred pieces of debris, one shared catalogue."
+  emoji: "🔭"
+
+- id: standdown_held_together
+  name: "Held Together"
+  kind: standdown
+  trigger: { type: run_end }
+  conditions: { values: { allies: { min: 70 }, escalation: { max: 35 } } }
+  priority: 28
+  text: >-
+    Varga was in the room for the last three nights; not at the table, in the corner
+    with a telephone, and you asked her before you moved and told her before you
+    announced, and every time it cost you an hour you did not have.
+
+
+    The Compact held. Twelve governments, twelve parliaments, twelve editors with a leak
+    to sell, and not one of them broke. Lyle assesses that this, more than any
+    deployment, is what {rival_capital} looked at when it decided the ladder was not
+    worth climbing.
+
+
+    Varga's statement this morning is warm. Her message to you privately is one line:
+    you did what you said. From her, that is the whole of the alliance.
+  moment_label: The moment it held
+  compendium: "A stand-down with the alliance intact. You did what you said, and they saw it."
+  emoji: "🧵"
+
+- id: standdown_line_held
+  name: "The Line Held"
+  kind: standdown
+  trigger: { type: run_end }
+  conditions: { flags_any: [fp:line_stood_off, blockade:lifted], values: { escalation: { max: 35 } } }
+  priority: 29
+  text: >-
+    Forty miles of water, two frigates, a freighter that had not answered a hail in six
+    hours, and a captain who asked twice what he did at the line. What he did, on your
+    order, was nothing, for eleven hours, in the dark, with his guns trained and his
+    crew not knowing whether the first flash would be a signal lamp.
+
+
+    The Sable Meridian turned at 04:10. Nobody has said why. Volanski thinks the
+    Vesna's captain had a conversation with Ostrova by lamp that neither has reported
+    and neither will.
+
+
+    The line has been lifted. Quietly, at night, without a statement. The papers say
+    you backed down. Ostrova has been given a medal that does not say what it is for.
+  moment_label: The moment nobody fired
+  compendium: "A stand-down at sea. Two captains, eleven hours, and a lamp."
+  emoji: "🔦"
+
+- id: standdown_ceasefire
+  name: "Vestria, Quiet"
+  kind: standdown
+  trigger: { type: run_end }
+  conditions: { flags_any: [proxy:ceasefire, proxy:withdrawn], values: { escalation: { max: 35 } } }
+  priority: 27
+  text: >-
+    The ceasefire in Vestria is not a peace. It is a line on a map that both sides have
+    agreed to pretend is where the other side stopped, and it runs along the Aum
+    because the Aum is a river and rivers do not need lawyers.
+
+
+    Your people are out. Not all of them; the advisers who went in as volunteers are
+    coming out the same way, in twos, with their flags in their pockets. Vasska calls
+    it a retreat. Marrow calls it the first thing anyone has done in this crisis that
+    {rival_capital} could also do without losing face, and points out that they did it
+    the next day.
+
+
+    The Assembly of Nations has a monitoring mission. Lindqvist is on the plane. She
+    has been given nothing to promise and will be blamed for all of it.
+  moment_label: The moment it held
+  compendium: "A stand-down after Vestria. A river, a ceasefire, and advisers leaving in twos."
+  emoji: "🏳️"
+
+- id: standdown_empty_sky
+  name: "The Empty Sky"
+  kind: standdown
+  trigger: { type: run_end }
+  conditions: { flags_any: [fp:intercept_false_alarm_caught, false_alarm:stood_down, false_alarm:investigated], values: { escalation: { max: 35 } } }
+  priority: 35
+  text: >-
+    There was a night when the board showed eleven inbound and the room believed it.
+    You did not, or you did and waited anyway, which Lyle says is the same thing
+    operationally and Delacroix-Amin says is not the same thing at all.
+
+
+    The second radar chain saw an empty sky. The tracks went off the board one at a
+    time, like lights along a street. It was a correlator fault and a sunrise, and the
+    tape of those ninety seconds is now in a safe that three people can open.
+
+
+    Rennick has asked for a transfer. Not because of what happened; because of what
+    nearly did, and because he has to read that board again tomorrow. You have said
+    yes. It is the only easy decision of the fortnight.
+  moment_label: The moment you waited
+  compendium: "A stand-down after a false alarm caught in time. Ninety seconds, an empty sky."
+  emoji: "🌅"
+
+- id: standdown_unloved
+  name: "The Unloved Peacemaker"
+  kind: standdown
+  trigger: { type: run_end }
+  conditions: { values: { public: { max: 40 }, escalation: { max: 35 } } }
+  priority: 24
+  text: >-
+    Nobody will thank you. That was always the shape of it: a crisis that does not
+    happen leaves no rubble to point at, and the papers have decided the fortnight was
+    a fortnight of weakness, and the papers are the only record most people will read.
+
+
+    Ahlgren has the numbers. You are the least popular leader to complete a term in
+    living memory. He says this in a tone of regret. He is very good.
+
+
+    Marrow puts it differently. In {rival_capital}, she says, a man is being told he
+    stood up to you and won. Let him. His people are also going home tonight. Then she
+    says goodnight, which she has not said all fortnight, and means it as a statement
+    of fact.
+  moment_label: The moment it held
+  compendium: "A stand-down nobody wanted. Escalation low, popularity lower."
+  emoji: "🥀"
+
+- id: standdown_generic
+  name: "Stand-Down"
+  kind: standdown
+  trigger: { type: run_end }
+  conditions: { values: { escalation: { max: 35 } } }
+  priority: 10
+  text: >-
+    It is over in the way these things are over: not with a signature, but with a
+    Tuesday on which nothing happens, and then a Wednesday. Readiness levels come down
+    a notch on both sides, each side saying it was routine, neither side correcting the
+    other.
+
+
+    There will be a review. Lyle will give it moderate confidence. Vasska will note
+    where the windows were. Marrow will note that they closed. Roke will hand round a
+    sheet of what it cost, and it will be a large number, and nobody will say what the
+    other number would have been.
+
+
+    Mara Quell reads tomorrow's schedule aloud. It has a lunch in it. You had forgotten
+    those existed.
+  moment_label: The moment it held
+  compendium: "A stand-down. A Tuesday on which nothing happened."
+  emoji: "🌤️"
+
+# ================================================================= SURVIVAL
+# The run ends with escalation above 35: nobody stood down, nobody fired.
+
+- id: survival_cold_peace
+  name: "Cold Peace"
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { values: { escalation: { min: 36, max: 60 } } }
+  priority: 20
+  text: >-
+    Nobody stood down. Nobody fired. The fortnight ends with the readiness levels where
+    they were on the tenth day and every sign that they will stay there for a
+    generation.
+
+
+    The Straits have a line across them that both fleets now treat as weather. Vestria
+    has a front. The hotline is tested twice a week at 09:00 and both sides answer,
+    formally, and hang up. Lyle calls it stable. Marrow calls it a room with the door
+    locked from both sides.
+
+
+    Rennick's board is still lit at night. There is no longer anyone in the building
+    who remembers it dark.
+  moment_label: The moment it stayed
+  compendium: "Survived. A cold peace, locked from both sides."
+  emoji: "❄️"
+
+- id: survival_armed_truce
+  name: "Armed Truce"
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { values: { military: { min: 70 }, escalation: { min: 36 } } }
+  priority: 24
+  text: >-
+    The armed forces of {us} have never been stronger, readier or more expensive.
+    Vasska has his windows and his packages, and this morning he has something better:
+    a peace that requires him.
+
+
+    {Rival} has matched every move. That is the truce. Two very large armies looking at
+    each other across the Aum and the Straits, each sure the other would move if they
+    blinked, and so neither blinks, and so the budgets grow, and Roke has stopped doing
+    the joke.
+
+
+    It will hold as long as nobody trips. Vasska says that is what deterrence is.
+    Marrow says that is what a tripwire is. They are both right, which is what makes it
+    a truce.
+  moment_label: The moment the guns stayed loaded
+  compendium: "Survived under arms. Two armies who trust each other not to blink."
+  emoji: "🛡️"
+
+- id: survival_long_watch
+  name: "The Long Watch"
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { values: { escalation: { min: 61 } } }
+  priority: 21
+  text: >-
+    The fortnight ends and the crisis does not. It has simply become the way things
+    are: the phones in the bedroom, the red clocks that Facilities never took down, the
+    board that Rennick reads aloud every four hours because if he stopped, someone
+    would have to decide whether that meant something.
+
+
+    You are not at war. Lyle assesses this with high confidence. He also assesses, with
+    the same confidence, that the distance between where you are and war is now
+    measured in minutes rather than weeks, and that both capitals have got used to the
+    arithmetic.
+
+
+    Jonah has stopped asking if you have eaten. He leaves the plate. It is still a
+    kindness. It is just a quieter one.
+  moment_label: The moment it stayed
+  compendium: "Survived, high on the ladder. The crisis became the weather."
+  emoji: "🌃"
+
+- id: survival_frozen_front
+  name: "Frozen Front"
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_any: [proxy:escalated, proxy:brigade_deployed], values: { escalation: { min: 36 } } }
+  priority: 25
+  text: >-
+    There is a front in Vestria. It runs along the Aum, then east to Hollin Ridge, then
+    along a railway that no longer carries anything, and it is manned on both sides by
+    soldiers who have taken the flags off their sleeves and are not fooling anyone.
+
+
+    Nobody has declared anything. Both capitals refer to the men as volunteers. There
+    are cemeteries on both sides of the Aum now with the same date on the stones, and
+    the families know exactly whose army the volunteers were in.
+
+
+    The Assembly of Nations calls it a frozen conflict. Marrow says frozen things thaw.
+    Vasska says that is why you keep them cold.
+  moment_label: The moment it froze
+  compendium: "Survived with a front in Vestria. Volunteers on both sides, and cemeteries."
+  emoji: "🏔️"
+
+- id: survival_hollow_victory
+  name: "Hollow Victory"
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { values: { public: { max: 35 }, escalation: { min: 36 } } }
+  priority: 23
+  text: >-
+    By every measure Lyle keeps, you won. {Rival} has stepped back from the Straits,
+    the column at the Aum turned round, and Vasska's after-action report uses the word
+    'decisive' four times.
+
+
+    The country has not noticed. It noticed the sirens, the queue at the bank, the
+    fortnight of not knowing whether the children should go to school, and a leader who
+    kept saying the situation was under control in a voice that did not sound like it.
+    You are the least popular winner in the country's history. Ahlgren has said so,
+    regretfully.
+
+
+    Karrick has a plan to fix the framing. You ask him what the story is. He says the
+    story is that you won. You ask him who he is telling it to.
+  moment_label: The moment they stopped listening
+  compendium: "Survived and, on paper, won. Nobody at home was reading the paper."
+  emoji: "🏆"
+
+- id: survival_they_blinked
+  name: "They Blinked"
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_any: [fp:midnight_called_bluff, ultimatum:called_bluff], values: { escalation: { min: 36 } } }
+  priority: 27
+  text: >-
+    The deadline was midnight and you did not move. At 00:40 {rival_capital} announced
+    a technical adjustment to its deployment posture, which is the phrase a government
+    uses when it has decided the other side means it.
+
+
+    Karrick has the headline and it is a good one. Vasska has the after-action report
+    and it uses the word 'resolve' until it stops meaning anything. Lyle has one line
+    of dissent, and he has put it at the end, where it will not be read: we assess with
+    moderate confidence that they will not blink twice.
+
+
+    Marrow has already booked a flight. She says a country that has been made to blink
+    in public will want to be seen not to next time, and next time is a matter of
+    scheduling.
+  moment_label: The moment they blinked
+  compendium: "Survived. They blinked at midnight, and everyone saw it, which is the problem."
+  emoji: "👁️"
+
+- id: survival_empty_chair
+  name: "The Empty Chair at Vellmar"
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_any: [fp:summit_walkout, fp:summit_collapsed, summit:collapsed], values: { escalation: { min: 36 } } }
+  priority: 26
+  text: >-
+    The summit failed. One of you left the house on the lake before dawn and the
+    cameras at the front door recorded which, and that footage will play for a decade
+    under the word 'collapse'.
+
+
+    And then, oddly, nothing else fell. Both delegations went home angry, and both
+    governments found that being angry at each other was a thing they could do for
+    weeks without doing anything else. Lindqvist calls it the least bad outcome she has
+    ever been blamed for.
+
+
+    The paper is still on the table at Vellmar. The house has been kept open. Nobody
+    has said why.
+  moment_label: The moment the cars left
+  compendium: "Survived after a failed summit. The house on the lake is still open."
+  emoji: "🏚️"
+
+- id: survival_line_stays
+  name: "The Line Stays"
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_any: [blockade:ours, blockade:declared, fp:line_boarded], values: { escalation: { min: 36 } } }
+  priority: 22
+  text: >-
+    The blockade of the Sorrel Straits is in its third week and has become a fact of
+    geography. Ships queue at both ends. Insurers in {other_capital} have a line for
+    it. Volanski's captains board two a day, politely, and the crews on both sides have
+    started to recognise each other.
+
+
+    {Rival} has not run it since the Sable Meridian and has not lifted its own answer
+    since the day after. Roke says the two blockades together cost roughly what a small
+    war would, spread more evenly.
+
+
+    Ostrova has asked when the Kestrel comes home. Volanski has told him what she was
+    told: when the line does. Nobody has asked when that is.
+  moment_label: The moment it stayed
+  compendium: "Survived with the line across the Straits. Ships queue; the crews recognise each other."
+  emoji: "🚢"
+
+- id: survival_still_here
+  name: "Still Here"
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { values: { escalation: { min: 36 } } }
+  priority: 10
+  text: >-
+    The fortnight ends. That is the whole of the achievement and it is not a small one;
+    there were nights this fortnight when the people in the room would have signed for
+    it.
+
+
+    Nothing is resolved. The Straits, Vestria, the satellites, the man in
+    {rival_capital} with the domestic audience: all of it is exactly where it was, only
+    more tired. Lyle assesses the situation as stable, and then, unusually, adds a
+    sentence of his own. It says the word 'stable' is doing a great deal of work.
+
+
+    Mara Quell reads tomorrow's schedule. It is the same as today's. She says that as
+    if it were good news, and it is.
+  moment_label: The moment it stayed
+  compendium: "Survived. Nothing resolved, nothing lost, everyone more tired."
+  emoji: "🌙"
+
+# ================================================================ FALLBACKS
+# Priority 0. Required by the engine; only shown when nothing authored matches.
+
+- id: fallback_nuclear
+  name: "The End"
+  kind: nuclear
+  trigger: { type: meter, key: escalation, at: 100 }
+  priority: 0
+  text: >-
+    The board Rennick reads from fills in from the north and then from everywhere.
+    There is no order that stops it now; there was, for a while, and the while is over.
+
+
+    What happens after this is not politics.
+  moment_label: The moment it went wrong
+  compendium: "Escalation 100."
+  emoji: "☢️"
+
+- id: fallback_public_0
+  name: "Removed"
+  kind: removed
+  trigger: { type: meter, key: public, at: 0 }
+  priority: 0
+  text: >-
+    The country stops listening, and then the party does, and then the men outside the
+    door are polite about the car. You are no longer {leader}.
+
+
+    The crisis does not notice.
+  moment_label: The moment they stopped listening
+  compendium: "Public support at 0. Removed from office."
+  emoji: "🚶"
+
+- id: fallback_public_100
+  name: "Acclaimed"
+  kind: removed
+  trigger: { type: meter, key: public, at: 100 }
+  priority: 0
+  text: >-
+    They love you too much to let you stop. The constitution goes first, then the
+    calendar.
+
+
+    The emergency will be extended, in your name, by people who have learned your
+    voice.
+  moment_label: The moment they stopped voting
+  compendium: "Public support at 100. The office outgrew the constitution."
+  emoji: "📣"
+
+- id: fallback_military_0
+  name: "Unheard"
+  kind: removed
+  trigger: { type: meter, key: military, at: 0 }
+  priority: 0
+  text: >-
+    Orders go down the line and come back unopened. Nobody refuses. Nobody needs to.
+
+
+    The armed forces of {us} are waiting for a signature they can obey, and it is not
+    yours.
+  moment_label: The moment the line went quiet
+  compendium: "Military standing at 0. The officers stopped obeying."
+  emoji: "📵"
+
+- id: fallback_military_100
+  name: "The Uniform"
+  kind: removed
+  trigger: { type: meter, key: military, at: 100 }
+  priority: 0
+  text: >-
+    You gave the generals everything they asked for, and somewhere in the second week
+    they stopped needing to ask.
+
+
+    You remain {leader}. The decisions are made down the corridor.
+  moment_label: The moment the room changed
+  compendium: "Military standing at 100. The generals no longer need you."
+  emoji: "⚔️"
+
+- id: fallback_allies_0
+  name: "No One Answers"
+  kind: removed
+  trigger: { type: meter, key: allies, at: 0 }
+  priority: 0
+  text: >-
+    The communiqué reaffirms the alliance's commitment to peace and does not mention
+    {us}. Varga is sorry.
+
+
+    A great power with no friends is only a large country.
+  moment_label: The moment the Compact moved on
+  compendium: "Allies at 0. Abandoned."
+  emoji: "🧭"
+
+- id: fallback_allies_100
+  name: "Protected"
+  kind: removed
+  trigger: { type: meter, key: allies, at: 100 }
+  priority: 0
+  text: >-
+    The alliance has never been closer. It decides at six and you announce at nine.
+
+
+    You are still {leader}, in an advisory capacity.
+  moment_label: The moment they decided for you
+  compendium: "Allies at 100. A protectorate."
+  emoji: "🤝"
+
+- id: fallback_economy_0
+  name: "Insolvent"
+  kind: removed
+  trigger: { type: meter, key: economy, at: 0 }
+  priority: 0
+  text: >-
+    The currency was a symptom. The queue outside the bank was the disease, and this
+    morning it is not a queue.
+
+
+    The party has asked for your signature before the markets open.
+  moment_label: The moment the queue stopped moving
+  compendium: "Economy at 0. Collapse."
+  emoji: "🍞"
+
+- id: fallback_economy_100
+  name: "The Good Quarter"
+  kind: removed
+  trigger: { type: meter, key: economy, at: 100 }
+  priority: 0
+  text: >-
+    The economy has never done better. Then Ferrante's paper prints who, exactly, has
+    been doing better, and the list is your friends.
+
+
+    A country forgives a war. It does not forgive a good quarter.
+  moment_label: The moment the second line ran
+  compendium: "Economy at 100. The profiteering scandal."
+  emoji: "💰"
+
+- id: fallback_standdown
+  name: "Stood Down"
+  kind: standdown
+  trigger: { type: run_end }
+  priority: 0
+  text: >-
+    The readiness levels come down on both sides, each side calling it routine.
+    Nothing is signed. Nothing is fired.
+
+
+    Mara Quell reads tomorrow's schedule, and there is a lunch in it.
+  moment_label: The moment it held
+  compendium: "A stand-down."
+  emoji: "🌤️"
+
+- id: fallback_survival
+  name: "Survived"
+  kind: survival
+  trigger: { type: run_end }
+  priority: 0
+  text: >-
+    The fortnight ends and the crisis does not. Nothing is resolved and nothing is
+    lost.
+
+
+    Lyle assesses the situation as stable, and notes that the word is doing a great
+    deal of work.
+  moment_label: The moment it stayed
+  compendium: "Survived the fortnight."
+  emoji: "🌙"
+
+- id: fallback_special
+  name: "The Run Ends"
+  kind: special
+  trigger: { type: forced }
+  priority: 0
+  text: >-
+    The run ends here, in a way nobody in the room had a plan for. Mara Quell closes
+    the schedule.
+
+
+    The board is still lit, and someone else will read it.
+  moment_label: The moment it ended
+  compendium: "The run ended."
+  emoji: "⏹️"
