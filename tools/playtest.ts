@@ -307,6 +307,8 @@ async function main() {
     console.log(`transcript → ${file}`);
     await browser.close();
     vite.kill();
+    // The dev server's shell wrapper can outlive kill(); do not leave the harness hanging.
+    setTimeout(() => process.exit(0), 500).unref();
   }
 }
 
