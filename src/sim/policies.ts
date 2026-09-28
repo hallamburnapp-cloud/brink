@@ -490,11 +490,23 @@ export function evaluateSide(state: RunState, side: ChoiceView, hc: HeuristicCon
 export function evaluateBoth(content: Content, state: RunState, view: CardView): { hc: HeuristicContext; L: SideEvaluation; R: SideEvaluation } {
   const hc = heuristicContext(content, state, view);
   const card = state.current ? content.cards[state.current] : undefined;
-  return {
-    hc,
-    L: evaluateSide(state, view.left, hc, expectedOutcome(card?.left, view.left.odds?.p)),
-    R: evaluateSide(state, view.right, hc, expectedOutcome(card?.right, view.right.odds?.p)),
+  const L = evaluateSide(state, view.left, hc, expectedOutcome(card?.left, view.left.odds?.p));
+  const R = evaluateSide(state, view.right, hc, expectedOutcome(card?.right, view.right.odds?.p));
+  // A choice that forces a losing ending (resign, launch) is the end of the run, whatever its printed cost.
+  const forcedLoss = (c: ChoiceDef | undefined): boolean => {
+    if (!c?.ending) return false;
+    const k = content.endings[c.ending]?.kind;
+    return k !== 'standdown' && k !== 'survival';
   };
+  if (forcedLoss(card?.left)) {
+    L.hardAvoid = true;
+    L.score -= 1000;
+  }
+  if (forcedLoss(card?.right)) {
+    R.hardAvoid = true;
+    R.score -= 1000;
+  }
+  return { hc, L, R };
 }
 
 /** Does the next ante look harder than the current pace can carry? (Shop-time reading.) */
