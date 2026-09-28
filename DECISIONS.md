@@ -48,7 +48,7 @@ Open design decisions, chosen for fun and finishability, logged as they were mad
 ## Tech
 - **D-040 Preact over React** for the initial-JS budget. **Tailwind v4** via the Vite plugin. **Zod** only at build/validate time; runtime content is compiled JSON in a virtual module.
 - **D-041 Content hot reload** through a virtual module with HMR accept, so a run in progress keeps its state while the deck updates. Content changes route through `handleHotUpdate` so Vite never falls back to a full reload mid-run.
-- **D-042 Content chunk.** Compiled content is a separate chunk (~60 KB gzipped) loaded with the app; the size check reports it separately from the 40 KB app bundle, and both together sit well under the 250 KB budget.
+- **D-042 Content chunk.** Compiled content is a separate, dynamically imported chunk (~169 KB gzipped at 450 cards and 92 endings) loaded at boot; the size check counts only the initial JS (49 KB gzipped of a 250 KB budget) and reports the content chunk separately.
 - **D-043 No webfonts.** System serif and monospace stacks; zero third-party requests, instant offline.
 
 ## Product

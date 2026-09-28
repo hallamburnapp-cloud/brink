@@ -26,7 +26,9 @@ All notable changes to BRINK. Dates are UTC.
 
 ### Tooling
 - Simulator rewritten for the loop: shop-aware policies that buy pieces and orders, endless continuation, archetype tracking, the T1–T5 targets, weakest cards and pieces; `BRINK_SIM_LENIENT=1` runs with content errors for early reads.
-- Playwright e2e emulates reduced motion and waits for enabled choices so full runs fit the budget.
+- Playwright e2e emulates reduced motion and waits for enabled choices so full runs fit the budget; all five specs green.
+- Four harness playtests (dove, hawk, balanced, gambler) with transcripts and share cards under `docs/playtests/`; PLAYTEST.md.
+- Final simulator report under `docs/sim-report-iter8.md`; BALANCE.md logs eight iterations, the target table (4 of 5 pass) and the weakest cards and pieces with rewrites; SUMMARY.md.
 
 ## 0.1.0 — 2026-09-28 (build night)
 
