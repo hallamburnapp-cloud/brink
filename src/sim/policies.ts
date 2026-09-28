@@ -18,7 +18,7 @@
 import type { Rng } from '../engine/rng';
 import { actTarget } from '../engine/leverage';
 import { actDef, difficultyDef } from '../engine/run';
-import type { ArchetypeDef, CardView, ChoiceView, Content, MeterKey, OrderDef, PieceDef, Rarity, RunState } from '../engine/types';
+import type { ArchetypeDef, CardView, ChoiceDef, ChoiceView, Content, EffectKey, Effects, MeterKey, OrderDef, PieceDef, Rarity, RunState } from '../engine/types';
 
 export type Decision = 'left' | 'right' | 'timeout' | 'bury';
 export type PolicyName = 'random' | 'greedy' | 'heuristic';
@@ -395,14 +395,30 @@ export interface SideEvaluation {
  * (a) edges, (b) ante pressure, (c) escalation band by build, (d) accidents,
  * (e) odds and (f) Hotline charges from the simulator brief live here.
  */
-export function evaluateSide(state: RunState, side: ChoiceView, hc: HeuristicContext): SideEvaluation {
+/**
+ * Expected extra deltas from an odds roll: p × success + (1 − p) × failure, read from the
+ * card definition (the bot knows the deck the way a veteran does; the UI keeps the surprise).
+ */
+export function expectedOutcome(choice: ChoiceDef | undefined, p: number | undefined): Effects {
+  const out: Effects = {};
+  if (!choice?.odds || p === undefined) return out;
+  const add = (e: Effects | undefined, w: number) => {
+    if (!e) return;
+    for (const k of Object.keys(e) as EffectKey[]) out[k] = (out[k] ?? 0) + (e[k] ?? 0) * w;
+  };
+  add(choice.odds.success.effects, p);
+  add(choice.odds.failure.effects, 1 - p);
+  return out;
+}
+
+export function evaluateSide(state: RunState, side: ChoiceView, hc: HeuristicContext, expected: Effects = {}): SideEvaluation {
   const m = state.meters;
   let score = 0;
   let hardAvoid = false;
 
   for (const k of OFFICE) {
     const v = m[k];
-    const v2 = clamp(v + (side.preview[k] ?? 0), 0, 100);
+    const v2 = clamp(v + (side.preview[k] ?? 0) + (expected[k] ?? 0), 0, 100);
     const d = edgeDistance(v);
     const d2 = edgeDistance(v2);
     // (a) within 8 of an edge and not climbing away from it.
@@ -422,7 +438,7 @@ export function evaluateSide(state: RunState, side: ChoiceView, hc: HeuristicCon
 
   // Hidden costs shown as "?" are read as +6 escalation each.
   const esc = m.escalation;
-  const esc2 = clamp(esc + (side.preview.escalation ?? 0) + side.hiddenCosts.length * HIDDEN_COST_ESCALATION, 0, 100);
+  const esc2 = clamp(esc + (side.preview.escalation ?? 0) + (expected.escalation ?? 0) + side.hiddenCosts.length * HIDDEN_COST_ESCALATION, 0, 100);
   if (esc2 > ESCALATION_HARD && esc2 >= esc) hardAvoid = true;
 
   if (hc.brink) {
@@ -462,9 +478,14 @@ export function evaluateSide(state: RunState, side: ChoiceView, hc: HeuristicCon
   return { score, hardAvoid, escalation: esc2 };
 }
 
-function evaluateBoth(content: Content, state: RunState, view: CardView): { hc: HeuristicContext; L: SideEvaluation; R: SideEvaluation } {
+export function evaluateBoth(content: Content, state: RunState, view: CardView): { hc: HeuristicContext; L: SideEvaluation; R: SideEvaluation } {
   const hc = heuristicContext(content, state, view);
-  return { hc, L: evaluateSide(state, view.left, hc), R: evaluateSide(state, view.right, hc) };
+  const card = state.current ? content.cards[state.current] : undefined;
+  return {
+    hc,
+    L: evaluateSide(state, view.left, hc, expectedOutcome(card?.left, view.left.odds?.p)),
+    R: evaluateSide(state, view.right, hc, expectedOutcome(card?.right, view.right.odds?.p)),
+  };
 }
 
 /** Does the next ante look harder than the current pace can carry? (Shop-time reading.) */
