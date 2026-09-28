@@ -589,6 +589,8 @@ export interface RunState {
   shop: ShopState | null;
   /** Shops opened this act (mid-act shop once). */
   midShopDone: boolean;
+  /** The act's ante has been settled (so a standalone bluff card cannot settle it twice). */
+  anteSettled: boolean;
   /** Flashpoint id while inside a flashpoint sequence. */
   flashpoint: string | null;
   /** Flashpoints already used this run. */

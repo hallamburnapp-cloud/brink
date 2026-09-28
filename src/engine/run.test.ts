@@ -395,6 +395,32 @@ describe('antes, flashpoints and the shop', () => {
     choose(content, s, 'left');
     expect(s.current).toBe('fp_1');
   });
+  it('deals a standalone bluff card when the ante is missed and no flashpoint is available', () => {
+    const noFp = { ...content, flashpoints: {} } as typeof content;
+    const s = createRun(noFp, { seed: 'bluff-nofp', seat: 'republic', mode: 'endless' });
+    s.actTarget = 100000;
+    for (let i = 0; i < 50 && s.phase === 'card' && s.actCards < 3; i++) choose(noFp, s, 'right');
+    expect(s.stats.antesMissed).toBe(1);
+    expect(s.flashpoint).toBeNull();
+    expect(s.current).toBe('bluff_generic');
+    expect(s.phase).toBe('card');
+    const r = choose(noFp, s, 'left');
+    // The bluff card settles nothing twice: straight to the shop, one ante event in total.
+    expect(s.stats.antesMissed).toBe(1);
+    expect(s.phase).toBe('shop');
+    expect(r.events.filter((e) => e.type === 'ante')).toHaveLength(0);
+  });
+  it('spends a de-escalation charge granted by an order without the Hotline', () => {
+    const s = run('charge-order');
+    const id = Object.keys(content.cards).find((c) => content.cards[c].left.spend_charge === 'deescalation')!;
+    expect(id).toBeTruthy();
+    s.current = id;
+    s.charges.deescalation = 1;
+    expect(s.pieces).not.toContain('p_hotline');
+    const r = choose(content, s, 'left');
+    expect(r.events.map((e) => e.type)).toContain('charge_used');
+    expect(s.charges.deescalation).toBe(0);
+  });
   it('opens a mid-act shop from a shop card and returns to the cards', () => {
     const s = run('midshop');
     s.flags.push('allow_shop');

@@ -198,6 +198,7 @@ export function createRun(content: Content, opts: RunOptions): RunState {
     accident: null,
     shop: null,
     midShopDone: false,
+    anteSettled: false,
     flashpoint: null,
     flashpointsUsed: [],
     ending: null,
@@ -335,8 +336,9 @@ function choiceView(content: Content, state: RunState, card: CardDef, side: Side
   };
 }
 
-function wouldUseCharge(state: RunState, choice: ChoiceDef, ctx: ModContext): boolean {
-  return choice.spend_charge === 'deescalation' && state.charges.deescalation > 0 && hasRule(ctx, 'free_deescalation_per_act');
+function wouldUseCharge(state: RunState, choice: ChoiceDef, _ctx: ModContext): boolean {
+  // Charges come from the Hotline (free_deescalation_per_act) or a One More Call order; either spends here.
+  return choice.spend_charge === 'deescalation' && state.charges.deescalation > 0;
 }
 
 /**
@@ -855,13 +857,10 @@ function drawNext(content: Content, state: RunState, rng: Rng, events: RunEvent[
     return;
   }
 
-  // Act complete: settle the ante, then start the flashpoint.
+  // Act complete: settle the ante, then start the flashpoint. With no
+  // flashpoint left for this act a called bluff is still dealt on its own.
   if (state.actCards >= act.cards) {
-    const bluff = settleAnte(content, state, events);
-    if (startFlashpoint(content, state, rng, events, bluff)) {
-      drawNext(content, state, rng, events);
-      return;
-    }
+    if (endAct(content, state, rng, events)) return;
     finishAct(content, state, rng, events);
     return;
   }
@@ -894,11 +893,7 @@ function drawNext(content: Content, state: RunState, rng: Rng, events: RunEvent[
       return checkConditions(c.conditions, state, pieces);
     });
     if (fallback.length === 0) {
-      const bluff = settleAnte(content, state, events);
-      if (startFlashpoint(content, state, rng, events, bluff)) {
-        drawNext(content, state, rng, events);
-        return;
-      }
+      if (endAct(content, state, rng, events)) return;
       finishAct(content, state, rng, events);
       return;
     }
@@ -931,8 +926,32 @@ function present(content: Content, state: RunState, rng: Rng, card: CardDef): vo
   }
 }
 
+/**
+ * Settle the ante once per act and open the flashpoint. Returns true when a
+ * card was presented (flashpoint entry or a standalone bluff card) and false
+ * when the act should simply finish.
+ */
+function endAct(content: Content, state: RunState, rng: Rng, events: RunEvent[]): boolean {
+  if (state.anteSettled) return false;
+  const bluff = settleAnte(content, state, events);
+  if (startFlashpoint(content, state, rng, events, bluff)) {
+    drawNext(content, state, rng, events);
+    return true;
+  }
+  if (bluff) {
+    const bluffCard = pickBluffCard(content, state, rng, heldPieces(content, state));
+    if (bluffCard) {
+      state.queue.unshift({ card: bluffCard, in: 0 });
+      drawNext(content, state, rng, events);
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Compare accumulated leverage with the act's target. Returns true when the bluff is called. */
 function settleAnte(content: Content, state: RunState, events: RunEvent[]): boolean {
+  state.anteSettled = true;
   const target = state.actTarget;
   const r = anteReward(state.actLeverage, target, state.act);
   events.push({ type: 'ante', met: r.met, smashed: r.smashed, leverage: state.actLeverage, target, capital: r.capital });
@@ -1186,6 +1205,7 @@ function beginAct(content: Content, state: RunState, rng: Rng, events: RunEvent[
   state.actCards = 0;
   state.actLeverage = 0;
   state.midShopDone = false;
+  state.anteSettled = false;
   state.phase = 'card';
   const diff = difficultyDef(content, state.difficulty);
   state.actTarget = actTarget(content, state.act, diff.target_scale ?? 1);
@@ -1275,6 +1295,7 @@ export function serialise(state: RunState): string {
 export function deserialise(json: string): RunState {
   const s = JSON.parse(json) as RunState;
   if (s.v !== 2) throw new Error('Unsupported run state version');
+  if (typeof s.anteSettled !== 'boolean') s.anteSettled = false;
   return s;
 }
 
