@@ -23,7 +23,13 @@ npm run typecheck
 npm run content:validate   # schema + semantic validation of /content (CI gate)
 npm run sim -- --runs 20000 --policy all      # headless balance simulator → sim-output/
 npm run e2e            # Playwright, mobile viewport (Pixel 7), stubbed unlock Worker
+npx tsx tools/playtest.ts --style dove --seat republic --seed ABC   # play a real run headlessly, write transcript + screenshots
 ```
+
+Playwright uses its own Chromium in CI; locally, `PW_CHROMIUM_PATH=/path/to/chrome`
+points it at an existing binary (a pre-installed `/opt/pw-browsers/chromium` is
+detected automatically). `BRINK_CONTENT_LENIENT=1 npx vite build` builds a preview
+even while content has validation errors; `npm run build` refuses.
 
 ## Build and deploy
 

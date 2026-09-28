@@ -27,4 +27,12 @@ Open design decisions, chosen for fun and finishability, logged as they were mad
 
 ## Tech
 - **D-040 Preact over React** for the initial-JS budget. **Tailwind v4** via the Vite plugin. **Zod** only at build/validate time; runtime content is compiled JSON in a virtual module.
-- **D-041 Content hot reload** through a virtual module with HMR accept, so a run in progress keeps its state while the deck updates.
+- **D-041 Content hot reload** through a virtual module with HMR accept, so a run in progress keeps its state while the deck updates. Content changes route through `handleHotUpdate` so Vite never falls back to a full reload mid-run.
+- **D-042 Content chunk.** Compiled content is a separate chunk (~60 KB gzipped) loaded with the app; the size check reports it separately from the 40 KB app bundle, and both together sit well under the 250 KB budget.
+- **D-043 No webfonts.** System serif and monospace stacks; zero third-party requests, instant offline.
+
+## Product
+- **D-050 Daily seat rotation** is independent of unlocks: the Daily is free and every seat appears in rotation, which is also the cheapest way to let players taste locked seats.
+- **D-051 itch.io build ships everything unlocked** (`VITE_ALL_UNLOCKED=1`) as the brief asks; unlock *progress* is still tracked, so the service record fills in. A future switch to "paid but with the ladder" is one env var (`VITE_PAYWALL=0 VITE_ALL_UNLOCKED=0`).
+- **D-052 Cohort analytics without identifiers.** `days_since_first_run` (an integer computed on the device) rides on `run_start` and `daily_played` so day-7 return can be read as a cohort proportion. Still no cookies, no ids.
+- **D-053 Locked seat hints are shown in the seat picker** rather than hidden: the unlock condition is the marketing.
