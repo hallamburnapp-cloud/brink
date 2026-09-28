@@ -13,20 +13,21 @@ Each iteration runs 20,000 runs per policy (60,000 total) across all three seats
 DEFCON 5 with a fixed seed base, so two iterations differ only by the content and
 rules changed between them.
 
-## Targets
+## Targets (brinkmanship scaling)
 
 | # | Target | Why |
 | --- | --- | --- |
-| T1 | Heuristic median survival 28–45 days | A careful player should usually see Week Four; nobody should coast to the end |
-| T2 | No ending above 30% of outcomes | Variety of failure is the replay loop |
-| T3 | Every card reachable (never-seen list empty across policies) | Dead content is wasted content |
-| T4 | Every piece picked 15–60% of the time when offered (heuristic) | No auto-picks, no dead picks |
-| T5 | ≥ 12 piece pairs with a stand-down rate ≥ 10 points from baseline | Builds must change the ending profile, not just the numbers |
-| T6 | Heuristic stand-down ("perfect run") > 0% and < 8% | Possible, rare, earned |
+| T1 | Heuristic bot wins 5–12% of runs at DEFCON 5 | Winning (reaching a run-end ending) must be earned, not routine |
+| T2 | ≥ 10 archetypes reach the Endgame ≥ 10% of the time (runs where the archetype was assembled by act 3) | Every build must be playable, not just the best one |
+| T3 | No single piece in more than 35% of winning builds | No mandatory pick |
+| T4 | Median heuristic run 15–25 estimated minutes (cards × 11 s + rolls × 4 s + shops × 30 s + accidents × 3 s) | The run length the daily habit needs |
+| T5 | ≥ 3% of heuristic runs reach a score ≥ 100 × the final target (2,000,000 at DEFCON 5) | "Broke the game" runs must exist |
 
-Secondary readouts: act reached, cards per run, timer expiry rate, near-miss rate,
-per-seat medians, piece pick rates, and per-card impact scores (used for the weakest-card
-list in the balance report).
+Secondary readouts: every card reachable, piece buy rates 15–60% when offered, combos with
+a ≥ 10-point win-rate difference, ending distribution, act reached, ante met/missed/smashed
+per act, accident rate and severity, capital earned and spent, orders used, score
+distribution (median, p90, p99, max), timer expiry and near-miss rates, per-seat tables,
+per-card impact (used for the weakest-card list) and weakest pieces.
 
 ## Method
 
@@ -39,4 +40,4 @@ list in the balance report).
 
 ## Iterations
 
-_Logged below as they run. Each entry: what the report said, what changed and why, what the next report said._
+_At least eight, logged below as they run. Each entry: what the report said, what changed and why, what the next report said._

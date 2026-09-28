@@ -2,6 +2,22 @@
 
 All notable changes to BRINK. Dates are UTC.
 
+## 0.2.0 — 2026-09-28 (the brinkmanship scaling core)
+
+### Engine
+- Leverage on every choice: base × mult × escalation multiplier × retriggers, with a documented resolve order, per-step and conditional multipliers, run-grown scaling bonuses and a curve from ×1 (0–29) to ×20 (99).
+- Accidents above escalation 50 (false alarm, misread, rogue commander, attribution error) shown as odds before the choice; Perfect Intel resolves them in advance; Madman Theory rolls them twice.
+- Antes: per-act leverage targets, political capital rewards with a smash bonus, and "bluff called" cards when missed.
+- The shop between acts and mid-act: pieces by rarity with prices, rerolls, selling, tag removal, one-shot orders (13), capped at 6 pieces and 2 orders.
+- Deadman Switch, endless escalation after a win with rising targets and a climbing curve, total-leverage score with a local best.
+- Review fixes: commitment lock semantics, warning follow-ups inside flashpoints, once-semantics in queues, timeout side recording, mode checks in fallback draws, injected `always` multipliers, rule level merging.
+
+### Content
+- 64 posture pieces (19 advisors, 18 doctrines, 27 assets) with rarities and leverage lanes, including 10 legendaries; 13 orders; 15 archetypes; 6 bluff cards.
+
+### UI
+- Animated leverage tally (base counts up, mult counts up, slam scaled to the result), ante bar and capital in the HUD, accident strip with WILL FIRE/CLEAR under Perfect Intel, the shop screen, orders bar, ante banners, endless continuation and best score on the ending and home screens.
+
 ## 0.1.0 — 2026-09-28 (build night)
 
 ### Engine

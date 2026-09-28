@@ -20,6 +20,19 @@ Open design decisions, chosen for fun and finishability, logged as they were mad
 - **D-021 Timeout side.** Authored per card (default right); Pre-delegation overrides it to the military option.
 - **D-022 Minimal Deterrence ceiling.** Escalation is capped at 95 while held: you cannot drift into war, only be pushed by a forced flashpoint ending. Balanced by ×1.5 military losses and weaker deterrence.
 
+## Brinkmanship scaling (the redesign)
+- **D-060 Leverage order.** base adds → mult adds → mult multipliers → escalation multiplier → retriggers. Addition before multiplication keeps piece order irrelevant; retriggers multiply the whole result so they read as "score it again". The preview equals the score (computed on the pre-choice state) so there are no hidden surprises in the tally.
+- **D-061 Derived base.** Authors may omit `base`; the compiler derives it from the size of the move so the 300+ cards written before the redesign score sensibly. Hand-tuned bases override.
+- **D-062 Escalation curve.** As briefed: ×1 to 29, ×2 at 50, ×5 at 80, ×12 at 95, ×20 at 99, linear between. Endless adds +30% per act so scores keep climbing.
+- **D-063 Accidents live above 50.** Chance 4%→45% from 50 to 99, attached to 75% of ordinary cards there, shown as a percentage before the choice; severity ×1→×2. Flashpoint and bluff cards never carry accidents (they are already the danger).
+- **D-064 Antes count ordinary cards only.** Flashpoint leverage goes to the score, not the ante, so the ante is decided before the flashpoint and the bluff card can precede it.
+- **D-065 Ante rewards.** 4 + act capital for meeting, +1 per extra 50% (max +4), "smashed" at 2×; missing plays a generic bluff card (six authored) or the flashpoint's own.
+- **D-066 Shop economy.** Prices by rarity 3/5/8/12, starting capital 4, reroll 2 rising by 1, sell 50%, tag removal 4 once per visit, cap 6 pieces / 2 orders. A mid-act shop opens at the halfway card (acts of 8+ cards) so the first act is not pieceless.
+- **D-067 Act 1 target 250** rather than 300 so a pieceless first act at moderate escalation can still meet it; later targets as briefed, to be tuned by the simulator.
+- **D-068 Endless is opt-in after a win** and repeats flashpoints; the daily record is filed at the first ending, so continuing never changes a Daily result.
+- **D-069 Deadman Switch is once per run** and leaves escalation at 70 (or the floor if higher), so a Madman run keeps its multipliers but not its immunity.
+- **D-070 Rules that are levels merge by max, discounts by product, counts by sum** so duplicate rules from two pieces behave sensibly.
+
 ## Content
 - **D-030 Hidden values in prose.** `describeHidden()` gives four bands per value; card text and advisor language carry them. Only Signals Intercept reveals numbers.
 - **D-031 Fictional names.** Powers: Republic (Arden), Federation (Kaskad), Coalition (Qorum). Minor states: Vestria, Sorrel Straits, Isle of Caldor, Amberline, Northern Compact, Assembly of Nations. The validator rejects real-world names.

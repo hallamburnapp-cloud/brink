@@ -90,6 +90,8 @@ when any card of that arc has been played), `piece:<id>` (held), plus every piec
 left:
   text: "Jam the uplink"                  # ≤ 60 chars, imperative or a line of dialogue
   effects: { escalation: 8, trust_primary: -6, military: 3 }   # ints, ±1..±25 (flashpoints to ±35)
+  base: 18                                 # printed LEVERAGE base (4–40; omit to derive from effects/tags, see §9)
+  capital: 1                               # optional political capital delta (−6..6)
   tags: [military, cyber]                  # choice tags: what modifiers match on (§4.3)
   odds:                                    # optional roll, shown before choosing
     label: Attribution
@@ -492,6 +494,50 @@ last is the pressure. Vary length; one short sentence per card is a good rhythm.
 ```
 
 ---
+
+## 9. Leverage, antes, the shop (the scaling core)
+
+Every choice scores **leverage = base × mult × escalation multiplier**. Authors set
+the printed `base` (4–40) or let the compiler derive it: `6 + 0.8 × Σ|effects|`
+(escalation counts ×1.5), ×1.35 for escalatory tags, ×0.9 for diplomatic tags, ×1.15
+with an odds roll, clamped 4–40. Rule of thumb: a routine card 8–14, an arc turn
+14–22, a flashpoint choice 20–35. Both choices of a card should differ in base: the
+brave move is worth more and costs more.
+
+Acts have a **target** (rules.yaml). Ordinary cards feed it; flashpoint cards feed only
+the score. A missed target plays a **bluff card** first (`bluff: true`, no `flashpoint:`,
+generic across flashpoints, in `content/cards/bluff.yaml`) or the flashpoint's own
+`bluff_entry`. A card with `shop: true` opens the mid-act shop after it is played.
+
+Choices and odds outcomes may grant `capital` (political capital) — use ±1..±2 for
+domestic wins and losses, +2..+3 for the rare windfall.
+
+**Pieces** (`content/pieces/*.yaml`) carry `rarity` (common/uncommon/rare/legendary →
+price 3/5/8/12), and leverage modifiers:
+```yaml
+- { kind: leverage, tags: [naval], base_add: 8, mult_add: 0.5 }             # by tag
+- { kind: leverage, when: { values: { escalation: { min: 90 } } }, mult_mult: 3 }   # conditional
+- { kind: leverage, per: escalation, per_above: 50, per_step: 10, mult_add: 0.5 }  # per step
+- { kind: retrigger, tags: [strike], times: 1 }                             # score again
+- { kind: scale, on: accident_survived, mult_add: 0.5 }                     # grows during the run
+- { kind: accident, mult: 0.7, severity_mult: 0.6 }                         # accident odds/severity
+```
+Scale triggers: `accident_survived`, `accident_avoided`, `flashpoint_cleared`, `ante_met`,
+`ante_smashed`, `choice` (with `tags`), `act_start`, `roll_success`, `roll_failure`, `near_miss`.
+Every piece must carry at least one leverage, retrigger or scale modifier (the validator
+warns otherwise). Legendaries enable "broken" builds; document each in SYNERGIES.md.
+
+**Orders** (`content/orders.yaml`): one-shot consumables `{ id, name, blurb, mechanics,
+price, rarity, effect, art, accent }` with effects `meter`, `retrigger_next`, `mult_next`,
+`reveal`, `skip_accident`, `bury`, `capital`, `charge`, `leverage`.
+
+**Archetypes** (`content/archetypes.yaml`): `{ id, name, blurb, core: [≥2 piece ids],
+support: [...], style: brink|standdown|hybrid }`. Holding two core pieces counts as
+playing the archetype; the simulator reports each archetype's Endgame rate.
+
+Accidents are engine content (types, chances and severities live in `src/engine/leverage.ts`);
+cards never need to reference them, but a false-alarm accident sets `false_alarm_live`,
+so arcs that clear that flag interact with them.
 
 ## 8. Checklist before you commit a file
 

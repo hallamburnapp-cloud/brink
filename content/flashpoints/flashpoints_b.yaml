@@ -1,0 +1,21 @@
+# flashpoints_b — Midnight and The Summit.
+# Cards live in content/cards/fp_midnight.yaml and content/cards/fp_summit.yaml.
+# Outcome flags: fp:midnight_backed_down | fp:midnight_called_bluff | fp:midnight_passed
+#                fp:summit_communique   | fp:summit_collapsed      | fp:summit_walkout
+# Midnight's catastrophic branch forces the ending `nuclear_midnight` (authored elsewhere).
+
+- id: fp_midnight
+  name: Midnight
+  acts: [2, 5]
+  weight: 1
+  entry: fp_midnight_01_one_chair
+  conditions: { flags_none: [fp:midnight_backed_down, fp:midnight_called_bluff, fp:midnight_passed] }
+  blurb: The deadline hour of an ultimatum, yours or theirs, and the forty minutes on either side of it.
+
+- id: fp_summit
+  name: The Summit
+  acts: [3, 5]
+  weight: 1.2
+  entry: fp_summit_01_the_lake_door
+  conditions: { flags_none: [fp:summit_communique, fp:summit_collapsed, fp:summit_walkout] }
+  blurb: Two leaders, a house on a lake at Vellmar, and a paper that is signed by dawn or not at all.

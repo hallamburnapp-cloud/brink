@@ -7,11 +7,15 @@
  *     → bus
  *
  * Turning it on or off ramps over ~600 ms; intensity changes ramp the same way.
+ * A second, global intensity (`audio.setIntensity`, the run's escalation) gently
+ * opens the filter a little further on top of the drone's own intensity.
  * The oscillators are only stopped and disconnected once the fade-out has finished.
  */
 import { clamp01, rampTo, type Engine } from './engine';
 
 const RAMP = 0.6;
+/** How far (Hz) full escalation opens the filter beyond the drone's own intensity. */
+const GLOBAL_CUTOFF = 180;
 
 interface DroneVoice {
   readonly nodes: AudioNode[];
@@ -25,6 +29,8 @@ interface DroneVoice {
 export class Drone {
   private wantOn = false;
   private intensity = 0.5;
+  /** Global escalation 0..1; adds up to GLOBAL_CUTOFF Hz to the filter. */
+  private global = 0;
   private voice: DroneVoice | null = null;
   private stopTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -35,6 +41,13 @@ export class Drone {
     if (intensity !== undefined) this.intensity = clamp01(intensity);
     const eng = this.engine();
     if (eng) this.apply(eng);
+  }
+
+  /** Stores the run's escalation (0..1) and, if the drone is sounding, ramps its filter to match. */
+  setGlobal(escalation01: number): void {
+    this.global = clamp01(escalation01);
+    const eng = this.engine();
+    if (eng && this.wantOn && this.voice) this.apply(eng);
   }
 
   /** Called when the engine becomes available after set() was called early. */
@@ -53,7 +66,7 @@ export class Drone {
       const v = this.voice ?? (this.voice = build(eng, now));
       const i = this.intensity;
       rampTo(v.out.gain, 0.12 + 0.14 * i, now, RAMP);
-      rampTo(v.filter.frequency, 140 + 520 * i, now, RAMP);
+      rampTo(v.filter.frequency, 140 + 520 * i + GLOBAL_CUTOFF * this.global, now, RAMP);
       rampTo(v.lfoDepth.gain, 40 + 160 * i, now, RAMP);
       rampTo(v.breathDepth.gain, 0.02 + 0.03 * i, now, RAMP);
     } else if (this.voice) {

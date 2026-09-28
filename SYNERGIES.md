@@ -73,6 +73,37 @@ signature the simulator should show (checked in BALANCE.md).
 33. **Iron Ledger — Defence Contractor + Treasury Hawk.** The Contractor's −2 economy per military move is damped to −1 by the Treasury's ×0.6; military ×1.4 fights the Treasury's −0.25 drift. Two advisors who despise each other and roughly cancel — the pair cards say so.
 34. **Calling Down — Pre-delegation + Hotline Protocol.** Short timers, military defaults, and one free climb-down per act: a build that runs hot and vents once a week.
 
+## Archetype builds (the scaling layer)
+
+With leverage, pieces are also *scoring* engines: base adds, mult adds, mult multipliers,
+retriggers and run-grown bonuses (ENGINE.md §2). Sixty-four pieces, ten legendary. The
+fifteen archetypes below are defined in `content/archetypes.yaml` (two core pieces held =
+the archetype is "assembled") and every one must be able to win; the simulator reports how
+often each reaches the Endgame.
+
+| Archetype | Core pieces | How it scales | How it dies |
+| --- | --- | --- | --- |
+| **Madman** (brink) | Madman Theory, Brinkmanship, The Button, Iron Nerve | ×3 above 90, +1 mult per 10 escalation above 50, strikes ×2.5, survivors grow +0.5 | Accidents roll twice at 45%; one bad roll at 97 is the war |
+| **Quiet Diplomat** (stand-down) | The Open Line, Whispers, The Quiet Room, Old Ambassador | Every back-channel scores twice, ×1.6, +0.25 permanent per talk, +0.8 mult | Escalation stays low so the curve never helps: the ante must be met on volume |
+| **Intel Machine** (hybrid) | Perfect Intel, Signals Intercept, Cautious Director, Attaché | Accidents shown in advance, −50% accident odds, +0.5/+0.3/+0.4 mult on everything or intel | Low raw base; needs an escalation lane to hit 20,000 |
+| **Alliance Engine** (hybrid) | Domino Theory, Alliance First, Tripwire, Allied Basing | Alliance and proxy choices scored twice ×1.4, +6 base, +0.15 per 10 allies above 60 | Allies bleed −2 per scored choice: abandonment |
+| **Cyber Ghost** (hybrid) | Cyber Unit, Cyber & Space Director, Attaché | Cyber cards ×2.24 weight, ×1.3 mult, +6 base, attribution +25% | Trust −2 per cyber move: adversary rolls fail at Midnight |
+| **Shield Wall** (brink) | Missile Defence, Deterrence by Denial, Hardened NC3 | Intercept/deterrence +1.1 mult, intercept +35%, accidents ×0.6 severity | Trust drift −0.45/card |
+| **War Economy** (hybrid) | Total War Economy, Treasury Hawk, Strategic Reserve, Trade Desk | +1 mult per 25 economy above 25, economy floor 15, +2 capital/act | Economy drifts −0.6/card: the multiplier melts |
+| **Red Lines Gambler** (brink) | Red Lines, Spin Doctor, Strategic Ambiguity | +0.8 mult on commitments, +0.3 per 10 commitment above 50, ±6 trust noise | The commitment trap: walking back costs public ×(1 + 2.5 × commitment) |
+| **Sea Power** (brink) | Loyal Admiral, Blue-Water Fleet, Naval Dockyards | Naval cards ×3.2 weight, +16 base, ×1.3 mult, +0.5 mult | Economy −2 per naval move |
+| **Hair Trigger** (brink) | Pre-delegation, Rapid-Response Brigade, Launch on Warning | +0.4 per 10 escalation above 60, proxy +0.8, timers ×0.75 pick the military side | Escalation twitch + accidents ×1.3 |
+| **Deadman** (brink) | Deadman Switch, Brinkmanship, The Deep Bunker | Go over 100 once on purpose; accidents ×0.7 severity; +1 mult per 10 above 50 | The second time |
+| **The Ladder** (brink) | Escalate to De-escalate, Second Strike, The Button | Limited strikes ×1.6 ×2.5, scored twice, half escalation cost | Floor +5 per strike: no stand-down after eight |
+| **Peace Movement** (stand-down) | Peace Movement Leader, Civil Defence, No First Use | +6 base and +0.15 per 10 public above 60 on de-escalation, +0.25 per 10 trust above 60 | Public → 100 (Acclamation) or military → 0 (coup) |
+| **The Ledger** (hybrid) | The Long Table, Party Chair, War Bonds, Brinkman's Ledger | +6 capital/act, extra offers, ×0.8 prices, +4 base per act, +0.3 mult per ante | Slow start: the first two antes on raw cards |
+| **Accident Farmer** (brink) | Iron Nerve, Paranoid Director, Early-Warning Constellation | Twice the warnings, +0.5 per accident survived, +0.15/+0.1 per accident avoided, +1 base per avoided | Farming accidents at 90 with 45% odds each |
+
+The de-escalation path (Quiet Diplomat, Peace Movement) is viable — retriggers and
+trust-scaled mults reach the antes — but harder to scale than the brink path because the
+escalation multiplier (×5 at 80, ×12 at 95) is unavailable to it. That asymmetry is
+deliberate: it is what players argue about.
+
 ## How the simulator checks this
 
 `npm run sim` reports, for the heuristic bot, the stand-down and nuclear rate for every

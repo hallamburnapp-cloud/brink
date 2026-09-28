@@ -1,9 +1,14 @@
 /**
- * Timer heartbeat: a scheduled low double-thump (lub-dub) at a given BPM.
+ * Heartbeat: a scheduled low double-thump (lub-dub) at a given BPM.
+ *
+ * Two sources ask for a tempo and share one scheduler: the timer heartbeat
+ * (accelerates as the clock runs out) and the escalation pulse (runs continuously
+ * above 80). Each keeps its own request, so releasing one never stops the other;
+ * while both are set the faster tempo plays.
  *
  * Uses a lookahead scheduler: a single setTimeout (~100 ms) wakes up and queues
  * every beat that falls inside the next LOOKAHEAD seconds at exact AudioContext
- * times. Changing the BPM re-times the next beat in place, so acceleration is
+ * times. Changing the tempo re-times the next beat in place, so acceleration is
  * seamless, and stopping fades any already-queued beats.
  */
 import { clamp01, type Engine } from './engine';
@@ -14,7 +19,12 @@ const INTERVAL_MS = 100;
 const MIN_BPM = 20;
 const MAX_BPM = 240;
 
+export type HeartSource = 'timer' | 'pulse';
+
 export class Heartbeat {
+  /** What each source currently asks for; null when it has released its claim. */
+  private readonly wanted: Record<HeartSource, number | null> = { timer: null, pulse: null };
+  /** The tempo actually running (the fastest request), null when idle. */
   private bpm: number | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private nextBeat = 0;
@@ -26,13 +36,25 @@ export class Heartbeat {
     private readonly muted: () => boolean,
   ) {}
 
-  /** Sets the tempo; null (or a non-positive value) stops the heartbeat. */
+  /** Timer heartbeat tempo; null (or a non-positive value) releases the timer's claim. */
   set(bpm: number | null): void {
-    if (bpm === null || !Number.isFinite(bpm) || bpm <= 0) {
-      this.stop();
+    this.request('timer', bpm);
+  }
+
+  /** Escalation pulse tempo; null (or a non-positive value) releases the pulse's claim. */
+  pulse(bpm: number | null): void {
+    this.request('pulse', bpm);
+  }
+
+  /** Records one source's request and re-targets the shared scheduler to the fastest one. */
+  request(source: HeartSource, bpm: number | null): void {
+    this.wanted[source] =
+      bpm === null || !Number.isFinite(bpm) || bpm <= 0 ? null : Math.min(MAX_BPM, Math.max(MIN_BPM, bpm));
+    const next = fastest(this.wanted);
+    if (next === null) {
+      this.halt();
       return;
     }
-    const next = Math.min(MAX_BPM, Math.max(MIN_BPM, bpm));
     const wasRunning = this.bpm !== null && this.timer !== null;
     this.bpm = next;
     const eng = this.engine();
@@ -47,13 +69,20 @@ export class Heartbeat {
     this.nextBeat = Math.max(now + 0.02, Math.min(this.nextBeat, this.lastBeat + period));
   }
 
-  /** Called when the engine becomes available after set() was called early. */
+  /** Called when the engine becomes available after a request came in early. */
   resume(): void {
     const eng = this.engine();
     if (eng && this.bpm !== null && this.timer === null) this.start(eng);
   }
 
+  /** Releases both sources and stops. */
   stop(): void {
+    this.wanted.timer = null;
+    this.wanted.pulse = null;
+    this.halt();
+  }
+
+  private halt(): void {
     this.bpm = null;
     if (this.timer !== null) {
       clearTimeout(this.timer);
@@ -101,6 +130,15 @@ export class Heartbeat {
     v.finish();
     this.live.push(v);
   }
+}
+
+/** The fastest requested tempo, or null when nobody wants a beat. */
+function fastest(wanted: Record<HeartSource, number | null>): number | null {
+  let best: number | null = null;
+  for (const bpm of Object.values(wanted)) {
+    if (bpm !== null && (best === null || bpm > best)) best = bpm;
+  }
+  return best;
 }
 
 function thump(v: Voice, at: number, peak: number, f0: number, f1: number): void {
