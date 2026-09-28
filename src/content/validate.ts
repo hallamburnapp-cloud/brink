@@ -4,9 +4,9 @@
  * copy lint (fictional-world guard, no placeholder text). Pure; used by the
  * CLI (tools/validate.ts), the Vite plugin and CI.
  */
-import type { CardDef, ChoiceDef, ConditionDef, Content, Seat } from '../engine/types';
-import { SEATS } from '../engine/types';
-import type { ContentIssue } from './schema';
+import type { CardDef, ChoiceDef, ConditionDef, Content, Seat } from '../engine/types.ts';
+import { SEATS } from '../engine/types.ts';
+import type { ContentIssue } from './schema.ts';
 
 export const REQUIRED_FALLBACK_ENDINGS = [
   'fallback_nuclear',

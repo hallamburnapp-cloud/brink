@@ -12,7 +12,7 @@ import { load, save, remove } from '../meta/storage';
 import { dailyNumber, dailyPlayed, dailySeat, dailySeed, saveDailyRecord } from '../meta/daily';
 import { evaluateUnlocks, isUnlocked, unlockedIds } from '../meta/unlocks';
 import { getStats, recordOffer, recordRun } from '../meta/stats';
-import { countRun, track } from '../meta/analytics';
+import { countRun, daysSinceFirstRun, track } from '../meta/analytics';
 import { FEATURES } from '../config';
 
 export type Screen = 'home' | 'seat' | 'run' | 'ending' | 'compendium' | 'stats' | 'privacy' | 'unlocked' | 'settings' | 'paywall' | 'about';
@@ -152,8 +152,9 @@ export function startRun(opts: { mode: 'daily' | 'endless' | 'challenge'; seat: 
   lastApplied.value = {};
   persist();
   goto('run');
-  track('run_start', { seat: opts.seat, mode: opts.mode, difficulty: opts.difficulty ?? 5 });
-  if (opts.mode === 'daily') track('daily_played', { number: dailyNumber() });
+  const cohortDay = daysSinceFirstRun();
+  track('run_start', { seat: opts.seat, mode: opts.mode, difficulty: opts.difficulty ?? 5, runs_this_session: runMeta.value.runsThisSession, days_since_first_run: cohortDay });
+  if (opts.mode === 'daily') track('daily_played', { number: dailyNumber(), days_since_first_run: cohortDay });
   audio.play('ring');
   showBanner({ title: c.acts[0].name, sub: c.seats[opts.seat].name, kind: 'act' });
 }

@@ -14,8 +14,8 @@ import type {
   Seat,
   SeatDef,
   SpeakerDef,
-} from '../engine/types';
-import { SEATS } from '../engine/types';
+} from '../engine/types.ts';
+import { SEATS } from '../engine/types.ts';
 
 const seat = z.enum(['republic', 'federation', 'coalition']);
 const mode = z.enum(['daily', 'endless', 'challenge']);

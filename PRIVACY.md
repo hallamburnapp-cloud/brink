@@ -25,12 +25,16 @@ location and no fingerprinting. Events and their properties:
 
 | Event | Properties |
 | --- | --- |
-| `run_start` | seat, mode, difficulty |
+| `run_start` | seat, mode, difficulty, runs_this_session, days_since_first_run |
 | `run_end` | ending, kind, days, act, seat, pieces, runs_this_session, mode |
 | `share` | method (shared/copied/downloaded/text), ending |
 | `unlock_viewed` | — |
 | `unlock_completed` | — |
-| `daily_played` | number |
+| `daily_played` | number, days_since_first_run |
+
+`days_since_first_run` is a whole number of days since the first run on that device,
+computed from a timestamp kept in local storage. It carries no identifier; it allows
+"day-7 return" to be measured as a cohort proportion without tracking any individual.
 
 ## Payments
 

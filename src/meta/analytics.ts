@@ -3,6 +3,7 @@
  * No cookies, no identifiers, no location. Events carry only gameplay facts.
  */
 import { FEATURES } from '../config';
+import { load, save } from './storage';
 
 export type AnalyticsEvent =
   | 'run_start'
@@ -17,6 +18,22 @@ let runsThisSession = 0;
 export function countRun(): number {
   runsThisSession++;
   return runsThisSession;
+}
+
+const FIRST_RUN_KEY = 'brink.firstRunAt';
+
+/**
+ * Whole days since this device's first run (0 on the first day). An integer with
+ * no identifier attached; it lets day-7 return be measured as a cohort without
+ * tracking anyone. Stored locally only.
+ */
+export function daysSinceFirstRun(now = Date.now()): number {
+  let first = load<number | null>(FIRST_RUN_KEY, null);
+  if (!first || typeof first !== 'number') {
+    first = now;
+    save(FIRST_RUN_KEY, first);
+  }
+  return Math.max(0, Math.floor((now - first) / 86_400_000));
 }
 
 export function track(event: AnalyticsEvent, props: Record<string, string | number | boolean> = {}): void {

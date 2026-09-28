@@ -6,7 +6,7 @@
  */
 import type { Plugin, ViteDevServer } from 'vite';
 import { join } from 'node:path';
-import { loadContent, formatIssues } from './load';
+import { loadContent, formatIssues } from './load.ts';
 
 const VIRTUAL = 'virtual:brink-content';
 const RESOLVED = '\0' + VIRTUAL;

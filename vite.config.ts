@@ -3,8 +3,8 @@ import preact from '@preact/preset-vite';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath, URL } from 'node:url';
-import { brinkContentPlugin } from './tools/vite-plugin-content';
-import { BRAND } from './src/config';
+import { brinkContentPlugin } from './tools/vite-plugin-content.ts';
+import { BRAND } from './src/config.ts';
 
 export default defineConfig(({ mode }) => ({
   base: process.env.BRINK_BASE ?? '/',

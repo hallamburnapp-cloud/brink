@@ -2,9 +2,9 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import yaml from 'js-yaml';
-import { compileContent, type RawContent, type ContentIssue } from '../src/content/schema';
-import { validateContent } from '../src/content/validate';
-import type { Content } from '../src/engine/types';
+import { compileContent, type RawContent, type ContentIssue } from '../src/content/schema.ts';
+import { validateContent } from '../src/content/validate.ts';
+import type { Content } from '../src/engine/types.ts';
 
 export function walk(dir: string, out: string[] = []): string[] {
   let entries: string[] = [];

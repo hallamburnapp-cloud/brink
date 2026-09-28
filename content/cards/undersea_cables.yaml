@@ -1,0 +1,634 @@
+# undersea_cables — three cables go dead in the Sorrel Straits before the markets
+# open. Forces: attribution ambiguity at sea (a trawler, a submersible, an
+# anchor; the fast name costs trust with whoever you got wrong), economic
+# pressure (the Treasury Hawk and the Strategic Reserve change what waiting
+# costs), and escorts as deterrence or provocation (the Admiral and the
+# Blue-Water Fleet unlock the escort, the interdiction and the grapnel).
+# Flags: cables:cut, cables:attributed, cables:repaired, cables:escorted,
+#        cables:retaliated. Entries also set undersea_cables:cut, the long-form
+#        name satellite_blackout hooks on.
+# Cross-hooks (flags_any): blackout:started, cyber_ew:intrusion, debris:event,
+#        blockade:declared, proxy:clash.
+# Piece hooks: admiral, blue_water_fleet, treasury_hawk, strategic_reserve,
+#        cyber_director.
+
+# ---- entries (non-chained; each starts the arc once) --------------------------
+
+- id: cables_01_three_forty
+  arc: undersea_cables
+  advisor: treasury
+  acts: [1, 2]
+  weight: 1.5
+  tags: [economy, attribution, naval]
+  conditions: { flags_none: [cables:cut] }
+  text: >-
+    Three cables were cut in the Sorrel Straits at 03:40, within eleven minutes
+    of each other, which is either a very unlucky anchor or a very well
+    organised one. The exchange opens in four hours on a satellite link with a
+    fifth of the bandwidth. I can halt trading and call it maintenance, or open
+    on time and let the market price a cut cable, which it will do badly and
+    out loud.
+  left:
+    text: "Halt trading. Call it maintenance"
+    effects: { economy: -5, public: -3, intel: 2, commitment: -2 }
+    tags: [economy, stall, secrecy]
+    set: [cables:cut, undersea_cables:cut]
+    follow: [{ card: cables_04_the_trawler, in: 1 }]
+  right:
+    text: "Open on time"
+    effects: { economy: -7, public: 2, commitment: 3 }
+    tags: [economy, transparency, domestic]
+    set: [cables:cut, undersea_cables:cut]
+    follow: [{ card: cables_04_the_trawler, in: 2 }]
+
+- id: cables_02_two_of_ours
+  arc: undersea_cables
+  advisor: admiral
+  acts: [2, 3]
+  weight: 1.2
+  timer: 10
+  timeout: left
+  tags: [naval, attribution, military]
+  conditions: { flags_none: [cables:cut] }
+  text: >-
+    Two of our cables and one of theirs went dead off Caldor between 04:00 and
+    04:20. Halden holds a submarine contact at eleven miles, heading for their
+    exercise area, and her captain is already turning toward it because that
+    is what I would do. I can let him close and make the contact know it has
+    been seen, or call him off and lose it in twenty minutes.
+  left:
+    text: "Let him close"
+    effects: { military: 5, escalation: 5, trust_primary: -5, intel: 3 }
+    tags: [naval, military, deterrence]
+    set: [cables:cut, undersea_cables:cut]
+    follow: [{ card: cables_04_the_trawler, in: 1 }]
+  right:
+    text: "Call him off"
+    effects: { military: -5, intel: -4, escalation: -1, trust_primary: 2 }
+    tags: [naval, stall, reassurance]
+    set: [cables:cut, undersea_cables:cut]
+    follow: [{ card: cables_04_the_trawler, in: 2 }]
+
+- id: cables_03_her_line
+  arc: undersea_cables
+  advisor: ally_leader
+  acts: [3, 4]
+  weight: 1.2
+  timer: 12
+  timeout: right
+  tags: [alliance, economy, alliance_demand]
+  conditions: { flags_none: [cables:cut] }
+  text: >-
+    The cable that carries the Compact's clearing traffic went dead at 05:10,
+    and it lands on your coast, not mine. My finance minister is asking me
+    whether your protection covers copper or only people. I need an answer
+    before my markets open, and I would rather it was yours than one I have to
+    invent.
+  left:
+    text: "Your cables are ours"
+    effects: { allies: 7, commitment: 8, escalation: 4, military: 2 }
+    tags: [public_commitment, alliance, deterrence]
+    set: [cables:cut, undersea_cables:cut]
+    follow: [{ card: cables_07_the_tern, in: 1 }]
+  right:
+    text: "Ours first. Then yours"
+    effects: { allies: -8, commitment: -2, economy: 2, trust_primary: 2 }
+    tags: [alliance, stall, economy]
+    set: [cables:cut, undersea_cables:cut]
+    follow: [{ card: cables_04_the_trawler, in: 1 }]
+
+# ---- attribution (chained) ---------------------------------------------------
+
+- id: cables_04_the_trawler
+  arc: undersea_cables
+  advisor: intel_director
+  acts: [1, 5]
+  tags: [attribution, intel, naval]
+  text: >-
+    A trawler under an Amberline flag of convenience crossed all three break
+    points between 03:20 and 03:50 with her transponder off, and switched it
+    back on forty minutes later in the fishing grounds. Her owner is a shell
+    company whose only other asset is a warehouse in {rival_capital}. We
+    assess, moderate confidence, a deliberate act. That is consistent with an
+    accident, and also consistent with the way one would arrange an accident.
+  left:
+    text: "Name the boat and the warehouse"
+    effects: { public: 3, commitment: 5, escalation: 4 }
+    tags: [attribution, public_commitment, intel]
+    odds:
+      label: Attribution
+      base: 0.5
+      tags: [attribution, intel]
+      success:
+        text: "The warehouse is a naval stores depot. Their denial mentions the fishing season."
+        set: [cables:attributed]
+        effects: { trust_primary: -8, public: 4, military: 2 }
+        follow: [{ card: cables_09_fishing_story, in: 1 }]
+      failure:
+        text: "The shell company is a shell company. Behind it is a cannery, and behind that a man of seventy-one."
+        set: [cables:attributed]
+        effects: { intel: -5, trust_secondary: -4, public: -3 }
+        follow: [{ card: cables_10_wrong_boat, in: 1 }]
+  right:
+    text: "Wait for the dive survey"
+    effects: { military: -3, public: -4, intel: 4 }
+    tags: [investigate, intel, stall]
+    follow: [{ card: cables_06_clean_cut, in: 2 }]
+
+- id: cables_05_the_detour
+  arc: undersea_cables
+  advisor: cyber_director
+  acts: [1, 5]
+  weight: 1.2
+  tags: [cyber, intel, economy]
+  conditions:
+    pieces_any: [cyber_director]
+    flags_all: [cables:cut]
+    flags_none: [cables:repaired]
+  text: >-
+    With the Straits cables down, forty percent of our traffic is finding its
+    own way round, and its own way is the land route through {other}. The
+    clearing house, two ministries and your private office are now passing
+    through a switching centre in {other_capital}. It is consistent with a
+    lucky accident for them. I would not call it one, and I would not call it
+    an attack either.
+  left:
+    text: "Let it route. Encrypt what we can"
+    effects: { economy: 3, intel: -6, trust_secondary: 3, public: 1 }
+    tags: [economy, intel, stall]
+  right:
+    text: "Cut the land route. Take the latency"
+    effects: { economy: -6, public: -3, intel: 3, trust_secondary: -3 }
+    tags: [secrecy, economy, cyber]
+
+- id: cables_06_clean_cut
+  arc: undersea_cables
+  advisor: cyber_director
+  acts: [1, 5]
+  tags: [attribution, intel, naval]
+  text: >-
+    The survey vehicle reached the first break at noon. A dragged anchor tears
+    a cable and leaves a furrow; this one is cut square, twelve metres from a
+    repeater, which is where you cut if you want it to take longest to fix. It
+    is consistent with a submersible and not with a trawler. I can tell you
+    whose, if you let me put Halden's sonar records in public, which tells them
+    how far Halden can hear.
+  left:
+    text: "Spend the records"
+    effects: { intel: -7, military: -3 }
+    tags: [attribution, intel, transparency]
+    odds:
+      label: Attribution
+      base: 0.55
+      tags: [attribution, intel]
+      success:
+        text: "A {rival_adj} submersible, class and hull number. Their navy has stopped answering the press."
+        set: [cables:attributed]
+        effects: { trust_primary: -8, public: 5, escalation: 4 }
+        follow: [{ card: cables_09_fishing_story, in: 2 }]
+      failure:
+        text: "The records show a submersible. They do not show a flag, and now they know how far we hear."
+        effects: { intel: -4, public: -3, military: -3 }
+        follow: [{ card: cables_07_the_tern, in: 1 }]
+  right:
+    text: "Deliberate. Unattributed. Say that"
+    effects: { public: -4, escalation: 2, commitment: 3, intel: 2 }
+    tags: [transparency, stall, attribution]
+    follow: [{ card: cables_07_the_tern, in: 1 }]
+
+# ---- the repair ship (chained) -----------------------------------------------
+
+- id: cables_07_the_tern
+  arc: undersea_cables
+  advisor: admiral
+  acts: [1, 5]
+  timer: 10
+  timeout: left
+  tags: [naval, economy, alliance]
+  conditions: { flags_none: [cables:escorted, cables:repaired] }
+  text: >-
+    The only cable ship within fourteen hundred miles is the Tern, Amberline
+    flag, unarmed, lying at anchor with her splicing crew aboard and her master
+    on the line to me. She sails at 18:00 or she waits for the weather window
+    after this one, which is eleven days away. He asks who is coming with her.
+    I have nothing to send him tonight, and he knows the tide better than I
+    do.
+  left:
+    text: "Sail her tonight, alone"
+    effects: { economy: -3, military: -2, allies: 1 }
+    tags: [naval, economy, stall]
+    odds:
+      label: Safe passage
+      base: 0.55
+      tags: [naval]
+      success:
+        text: "She is over the first break by dawn, and nobody has hailed her."
+        effects: { public: 3, intel: 2 }
+        follow: [{ card: cables_13_the_splice, in: 2 }]
+      failure:
+        text: "Hailed at 02:00 by a 'fisheries patrol' with tarpaulins over the guns. She has turned around."
+        effects: { public: -4, escalation: 3, trust_primary: -3 }
+        follow: [{ card: cables_12_turned_back, in: 1 }]
+  right:
+    text: "Wait for a Compact escort"
+    effects: { economy: -6, public: -3, allies: 3, commitment: 2 }
+    tags: [alliance, stall, economy]
+    follow: [{ card: cables_08_two_corvettes, in: 2 }]
+
+- id: cables_08_two_corvettes
+  arc: undersea_cables
+  advisor: ally_leader
+  acts: [1, 5]
+  tags: [alliance, naval, commitment_trap]
+  conditions: { flags_none: [cables:escorted, cables:repaired] }
+  text: >-
+    Two Compact corvettes will meet the Tern off Caldor at dawn. They are mine
+    and I am glad to send them. I am less glad to send them under my flag alone
+    while yours stays in harbour, so I would like a joint statement that the
+    cable route is under Compact and {us_adj} protection, and I would like
+    your name above mine.
+  left:
+    text: "Joint statement. My name first"
+    effects: { allies: 6, commitment: 8, escalation: 5, military: 3, trust_primary: -4 }
+    tags: [public_commitment, alliance, deterrence]
+    set: [cables:escorted]
+    follow: [{ card: cables_13_the_splice, in: 2 }]
+  right:
+    text: "Ships yes. Statement no"
+    effects: { allies: -5, commitment: -1, escalation: 2, trust_primary: 1 }
+    tags: [alliance, secrecy, stall]
+    set: [cables:escorted]
+    follow: [{ card: cables_13_the_splice, in: 2 }]
+
+- id: cables_09_fishing_story
+  arc: undersea_cables
+  advisor: press
+  acts: [1, 5]
+  tags: [attribution, domestic, commitment_trap]
+  text: >-
+    {rival_capital} calls your attribution 'a fishing story', and this morning
+    so does your own Cyber Director's memo, which I have, and which says
+    'consistent with' four times in two pages. So either the memo is wrong or
+    the statement was early. I am running one of those at six, and I would
+    rather you told me which.
+  left:
+    text: "The statement stands"
+    effects: { commitment: 6, trust_primary: -6, escalation: 4, public: 3, intel: -2 }
+    tags: [public_commitment, secrecy, deterrence]
+    follow: [{ card: cables_07_the_tern, in: 1 }]
+  right:
+    text: "Release the memo"
+    effects: { public: -5, commitment: -5, intel: 3, trust_primary: 4 }
+    tags: [transparency, walk_back, domestic]
+    follow: [{ card: cables_07_the_tern, in: 2 }]
+
+- id: cables_10_wrong_boat
+  arc: undersea_cables
+  advisor: intel_director
+  acts: [1, 5]
+  tags: [attribution, misperception, intel]
+  text: >-
+    The trawler is the Marguerite, sixty tonnes, out of an Amberline cannery,
+    and her transponder has failed eleven times this year according to a
+    harbourmaster's log we now have and did not ask for before you spoke. Her
+    master is seventy-one and has been on television. We assess, high
+    confidence, that we named the wrong boat. The right one, if there is one,
+    has had two days to become a different boat.
+  left:
+    text: "Retract, in your own voice"
+    effects: { public: -7, commitment: -7, trust_secondary: 5, trust_primary: 4, allies: 2 }
+    tags: [walk_back, transparency, diplomacy]
+    clear: [cables:attributed]
+    follow: [{ card: cables_07_the_tern, in: 2 }]
+  right:
+    text: "Say nothing. Boats sink"
+    effects: { trust_secondary: -8, commitment: 4, escalation: 3, intel: -3, public: 1 }
+    tags: [secrecy, stall, attribution]
+    follow: [{ card: cables_07_the_tern, in: 1 }]
+
+# ---- money (drawable; the second card is the cross-arc hook) -----------------
+
+- id: cables_11_war_risk
+  arc: undersea_cables
+  advisor: treasury
+  acts: [1, 5]
+  tags: [economy, alliance, entanglement]
+  conditions:
+    flags_all: [cables:cut]
+    flags_any: [blackout:started, cyber_ew:intrusion, debris:event, blockade:declared, proxy:clash]
+    flags_none: [cables:repaired]
+  text: >-
+    The underwriters met at eleven and by noon the Sorrel Straits are a listed
+    war-risk zone, which is what they do when the second thing happens after
+    the first. Premiums on every hull through the Straits have tripled, six
+    ships have anchored off Caldor rather than pay, and the clearing house is
+    on a satellite link that costs us a point of exchange a day. I can
+    indemnify the hulls, which is cheaper than it sounds and more permanent
+    than I would like.
+  left:
+    text: "Indemnify the hulls"
+    effects: { economy: -8, public: 3, allies: 3, commitment: 4 }
+    tags: [economy, public_commitment, alliance]
+  right:
+    text: "Let the premiums bite"
+    effects: { economy: -4, public: -5, allies: -3 }
+    tags: [economy, stall, domestic]
+
+- id: cables_12_turned_back
+  arc: undersea_cables
+  advisor: admiral
+  acts: [1, 5]
+  timer: 10
+  timeout: right
+  tags: [naval, military, misperception]
+  conditions: { flags_none: [cables:repaired] }
+  text: >-
+    A corvette with tarpaulins over her guns hailed the Tern at 02:00 and told
+    her the break lies inside an exercise area declared, as it happens,
+    yesterday. Her master turned around; I would have too. He will try again at
+    18:00 with a frigate beside him or he will not try again. {Other}'s navy
+    has a cable ship of its own and has said nothing about lending it, which
+    is how they offer.
+  left:
+    text: "Send her back with Halden"
+    effects: { military: 6, escalation: 6, economy: -2, trust_primary: -5 }
+    tags: [naval, military, deterrence, escalatory]
+    set: [cables:escorted]
+    follow: [{ card: cables_13_the_splice, in: 1 }]
+  right:
+    text: "Ask {other} for their ship"
+    effects: { trust_secondary: 4, intel: -4, economy: -5, allies: -3, public: -2 }
+    tags: [diplomacy, economy, stall]
+    follow: [{ card: cables_13_the_splice, in: 3 }]
+
+- id: cables_13_the_splice
+  arc: undersea_cables
+  advisor: cyber_director
+  acts: [1, 5]
+  tags: [intel, attribution, cyber]
+  conditions: { flags_none: [cables:repaired] }
+  text: >-
+    The Tern has the first end aboard and forty hours of splicing ahead, during
+    which she cannot move. The survey vehicle found something else on the
+    repeater: a recorder, clamped on, not ours, and by the growth on it there
+    since spring. If we lift it they will know we found it. If we leave it, we
+    learn what they are listening for, and they keep listening.
+  left:
+    text: "Lift it"
+    effects: { intel: 7, trust_primary: -5, escalation: 3, public: 2 }
+    tags: [intel, investigate, attribution]
+    set: [cables:repaired]
+  right:
+    text: "Leave it. Watch what they want"
+    effects: { intel: 3, trust_primary: 2, public: -3, military: -2 }
+    tags: [intel, secrecy, stall]
+    set: [cables:repaired]
+
+# ---- resolutions (drawable) --------------------------------------------------
+
+- id: cables_14_open_water
+  arc: undersea_cables
+  advisor: treasury
+  acts: [1, 5]
+  tags: [economy, naval, commitment_trap]
+  conditions: { flags_all: [cables:repaired] }
+  text: >-
+    The splice held and the exchange closed two points below where it started,
+    which after a fortnight on a satellite link I am calling a profit. The
+    underwriters will delist the Straits the day you say they are safe. The
+    Admiral says the word 'safe' is not hers to give, and the shipping lines
+    say it is not theirs to wait for. Someone has to say it, and I have costed
+    the silence.
+  left:
+    text: "Declare the Straits open"
+    effects: { economy: 10, military: -5, commitment: -3, escalation: -4, allies: 2 }
+    tags: [economy, reassurance, deescalate]
+  right:
+    text: "Keep the war-risk zone"
+    effects: { economy: -6, military: 4, escalation: 2, allies: -3, commitment: 3 }
+    tags: [economy, deterrence, stall]
+
+- id: cables_22_a_week
+  arc: undersea_cables
+  advisor: press
+  acts: [1, 5]
+  tags: [attribution, domestic, naval]
+  conditions: { flags_all: [cables:retaliated] }
+  text: >-
+    Their northern logistics cable failed a week ago and for a week the sea
+    kept the secret, which is about what the sea is good for. This morning a
+    {rival_adj} paper ran a sonar picture of a grapnel and a hull number that
+    is one of yours. Your Admiral has not denied it and your Cyber Director
+    has said 'consistent with', which I have started to hear as 'yes'. I go
+    live at six with the picture, and what goes next to it is up to you.
+  left:
+    text: "Deny it"
+    effects: { public: 3, trust_primary: -10, escalation: 5, intel: -3, commitment: 5 }
+    tags: [secrecy, attribution, deterrence]
+  right:
+    text: "Say nothing. Offer talks on the cables"
+    effects: { public: -6, trust_primary: 6, escalation: -6, military: -4, commitment: -4 }
+    tags: [diplomacy, deescalate, stall]
+
+# ---- pieces: the Cyber & Space Director, the Admiral, the Blue-Water Fleet ---
+
+- id: cables_15_forty_metres
+  arc: undersea_cables
+  advisor: cyber_director
+  acts: [1, 5]
+  tags: [naval, attribution, escalatory]
+  conditions:
+    pieces_any: [cyber_director, admiral, blue_water_fleet]
+    flags_all: [cables:cut]
+    flags_none: [cables:retaliated]
+  text: >-
+    Their northern fleet's logistics traffic crosses the Straits on a single
+    cable that runs forty metres from ours, and we know its route because they
+    used our survey. A grapnel from the Admiral's boat cuts it tonight, and a
+    cut cable looks like a cut cable. Nobody would be able to prove it was us,
+    which is precisely what they will say about theirs, and then there are two
+    unexplained events and a pattern.
+  left:
+    text: "Cut it"
+    effects: { escalation: 5, military: 4, commitment: 3 }
+    tags: [naval, escalatory, military, secrecy]
+    odds:
+      label: Deniable
+      base: 0.5
+      tags: [attribution, naval]
+      success:
+        text: "Dead at 03:10. Their navy has said nothing, which is how they say they know."
+        set: [cables:retaliated]
+        effects: { military: 5, trust_primary: -9, escalation: 3 }
+      failure:
+        text: "A fishing boat filmed the grapnel. Their statement names the ship."
+        set: [cables:retaliated]
+        effects: { escalation: 10, public: -6, trust_primary: -12, trust_secondary: -4, allies: -3 }
+  right:
+    text: "Leave their cable"
+    effects: { military: -5, commitment: -3, trust_primary: 3 }
+    tags: [stall, deescalate, reassurance]
+
+- id: cables_16_the_escort_line
+  arc: undersea_cables
+  advisor: admiral
+  acts: [1, 5]
+  weight: 1.2
+  tags: [naval, military, deterrence]
+  conditions:
+    pieces_any: [admiral, blue_water_fleet]
+    flags_all: [cables:cut]
+    flags_none: [cables:escorted, cables:repaired]
+  text: >-
+    I can put a destroyer on the Tern and two more on the cable route from
+    Caldor to the Straits, around the clock, until the splice is done. Their
+    submarine will see us, which is the point, and it is also the point they
+    will make at the Assembly. Give me the word and the first hull is under way
+    in three hours. Say nothing and they stay tied up, which is also a signal,
+    and not one I would choose to send.
+  left:
+    text: "Escort the route"
+    effects: { military: 6, escalation: 5, economy: -3, trust_primary: -4, allies: 2 }
+    tags: [naval, military, deterrence]
+    set: [cables:escorted]
+    follow: [{ card: cables_13_the_splice, in: 2 }]
+  right:
+    text: "Keep them tied up"
+    effects: { military: -6, allies: -3, trust_primary: 3, intel: -2 }
+    tags: [naval, stall, reassurance]
+
+- id: cables_17_forty_minutes
+  arc: undersea_cables
+  advisor: admiral
+  acts: [1, 5]
+  timer: 10
+  timeout: left
+  tags: [naval, attribution, military]
+  conditions:
+    pieces_any: [admiral, blue_water_fleet]
+    flags_all: [cables:cut]
+    flags_none: [cables:repaired]
+  text: >-
+    A trawler with the same registry as the first is loitering over the Caldor
+    to Amberline cable with her transponder off, and Halden's boarding party is
+    in the boat. Captain Ruys can be aboard her in forty minutes; he asked me
+    once and he will not ask twice, because I taught him not to. If there is
+    cutting gear in her hold you have your proof. If there is fish, you have
+    boarded a neutral in her own waters.
+  left:
+    text: "Board her"
+    effects: { military: 4, escalation: 4, trust_secondary: -3 }
+    tags: [naval, military, escalatory, investigate]
+    odds:
+      label: Boarding
+      base: 0.55
+      tags: [naval]
+      success:
+        text: "A cable plough under the nets, and a chart with our repeaters marked in pencil."
+        set: [cables:attributed]
+        effects: { intel: 8, public: 6, trust_primary: -6, escalation: 2 }
+      failure:
+        text: "Fish. Sixty tonnes of it, and an Amberline master who has already phoned his minister."
+        effects: { allies: -5, public: -5, trust_secondary: -6, escalation: 3, intel: -2 }
+  right:
+    text: "Warn her off by radio"
+    effects: { military: -3, intel: -3, escalation: 1, trust_secondary: 2 }
+    tags: [naval, stall, reassurance]
+
+- id: cables_18_eleven_hundred_tonnes
+  arc: undersea_cables
+  advisor: treasury
+  acts: [1, 5]
+  tags: [economy, naval, entanglement]
+  conditions:
+    pieces_any: [blue_water_fleet]
+    flags_all: [cables:escorted]
+  text: >-
+    The escort on the cable route is burning eleven hundred tonnes of fuel a
+    day, which is a frigate's worth of money a week to guard a cable that
+    carries, by volume, mostly other people's television. The clearing house
+    is the other four percent, and that is why I am here. The fuel is why I am
+    here at six in the morning. The Admiral says the escort comes off when I
+    find her a cheaper enemy.
+  left:
+    text: "Keep the escort. Find the money"
+    effects: { economy: -7, military: 2, allies: 2, commitment: 2 }
+    tags: [economy, naval, deterrence]
+  right:
+    text: "Bring half of them home"
+    effects: { military: -5, allies: -3, trust_primary: 2, economy: 2, escalation: -2 }
+    tags: [naval, economy, deescalate]
+
+# ---- pieces: the Treasury Hawk, the Strategic Reserve ------------------------
+
+- id: cables_19_unsigned
+  arc: undersea_cables
+  advisor: admiral
+  acts: [1, 5]
+  tags: [naval, economy, personal]
+  conditions:
+    pieces_any: [treasury_hawk]
+    flags_all: [cables:cut]
+    flags_none: [cables:repaired]
+  text: >-
+    My fuel request for the Caldor patrol came back from the Chancellor
+    unsigned, with a note asking whether the cable might wait for the market to
+    'price in the risk'. I do not know what that means and I suspect he does
+    not know what a frigate is. Halden has fuel for six days on station. After
+    that I am a spectator with a very good view.
+  left:
+    text: "Sign it yourself"
+    effects: { economy: -6, military: 5, trust_primary: -2, public: -1 }
+    tags: [military, naval, economy]
+  right:
+    text: "Six days is what she has"
+    effects: { military: -6, intel: -3, escalation: -2, economy: 2 }
+    tags: [economy, stall, deescalate]
+
+- id: cables_20_ninety_days
+  arc: undersea_cables
+  advisor: treasury
+  acts: [1, 5]
+  tags: [economy, deterrence, commitment_trap]
+  conditions:
+    pieces_any: [strategic_reserve]
+    flags_all: [cables:cut]
+    flags_none: [cables:repaired]
+  text: >-
+    The reserve covers the clearing house's exposure for ninety days, which
+    makes you the only leader in this whose hand is not shaking over the
+    exchange. {rival_capital} knows the size of the reserve to the tonne,
+    because we published it, and they will have worked out that ninety days is
+    the length of your patience. I can draw on it loudly, which tells them the
+    cable does not hurt, or quietly, which lets them think it does.
+  left:
+    text: "Draw on it loudly"
+    effects: { economy: 6, public: 4, commitment: 5, trust_primary: -3, allies: 1 }
+    tags: [economy, public_commitment, deterrence]
+  right:
+    text: "Draw on it quietly"
+    effects: { economy: 4, intel: -2, allies: -3, commitment: -1 }
+    tags: [economy, secrecy, stall]
+
+- id: cables_21_my_nine
+  arc: undersea_cables
+  advisor: ally_leader
+  acts: [1, 5]
+  tags: [alliance, economy, alliance_demand]
+  conditions:
+    pieces_any: [strategic_reserve]
+    flags_all: [cables:cut]
+    flags_none: [cables:repaired]
+  text: >-
+    Your ninety days are my nine. The Compact's clearing runs on the same cable
+    and I have no reserve, because for twenty years your treasury told us yours
+    was ours. Open it to us and I will say so in the House this afternoon.
+    Close it and I will say nothing, and everyone will hear me.
+  left:
+    text: "Open it to the Compact"
+    effects: { economy: -9, allies: 8, commitment: 4, public: -2 }
+    tags: [alliance, economy, reassurance]
+  right:
+    text: "Ours is ours"
+    effects: { allies: -9, economy: 2, public: 2, trust_secondary: -2 }
+    tags: [alliance, economy, stall]
