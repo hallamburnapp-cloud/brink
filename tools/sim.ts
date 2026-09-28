@@ -9,6 +9,11 @@
  * <out>/report-<timestamp>.md, <out>/report-latest.md and <out>/report-latest.json.
  * Prints progress every 5% to stderr unless --quiet; prints the markdown report to
  * stdout (or the JSON with --json). --strict exits 1 when any balance target FAILs.
+ *
+ * Targets (see BALANCE.md): T1 heuristic win rate 5–12% at DEFCON 5; T2 ≥ 10 archetypes
+ * reach the Endgame ≥ 10% of the time; T3 no piece in > 35% of winning builds; T4 median
+ * heuristic pace 15–25 estimated minutes; T5 ≥ 3% of heuristic runs score ≥ 100 × the
+ * final target ("broke the game").
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -204,10 +209,12 @@ function main(): void {
 
   const pass = report.targets.filter((t) => t.status === 'PASS').length;
   const failCount = report.targets.filter((t) => t.status === 'FAIL').length;
+  const h = report.policies.heuristic;
+  const headline = h ? ` Heuristic: win ${h.winRate}%, median score ${h.score.median}, broke-game ${h.brokeGame.pct}%, median ${h.estMinutes.median} min.` : '';
   if (args.json) console.log(json);
   else if (!args.quiet) console.log(md);
   console.error(
-    `Simulated ${report.meta.runsPerPolicy} × ${report.meta.policies.length} runs in ${elapsed.toFixed(1)}s. Targets: ${pass} PASS, ${failCount} FAIL. Wrote ${stamped}, report-latest.md, report-latest.json in ${outDir}`,
+    `Simulated ${report.meta.runsPerPolicy} × ${report.meta.policies.length} runs in ${elapsed.toFixed(1)}s. Targets: ${pass} PASS, ${failCount} FAIL.${headline} Wrote ${stamped}, report-latest.md, report-latest.json in ${outDir}`,
   );
   if (args.strict && failCount > 0) process.exit(1);
 }

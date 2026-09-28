@@ -208,8 +208,6 @@ export interface AnteInfo {
   perCardNeed: number;
   /** The current pace will miss the ante. */
   pressure: boolean;
-  /** Normaliser for a side's leverage: one unit is what a card ought to score right now. */
-  unit: number;
 }
 
 export function anteInfo(content: Content, state: RunState, inFlashpoint: boolean): AnteInfo {
@@ -219,7 +217,7 @@ export function anteInfo(content: Content, state: RunState, inFlashpoint: boolea
   const avg = state.actCards > 0 ? state.actLeverage / state.actCards : state.cardsPlayed > 0 ? state.score / state.cardsPlayed : 0;
   const perCardNeed = needed / Math.max(1, cardsLeft);
   const pressure = !inFlashpoint && needed > 0 && perCardNeed > avg;
-  return { needed, cardsLeft, avg, perCardNeed, pressure, unit: Math.max(1, perCardNeed, avg) };
+  return { needed, cardsLeft, avg, perCardNeed, pressure };
 }
 
 // ------------------------------------------------------------------ random
@@ -337,11 +335,17 @@ export const CALM_CEILING = 60;
 export const BRINK_BAND: readonly [number, number] = [82, 92];
 /** Hotline charges are worth spending from here. */
 export const CHARGE_ESCALATION = 40;
-/** Leverage weights (ante pressure on / off), applied to leverage in units of "what a card ought to score". */
+/**
+ * Leverage weights (ante pressure on / off), applied to a side's leverage in units of
+ * "what a card ought to score right now": under pressure the per-card need (or, when no side
+ * can cover it, the card's best side); otherwise the current pace.
+ */
 export const LEVERAGE_WEIGHT_PRESSURE = 0.6;
 export const LEVERAGE_WEIGHT_RELAXED = 0.15;
-/** Scale that turns one unit of leverage weight into score points comparable with meter penalties. */
-export const LEVERAGE_SCALE = 10;
+/** Turns one unit of leverage weight into score points comparable with the meter penalties. */
+export const LEVERAGE_SCALE = 20;
+/** A side never earns more than this many units of leverage credit. */
+export const LEVERAGE_REL_CAP = 5;
 /** An accident attached to the card costs this × p on both sides (it fires whichever side is chosen). */
 export const ACCIDENT_PENALTY = 8;
 /** Use Duty Officer's Veto (skip_accident) at this accident probability or above. */
@@ -361,6 +365,8 @@ const CALM_TAGS: readonly string[] = ['deescalate', 'reassurance', 'back_channel
 export interface HeuristicContext {
   brink: boolean;
   ante: AnteInfo;
+  /** One unit of leverage credit, in leverage points (see LEVERAGE_WEIGHT_*). */
+  unit: number;
   /** Probability that the attached accident fires (0 when none; 0/1 when resolved by Perfect Intel). */
   accidentP: number;
   held: PieceDef[];
@@ -370,7 +376,11 @@ export function heuristicContext(content: Content, state: RunState, view: CardVi
   const held = heldPieces(content, state);
   const acc = view.accident;
   const accidentP = !acc ? 0 : acc.known === null ? acc.p : acc.known ? 1 : 0;
-  return { brink: isBrinkBuild(held), ante: anteInfo(content, state, view.isFlashpoint), accidentP, held };
+  const ante = anteInfo(content, state, view.isFlashpoint);
+  const best = Math.max(view.left.leverage.total, view.right.leverage.total);
+  const pace = ante.avg > 0 ? ante.avg : best;
+  const unit = Math.max(1, ante.pressure ? Math.min(ante.perCardNeed, best) : pace);
+  return { brink: isBrinkBuild(held), ante, unit, accidentP, held };
 }
 
 export interface SideEvaluation {
@@ -433,7 +443,7 @@ export function evaluateSide(state: RunState, side: ChoiceView, hc: HeuristicCon
   }
 
   // (b) leverage, in units of what a card ought to score right now; heavy when the ante is slipping.
-  const rel = side.leverage.total / hc.ante.unit;
+  const rel = Math.min(LEVERAGE_REL_CAP, side.leverage.total / hc.unit);
   score += (hc.ante.pressure ? LEVERAGE_WEIGHT_PRESSURE : LEVERAGE_WEIGHT_RELAXED) * LEVERAGE_SCALE * rel;
 
   // (e) odds: attractive at p ≥ 0.6, neutral 0.45..0.6, avoided below 0.45.
