@@ -1,0 +1,212 @@
+# ADVISORS — people with agendas. Each grants a flag (has_*) that cards condition
+# on for unique lines, and expresses its power through composable modifiers.
+# See ENGINE.md for the resolver order and SYNERGIES.md for interactions.
+
+- id: hawk_general
+  pool: advisor
+  name: General Oren Vasska
+  title: the Hawk General
+  blurb: >-
+    "Capability is the only language they read." Every military move lands harder.
+    He never mentions what it does to the temperature in the room, and the
+    briefing slides stop showing it.
+  mechanics: Military gains from military, strike, mobilise and deterrence choices ×1.5 and +8% odds on military rolls. Escalation costs of those choices are hidden from previews and +2 higher.
+  accent: "#b8352f"
+  art: hawk_general
+  tags: [military, escalatory]
+  grants: [has_hawk]
+  modifiers:
+    - { kind: effect, key: military, tags: [military, strike, mobilise, deterrence], sign: pos, mult: 1.5 }
+    - { kind: effect, key: escalation, tags: [military, strike, mobilise, deterrence], sign: pos, add: 2 }
+    - { kind: odds, tags: [military, strike], add: 0.08 }
+    - { kind: rule, rule: hide_escalation_cost }
+
+- id: dove_fm
+  pool: advisor
+  name: Ilse Marrow
+  title: the Dove Foreign Minister
+  blurb: >-
+    She has a phone number for everyone and has used most of them at 3am. When you
+    step back, it costs you less at home. Your allies notice how often you step back.
+  mechanics: De-escalation choices cut escalation ×1.4 and cost 40% less public and 30% less military. Every de-escalation or concession also costs 2 allies.
+  accent: "#4f8fc9"
+  art: dove_fm
+  tags: [diplomacy, deescalate]
+  grants: [has_dove]
+  modifiers:
+    - { kind: effect, key: escalation, tags: [deescalate], sign: neg, mult: 1.4 }
+    - { kind: effect, key: public, tags: [deescalate, concede], sign: neg, mult: 0.6 }
+    - { kind: effect, key: military, tags: [deescalate, concede], sign: neg, mult: 0.7 }
+    - { kind: effect, key: allies, tags: [deescalate, concede], add: -2, always: true }
+    - { kind: effect, key: trust, tags: [deescalate, reassurance], sign: pos, mult: 1.3 }
+
+- id: paranoid_intel
+  pool: advisor
+  name: Director Sefton Lyle (unsleeping)
+  title: the Paranoid Intel Director
+  blurb: >-
+    Nothing gets past him, including things that are not there. You will hear about
+    every launch, every convoy, every flicker on the board. Some of them will be real.
+  mechanics: Warning cards appear twice as often. Intel reliability −12. Intel-tagged rolls +5%.
+  accent: "#7c8b9a"
+  art: intel_director
+  tags: [intel, warning]
+  grants: [has_paranoid_intel]
+  excludes: [cautious_intel]
+  modifiers:
+    - { kind: rule, rule: warning_frequency, value: 1.0 }
+    - { kind: intel, add: -12 }
+    - { kind: odds, tags: [intel], add: 0.05 }
+
+- id: cautious_intel
+  pool: advisor
+  name: Director Sefton Lyle (measured)
+  title: the Cautious Intel Director
+  blurb: >-
+    He would rather tell you late than tell you wrong. When he does bring something
+    into the room, believe it. The cost is everything he decided not to bring.
+  mechanics: Warning cards appear half as often. Intel reliability +15. Intel-tagged rolls +8%.
+  accent: "#5f7f9f"
+  art: intel_director
+  tags: [intel]
+  grants: [has_cautious_intel]
+  excludes: [paranoid_intel]
+  modifiers:
+    - { kind: rule, rule: warning_frequency, value: -0.5 }
+    - { kind: intel, add: 15 }
+    - { kind: odds, tags: [intel], add: 0.08 }
+
+- id: spin_doctor
+  pool: advisor
+  name: Dov Karrick
+  title: the Spin Doctor
+  blurb: >-
+    The public hears what he decides they hear, so nothing lands as hard as it should.
+    The price is that once he has sold a position, you own it. Reversing costs you the
+    story, not just the policy.
+  mechanics: All public swings ×0.6. Public commitments earn +2 public. Walking back a commitment costs public ×(1 + commitment level).
+  accent: "#d98a2b"
+  art: spin_doctor
+  tags: [domestic, commitment]
+  grants: [has_spin]
+  modifiers:
+    - { kind: effect, key: public, mult: 0.6 }
+    - { kind: effect, key: public, tags: [public_commitment], add: 2, always: true }
+    - { kind: rule, rule: commitment_lock, value: 1.0 }
+
+- id: ambassador
+  pool: advisor
+  name: Ambassador Hale Okonkwo-Reyes
+  title: the Old Ambassador
+  blurb: >-
+    Forty years of dinners with people he was supposed to hate. When you need a quiet
+    word to reach the other side and be believed, he knows which word and which side.
+  mechanics: Back-channel and diplomacy rolls +12%. Trust gains from back-channel choices ×1.3. Back-channel cards appear 60% more often.
+  accent: "#8e6bb3"
+  art: ambassador
+  tags: [diplomacy, back_channel]
+  grants: [has_ambassador]
+  modifiers:
+    - { kind: odds, tags: [back_channel, diplomacy], add: 0.12 }
+    - { kind: effect, key: trust, tags: [back_channel], sign: pos, mult: 1.3 }
+    - { kind: weight, tags: [back_channel], mult: 1.6 }
+
+- id: cyber_director
+  pool: advisor
+  name: Dr Teodora Vance
+  title: the Cyber & Space Director
+  blurb: >-
+    She can tell you what an attack is consistent with. Sometimes, given time, she can
+    tell you who. Attribution stops being a shrug and starts being a decision.
+  mechanics: Cyber and attribution cards appear 60% more often. Attribution and cyber rolls +15%. Unlocks resolvable attribution lines.
+  accent: "#3fbf9f"
+  art: cyber_director
+  tags: [cyber, space, attribution]
+  grants: [has_cyber_director]
+  modifiers:
+    - { kind: weight, tags: [cyber, attribution, space], mult: 1.6 }
+    - { kind: odds, tags: [attribution, cyber], add: 0.15 }
+
+- id: treasury_hawk
+  pool: advisor
+  name: Chancellor Anselm Roke
+  title: the Treasury Hawk
+  blurb: >-
+    Every crisis is a spreadsheet to him and the spreadsheet must balance. The economy
+    holds. The generals start to wonder why their requests keep coming back unsigned.
+  mechanics: Economy costs ×0.6. Military drifts down about one point every four cards.
+  accent: "#c1a23a"
+  art: treasury
+  tags: [economy]
+  grants: [has_treasury]
+  modifiers:
+    - { kind: effect, key: economy, sign: neg, mult: 0.6 }
+    - { kind: drift, key: military, per_card: -0.25 }
+
+- id: fixer
+  pool: advisor
+  name: Ferris Nkemelu
+  title: the Chief of Staff
+  blurb: >-
+    Once a week, a problem that was on its way to your desk simply is not. You do not
+    ask. He does not tell.
+  mechanics: Once per act, bury the current card without playing it (not during a flashpoint).
+  accent: "#b07a4a"
+  art: fixer
+  tags: [domestic]
+  grants: [has_fixer]
+  modifiers:
+    - { kind: rule, rule: remove_card_per_act, value: 1 }
+
+- id: admiral
+  pool: advisor
+  name: Admiral Petra Volanski
+  title: the Loyal Admiral
+  blurb: >-
+    Ships take days to arrive and seconds to be misread. She will give you options at
+    sea that nobody else can, and she will follow the order you give, not the one you meant.
+  mechanics: Naval cards appear twice as often. Naval rolls +10%. Military gains from naval choices ×1.3. Unlocks blockade options.
+  accent: "#2f6fb8"
+  art: admiral
+  tags: [naval, military]
+  grants: [has_admiral]
+  modifiers:
+    - { kind: weight, tags: [naval, blockade], mult: 2.0 }
+    - { kind: odds, tags: [naval], add: 0.10 }
+    - { kind: effect, key: military, tags: [naval], sign: pos, mult: 1.3 }
+
+- id: peace_leader
+  pool: advisor
+  name: Yusra Delacroix-Amin
+  title: the Peace Movement Leader
+  blurb: >-
+    She brought a million people into the square and then she brought them into your
+    cabinet room. They love it when you talk. They hate it when you show strength,
+    even the kind that keeps the talking possible.
+  mechanics: De-escalation and concessions earn +4 public. Deterrence, mobilisation and strikes cost 4 public.
+  accent: "#6fbf5c"
+  art: peace_leader
+  tags: [domestic, deescalate]
+  grants: [has_peace_leader]
+  modifiers:
+    - { kind: effect, key: public, tags: [deescalate, concede], add: 4, always: true }
+    - { kind: effect, key: public, tags: [deterrence, mobilise, strike, limited_strike], add: -4, always: true }
+
+- id: contractor
+  pool: advisor
+  name: Corin Ashby-Tal
+  title: the Defence Contractor
+  blurb: >-
+    There is always a system that would have prevented this. He can have it in theatre
+    in a week. Somebody has to pay for it, and somebody across the border has to
+    decide what it is for.
+  mechanics: Military gains ×1.4. Military, mobilisation and deterrence choices also cost 2 economy and 2 trust with both rivals.
+  accent: "#9aa0a6"
+  art: contractor
+  tags: [military, economy]
+  grants: [has_contractor]
+  unlock: { id: arsenal, label: The Defence Contractor, hint: Reach Week Four with military above 80. }
+  modifiers:
+    - { kind: effect, key: military, sign: pos, mult: 1.4 }
+    - { kind: effect, key: economy, tags: [military, mobilise, deterrence], add: -2, always: true }
+    - { kind: effect, key: trust, tags: [military, mobilise, deterrence], add: -2, always: true }

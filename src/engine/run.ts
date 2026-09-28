@@ -765,6 +765,8 @@ export function makeOffer(content: Content, state: RunState, rng: Rng): string[]
     if (p.seats && !p.seats.includes(state.seat)) continue;
     if (p.min_act && state.act + 1 < p.min_act) continue;
     if (!isUnlocked(state, p)) continue;
+    if (p.excludes && p.excludes.some((x) => state.pieces.includes(x))) continue;
+    if (state.pieces.some((h) => content.pieces[h]?.excludes?.includes(id))) continue;
     byPool[p.pool].push({ id, w: p.offer_weight });
   }
   const pools = rng.shuffle(['advisor', 'doctrine', 'asset']);

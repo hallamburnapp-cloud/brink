@@ -96,12 +96,13 @@ export interface ResolvedEffect {
  * Resolve one effect delta. `tags` are the choice's tags.
  * Returns the unrounded value; callers round + clamp.
  */
-export function resolveEffect(key: EffectKey, base: number, tags: readonly string[], ctx: ModContext): ResolvedEffect {
+export function resolveEffect(key: EffectKey, base: number, tags: readonly string[], ctx: ModContext, skipAlways = false): ResolvedEffect {
   if (base === 0) return { value: 0, add: 0, mult: 1, scale: 1 };
   let add = 0;
   let mult = 1;
   for (const m of allModifiers(ctx)) {
     if (m.kind !== 'effect') continue;
+    if (m.always && skipAlways) continue;
     if (!keyMatches(m.key, key)) continue;
     if (!tagsMatch(m.tags, tags)) continue;
     if (m.sign === 'pos' && base <= 0) continue;
@@ -130,13 +131,34 @@ export function resolveEffect(key: EffectKey, base: number, tags: readonly strin
   return { value: applied, add, mult, scale: isCost ? scale : 1 };
 }
 
-/** Resolve a whole Effects map into rounded integer deltas (no clamping to meter bounds). */
+function keysFor(filter: string | undefined): EffectKey[] {
+  if (filter === 'trust') return ['trust_primary', 'trust_secondary'];
+  if (filter === undefined || filter === 'meters' || filter === 'hidden') return [];
+  return [filter as EffectKey];
+}
+
+/**
+ * Resolve a whole Effects map into rounded integer deltas (no clamping to meter bounds).
+ * `always` modifiers inject their `add` on keys the choice does not touch; those injected
+ * sums become the base for that key, so they are not counted twice.
+ */
 export function resolveEffects(effects: Effects, tags: readonly string[], ctx: ModContext): Effects {
+  const base: Effects = { ...effects };
+  const injected = new Set<EffectKey>();
+  for (const m of allModifiers(ctx)) {
+    if (m.kind !== 'effect' || !m.always || !m.add) continue;
+    if (!tagsMatch(m.tags, tags)) continue;
+    for (const k of keysFor(m.key)) {
+      if (effects[k]) continue; // key already present: handled as a normal add in resolveEffect
+      base[k] = (base[k] ?? 0) + m.add;
+      injected.add(k);
+    }
+  }
   const out: Effects = {};
-  for (const k of Object.keys(effects) as EffectKey[]) {
-    const base = effects[k] ?? 0;
-    if (!base) continue;
-    const r = roundHalfAway(resolveEffect(k, base, tags, ctx).value);
+  for (const k of Object.keys(base) as EffectKey[]) {
+    const b = base[k] ?? 0;
+    if (!b) continue;
+    const r = roundHalfAway(resolveEffect(k, b, tags, ctx, injected.has(k)).value);
     if (r !== 0) out[k] = r;
   }
   return out;

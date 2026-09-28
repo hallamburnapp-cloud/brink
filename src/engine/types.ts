@@ -144,7 +144,16 @@ export type Sign = 'pos' | 'neg';
  * - rule: named engine rule (see RuleId).
  */
 export type ModifierDef =
-  | { kind: 'effect'; key?: EffectKey | 'meters' | 'hidden' | 'trust'; tags?: string[]; sign?: Sign; add?: number; mult?: number }
+  | {
+      kind: 'effect';
+      key?: EffectKey | 'meters' | 'hidden' | 'trust';
+      tags?: string[];
+      sign?: Sign;
+      add?: number;
+      mult?: number;
+      /** With `always`, the `add` applies to every matching choice even if it has no effect on that key (injects a new effect). */
+      always?: boolean;
+    }
   | { kind: 'odds'; tags?: string[]; add?: number; mult?: number }
   | { kind: 'intel'; add?: number; mult?: number }
   | { kind: 'timer'; add?: number; mult?: number }
@@ -223,6 +232,8 @@ export interface PieceDef {
   seats?: Seat[];
   /** Not offered before this act. */
   min_act?: number;
+  /** Never offered while any of these pieces is held (contradictory postures). */
+  excludes?: string[];
   /** Meta unlock (undefined = available from the start). */
   unlock?: { id: string; label: string; hint: string };
 }

@@ -1,0 +1,18 @@
+id: federation
+name: The Federation
+the: the Federation
+adjective: Federal
+leader_title: the Premier
+capital: Kaskad
+rivals: [republic, coalition]
+meters: { public: 62, military: 66, allies: 34, economy: 40, escalation: 25 }
+hidden: { trust_primary: 34, trust_secondary: 55, intel: 60, commitment: 42 }
+blurb: >-
+  A continental power with a large army, a managed press, few friends and an
+  economy that was already sanctioned before this began. You can hold the line
+  longer than anyone; you just cannot afford to.
+strengths: Strong military, a public that can be steered, long borders that buy time.
+vulnerabilities: Brittle economy, almost no allies, intelligence that tells you what you want.
+accent: "#c43a3a"
+starting_pieces: []
+unlock: { id: seat_federation, label: The Federation, hint: Survive to Week Three once. }

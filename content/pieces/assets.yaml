@@ -1,0 +1,203 @@
+# ASSETS — capabilities that unlock card lines and change odds.
+
+- id: early_warning
+  pool: asset
+  name: Early-Warning Constellation
+  title: Early-Warning Constellation
+  blurb: >-
+    Eyes over the pole, watching for the plume. You will see it coming. You will also
+    see things that are not coming, and someone will eventually try to blind it.
+  mechanics: Warning cards 60% more common. Intel reliability +8. Unlocks jamming and blinding lines.
+  accent: "#7fd6e6"
+  art: asset_ew
+  tags: [space, warning, intel]
+  grants: [asset_ew]
+  modifiers:
+    - { kind: rule, rule: warning_frequency, value: 0.6 }
+    - { kind: intel, add: 8 }
+
+- id: back_channel
+  pool: asset
+  name: Back-Channel
+  title: Back-Channel
+  blurb: >-
+    An academic in a neutral capital who happens to have lunch with the right people.
+    Nothing said through him is official, which is why anything can be said.
+  mechanics: Unlocks secret-talks lines. Back-channel rolls +10%. Back-channel cards 50% more common.
+  accent: "#8e6bb3"
+  art: asset_back_channel
+  tags: [diplomacy, back_channel]
+  grants: [asset_back_channel]
+  modifiers:
+    - { kind: odds, tags: [back_channel], add: 0.10 }
+    - { kind: weight, tags: [back_channel], mult: 1.5 }
+
+- id: cyber_unit
+  pool: asset
+  name: Cyber Unit
+  title: Cyber Unit
+  blurb: >-
+    Four hundred people in a building with no sign. They can find out who did it and
+    they can do it back. The other side assumes you already have.
+  mechanics: Unlocks attribution and sabotage lines. Cyber rolls +10%. Cyber cards 40% more common. Cyber choices cost 2 trust with both rivals.
+  accent: "#3fbf9f"
+  art: asset_cyber
+  tags: [cyber, attribution]
+  grants: [asset_cyber_unit]
+  modifiers:
+    - { kind: odds, tags: [cyber], add: 0.10 }
+    - { kind: weight, tags: [cyber], mult: 1.4 }
+    - { kind: effect, key: trust, tags: [cyber], add: -2, always: true }
+
+- id: missile_defence
+  pool: asset
+  name: Missile Defence Layer
+  title: Missile Defence Layer
+  blurb: >-
+    Interceptors on rails, radars on hills. It gives you a real chance to catch what
+    comes. It gives them a real reason to think you are planning to make it come.
+  mechanics: Intercept rolls +20%. Trust with the primary rival drifts down about one point every five cards.
+  accent: "#7c8b9a"
+  art: asset_md
+  tags: [missile_defence, deterrence]
+  grants: [asset_md]
+  modifiers:
+    - { kind: odds, tags: [intercept], add: 0.20 }
+    - { kind: drift, key: trust_primary, per_card: -0.2 }
+
+- id: blue_water_fleet
+  pool: asset
+  name: Blue-Water Fleet
+  title: Blue-Water Fleet
+  blurb: >-
+    Carriers that can be anywhere in a week and cannot be hidden anywhere at all.
+    Blockades, transits, shows of force. Every option at sea, and the bill for fuel.
+  mechanics: Naval and blockade cards 60% more common. Naval rolls +10%. Naval choices cost 1 economy.
+  accent: "#2f6fb8"
+  art: asset_fleet
+  tags: [naval, military]
+  grants: [asset_fleet]
+  modifiers:
+    - { kind: weight, tags: [naval, blockade], mult: 1.6 }
+    - { kind: odds, tags: [naval], add: 0.10 }
+    - { kind: effect, key: economy, tags: [naval], add: -1, always: true }
+
+- id: hardened_nc3
+  pool: asset
+  name: Hardened NC3
+  title: Hardened Command & Control
+  blurb: >-
+    Buried lines, redundant links, three people who must agree before the board is
+    believed. The false alarms still come. They stop arriving as orders.
+  mechanics: Warning cards are true at least 70% of the time regardless of intel. Nuclear-tagged escalation costs ×0.8.
+  accent: "#c9b98a"
+  art: asset_nc3
+  tags: [nuclear, intel]
+  grants: [asset_nc3]
+  unlock: { id: low_survivor, label: Hardened NC3, hint: Survive to Week Three with Launch on Warning. }
+  modifiers:
+    - { kind: rule, rule: warning_floor, value: 70 }
+    - { kind: effect, key: escalation, tags: [nuclear], sign: pos, mult: 0.8 }
+
+- id: commercial_sat
+  pool: asset
+  name: Commercial Satellite Deal
+  title: Commercial Satellite Deal
+  blurb: >-
+    A private constellation, leased by the hour, cheaper than anything you could build.
+    Their imagery is on your desk before breakfast. Their shareholders are in every
+    capital, and their satellites are now targets.
+  mechanics: Intel reliability +6. Economy drifts up slowly. Space choices cost 2 more escalation. Unlocks entanglement lines.
+  accent: "#9aa0a6"
+  art: asset_comsat
+  tags: [space, economy, entanglement]
+  grants: [asset_comsat]
+  unlock: { id: bankrupt, label: Commercial Satellite Deal, hint: Lose a run to economic collapse. }
+  modifiers:
+    - { kind: intel, add: 6 }
+    - { kind: drift, key: economy, per_card: 0.15 }
+    - { kind: effect, key: escalation, tags: [space], sign: pos, add: 2 }
+
+- id: allied_basing
+  pool: asset
+  name: Allied Basing Rights
+  title: Allied Basing Rights
+  blurb: >-
+    Runways and harbours on other people's soil. The alliance feels it every day. So
+    does the targeting cell across the border.
+  mechanics: Allies gains ×1.3 and allies drift up about one point every five cards. Basing and proxy cards 30% more common.
+  accent: "#5aa9d6"
+  art: asset_basing
+  tags: [alliance, military]
+  grants: [asset_basing]
+  modifiers:
+    - { kind: effect, key: allies, sign: pos, mult: 1.3 }
+    - { kind: drift, key: allies, per_card: 0.2 }
+    - { kind: weight, tags: [basing, proxy], mult: 1.3 }
+
+- id: strategic_reserve
+  pool: asset
+  name: Strategic Reserve
+  title: Strategic Reserve
+  blurb: >-
+    Grain, fuel, chips, cash. Ninety days of everything. When the markets panic, you
+    can afford not to.
+  mechanics: Economy cannot fall below 15. Economy costs ×0.7.
+  accent: "#c1a23a"
+  art: asset_reserve
+  tags: [economy]
+  grants: [asset_reserve]
+  modifiers:
+    - { kind: rule, rule: economy_floor, value: 15 }
+    - { kind: effect, key: economy, sign: neg, mult: 0.7 }
+
+- id: rapid_response
+  pool: asset
+  name: Rapid-Response Brigade
+  title: Rapid-Response Brigade
+  blurb: >-
+    Airborne in six hours, anywhere. Proxy fights stop being something that happens to
+    you. They start being something you can lose in an afternoon.
+  mechanics: Proxy rolls +15%. Proxy cards 30% more common. From Week Three, escalation gains are amplified by 15% per act.
+  accent: "#b8352f"
+  art: asset_rrb
+  tags: [proxy, military]
+  grants: [asset_rrb]
+  modifiers:
+    - { kind: odds, tags: [proxy], add: 0.15 }
+    - { kind: weight, tags: [proxy], mult: 1.3 }
+    - { kind: rule, rule: escalation_twitch }
+
+- id: signals_intercept
+  pool: asset
+  name: Signals Intercept
+  title: Signals Intercept
+  blurb: >-
+    You are reading their internal traffic. Not all of it, not always in time, but
+    enough to know what they actually think of you.
+  mechanics: Reveals adversary trust on the HUD. Intel reliability +5. Intel rolls +10%.
+  accent: "#7fd6e6"
+  art: asset_sigint
+  tags: [intel]
+  grants: [asset_sigint]
+  unlock: { id: no_backchannel_standdown, label: Signals Intercept, hint: Reach Stand-Down without a Back-Channel. }
+  modifiers:
+    - { kind: rule, rule: reveal_trust }
+    - { kind: intel, add: 5 }
+    - { kind: odds, tags: [intel], add: 0.10 }
+
+- id: civil_defence
+  pool: asset
+  name: Civil Defence Programme
+  title: Civil Defence Programme
+  blurb: >-
+    Sirens tested on Tuesdays, leaflets in every letterbox, a shelter under the school.
+    When the nuclear word is spoken, people are frightened. They are not surprised.
+  mechanics: Public costs on nuclear-tagged cards ×0.5. Nuclear and warning cards earn +2 public.
+  accent: "#c9b98a"
+  art: asset_civil
+  tags: [domestic, nuclear]
+  grants: [asset_civil_defence]
+  modifiers:
+    - { kind: effect, key: public, tags: [nuclear], sign: neg, mult: 0.5 }
+    - { kind: effect, key: public, tags: [nuclear, warning], add: 2, always: true }

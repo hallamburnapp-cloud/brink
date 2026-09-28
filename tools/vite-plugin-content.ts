@@ -1,0 +1,54 @@
+/**
+ * Vite plugin: exposes compiled content as `virtual:brink-content` and hot
+ * reloads it when anything under /content changes. Validation issues are
+ * printed to the terminal and shipped with the module so the dev banner can
+ * show them in-game without leaving the run.
+ */
+import type { Plugin, ViteDevServer } from 'vite';
+import { join } from 'node:path';
+import { loadContent, formatIssues } from './load';
+
+const VIRTUAL = 'virtual:brink-content';
+const RESOLVED = '\0' + VIRTUAL;
+
+export function brinkContentPlugin(): Plugin {
+  const root = join(process.cwd(), 'content');
+  let server: ViteDevServer | null = null;
+
+  const build = () => {
+    const { content, issues } = loadContent(root);
+    const errors = issues.filter((i) => i.level === 'error');
+    if (issues.length) console.log('\n[brink content]\n' + formatIssues(issues));
+    if (errors.length && !server) throw new Error(`Content validation failed with ${errors.length} error(s)`);
+    return { content, issues };
+  };
+
+  return {
+    name: 'brink-content',
+    resolveId(id) {
+      return id === VIRTUAL ? RESOLVED : null;
+    },
+    load(id) {
+      if (id !== RESOLVED) return null;
+      const { content, issues } = build();
+      return `export default ${JSON.stringify(content)};\nexport const issues = ${JSON.stringify(issues)};`;
+    },
+    configureServer(s) {
+      server = s;
+      s.watcher.add(root);
+      const onChange = (file: string) => {
+        if (!file.startsWith(root)) return;
+        const mod = s.moduleGraph.getModuleById(RESOLVED);
+        if (!mod) return;
+        s.moduleGraph.invalidateModule(mod);
+        s.ws.send({
+          type: 'update',
+          updates: [{ type: 'js-update', path: VIRTUAL, acceptedPath: VIRTUAL, timestamp: Date.now() }],
+        });
+      };
+      s.watcher.on('change', onChange);
+      s.watcher.on('add', onChange);
+      s.watcher.on('unlink', onChange);
+    },
+  };
+}

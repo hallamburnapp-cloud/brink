@@ -1,0 +1,218 @@
+# DOCTRINES — rules that change how escalation, intel and adversary trust behave.
+
+- id: launch_on_warning
+  pool: doctrine
+  name: Launch on Warning
+  title: Launch on Warning
+  blurb: >-
+    They know that if the board lights up, you will not wait to see whether it was real.
+    They probe less. The board still lights up sometimes when nothing is there.
+  mechanics: Adversary rolls +8%; proxy and probe cards 40% rarer; deterrence costs less escalation. A false alarm that survives to a flashpoint forces the launch decision.
+  accent: "#e03b3b"
+  art: doctrine_low
+  tags: [nuclear, deterrence]
+  grants: [doctrine_low]
+  excludes: [minimal_deterrence]
+  unlock: { id: false_alarm_survivor, label: Launch on Warning, hint: Survive a false alarm that reached a flashpoint. }
+  modifiers:
+    - { kind: rule, rule: launch_on_warning }
+    - { kind: rule, rule: deterrence }
+    - { kind: odds, tags: [adversary], add: 0.08 }
+    - { kind: weight, tags: [proxy, probe], mult: 0.6 }
+    - { kind: effect, key: escalation, tags: [deterrence], sign: pos, mult: 0.7 }
+
+- id: deterrence_by_denial
+  pool: doctrine
+  name: Deterrence by Denial
+  title: Deterrence by Denial
+  blurb: >-
+    If their missiles cannot get through, they will not fire them. That is the theory.
+    On the other side of the border it reads: he is building a shield so he can strike first.
+  mechanics: Intercept rolls +15%. Missile-defence cards 50% more common. Trust with the primary rival drifts down about one point every four cards.
+  accent: "#7c8b9a"
+  art: doctrine_denial
+  tags: [deterrence, missile_defence]
+  grants: [doctrine_denial]
+  modifiers:
+    - { kind: rule, rule: deterrence }
+    - { kind: odds, tags: [intercept], add: 0.15 }
+    - { kind: weight, tags: [missile_defence], mult: 1.5 }
+    - { kind: drift, key: trust_primary, per_card: -0.25 }
+
+- id: strategic_ambiguity
+  pool: doctrine
+  name: Strategic Ambiguity
+  title: Strategic Ambiguity
+  blurb: >-
+    Never say what you would do. They will fill the silence with their own fears, and
+    sometimes with their own hopes. Your hands stay free. The room gets stranger.
+  mechanics: Every trust change gets ±6 noise. Commitment gains halved. Misperception cards 50% more common.
+  accent: "#8e6bb3"
+  art: doctrine_ambiguity
+  tags: [misperception]
+  grants: [doctrine_ambiguity]
+  modifiers:
+    - { kind: rule, rule: trust_variance, value: 6 }
+    - { kind: effect, key: commitment, sign: pos, mult: 0.5 }
+    - { kind: weight, tags: [misperception], mult: 1.5 }
+
+- id: no_first_use
+  pool: doctrine
+  name: No First Use
+  title: No First Use
+  blurb: >-
+    You said it out loud and you meant it. Slowly, they start to believe you. The
+    generals believe you too, which is the problem.
+  mechanics: Trust with the primary rival recovers about one point every three cards. Nuclear and de-escalation choices cost 2 military. First-use rolls +20%.
+  accent: "#4f8fc9"
+  art: doctrine_nfu
+  tags: [nuclear, reassurance]
+  grants: [doctrine_nfu]
+  modifiers:
+    - { kind: rule, rule: nfu }
+    - { kind: rule, rule: reassurance }
+    - { kind: drift, key: trust_primary, per_card: 0.34 }
+    - { kind: effect, key: military, tags: [nuclear, deescalate], add: -2, always: true }
+    - { kind: odds, tags: [first_use], add: 0.2 }
+
+- id: escalate_to_deescalate
+  pool: doctrine
+  name: Escalate to De-escalate
+  title: Escalate to De-escalate
+  blurb: >-
+    A sharp, limited blow to remind them what the ladder looks like. It works, mostly.
+    Each time you use it, the bottom rung is a little higher than it was.
+  mechanics: Limited strikes cost half their escalation and appear 50% more often. Each limited strike raises the escalation floor by 5 (max 60).
+  accent: "#d98a2b"
+  art: doctrine_e2d
+  tags: [escalatory, limited_strike]
+  grants: [doctrine_e2d]
+  unlock: { id: limited_striker, label: Escalate to De-escalate, hint: Order a limited strike and survive to the next act. }
+  modifiers:
+    - { kind: rule, rule: escalate_to_deescalate, value: 0.5 }
+    - { kind: weight, tags: [limited_strike], mult: 1.5 }
+
+- id: alliance_first
+  pool: doctrine
+  name: Alliance First
+  title: Alliance First
+  blurb: >-
+    Nothing without consultation. The alliance holds like a keel. It also decides,
+    increasingly, where the ship goes.
+  mechanics: Allies drift 1 point per card toward 50. Alliance choices raise commitment +3. Allied demand cards appear 60% more often.
+  accent: "#5aa9d6"
+  art: doctrine_alliance
+  tags: [alliance]
+  grants: [doctrine_alliance_first]
+  excludes: [fortress]
+  modifiers:
+    - { kind: rule, rule: allies_anchor, value: 1 }
+    - { kind: effect, key: commitment, tags: [alliance], add: 3, always: true }
+    - { kind: weight, tags: [alliance_demand], mult: 1.6 }
+
+- id: fortress
+  pool: doctrine
+  name: Fortress
+  title: Fortress
+  blurb: >-
+    Stockpiles, reserves, borders that close on a schedule. Sanctions bounce off. Your
+    friends notice you have stopped picking up.
+  mechanics: Economy costs ×0.5. Allies drift down about one point every three cards.
+  accent: "#c1a23a"
+  art: doctrine_fortress
+  tags: [economy]
+  grants: [doctrine_fortress]
+  excludes: [alliance_first]
+  modifiers:
+    - { kind: effect, key: economy, sign: neg, mult: 0.5 }
+    - { kind: drift, key: allies, per_card: -0.3 }
+
+- id: transparency
+  pool: doctrine
+  name: Transparency
+  title: Transparency
+  blurb: >-
+    Publish the assessments. Brief the press before the leak. You will know more and
+    they will believe you when it matters. Every secret you do keep will cost double.
+  mechanics: Intel reliability +10. Trust gains from transparency choices ×1.3. Secrecy choices cost 4 public.
+  accent: "#e6e0c8"
+  art: doctrine_transparency
+  tags: [intel, transparency]
+  grants: [doctrine_transparency]
+  modifiers:
+    - { kind: intel, add: 10 }
+    - { kind: effect, key: trust, tags: [transparency], sign: pos, mult: 1.3 }
+    - { kind: effect, key: public, tags: [secrecy], add: -4, always: true }
+
+- id: red_lines
+  pool: doctrine
+  name: Red Lines
+  title: Red Lines
+  blurb: >-
+    Say exactly what you will not tolerate, in public, on camera. They back down more
+    often. When they do not, you find out what you have promised.
+  mechanics: Public commitments raise commitment by +8 extra. Adversary rolls +8%. Walking back costs public ×(1 + 0.5 × commitment). Commitment-trap cards 50% more common.
+  accent: "#b8352f"
+  art: doctrine_red_lines
+  tags: [commitment, deterrence]
+  grants: [doctrine_red_lines]
+  modifiers:
+    - { kind: rule, rule: red_lines, value: 8 }
+    - { kind: rule, rule: commitment_lock, value: 0.5 }
+    - { kind: odds, tags: [adversary], add: 0.08 }
+    - { kind: weight, tags: [commitment_trap], mult: 1.5 }
+
+- id: hotline_protocol
+  pool: doctrine
+  name: Hotline Protocol
+  title: Hotline Protocol
+  blurb: >-
+    A line that is always answered and a rule that using it is never weakness. Once a
+    week you can pick up the phone and nobody at home will make you pay for it.
+  mechanics: One free de-escalation per act. Marked choices cost nothing on public, military or allies.
+  accent: "#e03b3b"
+  art: doctrine_hotline
+  tags: [deescalate, diplomacy]
+  grants: [doctrine_hotline]
+  modifiers:
+    - { kind: rule, rule: free_deescalation_per_act, value: 1 }
+
+- id: predelegation
+  pool: doctrine
+  name: Pre-delegation
+  title: Pre-delegation
+  blurb: >-
+    Commanders in the field may act without waking you. The clock runs faster and the
+    officers love you for it. When you hesitate, they do not.
+  mechanics: Timers ×0.75. Military cannot fall below 20. Military gains ×1.2. Expired timers pick the military option.
+  accent: "#2f6fb8"
+  art: doctrine_predelegation
+  tags: [military, time]
+  grants: [doctrine_predelegation]
+  unlock: { id: late_hands, label: Pre-delegation, hint: Let five timers expire in one run and survive it. }
+  modifiers:
+    - { kind: rule, rule: predelegation }
+    - { kind: rule, rule: military_floor, value: 20 }
+    - { kind: timer, mult: 0.75 }
+    - { kind: effect, key: military, sign: pos, mult: 1.2 }
+
+- id: minimal_deterrence
+  pool: doctrine
+  name: Minimal Deterrence
+  title: Minimal Deterrence
+  blurb: >-
+    Enough to make the unthinkable stay unthinkable and not one warhead more. You
+    cannot drift into the end of the world. You can still be pushed there, and your
+    generals feel every cut.
+  mechanics: Escalation cannot exceed 95 by drift or ordinary choices; only a flashpoint catastrophe can start the war. Military losses ×1.5. Adversary rolls −8%. Proxy and probe cards 40% more common.
+  accent: "#6fbf5c"
+  art: doctrine_minimal
+  tags: [nuclear, restraint]
+  grants: [doctrine_minimal]
+  excludes: [launch_on_warning]
+  unlock: { id: cool_head, label: Minimal Deterrence, hint: Finish a run in which escalation never passed 50. }
+  modifiers:
+    - { kind: ceiling, value: 95 }
+    - { kind: effect, key: military, sign: neg, mult: 1.5 }
+    - { kind: odds, tags: [adversary], add: -0.08 }
+    - { kind: weight, tags: [proxy, probe], mult: 1.4 }

@@ -1,0 +1,18 @@
+id: coalition
+name: The Coalition
+the: the Coalition
+adjective: Coalition
+leader_title: the Chairman
+capital: Qorum
+rivals: [republic, federation]
+meters: { public: 64, military: 54, allies: 46, economy: 70, escalation: 20 }
+hidden: { trust_primary: 40, trust_secondary: 46, intel: 64, commitment: 36 }
+blurb: >-
+  A rising technological power whose satellites, cables and factories are woven
+  into everyone else's. Your strength is that the world cannot function without
+  you. So is your exposure.
+strengths: Formidable economy, dual-use space and cyber reach, patient public.
+vulnerabilities: Entangled assets everyone can hit, allies who are really customers, a military eager to prove itself.
+accent: "#c98a3a"
+starting_pieces: []
+unlock: { id: seat_coalition, label: The Coalition, hint: Reach any Stand-Down or Survival ending. }

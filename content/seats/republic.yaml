@@ -1,0 +1,17 @@
+id: republic
+name: The Republic
+the: the Republic
+adjective: Republican
+leader_title: the President
+capital: Arden
+rivals: [federation, coalition]
+meters: { public: 55, military: 50, allies: 66, economy: 60, escalation: 20 }
+hidden: { trust_primary: 42, trust_secondary: 50, intel: 70, commitment: 30 }
+blurb: >-
+  A maritime democracy with the world's widest alliance network and a public that
+  changes its mind every news cycle. You have the most friends and the most people
+  to disappoint.
+strengths: Deep alliances, strong economy, good intelligence.
+vulnerabilities: Fickle public, allies who expect to be consulted, a military that resents caution.
+accent: "#4f8fc9"
+starting_pieces: []
