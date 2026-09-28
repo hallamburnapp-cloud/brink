@@ -156,7 +156,7 @@
     allies remember accounting.
   left:
     text: "Pay it"
-    effects: { economy: -7, allies: 6, military: 2 }
+    effects: { economy: -5, allies: 6, military: 2 }
     tags: [alliance, economy]
   right:
     text: "Runways are not solidarity"
@@ -282,7 +282,7 @@
         effects: { escalation: 5, allies: -3, intel: -3 }
   right:
     text: "No uniforms. Fund it instead"
-    effects: { allies: -5, trust_primary: 5, economy: -4, escalation: -3 }
+    effects: { allies: -5, trust_primary: 5, economy: -3, escalation: -3 }
     tags: [alliance, diplomacy, deescalate]
 
 # ---------------------------------------------------------------- conditioned (six)
@@ -385,7 +385,7 @@
     the runways being ours and the risk being theirs.
   left:
     text: "Send the batteries"
-    effects: { military: 5, allies: 7, trust_primary: -6, escalation: 4, economy: -3 }
+    effects: { military: 5, allies: 7, trust_primary: -6, escalation: 4, economy: -2 }
     tags: [basing, alliance, military, deterrence]
     set: [alliance:hollin_reinforced]
     odds:
@@ -418,7 +418,7 @@
     a reason not to. Give me one I can say out loud.
   left:
     text: "Open the reserve to the Compact"
-    effects: { economy: -8, allies: 9, public: -3 }
+    effects: { economy: -6, allies: 9, public: -3 }
     tags: [alliance, economy]
   right:
     text: "Fly to {other_capital}, then"

@@ -153,7 +153,7 @@
         effects: { escalation: 8, trust_primary: -6, military: 2 }
   right:
     text: "Quietly mirror the exercise"
-    effects: { military: 7, escalation: 7, trust_primary: -7, economy: -3 }
+    effects: { military: 7, escalation: 7, trust_primary: -7, economy: -2 }
     tags: [military, mobilise, secrecy]
     set: [defector:believed]
 
@@ -519,7 +519,7 @@
     theirs. The order is on your desk. It needs a signature by six.
   left:
     text: "Sign it"
-    effects: { military: 7, escalation: 8, trust_primary: -9, allies: 2, economy: -3 }
+    effects: { military: 7, escalation: 8, trust_primary: -9, allies: 2, economy: -2 }
     tags: [military, mobilise, deterrence]
   right:
     text: "Half the ships. Tell them why."
@@ -610,7 +610,7 @@
     tags: [deescalate, reassurance]
   right:
     text: "Hold until the last ship is home"
-    effects: { escalation: 5, trust_primary: -5, military: 3, economy: -3, commitment: 3 }
+    effects: { escalation: 5, trust_primary: -5, military: 3, economy: -2, commitment: 3 }
     tags: [military, deterrence, stall]
 
 - id: defector_22_courtesies

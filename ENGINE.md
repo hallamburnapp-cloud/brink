@@ -87,7 +87,7 @@ weathering one that does not fire, feeds `scale` pieces (Iron Nerve, Paranoid Di
 
 ## 4. Antes and flashpoints
 
-Each act has a target (rules.yaml: 250, 500, 1,600, 4,500, 12,000; × difficulty
+Each act has a target (rules.yaml: 250, 450, 1,200, 3,200, 7,000; × difficulty
 `target_scale`; endless acts ×2.8 each). Leverage from ordinary cards accumulates in
 `actLeverage`; flashpoint cards add to the score but not to the ante. When the act's
 cards are spent:

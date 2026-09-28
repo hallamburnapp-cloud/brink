@@ -405,11 +405,11 @@
     took as a threat.
   left:
     text: "Halvard's birds are under our protection"
-    effects: { escalation: 6, commitment: 8, economy: -4, public: 3, trust_primary: -5 }
+    effects: { escalation: 6, commitment: 8, economy: -3, public: 3, trust_primary: -5 }
     tags: [public_commitment, deterrence, entanglement, space]
   right:
     text: "Suspend the lease over the Straits"
-    effects: { intel: -8, economy: -5, escalation: -3, public: -3 }
+    effects: { intel: -8, economy: -4, escalation: -3, public: -3 }
     tags: [concede, economy, entanglement, space]
 
 - id: blackout_15_nine_percent
@@ -429,11 +429,11 @@
     question is whether you knew, and I am asking it on the record either way.
   left:
     text: "Take the lease into public hands"
-    effects: { economy: -8, public: 3, military: 3, trust_primary: -4, trust_secondary: -4 }
+    effects: { economy: -6, public: 3, military: 3, trust_primary: -4, trust_secondary: -4 }
     tags: [economy, entanglement, domestic]
   right:
     text: "Let the market decide"
-    effects: { economy: -4, intel: -5, allies: -3, public: -3 }
+    effects: { economy: -3, intel: -5, allies: -3, public: -3 }
     tags: [economy, stall, entanglement]
 
 # ---- pieces: the Cyber Unit ---------------------------------------------------
@@ -634,12 +634,12 @@
     bus and a statement that does not contain the word 'battery'.
   left:
     text: "Fly it Thursday. Say nothing"
-    effects: { military: 8, economy: -6, public: 2, trust_primary: -4, escalation: 3 }
+    effects: { military: 8, economy: -4, public: 2, trust_primary: -4, escalation: 3 }
     tags: [military, secrecy, space]
     set: [blackout:resolved]
   right:
     text: "Fly it, and say it was a battery"
-    effects: { military: 4, economy: -6, public: -4, trust_primary: 6, escalation: -3 }
+    effects: { military: 4, economy: -4, public: -4, trust_primary: 6, escalation: -3 }
     tags: [transparency, reassurance, space]
     set: [blackout:resolved]
 
@@ -659,11 +659,11 @@
     which is what everyone does while they decide.
   left:
     text: "Buy the hardened bird"
-    effects: { military: 7, economy: -9, trust_primary: -3, escalation: 2 }
+    effects: { military: 7, economy: -6, trust_primary: -3, escalation: 2 }
     tags: [military, economy, space, deterrence]
   right:
     text: "Lease by the hour"
-    effects: { economy: -4, intel: 3, allies: -2, trust_secondary: -2 }
+    effects: { economy: -3, intel: 3, allies: -2, trust_secondary: -2 }
     tags: [economy, stall, entanglement]
 
 - id: blackout_24_the_leak

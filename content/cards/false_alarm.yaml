@@ -344,7 +344,7 @@
     it is bright.
   left:
     text: "Stand down. Recalibrate the sensor."
-    effects: { military: -3, intel: 5, escalation: -2, economy: -2 }
+    effects: { military: -3, intel: 5, escalation: -2, economy: -1 }
     tags: [investigate, deescalate, space]
     set: [false_alarm:investigated, false_alarm:stood_down]
     clear: [false_alarm_live]
@@ -400,7 +400,7 @@
     set: [false_alarm:stood_down]
   right:
     text: "Answer their salvo with ours"
-    effects: { escalation: 10, military: 7, trust_primary: -8, public: 4, economy: -3 }
+    effects: { escalation: 10, military: 7, trust_primary: -8, public: 4, economy: -2 }
     tags: [military, nuclear, deterrence, escalatory]
     set: [false_alarm:acted]
     odds:
@@ -504,7 +504,7 @@
     would not rule out anything.
   left:
     text: "Raise readiness at our fields"
-    effects: { military: 5, escalation: 6, trust_primary: -6, economy: -2 }
+    effects: { military: 5, escalation: 6, trust_primary: -6, economy: -1 }
     tags: [military, nuclear, mobilise]
     set: [false_alarm:acted]
   right:
@@ -635,7 +635,7 @@
     a preparation. I cannot tell you which, and I would rather say that than pick.
   left:
     text: "It is failing. Audit everything."
-    effects: { military: -6, intel: 6, escalation: -3, economy: -3 }
+    effects: { military: -6, intel: 6, escalation: -3, economy: -2 }
     tags: [investigate, intel, deescalate]
     set: [false_alarm:investigated]
     clear: [false_alarm_live]

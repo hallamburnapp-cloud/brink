@@ -23,7 +23,7 @@
     offline in an hour; I cannot take only half of it offline.
   left:
     text: "Take it offline. All of it."
-    effects: { military: -5, public: -4, economy: -3, intel: -2 }
+    effects: { military: -5, public: -4, economy: -2, intel: -2 }
     tags: [cyber, investigate, entanglement]
     set: [cyber_ew:intrusion]
     follow: [{ card: cyberew_04_dark_sector, in: 1 }]
@@ -56,7 +56,7 @@
     set: [cyber_ew:intrusion]
   right:
     text: "Say nothing. Sweep everything."
-    effects: { military: -3, intel: 2, allies: 2, economy: -2 }
+    effects: { military: -3, intel: 2, allies: 2, economy: -1 }
     tags: [cyber, investigate, secrecy]
     set: [cyber_ew:intrusion]
 
@@ -109,7 +109,7 @@
     tags: [stall, entanglement, cyber]
   right:
     text: "Stay dark until Vance clears it"
-    effects: { public: -5, economy: -3, intel: 5, military: -2 }
+    effects: { public: -5, economy: -2, intel: 5, military: -2 }
     tags: [investigate, cyber, entanglement]
     set: [cyber_ew:purged]
 
@@ -252,7 +252,7 @@
     looking. The two readings recommend different things and I am aware of that.
   left:
     text: "Put something there first"
-    effects: { military: 6, escalation: 7, trust_primary: -6, economy: -3, intel: 4 }
+    effects: { military: 6, escalation: 7, trust_primary: -6, economy: -2, intel: 4 }
     tags: [military, mobilise, deterrence, escalatory]
   right:
     text: "Pull the plug. Leave the south empty."
@@ -517,7 +517,7 @@
     domestic backup is six weeks out. The process, as far as we know, is patient.
   left:
     text: "Rebuild now. Thirty-six hours."
-    effects: { public: -6, economy: -4, intel: 6, military: 2 }
+    effects: { public: -6, economy: -3, intel: 6, military: 2 }
     tags: [cyber, investigate, entanglement, domestic]
     set: [cyber_ew:purged]
   right:
@@ -542,7 +542,7 @@
     in a safe. Both of us are right about something.
   left:
     text: "Keep the team. Publish the notes."
-    effects: { economy: -6, military: -6, intel: 10, trust_primary: 6, allies: 6, public: -3 }
+    effects: { economy: -4, military: -6, intel: 10, trust_primary: 6, allies: 6, public: -3 }
     tags: [transparency, cyber, investigate, reassurance]
     set: [cyber_ew:disclosed]
   right:

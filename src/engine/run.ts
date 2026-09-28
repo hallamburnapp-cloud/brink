@@ -505,8 +505,8 @@ export function choose(content: Content, state: RunState, side: Side | 'timeout'
   if (state.meters.escalation > state.stats.peakEscalation) state.stats.peakEscalation = state.meters.escalation;
   for (const p of [50, 80, 90, 95] as const) if (state.stats.peakEscalation >= p) addFlag(state, `peak:${p}`);
 
-  // 8. Passive drift from doctrines and advisors.
-  applyDrift(content, state, rng, ctx);
+  // 8. Passive drift from doctrines and advisors, and the act's cooling on ordinary cards.
+  applyDrift(content, state, rng, ctx, !card.flashpoint && !card.bluff);
 
   // 9. Endings (with the Deadman Switch).
   if (forcedEnding) {
@@ -651,7 +651,18 @@ function setValue(content: Content, state: RunState, ctx: ModContext, k: EffectK
   }
 }
 
-function applyDrift(content: Content, state: RunState, rng: Rng, ctx: ModContext): void {
+/** Escalation never cools below this on its own (a crisis that has started stays warm). */
+export const COOLING_FLOOR = 25;
+
+function applyDrift(content: Content, state: RunState, rng: Rng, ctx: ModContext, ordinary = true): void {
+  const cooling = ordinary ? (ctx.act.cooling ?? 0) : 0;
+  if (cooling > 0 && state.meters.escalation > COOLING_FLOOR) {
+    const whole = Math.trunc(cooling);
+    const frac = cooling - whole;
+    let d = whole;
+    if (frac !== 0 && rng.next() < frac) d += 1;
+    if (d > 0) setValue(content, state, ctx, 'escalation', Math.max(COOLING_FLOOR, state.meters.escalation - d));
+  }
   for (const p of ctx.pieces) {
     for (const m of p.modifiers) {
       if (m.kind !== 'drift') continue;

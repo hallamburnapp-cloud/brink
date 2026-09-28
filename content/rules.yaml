@@ -2,11 +2,11 @@
 # less reliable intel, shorter timers. `target` is the act's leverage ante:
 # the leverage that must be accumulated before the flashpoint, or the bluff is called.
 acts:
-  - { index: 1, name: Week One,   cards: 14, effect_scale: 1.00, intel_shift: 0,   timer_scale: 1.00, day_per_card: 0.5, target: 250 }
-  - { index: 2, name: Week Two,   cards: 14, effect_scale: 1.10, intel_shift: -5,  timer_scale: 0.90, day_per_card: 0.5, target: 500 }
-  - { index: 3, name: Week Three, cards: 16, effect_scale: 1.20, intel_shift: -10, timer_scale: 0.80, day_per_card: 0.5, target: 1600 }
-  - { index: 4, name: Week Four,  cards: 16, effect_scale: 1.35, intel_shift: -15, timer_scale: 0.70, day_per_card: 0.5, target: 4500 }
-  - { index: 5, name: Endgame,    cards: 10, effect_scale: 1.50, intel_shift: -20, timer_scale: 0.60, day_per_card: 0.5, target: 12000 }
+  - { index: 1, name: Week One,   cards: 14, effect_scale: 1.00, intel_shift: 0,   timer_scale: 1.00, day_per_card: 0.5, target: 250, cooling: 0.5 }
+  - { index: 2, name: Week Two,   cards: 14, effect_scale: 1.10, intel_shift: -5,  timer_scale: 0.90, day_per_card: 0.5, target: 450, cooling: 0.5 }
+  - { index: 3, name: Week Three, cards: 16, effect_scale: 1.20, intel_shift: -10, timer_scale: 0.80, day_per_card: 0.5, target: 1200, cooling: 0.5 }
+  - { index: 4, name: Week Four,  cards: 16, effect_scale: 1.35, intel_shift: -15, timer_scale: 0.70, day_per_card: 0.5, target: 3200, cooling: 0.5 }
+  - { index: 5, name: Endgame,    cards: 10, effect_scale: 1.50, intel_shift: -20, timer_scale: 0.60, day_per_card: 0.5, target: 7000, cooling: 0.5 }
 
 difficulties:
   - { level: 5, name: DEFCON 5, effect_scale: 1.00, intel_shift: 0,   timer_scale: 1.00, start_escalation: 0,  target_scale: 1.00 }

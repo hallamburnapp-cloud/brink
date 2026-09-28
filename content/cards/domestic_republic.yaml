@@ -77,7 +77,7 @@
     instead.
   left:
     text: "Back the boycott"
-    effects: { public: 4, economy: -6, trust_primary: -4 }
+    effects: { public: 4, economy: -4, trust_primary: -4 }
     tags: [sanction, domestic, economy]
   right:
     text: "Order the port open"
@@ -129,11 +129,11 @@
     pause, and the shelves say so in nine days.
   left:
     text: "Underwrite the premiums"
-    effects: { economy: -6, public: 3, allies: 2, commitment: 2 }
+    effects: { economy: -4, public: 3, allies: 2, commitment: 2 }
     tags: [economy, public_commitment]
   right:
     text: "Let them pause"
-    effects: { economy: -3, public: -4, trust_primary: 2 }
+    effects: { economy: -2, public: -4, trust_primary: 2 }
     tags: [economy, stall]
 
 - id: dom_rep_07_the_letter_of_intent
@@ -149,7 +149,7 @@
     is the capability working.
   left:
     text: "Sign the letter"
-    effects: { military: 5, economy: -5, trust_primary: -3, escalation: 2 }
+    effects: { military: 5, economy: -4, trust_primary: -3, escalation: 2 }
     tags: [military, deterrence, economy]
   right:
     text: "Not on a letter"

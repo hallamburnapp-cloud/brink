@@ -401,7 +401,7 @@
         effects: { public: 5, escalation: -4, trust_primary: -3 }
       failure:
         text: "At 03:10 on Monday a fuel farm outside {capital} burned for six hours. Nobody claimed it, and nobody needed to."
-        effects: { escalation: 12, public: -6, economy: -6 }
+        effects: { escalation: 12, public: -6, economy: -4 }
 
 # ---------------------------------------------------------------- developments (pieces)
 

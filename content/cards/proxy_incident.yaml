@@ -119,7 +119,7 @@
     follow: [{ card: proxy_05_no_insignia, in: 2 }]
   right:
     text: "Rifles and radios. No people."
-    effects: { military: 2, economy: -3, escalation: 2, trust_primary: -3, allies: -2 }
+    effects: { military: 2, economy: -2, escalation: 2, trust_primary: -3, allies: -2 }
     tags: [military, proxy]
 
 - id: proxy_05_no_insignia
@@ -185,7 +185,7 @@
     watch it from the north bank or go home. Casualties are expected to be light.
   left:
     text: "Send the brigade"
-    effects: { military: 7, escalation: 8, trust_primary: -8, allies: 3, economy: -3 }
+    effects: { military: 7, escalation: 8, trust_primary: -8, allies: 3, economy: -2 }
     tags: [military, mobilise, proxy]
     set: [proxy:brigade_deployed]
     odds:
@@ -259,7 +259,7 @@
     airfield tonight.
   left:
     text: "Heavy armour. Six days."
-    effects: { military: 6, escalation: 9, trust_primary: -8, economy: -4 }
+    effects: { military: 6, escalation: 9, trust_primary: -8, economy: -3 }
     tags: [military, mobilise, escalatory]
   right:
     text: "Back to the airfield tonight"
@@ -307,7 +307,7 @@
     General is not, and I would like that on the record somewhere quiet.
   left:
     text: "Reinforce. Then we talk."
-    effects: { military: 5, escalation: 7, trust_primary: -6, economy: -3 }
+    effects: { military: 5, escalation: 7, trust_primary: -6, economy: -2 }
     tags: [military, mobilise, escalatory]
   right:
     text: "Get me the real numbers, on paper"
@@ -355,7 +355,7 @@
     office has asked, in writing, what the alliance is for.
   left:
     text: "Air defence to Hollin"
-    effects: { military: 4, allies: 6, escalation: 6, trust_primary: -6, economy: -2 }
+    effects: { military: 4, allies: 6, escalation: 6, trust_primary: -6, economy: -1 }
     tags: [military, basing, alliance]
   right:
     text: "Reroute the brigade. Spare Hollin."

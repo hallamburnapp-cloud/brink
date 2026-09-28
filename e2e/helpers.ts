@@ -8,6 +8,13 @@ export async function playToEnd(page: Page, pick: 'left' | 'right' | 'alternate'
     step++;
     // Ending?
     if (await page.getByRole('button', { name: /replay this seed/i }).isVisible().catch(() => false)) return;
+    // A reload (content HMR while a run is on) lands on Home with a resume button: take it.
+    const resume = page.getByRole('button', { name: /Resume the crisis/i });
+    if (await resume.isVisible().catch(() => false)) {
+      await resume.click().catch(() => {});
+      await page.waitForTimeout(300);
+      continue;
+    }
     // Shop? Buy the first affordable piece, then leave.
     const leave = page.getByRole('button', { name: /^Back to the desk$|^Begin |^Into the endless night$/ });
     if (await leave.isVisible().catch(() => false)) {

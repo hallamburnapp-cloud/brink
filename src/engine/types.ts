@@ -413,6 +413,12 @@ export interface ActDef {
   timer_scale: number;
   /** Days advanced per card. */
   day_per_card: number;
+  /**
+   * Expected escalation lost per ordinary card while escalation is above the
+   * cooling floor: the crisis cools when nobody feeds it (fractional parts are
+   * rolled). Flashpoint and bluff cards never cool.
+   */
+  cooling?: number;
   /** Leverage that must be accumulated during the act (the ante). */
   target: number;
 }

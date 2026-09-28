@@ -53,13 +53,13 @@
     traffic would be inconvenienced.
   left:
     text: "Draw the line. Stop everything"
-    effects: { military: 6, escalation: 8, commitment: 8, economy: -4, allies: -2 }
+    effects: { military: 6, escalation: 8, commitment: 8, economy: -3, allies: -2 }
     tags: [blockade, naval, military, public_commitment]
     set: [blockade:declared, blockade:ours]
     follow: [{ card: blockade_06_the_word, in: 1 }]
   right:
     text: "Inspect. Do not stop"
-    effects: { military: 3, escalation: 4, commitment: 4, economy: -2, intel: 2 }
+    effects: { military: 3, escalation: 4, commitment: 4, economy: -1, intel: 2 }
     tags: [blockade, naval, deterrence]
     set: [blockade:declared, blockade:ours]
     follow: [{ card: blockade_14_the_first_hull, in: 2 }]
@@ -125,7 +125,7 @@
         follow: [{ card: blockade_09_boarded, in: 1 }]
   right:
     text: "Hold her at Caldor Roads"
-    effects: { military: -4, public: -5, economy: -3, commitment: -4, allies: -3 }
+    effects: { military: -4, public: -5, economy: -2, commitment: -4, allies: -3 }
     tags: [walk_back, stall, naval]
     follow: [{ card: blockade_12_the_call, in: 2 }]
 
@@ -205,7 +205,7 @@
     of them.
   left:
     text: "Draw our own line"
-    effects: { military: 6, escalation: 8, commitment: 6, economy: -4, public: 4 }
+    effects: { military: 6, escalation: 8, commitment: 6, economy: -3, public: 4 }
     tags: [blockade, naval, military, public_commitment, escalatory]
     set: [blockade:ours]
     follow: [{ card: blockade_06_the_word, in: 1 }]
@@ -489,11 +489,11 @@
     mention it because a question with a number in it is a policy.
   left:
     text: "Indemnify them"
-    effects: { economy: -8, public: 3, allies: 3, commitment: 5 }
+    effects: { economy: -6, public: 3, allies: 3, commitment: 5 }
     tags: [economy, public_commitment, alliance]
   right:
     text: "No indemnity. They wait"
-    effects: { economy: -4, public: -5, allies: -4, commitment: -2 }
+    effects: { economy: -3, public: -5, allies: -4, commitment: -2 }
     tags: [economy, stall, domestic]
 
 - id: blockade_13_what_they_see
@@ -541,7 +541,7 @@
     set: [blockade:lifted]
   right:
     text: "Hold it until they say so"
-    effects: { military: 4, economy: -7, escalation: 3, commitment: 6, trust_primary: -4, allies: -2 }
+    effects: { military: 4, economy: -5, escalation: 3, commitment: 6, trust_primary: -4, allies: -2 }
     tags: [deterrence, naval, public_commitment, blockade]
 
 - id: blockade_25_their_tankers
@@ -567,7 +567,7 @@
     set: [blockade:lifted]
   right:
     text: "Make them queue for it"
-    effects: { economy: -6, allies: -3, escalation: 2, commitment: 4, public: 2, trust_primary: -3 }
+    effects: { economy: -4, allies: -3, escalation: 2, commitment: 4, public: 2, trust_primary: -3 }
     tags: [deterrence, stall, economy]
 
 # ---- pieces: the Admiral, the Blue-Water Fleet -------------------------------
@@ -627,11 +627,11 @@
     and less use.
   left:
     text: "Send the group in"
-    effects: { military: 8, escalation: 7, economy: -4, commitment: 7, trust_primary: -6, allies: 2 }
+    effects: { military: 8, escalation: 7, economy: -3, commitment: 7, trust_primary: -6, allies: 2 }
     tags: [naval, mobilise, deterrence, public_commitment, blockade]
   right:
     text: "Keep her over the horizon"
-    effects: { military: -3, intel: 3, escalation: 1, allies: -2, economy: -2 }
+    effects: { military: -3, intel: 3, escalation: 1, allies: -2, economy: -1 }
     tags: [naval, stall, reassurance]
 
 - id: blockade_20_thirty_one_days
@@ -655,7 +655,7 @@
     tags: [naval, stall, deescalate]
   right:
     text: "Keep her out. Strip the escorts"
-    effects: { military: 2, economy: -7, escalation: 2, intel: -3, allies: -1 }
+    effects: { military: 2, economy: -5, escalation: 2, intel: -3, allies: -1 }
     tags: [naval, military, economy, deterrence]
 
 - id: blockade_26_the_order
@@ -702,11 +702,11 @@
     is how I prefer to win.
   left:
     text: "Say both numbers in public"
-    effects: { commitment: 7, public: 5, escalation: 4, trust_primary: -5, economy: -2 }
+    effects: { commitment: 7, public: 5, escalation: 4, trust_primary: -5, economy: -1 }
     tags: [public_commitment, deterrence, economy]
   right:
     text: "Let them count for themselves"
-    effects: { economy: -4, intel: -2, commitment: 1, allies: -2 }
+    effects: { economy: -3, intel: -2, commitment: 1, allies: -2 }
     tags: [economy, secrecy, stall]
 
 - id: blockade_24_eleven_days
@@ -727,7 +727,7 @@
     them, because I will be the one proposing it.
   left:
     text: "Share the reserve"
-    effects: { economy: -9, allies: 8, commitment: 4, public: -2 }
+    effects: { economy: -6, allies: 8, commitment: 4, public: -2 }
     tags: [alliance, economy, reassurance]
   right:
     text: "Hold it. You will have to wait"

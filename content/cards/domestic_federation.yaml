@@ -43,7 +43,7 @@
     tags: [economy, domestic]
   right:
     text: "Burn the reserve"
-    effects: { economy: -6, public: 2, commitment: 2 }
+    effects: { economy: -4, public: 2, commitment: 2 }
     tags: [economy, stall, domestic]
 
 - id: dom_fed_03_accreditation
@@ -81,7 +81,7 @@
     which is a different kind of picture and costs actual money.
   left:
     text: "Open at six, with cash"
-    effects: { economy: -6, public: 5, trust_secondary: 1 }
+    effects: { economy: -4, public: 5, trust_secondary: 1 }
     tags: [economy, domestic, transparency]
   right:
     text: "Resurface the pavement"
@@ -111,10 +111,10 @@
         effects: { allies: 4, public: 2 }
       failure:
         text: "Her coalition partner vetoes it. The trains stop at the border with the grain aboard."
-        effects: { economy: -3, allies: -2, public: -2 }
+        effects: { economy: -2, allies: -2, public: -2 }
   right:
     text: "We don't take observers"
-    effects: { economy: -4, military: 2, allies: -3 }
+    effects: { economy: -3, military: 2, allies: -3 }
     tags: [secrecy, economy]
 
 - id: dom_fed_06_the_figures
@@ -152,11 +152,11 @@
     theirs. Levels are honest, and shelves vote.
   left:
     text: "Cap the price"
-    effects: { economy: -7, public: 4, commitment: 2 }
+    effects: { economy: -5, public: 4, commitment: 2 }
     tags: [economy, domestic, public_commitment]
   right:
     text: "Let it find its level"
-    effects: { economy: -3, public: -6, military: -1 }
+    effects: { economy: -2, public: -6, military: -1 }
     tags: [economy, domestic]
 
 # ---- week three / four --------------------------------------------------------
@@ -176,7 +176,7 @@
     for nothing yet.
   left:
     text: "I'll go to Voskra tomorrow"
-    effects: { public: 5, military: -2, economy: -2, intel: 2 }
+    effects: { public: 5, military: -2, economy: -1, intel: 2 }
     tags: [domestic, reassurance]
   right:
     text: "The governor gets his troops"
@@ -220,7 +220,7 @@
     tags: [economy, diplomacy, alliance]
   right:
     text: "The border stays shut"
-    effects: { economy: -3, allies: -3, public: 2, military: 1 }
+    effects: { economy: -2, allies: -3, public: 2, military: 1 }
     tags: [economy, secrecy, domestic]
 
 - id: dom_fed_11_three_hundred_names
@@ -281,7 +281,7 @@
     tags: [sanction, escalatory, economy]
   right:
     text: "Freeze, don't seize"
-    effects: { economy: -2, public: -3, trust_primary: -2 }
+    effects: { economy: -1, public: -3, trust_primary: -2 }
     tags: [sanction, stall, economy]
 
 - id: dom_fed_14_the_second_bulletin
@@ -353,5 +353,5 @@
     tags: [economy, domestic]
   right:
     text: "Not for sale"
-    effects: { economy: -3, public: 2, military: 2 }
+    effects: { economy: -2, public: 2, military: 2 }
     tags: [economy, public_commitment, domestic]

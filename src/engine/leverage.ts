@@ -250,5 +250,6 @@ export function endlessActDef(last: ActDef, act: number): ActDef {
     timer_scale: Math.max(0.35, Math.round((last.timer_scale - 0.05 * n) * 100) / 100),
     day_per_card: last.day_per_card,
     target: Math.round(last.target * Math.pow(2.8, n)),
+    cooling: last.cooling,
   };
 }

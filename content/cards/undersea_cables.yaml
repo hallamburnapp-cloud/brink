@@ -30,13 +30,13 @@
     out loud.
   left:
     text: "Halt trading. Call it maintenance"
-    effects: { economy: -5, public: -3, intel: 2, commitment: -2 }
+    effects: { economy: -4, public: -3, intel: 2, commitment: -2 }
     tags: [economy, stall, secrecy]
     set: [cables:cut, undersea_cables:cut]
     follow: [{ card: cables_04_the_trawler, in: 1 }]
   right:
     text: "Open on time"
-    effects: { economy: -7, public: 2, commitment: 3 }
+    effects: { economy: -5, public: 2, commitment: 3 }
     tags: [economy, transparency, domestic]
     set: [cables:cut, undersea_cables:cut]
     follow: [{ card: cables_04_the_trawler, in: 2 }]
@@ -158,7 +158,7 @@
     tags: [economy, intel, stall]
   right:
     text: "Cut the land route. Take the latency"
-    effects: { economy: -6, public: -3, intel: 3, trust_secondary: -3 }
+    effects: { economy: -4, public: -3, intel: 3, trust_secondary: -3 }
     tags: [secrecy, economy, cyber]
 
 - id: cables_06_clean_cut
@@ -215,7 +215,7 @@
     do.
   left:
     text: "Sail her tonight, alone"
-    effects: { economy: -3, military: -2, allies: 1 }
+    effects: { economy: -2, military: -2, allies: 1 }
     tags: [naval, economy, stall]
     odds:
       label: Safe passage
@@ -231,7 +231,7 @@
         follow: [{ card: cables_12_turned_back, in: 1 }]
   right:
     text: "Wait for a Compact escort"
-    effects: { economy: -6, public: -3, allies: 3, commitment: 2 }
+    effects: { economy: -4, public: -3, allies: 3, commitment: 2 }
     tags: [alliance, stall, economy]
     follow: [{ card: cables_08_two_corvettes, in: 2 }]
 
@@ -328,11 +328,11 @@
     than I would like.
   left:
     text: "Indemnify the hulls"
-    effects: { economy: -8, public: 3, allies: 3, commitment: 4 }
+    effects: { economy: -6, public: 3, allies: 3, commitment: 4 }
     tags: [economy, public_commitment, alliance]
   right:
     text: "Let the premiums bite"
-    effects: { economy: -4, public: -5, allies: -3 }
+    effects: { economy: -3, public: -5, allies: -3 }
     tags: [economy, stall, domestic]
 
 - id: cables_12_turned_back
@@ -352,13 +352,13 @@
     is how they offer.
   left:
     text: "Send her back with Halden"
-    effects: { military: 6, escalation: 6, economy: -2, trust_primary: -5 }
+    effects: { military: 6, escalation: 6, economy: -1, trust_primary: -5 }
     tags: [naval, military, deterrence, escalatory]
     set: [cables:escorted]
     follow: [{ card: cables_13_the_splice, in: 1 }]
   right:
     text: "Ask {other} for their ship"
-    effects: { trust_secondary: 4, intel: -4, economy: -5, allies: -3, public: -2 }
+    effects: { trust_secondary: 4, intel: -4, economy: -4, allies: -3, public: -2 }
     tags: [diplomacy, economy, stall]
     follow: [{ card: cables_13_the_splice, in: 3 }]
 
@@ -406,7 +406,7 @@
     tags: [economy, reassurance, deescalate]
   right:
     text: "Keep the war-risk zone"
-    effects: { economy: -6, military: 4, escalation: 2, allies: -3, commitment: 3 }
+    effects: { economy: -4, military: 4, escalation: 2, allies: -3, commitment: 3 }
     tags: [economy, deterrence, stall]
 
 - id: cables_22_a_week
@@ -490,7 +490,7 @@
     and not one I would choose to send.
   left:
     text: "Escort the route"
-    effects: { military: 6, escalation: 5, economy: -3, trust_primary: -4, allies: 2 }
+    effects: { military: 6, escalation: 5, economy: -2, trust_primary: -4, allies: 2 }
     tags: [naval, military, deterrence]
     set: [cables:escorted]
     follow: [{ card: cables_13_the_splice, in: 2 }]
@@ -554,7 +554,7 @@
     find her a cheaper enemy.
   left:
     text: "Keep the escort. Find the money"
-    effects: { economy: -7, military: 2, allies: 2, commitment: 2 }
+    effects: { economy: -5, military: 2, allies: 2, commitment: 2 }
     tags: [economy, naval, deterrence]
   right:
     text: "Bring half of them home"
@@ -580,7 +580,7 @@
     that I am a spectator with a very good view.
   left:
     text: "Sign it yourself"
-    effects: { economy: -6, military: 5, trust_primary: -2, public: -1 }
+    effects: { economy: -4, military: 5, trust_primary: -2, public: -1 }
     tags: [military, naval, economy]
   right:
     text: "Six days is what she has"
@@ -629,7 +629,7 @@
     Close it and I will say nothing, and everyone will hear me.
   left:
     text: "Open it to the Compact"
-    effects: { economy: -9, allies: 8, commitment: 4, public: -2 }
+    effects: { economy: -6, allies: 8, commitment: 4, public: -2 }
     tags: [alliance, economy, reassurance]
   right:
     text: "Ours is ours"

@@ -21,7 +21,7 @@ rules changed between them.
 | T2 | ≥ 10 archetypes reach the Endgame ≥ 10% of the time (runs where the archetype was assembled by act 3) | Every build must be playable, not just the best one |
 | T3 | No single piece in more than 35% of winning builds | No mandatory pick |
 | T4 | Median heuristic run 15–25 estimated minutes (cards × 11 s + rolls × 4 s + shops × 30 s + accidents × 3 s) | The run length the daily habit needs |
-| T5 | ≥ 3% of heuristic runs reach a score ≥ 100 × the final target (1,200,000 at DEFCON 5) | "Broke the game" runs must exist |
+| T5 | ≥ 3% of heuristic runs reach a score ≥ 100 × the final target (700,000 at DEFCON 5) | "Broke the game" runs must exist |
 
 Secondary readouts: every card reachable, piece buy rates 15–60% when offered, combos with
 a ≥ 10-point win-rate difference, ending distribution, act reached, ante met/missed/smashed
@@ -143,3 +143,40 @@ escalation 7/5/9/5 → 5/4/7/4 (severity still ×1 → ×2 from 50 to 100).
 
 Still to explain before the full-scale runs: `special_resigned` at 8% (the advisor resignation card fires far more often
 than a weight-0.5 card should), and the calm build's inability to hold 60: the office meters push it up the ladder.
+
+Resolved: the resignation card's "Sign it" side has no printed cost, so the bot signed; the heuristic now treats any
+choice that forces a losing ending as a hard avoid (a veteran knows what the letter is).
+
+### Iteration 4 — first full-scale run (20,000 × 3 policies, `--seed iter4`), then cooling and the economy
+
+Full deck validated (450 cards, 80 endings). Full-scale read: **T1 0.57%** (85% nuclear), T2 0 of 15 archetypes,
+T3 dove_fm in 83% of the 114 winning builds, T4 13.9 min, T5 0% (max score 53,421). Greedy dies of the office meters
+(3.7% nuclear, 0.03% win); random 65% nuclear.
+
+Deck drift per ordinary card at random play (`scratchpad/probe-meters.ts`): public −0.58, military −0.28, allies −0.18,
+economy −0.57, escalation +1.05. Economy is touched by 26% of cards and its *best* side averages +0.08: it only goes down.
+Over ~70 ordinary cards a neutral player loses ~40 public, ~40 economy and gains ~73 escalation; protecting the office
+meters means taking the escalatory side, which is how a calm build ends at 100.
+
+Changes:
+- **Cooling** (new act knob, `cooling: 0.5` on every act in rules.yaml, `COOLING_FLOOR` 25): each ordinary card cools
+  escalation by 0.5 expected while it is above 25. A crisis nobody feeds cools; the ladder must be climbed on purpose,
+  which is the design. Flashpoint and bluff cards never cool. Endless acts inherit it.
+- **Economy** costs on ordinary cards ×0.7 (120 values); economy drift −0.57 → −0.35 per card.
+
+| Measure (600 heuristic runs) | Iter 3 | Iter 4 |
+| --- | --- | --- |
+| Heuristic win | 0.33% | 2.17% |
+| Reached Endgame | 3.5% | 10% (+2.2% into endless) |
+| Median estimated minutes | 14.0 | 15.7 |
+| Capital earned (median) | 16 | 19 |
+| Antes met: Week Two / Three / Four / Endgame | 47% / 33% / 13% / 0% | 35% / 19% / 18% / 2% |
+
+Cooling lowers the escalation multiplier of calm play, so the antes slipped: Week Three's median bank is 960 against 1,600.
+
+### Iteration 5 — the ante ladder against the cooled pace
+
+Targets 250 / 500 / 1,600 / 4,500 / 12,000 → **250 / 450 / 1,200 / 3,200 / 7,000**. Intent by act: Week Two met by a
+calm median run; Week Three by a calm run with two pieces or a warm one; Week Four by a build or a brink posture; the
+Endgame only by both (a brink build at 90 with ×2 from pieces banks ~5,000 in 10 cards, so 7,000 stays the wall that
+separates good builds from great ones). Final target 7,000 → the "broke the game" line is 700,000.

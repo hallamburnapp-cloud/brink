@@ -25,7 +25,7 @@
     tags: [economy, reassurance, domestic]
   right:
     text: "Stop the shipments"
-    effects: { economy: -6, trust_primary: -5, military: 3, public: 3 }
+    effects: { economy: -4, trust_primary: -5, military: 3, public: 3 }
     tags: [sanction, economy, domestic]
 
 - id: dom_coa_02_allies_or_customers
@@ -41,7 +41,7 @@
     one.
   left:
     text: "Allies. Imagery is free from tonight"
-    effects: { allies: 6, economy: -4, commitment: 3 }
+    effects: { allies: 6, economy: -3, commitment: 3 }
     tags: [alliance, economy, public_commitment]
   right:
     text: "Customers. The invoice stands"
@@ -60,7 +60,7 @@
     Caldor with the new frigates. The request is nine pages. The word is one.
   left:
     text: "Authorise the exercise"
-    effects: { military: 5, escalation: 4, trust_primary: -4, economy: -2 }
+    effects: { military: 5, escalation: 4, trust_primary: -4, economy: -1 }
     tags: [military, naval, mobilise]
   right:
     text: "Not off Caldor. Not now"
@@ -80,7 +80,7 @@
     Coalition is working for. I am asking on the record.
   left:
     text: "Suspend the dividend"
-    effects: { economy: -4, public: 4, trust_secondary: -2, commitment: 2 }
+    effects: { economy: -3, public: 4, trust_secondary: -2, commitment: 2 }
     tags: [economy, domestic, public_commitment]
   right:
     text: "Business as usual"
@@ -104,7 +104,7 @@
     knowledge, which is true of you personally.
   left:
     text: "Announce the export review at seven"
-    effects: { economy: -4, public: 3, trust_primary: -3, commitment: 2 }
+    effects: { economy: -3, public: 3, trust_primary: -3, commitment: 2 }
     tags: [transparency, economy, domestic, sanction]
   right:
     text: "No knowledge"
@@ -134,7 +134,7 @@
     {rival_capital}. I can answer it honestly or I can answer it lawfully.
   left:
     text: "Honestly. Yes, we are"
-    effects: { intel: 2, economy: -6, trust_primary: -4, military: 2 }
+    effects: { intel: 2, economy: -4, trust_primary: -4, military: 2 }
     tags: [transparency, space, economy]
   right:
     text: "Civil use only. In writing"
@@ -174,11 +174,11 @@
     licences, or buy the shares back and tell them why.
   left:
     text: "Meet her. Announce the review"
-    effects: { public: 4, economy: -4, military: -3, trust_primary: 2 }
+    effects: { public: 4, economy: -3, military: -3, trust_primary: 2 }
     tags: [domestic, deescalate, economy]
   right:
     text: "Buy the shares back"
-    effects: { economy: -6, military: 3, public: -3 }
+    effects: { economy: -4, military: 3, public: -3 }
     tags: [economy, domestic]
 
 # ---- week three / four --------------------------------------------------------
@@ -196,7 +196,7 @@
     licenses. I have the clause here, and it is one paragraph.
   left:
     text: "Switch it off"
-    effects: { military: 4, escalation: 8, trust_primary: -8, economy: -4 }
+    effects: { military: 4, escalation: 8, trust_primary: -8, economy: -3 }
     tags: [cyber, escalatory, sanction]
   right:
     text: "Leave the switch alone"
@@ -217,7 +217,7 @@
     a hole in it.
   left:
     text: "Sail. Show the flag"
-    effects: { military: 6, escalation: 4, economy: -3, trust_primary: -3 }
+    effects: { military: 6, escalation: 4, economy: -2, trust_primary: -3 }
     tags: [naval, military, deterrence]
   right:
     text: "They stay in the Roads"
@@ -237,7 +237,7 @@
     protector, because my ministers have noticed they are not the same job.
   left:
     text: "Undercut them. Win it"
-    effects: { economy: -5, allies: 5, military: 2, trust_secondary: -3 }
+    effects: { economy: -4, allies: 5, military: 2, trust_secondary: -3 }
     tags: [alliance, economy]
   right:
     text: "Let them buy elsewhere"
@@ -258,7 +258,7 @@
     the hostage.
   left:
     text: "Buy the relay layer"
-    effects: { economy: -8, military: 4, intel: 3, escalation: 2, trust_primary: -2 }
+    effects: { economy: -6, military: 4, intel: 3, escalation: 2, trust_primary: -2 }
     tags: [space, deterrence, economy, military]
   right:
     text: "The constellation is the deterrent"
@@ -281,11 +281,11 @@
     the charters too.
   left:
     text: "Send the escort"
-    effects: { military: 5, escalation: 5, economy: -3, allies: 2, trust_primary: -4 }
+    effects: { military: 5, escalation: 5, economy: -2, allies: 2, trust_primary: -4 }
     tags: [naval, military, escalatory]
   right:
     text: "Charters. Uninsured"
-    effects: { economy: -6, military: -4, trust_primary: 2, public: -2 }
+    effects: { economy: -4, military: -4, trust_primary: 2, public: -2 }
     tags: [stall, deescalate, economy]
 
 - id: dom_coa_14_the_open
@@ -305,11 +305,11 @@
     a headline. Opening costs a number.
   left:
     text: "Halt trading"
-    effects: { economy: -4, public: -3, commitment: 1 }
+    effects: { economy: -3, public: -3, commitment: 1 }
     tags: [economy, stall]
   right:
     text: "Open the exchange"
-    effects: { economy: -9, public: -5, trust_secondary: 3 }
+    effects: { economy: -6, public: -5, trust_secondary: 3 }
     tags: [economy, transparency]
 
 - id: dom_coa_15_dual_use
@@ -326,7 +326,7 @@
     would like to be asked.
   left:
     text: "Back the bill"
-    effects: { economy: -8, trust_primary: -6, trust_secondary: -5, public: 5, military: 3 }
+    effects: { economy: -6, trust_primary: -6, trust_secondary: -5, public: 5, military: 3 }
     tags: [sanction, economy, domestic, public_commitment]
   right:
     text: "Fight it"
@@ -341,7 +341,7 @@
         effects: { economy: 2, public: -2, trust_primary: 2 }
       failure:
         text: "It passes by eleven, with an amendment naming the factories."
-        effects: { public: -6, economy: -6 }
+        effects: { public: -6, economy: -4 }
         capital: -2
 
 - id: dom_coa_16_thirty_per_cent
@@ -364,5 +364,5 @@
     tags: [economy, domestic, entanglement]
   right:
     text: "Not for sale"
-    effects: { economy: -3, public: 2, trust_secondary: -2 }
+    effects: { economy: -2, public: 2, trust_secondary: -2 }
     tags: [economy, public_commitment, domestic]

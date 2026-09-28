@@ -108,13 +108,13 @@
     the cloud is, which costs something I do not have a column for.
   left:
     text: "Underwrite it"
-    effects: { economy: -8, public: 2, military: -2 }
+    effects: { economy: -6, public: 2, military: -2 }
     tags: [economy, entanglement, space]
     set: [debris:event]
     follow: [{ card: debris_05_the_catalogue, in: 2 }]
   right:
     text: "Say whose fault it is"
-    effects: { economy: -4, trust_primary: -6, public: 3, escalation: 4 }
+    effects: { economy: -3, trust_primary: -6, public: 3, escalation: 4 }
     tags: [attribution, public_commitment, economy]
     set: [debris:event, debris:blamed_rival]
     follow: [{ card: debris_06_their_reply, in: 1 }]
@@ -237,7 +237,7 @@
     photographed.
   left:
     text: "Publish the burn logs"
-    effects: { intel: -4, economy: -3 }
+    effects: { intel: -4, economy: -2 }
     tags: [transparency, attribution, entanglement, space]
     odds:
       label: Attribution
@@ -251,10 +251,10 @@
       failure:
         text: Page two shows a burn at 05:39. Nobody will read page three.
         set: [debris:blamed_us]
-        effects: { public: -7, trust_primary: -6, economy: -4 }
+        effects: { public: -7, trust_primary: -6, economy: -3 }
   right:
     text: "Keep the logs. Keep Halvard flying"
-    effects: { economy: -2, intel: 3, public: -4, trust_primary: -4 }
+    effects: { economy: -1, intel: 3, public: -4, trust_primary: -4 }
     tags: [secrecy, economy, entanglement]
     set: [debris:blamed_us]
 
@@ -383,12 +383,12 @@
     Nobody shoots their way out of this; the interceptors only make more of it.
   left:
     text: "Ground every launch and say why"
-    effects: { military: -6, economy: -5, public: -4, trust_primary: 5, trust_secondary: 5, escalation: -4 }
+    effects: { military: -6, economy: -4, public: -4, trust_primary: 5, trust_secondary: 5, escalation: -4 }
     tags: [transparency, space, deescalate]
     set: [debris:cascade]
   right:
     text: "Keep launching. Ours are hardened"
-    effects: { military: 5, economy: -3, escalation: 5, trust_primary: -5, trust_secondary: -5 }
+    effects: { military: 5, economy: -2, escalation: 5, trust_primary: -5, trust_secondary: -5 }
     tags: [military, space, deterrence]
     set: [debris:cascade]
 
@@ -410,7 +410,7 @@
     reader over your shoulder. I am obliged to tell you before the market does.
   left:
     text: "Buy it before they do"
-    effects: { economy: -12, military: 3, public: -3, trust_secondary: -4 }
+    effects: { economy: -8, military: 3, public: -3, trust_secondary: -4 }
     tags: [economy, entanglement, space]
   right:
     text: "Let it go"
@@ -438,7 +438,7 @@
     tags: [reassurance, public_commitment, entanglement, space]
   right:
     text: "Refuse the statement"
-    effects: { military: 4, economy: -6, trust_primary: -6, escalation: 3 }
+    effects: { military: 4, economy: -4, trust_primary: -6, escalation: 3 }
     tags: [deterrence, secrecy, entanglement, space]
 
 # ---- pieces: the Cyber & Space Director ---------------------------------------

@@ -19,11 +19,11 @@
     they are not.
   left:
     text: "Guarantee the banks"
-    effects: { economy: -4, public: 3, commitment: 4 }
+    effects: { economy: -3, public: 3, commitment: 4 }
     tags: [economy, public_commitment, domestic]
   right:
     text: "Let it find a floor"
-    effects: { economy: -7, public: -2, trust_secondary: 2 }
+    effects: { economy: -5, public: -2, trust_secondary: 2 }
     tags: [economy, stall, domestic]
 
 - id: press_02_the_first_question
@@ -144,7 +144,7 @@
     am saying they say it.
   left:
     text: "Sign Ironwood. The rest waits"
-    effects: { military: 6, escalation: 4, trust_primary: -4, economy: -2 }
+    effects: { military: 6, escalation: 4, trust_primary: -4, economy: -1 }
     tags: [military, mobilise]
   right:
     text: "Nothing is signed this week"
@@ -219,11 +219,11 @@
     costs what bread costs. Floating is honest, and honest is expensive.
   left:
     text: "Defend the rate"
-    effects: { economy: -7, public: 3 }
+    effects: { economy: -5, public: 3 }
     tags: [economy, public_commitment, domestic]
   right:
     text: "Let it float"
-    effects: { economy: -3, public: -5, trust_secondary: 3 }
+    effects: { economy: -2, public: -5, trust_secondary: 3 }
     tags: [economy, domestic]
 
 - id: press_12_the_leak
@@ -459,11 +459,11 @@
     their price.
   left:
     text: "Buy it quietly"
-    effects: { economy: -5, public: 2, commitment: 2, intel: -1 }
+    effects: { economy: -4, public: 2, commitment: 2, intel: -1 }
     tags: [economy, secrecy]
   right:
     text: "Let the yield print"
-    effects: { economy: -8, public: -3, trust_secondary: 3 }
+    effects: { economy: -6, public: -3, trust_secondary: 3 }
     tags: [economy, transparency]
 
 - id: press_22_the_interview
@@ -574,7 +574,7 @@
     never done this, and I am doing it because the window closes on Thursday.
   left:
     text: "Sign the mobilisation"
-    effects: { military: 8, escalation: 7, economy: -4, trust_primary: -6 }
+    effects: { military: 8, escalation: 7, economy: -3, trust_primary: -6 }
     tags: [mobilise, military]
   right:
     text: "Accept the letter"
@@ -672,11 +672,11 @@
     different country.
   left:
     text: "Guarantee every deposit"
-    effects: { economy: -8, public: 6, commitment: 4 }
+    effects: { economy: -6, public: 6, commitment: 4 }
     tags: [economy, public_commitment, domestic]
   right:
     text: "Close the banks till Monday"
-    effects: { economy: -5, public: -8, military: 2 }
+    effects: { economy: -4, public: -8, military: 2 }
     tags: [economy, stall, domestic]
 
 - id: press_32_the_final_edition
@@ -726,7 +726,7 @@
         effects: { public: 3, commitment: 2 }
       failure:
         text: "Eleven of your own abstain on the supply vote. The papers count them by name."
-        effects: { public: -9, economy: -3 }
+        effects: { public: -9, economy: -2 }
         capital: -2
 
 - id: press_34_the_suitcase
@@ -798,7 +798,7 @@
     the four hours.
   left:
     text: "Disperse the force"
-    effects: { military: 6, escalation: 6, trust_primary: -5, economy: -2 }
+    effects: { military: 6, escalation: 6, trust_primary: -5, economy: -1 }
     tags: [military, mobilise]
   right:
     text: "Hold them on the ground"

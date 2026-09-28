@@ -78,7 +78,7 @@
     balancing in March. Refuse and forty people find out who told you to.
   left:
     text: "Sign it"
-    effects: { economy: -8, military: 6, public: 2, trust_primary: -3 }
+    effects: { economy: -6, military: 6, public: 2, trust_primary: -3 }
     tags: [personal, military, economy]
     set: [advisors:contract_signed]
   right:
@@ -148,7 +148,7 @@
     so you may prefer that I do not know.
   left:
     text: "Find out"
-    effects: { public: -4, intel: 3, economy: -2 }
+    effects: { public: -4, intel: 3, economy: -1 }
     tags: [personal, investigate, transparency]
   right:
     text: "I would prefer you did not"
@@ -392,7 +392,7 @@
     tags: [personal, economy, public_commitment, domestic]
   right:
     text: "No ceilings this month"
-    effects: { economy: -6, military: 4, public: 2 }
+    effects: { economy: -4, military: 4, public: 2 }
     tags: [personal, military, economy]
     set: [advisors:chancellor_letter]
 
@@ -411,7 +411,7 @@
     listener.
   left:
     text: "Listen to the foundation"
-    effects: { public: 3, economy: -4, allies: -2, trust_secondary: -2 }
+    effects: { public: 3, economy: -3, allies: -2, trust_secondary: -2 }
     tags: [personal, economy, secrecy]
   right:
     text: "Bring the journalist home"
@@ -482,7 +482,7 @@
     tags: [personal, intel, secrecy, economy]
   right:
     text: "Cancel it"
-    effects: { economy: -4, public: 3, allies: 2, intel: -2 }
+    effects: { economy: -3, public: 3, allies: 2, intel: -2 }
     tags: [personal, economy, transparency]
 
 - id: adv_20_the_minutes
@@ -511,7 +511,7 @@
         effects: { public: 2, intel: 2 }
       failure:
         text: "Five people, five alibis. On Monday they all know they were suspected, and the meeting is very short."
-        effects: { military: -3, allies: -2, economy: -2 }
+        effects: { military: -3, allies: -2, economy: -1 }
   right:
     text: "Leaks are weather"
     effects: { public: -5, commitment: 3, trust_primary: -2 }
@@ -694,7 +694,7 @@
     on the coast. I can still bring the price down, by eleven percent.
   left:
     text: "Eleven percent. Sign"
-    effects: { economy: -6, military: 5, public: 2, trust_primary: -2 }
+    effects: { economy: -4, military: 5, public: 2, trust_primary: -2 }
     tags: [personal, military, economy]
     set: [advisors:contract_signed]
   right:
