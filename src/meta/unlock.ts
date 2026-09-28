@@ -34,7 +34,7 @@ const ECDSA_SIGN = { name: 'ECDSA', hash: 'SHA-256' } as const;
 // ---------------------------------------------------------------------------
 // Encoding
 
-function base64urlDecode(s: string): Uint8Array {
+function base64urlDecode(s: string): Uint8Array<ArrayBuffer> {
   if (!/^[A-Za-z0-9_-]*$/.test(s)) throw new Error('bad base64url');
   const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (s.length % 4)) % 4);
   const bin = atob(b64);
@@ -43,7 +43,7 @@ function base64urlDecode(s: string): Uint8Array {
   return out;
 }
 
-const utf8 = (s: string) => new TextEncoder().encode(s);
+const utf8 = (s: string): Uint8Array<ArrayBuffer> => new TextEncoder().encode(s);
 const fromUtf8 = (b: Uint8Array) => new TextDecoder().decode(b);
 
 // ---------------------------------------------------------------------------
@@ -166,13 +166,39 @@ export function clearToken(): void {
 }
 
 // ---------------------------------------------------------------------------
+// Flags
+
+export interface UnlockFlags {
+  paywall: boolean;
+  allUnlocked: boolean;
+  workerUrl: string;
+  publicKey: string;
+  paymentLink: string;
+}
+
+let flagOverride: Partial<UnlockFlags> | null = null;
+
+/** Build flags from config.ts, read at call time so tests can override them. */
+function flags(): UnlockFlags {
+  return {
+    paywall: FEATURES.paywall,
+    allUnlocked: FEATURES.allUnlocked,
+    workerUrl: FEATURES.unlockWorkerUrl,
+    publicKey: FEATURES.unlockPublicKey,
+    paymentLink: FEATURES.stripePaymentLink,
+    ...flagOverride,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Entitlement
 
 let verified: { token: string; ok: boolean } | null = null;
 let pending: { token: string; promise: Promise<boolean> } | null = null;
 
 function unlockedByFlags(): boolean {
-  return !FEATURES.paywall || FEATURES.allUnlocked;
+  const f = flags();
+  return !f.paywall || f.allUnlocked;
 }
 
 /**
@@ -196,7 +222,7 @@ export async function hasEndless(): Promise<boolean> {
   if (!token) return false;
   if (verified?.token === token) return verified.ok;
   if (pending?.token === token) return pending.promise;
-  const promise = verifyToken(token, FEATURES.unlockPublicKey).then((payload) => {
+  const promise = verifyToken(token, flags().publicKey).then((payload) => {
     const ok = payload !== null;
     verified = { token, ok };
     if (pending?.token === token) pending = null;
@@ -210,13 +236,13 @@ export async function hasEndless(): Promise<boolean> {
 // Worker calls
 
 function workerUrl(): string {
-  return (FEATURES.unlockWorkerUrl ?? '').trim().replace(/\/+$/, '');
+  return (flags().workerUrl ?? '').trim().replace(/\/+$/, '');
 }
 
 /** Verify, then persist and cache. False when the token is missing or does not verify. */
 async function acceptToken(token: unknown): Promise<boolean> {
   if (typeof token !== 'string') return false;
-  const payload = await verifyToken(token, FEATURES.unlockPublicKey);
+  const payload = await verifyToken(token, flags().publicKey);
   if (!payload) return false;
   storeToken(token);
   verified = { token, ok: true };
@@ -291,12 +317,20 @@ export async function restoreByEmail(email: string): Promise<RestoreStatus> {
  * success URL is the only handle the game needs.
  */
 export function paymentLinkUrl(): string {
-  return (FEATURES.stripePaymentLink ?? '').trim();
+  return (flags().paymentLink ?? '').trim();
 }
 
-/** Test hook: forget cached verification results and imported keys. */
+/** Test hook: override the build flags (null restores config.ts). */
+export function __setUnlockFlagsForTests(overrides: Partial<UnlockFlags> | null): void {
+  flagOverride = overrides;
+  verified = null;
+  pending = null;
+}
+
+/** Test hook: forget cached verification results, imported keys and flag overrides. */
 export function __resetUnlockStateForTests(): void {
   verified = null;
   pending = null;
+  flagOverride = null;
   keyCache.clear();
 }

@@ -1,12 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as unlock from './unlock';
 import {
   __resetUnlockStateForTests,
+  __setUnlockFlagsForTests,
   clearToken,
   getStoredToken,
   parseToken,
   storeToken,
   TOKEN_STORAGE_KEY,
   verifyToken,
+  type UnlockFlags,
   type UnlockPayload,
 } from './unlock';
 
@@ -60,11 +63,13 @@ function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
-/** Re-import the module with a given Vite env so FEATURES is recomputed. */
-async function loadUnlock(env: Record<string, string>) {
-  vi.resetModules();
-  for (const [k, v] of Object.entries(env)) vi.stubEnv(k, v);
-  return import('./unlock');
+/**
+ * config.ts computes FEATURES from import.meta.env at load time and vi.stubEnv does not
+ * reach that object, so the flag-dependent tests set the flags through the test hook.
+ */
+function withFlags(flags: Partial<UnlockFlags>) {
+  __setUnlockFlagsForTests(flags);
+  return unlock;
 }
 
 let keys: Keys;
@@ -75,8 +80,8 @@ beforeEach(async () => {
 });
 afterEach(() => {
   vi.unstubAllGlobals();
-  vi.unstubAllEnvs();
   vi.restoreAllMocks();
+  __resetUnlockStateForTests();
 });
 
 // ---------------------------------------------------------------------------
@@ -181,19 +186,19 @@ describe('entitlement with the paywall on', () => {
   const WORKER = 'https://unlock.example';
   const LINK = 'https://buy.stripe.com/test_abc';
 
-  function paywalled(extra: Record<string, string> = {}) {
-    return loadUnlock({
-      VITE_PAYWALL: 'true',
-      VITE_ALL_UNLOCKED: 'false',
-      VITE_UNLOCK_WORKER_URL: `${WORKER}/`,
-      VITE_UNLOCK_PUBLIC_KEY: keys.publicKeyB64,
-      VITE_STRIPE_PAYMENT_LINK: LINK,
+  function paywalled(extra: Partial<UnlockFlags> = {}) {
+    return withFlags({
+      paywall: true,
+      allUnlocked: false,
+      workerUrl: `${WORKER}/`,
+      publicKey: keys.publicKeyB64,
+      paymentLink: LINK,
       ...extra,
     });
   }
 
   it('is locked without a token and unlocked with a verified one', async () => {
-    const u = await paywalled();
+    const u = paywalled();
     expect(u.hasEndlessSync()).toBe(false);
     expect(await u.hasEndless()).toBe(false);
 
@@ -207,7 +212,7 @@ describe('entitlement with the paywall on', () => {
   });
 
   it('rejects a token signed by another key', async () => {
-    const u = await paywalled();
+    const u = paywalled();
     const other = await makeKeys();
     u.storeToken(await sign(other));
     expect(await u.hasEndless()).toBe(false);
@@ -215,25 +220,26 @@ describe('entitlement with the paywall on', () => {
   });
 
   it('paywall off or allUnlocked short-circuits to true', async () => {
-    const off = await loadUnlock({ VITE_PAYWALL: 'false', VITE_UNLOCK_PUBLIC_KEY: '' });
+    const off = withFlags({ paywall: false, allUnlocked: false, publicKey: '' });
     expect(off.hasEndlessSync()).toBe(true);
     expect(await off.hasEndless()).toBe(true);
-    const all = await loadUnlock({ VITE_PAYWALL: 'true', VITE_ALL_UNLOCKED: 'true', VITE_UNLOCK_PUBLIC_KEY: '' });
+    const all = withFlags({ paywall: true, allUnlocked: true, publicKey: '' });
     expect(all.hasEndlessSync()).toBe(true);
+    expect(await all.hasEndless()).toBe(true);
   });
 
   it('paymentLinkUrl returns the configured link', async () => {
-    const u = await paywalled();
+    const u = paywalled();
     expect(u.paymentLinkUrl()).toBe(LINK);
-    const none = await paywalled({ VITE_STRIPE_PAYMENT_LINK: '' });
+    const none = paywalled({ paymentLink: '' });
     expect(none.paymentLinkUrl()).toBe('');
   });
 
   describe('completeUnlockFromUrl', () => {
     it('exchanges session_id with the worker, stores and verifies the token', async () => {
-      const u = await paywalled();
+      const u = paywalled();
       const token = await sign(keys);
-      const fetchMock = vi.fn(async () => jsonResponse({ token, plan: 'endless' }));
+      const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) => jsonResponse({ token, plan: 'endless' }));
       vi.stubGlobal('fetch', fetchMock);
 
       expect(await u.completeUnlockFromUrl('?session_id=cs_test_a1B2c3D4e5')).toBe('unlocked');
@@ -244,7 +250,7 @@ describe('entitlement with the paywall on', () => {
     });
 
     it('accepts a token passed directly and reports none without params', async () => {
-      const u = await paywalled();
+      const u = paywalled();
       vi.stubGlobal('fetch', vi.fn());
       expect(await u.completeUnlockFromUrl('')).toBe('none');
       expect(await u.completeUnlockFromUrl('?foo=bar')).toBe('none');
@@ -254,7 +260,7 @@ describe('entitlement with the paywall on', () => {
     });
 
     it('reports already when a valid token is stored', async () => {
-      const u = await paywalled();
+      const u = paywalled();
       u.storeToken(await sign(keys));
       const fetchMock = vi.fn();
       vi.stubGlobal('fetch', fetchMock);
@@ -263,7 +269,7 @@ describe('entitlement with the paywall on', () => {
     });
 
     it('maps worker rejections to invalid, failures to error, and bad tokens to invalid', async () => {
-      const u = await paywalled();
+      const u = paywalled();
       vi.stubGlobal('fetch', vi.fn(async () => jsonResponse({ error: 'not_paid' }, 402)));
       expect(await u.completeUnlockFromUrl('?session_id=cs_test_a1B2c3D4e5')).toBe('invalid');
       expect(u.getStoredToken()).toBeNull();
@@ -286,7 +292,7 @@ describe('entitlement with the paywall on', () => {
     });
 
     it('reports error when no worker URL is configured', async () => {
-      const u = await paywalled({ VITE_UNLOCK_WORKER_URL: '' });
+      const u = paywalled({ workerUrl: '' });
       vi.stubGlobal('fetch', vi.fn());
       expect(await u.completeUnlockFromUrl('?session_id=cs_test_a1B2c3D4e5')).toBe('error');
       expect(fetch).not.toHaveBeenCalled();
@@ -295,13 +301,13 @@ describe('entitlement with the paywall on', () => {
 
   describe('restoreByEmail', () => {
     it('posts the email and stores the returned token', async () => {
-      const u = await paywalled();
+      const u = paywalled();
       const token = await sign(keys);
-      const fetchMock = vi.fn(async () => jsonResponse({ token, plan: 'endless' }));
+      const fetchMock = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) => jsonResponse({ token, plan: 'endless' }));
       vi.stubGlobal('fetch', fetchMock);
 
       expect(await u.restoreByEmail('  Buyer@Example.com ')).toBe('unlocked');
-      const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
       expect(url).toBe(`${WORKER}/restore`);
       expect(init.method).toBe('POST');
       expect(JSON.parse(String(init.body))).toEqual({ email: 'Buyer@Example.com' });
@@ -310,7 +316,7 @@ describe('entitlement with the paywall on', () => {
     });
 
     it('maps 404 to not_found and everything else to error', async () => {
-      const u = await paywalled();
+      const u = paywalled();
       vi.stubGlobal('fetch', vi.fn(async () => jsonResponse({ error: 'not_found' }, 404)));
       expect(await u.restoreByEmail('nobody@example.com')).toBe('not_found');
       vi.stubGlobal('fetch', vi.fn(async () => jsonResponse({ error: 'rate_limited' }, 429)));

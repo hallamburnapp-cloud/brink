@@ -20,7 +20,7 @@ export const FEATURES = {
   stripePaymentLink: (env.VITE_STRIPE_PAYMENT_LINK as string) ?? '',
   /** Cloudflare Worker base URL for unlock tokens and purchase restore. */
   unlockWorkerUrl: (env.VITE_UNLOCK_WORKER_URL as string) ?? '',
-  /** Public key (hex) used to verify unlock tokens client-side. */
+  /** Public key (base64url-encoded P-256 JWK) used to verify unlock tokens client-side. */
   unlockPublicKey: (env.VITE_UNLOCK_PUBLIC_KEY as string) ?? '',
   /** Cookie-free analytics: 'off' | 'plausible' | 'cloudflare'. */
   analytics: ((env.VITE_ANALYTICS as string) ?? 'off') as 'off' | 'plausible' | 'cloudflare',

@@ -510,9 +510,9 @@
     flags_none: [blackout:retaliated, blackout:resolved, blackout:accident]
   text: >-
     Their reconnaissance bird crosses the Straits at 04:10 tomorrow. We have the
-    same capability on the Isle and a clear sky. Nobody would know for certain,
-    which is the point, and which is what they are counting on us to remember
-    about ours. The window is forty seconds.
+    same capability on the Isle and a clear sky. Nobody could prove it was us,
+    which they know, because nobody can prove it was them. The window is forty
+    seconds.
   left:
     text: "Take the window"
     effects: { escalation: 6, military: 3 }

@@ -36,19 +36,16 @@ export function brinkContentPlugin(): Plugin {
     configureServer(s) {
       server = s;
       s.watcher.add(root);
-      const onChange = (file: string) => {
-        if (!file.startsWith(root)) return;
-        const mod = s.moduleGraph.getModuleById(RESOLVED);
-        if (!mod) return;
-        s.moduleGraph.invalidateModule(mod);
-        s.ws.send({
-          type: 'update',
-          updates: [{ type: 'js-update', path: VIRTUAL, acceptedPath: VIRTUAL, timestamp: Date.now() }],
-        });
-      };
-      s.watcher.on('change', onChange);
-      s.watcher.on('add', onChange);
-      s.watcher.on('unlink', onChange);
+    },
+    // Route content file changes to the virtual module so Vite's own HMR
+    // propagation reaches src/content/index.ts (which self-accepts) instead
+    // of falling back to a full page reload.
+    handleHotUpdate({ file, server: s }) {
+      if (!file.startsWith(root)) return;
+      const mod = s.moduleGraph.getModuleById(RESOLVED);
+      if (!mod) return [];
+      s.moduleGraph.invalidateModule(mod);
+      return [mod];
     },
   };
 }

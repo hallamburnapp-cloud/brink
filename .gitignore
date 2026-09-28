@@ -15,3 +15,6 @@ worker/node_modules
 worker/dist
 src-tauri/target
 public/og-image.png
+
+sim-output/
+playtest-output/

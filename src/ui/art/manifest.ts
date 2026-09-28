@@ -33,7 +33,7 @@ const FRONT =
   `<path d="M2 11V2h9M89 2h9v9M98 89v9h-9M11 98H2v-9" fill="none" stroke="currentColor" stroke-width="2.5"/>` +
   `<rect x="2" y="2" width="96" height="96" rx="2" fill="none" stroke="currentColor" stroke-width="1" opacity="0.55"/>` +
   `<rect x="8" y="8" width="14" height="3" fill="currentColor"/>` +
-  `<path d="M2 14H98M2 22H98M2 30H98M2 38H98M2 46H98M2 54H98M2 62H98M2 70H98M2 78H98M2 86H98M2 94H98" stroke="currentColor" stroke-width="0.6" opacity="0.15"/>`;
+  `<path d="M2 14H98M2 22H98M2 30H98M2 38H98M2 46H98M2 54H98M2 62H98M2 70H98M2 78H98M2 86H98M2 94H98" stroke="currentColor" stroke-width="0.6" opacity="0.2"/>`;
 
 const portrait = (...parts: string[]): ArtEntry => svg(BACK + parts.join('') + FRONT);
 
@@ -219,9 +219,9 @@ export const portraits: Record<string, ArtEntry> = {
 
   /** The Hotline: not a person. A red telephone handset off its cradle, ringing. */
   hotline: portrait(
-    `<path d="M27 30Q62 32 71 75" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round"/>`,
-    `<ellipse cx="24" cy="26" rx="11" ry="7" transform="rotate(-45 24 26)" fill="currentColor"/>`,
-    `<ellipse cx="74" cy="78" rx="11" ry="7" transform="rotate(-45 74 78)" fill="currentColor"/>`,
+    `<path d="M27 30Q62 32 71 75" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>`,
+    `<ellipse cx="24" cy="26" rx="12" ry="7.5" transform="rotate(-45 24 26)" fill="currentColor"/>`,
+    `<ellipse cx="74" cy="78" rx="12" ry="7.5" transform="rotate(-45 74 78)" fill="currentColor"/>`,
     `<path d="M30 29Q60 31 68 66" fill="none" stroke="${PAPER}" stroke-width="1.2" opacity="0.5"/>`,
     `<path d="M68 90L62 86L58 92L52 88L48 94L42 90L38 96L32 92" fill="none" stroke="currentColor" stroke-width="1.5"/>`,
     `<path d="M70 14a12 12 0 0 1 10 10M74 8a18 18 0 0 1 14 14" fill="none" stroke="${PAPER}" stroke-width="2" stroke-linecap="round" opacity="0.85"/>`,
@@ -450,8 +450,8 @@ export const icons: Record<string, ArtEntry> = {
   doctrine_minimal: icon(ring(24, 24, 16), p('M24 6v3M24 39v3M6 24h3M39 24h3'), dot(24, 24, 2.5)),
 
   // --- assets ---
-  /** Early-Warning Constellation: linked satellites over the horizon */
-  asset_ew: icon(p('M10 20L24 10L38 18'), dot(10, 20), dot(24, 10), dot(38, 18), p('M24 14v8'), p('M6 40a18 18 0 0 1 36 0')),
+  /** Early-Warning Constellation: satellites on orbit above a small planet */
+  asset_ew: icon(p('M6 30a18 18 0 0 1 36 0', ' stroke-dasharray="3 3"'), dot(8.4, 21), dot(24, 12), dot(39.6, 21), ring(24, 36, 6), p('M24 18v12')),
   /** Back-Channel: the front line is broken, the quiet arc holds */
   asset_back_channel: icon(p('M8 16h12M28 16h12'), p('M22 12l-2 8'), p('M8 22c0 16 32 16 32 0', ' stroke-dasharray="3 3"'), dot(8, 19), dot(40, 19)),
   /** Cyber Unit: terminal prompt */

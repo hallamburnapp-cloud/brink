@@ -59,7 +59,7 @@
       base: 0.55
       tags: [adversary, diplomacy]
       success:
-        text: "A test, unannounced, of a vehicle they say we already knew about. The Premier's office regrets the hour."
+        text: "A test, unannounced, of a vehicle they say we already knew about. {Rival_leader}'s office regrets the hour."
         effects: { trust_primary: 5, escalation: -4, intel: 4 }
         set: [false_alarm:stood_down]
       failure:
@@ -406,7 +406,7 @@
     odds:
       label: They read it as a test
       base: 0.5
-      tags: [adversary, nuclear]
+      tags: [adversary]
       success:
         text: "Their statement calls ours a scheduled test. Nobody scheduled it, and everyone agrees to pretend."
         effects: { escalation: -3, trust_primary: -2 }
@@ -473,11 +473,10 @@
   conditions: { flags_all: [false_alarm:reported], pieces_any: [launch_on_warning] }
   note: Launch on Warning moment. Waiting feels like betrayal of the posture.
   text: >-
-    The posture says that when the board lights, we go. This month the board has
-    lit and we have waited, and waiting was right, and they were watching to see
-    whether we would. Now they have their answer. Either the posture is true or
-    the waiting is, and the crews sleeping under the wings would like to know
-    which.
+    The posture says that when the board lights, we go. This month it lit and we
+    waited, and they watched us wait. Now they have their answer. Either the
+    posture is true or the waiting is, and the crews sleeping under the wings
+    would like to know which.
   left:
     text: "The posture is true. Say it publicly."
     effects: { commitment: 9, trust_primary: -7, escalation: 5, military: 5 }

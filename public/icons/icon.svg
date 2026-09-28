@@ -1,1 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" fill="#0b1220"/><circle cx="256" cy="256" r="163.84" fill="none" stroke="#e8e4d8" stroke-opacity="0.9" stroke-width="17.92"/><path d="M 227.55 94.65 A 163.84 163.84 0 0 1 417.35 227.55" fill="none" stroke="#e03b3b" stroke-width="28.672000000000004" stroke-linecap="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>BRINK</title>
+  <!-- Maskable-safe: the mark sits inside the central 80% circle (r = 204.8). -->
+  <rect width="512" height="512" fill="#0b1220"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#ece7d8" stroke-width="14" opacity="0.9"/>
+  <path d="M256 78v22" stroke="#ece7d8" stroke-width="14" stroke-linecap="round"/>
+  <path d="M287.19 109.28A150 150 0 0 1 388.44 185.58" fill="none" stroke="#e03b3b" stroke-width="30" stroke-linecap="round"/>
+</svg>

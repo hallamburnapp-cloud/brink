@@ -628,19 +628,16 @@ function drawNext(content: Content, state: RunState, rng: Rng, events: RunEvent[
   const pieces = heldPieces(content, state);
   const act = actDef(content, state.act);
 
-  // Queued follow-ups that are due come first, in order.
+  // Queued follow-ups that are due come first, in order. Inside a flashpoint,
+  // ordinary follow-ups stay in the queue (untouched) until it is over.
   for (let i = 0; i < state.queue.length; i++) {
     const q = state.queue[i];
     if (q.in > 0) continue;
     const card = content.cards[q.card];
+    if (card && state.flashpoint && !card.flashpoint) continue;
     state.queue.splice(i, 1);
     i--;
     if (!card) continue;
-    if (state.flashpoint && !card.flashpoint) {
-      // Non-flashpoint follow-ups wait until the flashpoint is over.
-      state.queue.push({ card: q.card, in: 0 });
-      continue;
-    }
     if (card.seats && !card.seats.includes(state.seat)) continue;
     if (!checkConditions(card.conditions, state, pieces)) continue;
     present(content, state, rng, card);

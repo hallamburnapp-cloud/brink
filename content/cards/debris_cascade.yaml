@@ -129,7 +129,7 @@
   text: >-
     The catalogue is in: four thousand one hundred trackable pieces, breakup at
     05:40:12, energy consistent with a kinetic hit. Two things went up that
-    morning. A {rival_adj} sounding rocket, announced as weather, and an object
+    morning: a {rival_adj} sounding rocket, announced as weather, and an object
     the tracking cell logged as 'unknown, ascending, ours?' with the question
     mark. Their catalogue will name the second one before we do, unless we name
     the first.
@@ -516,7 +516,8 @@
     estimate, before the insurers finish suing us. I can find it by cancelling
     the interceptor tranche or by pushing the pension uplift into next year.
     One of those is a headline here. The other is a headline in
-    {rival_capital}, and they will frame it.
+    {rival_capital}, where they read our estimates more carefully than our own
+    committee does.
   left:
     text: "Cancel the interceptor tranche"
     effects: { military: -7, economy: 4, trust_primary: 5, public: -2 }

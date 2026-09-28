@@ -1,10 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 // Test-only signing key pair for the stubbed unlock Worker (never used in production).
 const keys = JSON.parse(readFileSync(new URL('./e2e/fixtures/test-keys.json', import.meta.url), 'utf8')) as { publicJwkB64: string };
 
 const PORT = 4173;
+// Local sandboxes may carry a pre-installed Chromium at a fixed path; CI installs its own.
+const localChromium = process.env.PW_CHROMIUM_PATH ?? (!process.env.CI && existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 
 export default defineConfig({
   testDir: 'e2e',
@@ -18,7 +20,7 @@ export default defineConfig({
     baseURL: `http://localhost:${PORT}`,
     ...devices['Pixel 7'],
     trace: 'retain-on-failure',
-    launchOptions: process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : {},
+    launchOptions: localChromium ? { executablePath: localChromium } : {},
   },
   webServer: {
     command: `npx vite --port ${PORT} --strictPort`,

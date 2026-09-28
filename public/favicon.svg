@@ -1,1 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" fill="#0b1220"/><circle cx="32" cy="32" r="20.48" fill="none" stroke="#e8e4d8" stroke-opacity="0.9" stroke-width="2.24"/><path d="M 28.44 11.83 A 20.48 20.48 0 0 1 52.17 28.44" fill="none" stroke="#e03b3b" stroke-width="3.5840000000000005" stroke-linecap="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>BRINK</title>
+  <rect width="64" height="64" rx="12" fill="#0b1220"/>
+  <circle cx="32" cy="32" r="22" fill="none" stroke="#ece7d8" stroke-width="2.5" opacity="0.9"/>
+  <path d="M32 6.5v4" stroke="#ece7d8" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M36.57 10.48A22 22 0 0 1 51.42 21.67" fill="none" stroke="#e03b3b" stroke-width="5.5" stroke-linecap="round"/>
+</svg>

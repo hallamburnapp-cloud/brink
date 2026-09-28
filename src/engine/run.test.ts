@@ -194,6 +194,22 @@ describe('acts and flashpoints', () => {
     expect(r2.events.map((e) => e.type)).toContain('act_start');
     expect(s.phase).toBe('card');
   });
+  it('holds ordinary follow-ups during a flashpoint instead of looping', () => {
+    const s = run('hold');
+    playUntil(s, (x) => x.flashpoint !== null);
+    expect(s.flashpoint).toBe('fp_test');
+    s.queue.push({ card: 'c_filler', in: 0 });
+    // Must return promptly and keep the ordinary card queued.
+    choose(content, s, 'right');
+    expect(s.queue.some((q) => q.card === 'c_filler')).toBe(true);
+    expect(['fp_2', 'fp_false']).toContain(s.current);
+    choose(content, s, 'right');
+    // Flashpoint over → offer; the held card is still queued for the next act.
+    expect(s.phase).toBe('offer');
+    expect(s.queue.some((q) => q.card === 'c_filler')).toBe(true);
+    pickPiece(content, s, s.offer![0]);
+    expect(s.current).toBe('c_filler');
+  });
   it('uses the false-alarm entry when a false alarm is live', () => {
     const s = run('fa');
     s.flags.push('false_alarm_live');
