@@ -90,14 +90,14 @@ describe('shipped pieces, seats, speakers and rules', () => {
         {
           id: 'a_01',
           advisor: 'aide',
-          text: '{Rival} has answered {us} through {rival_capital}; {Rival_leader} is annoyed.',
+          text: '{Rival} has answered {us} through {rival_capital}; {Rival_leader} is annoyed at {enemy}.',
           left: { text: 'Left' },
           right: { text: 'Right' },
         },
       ]),
     );
     const msgs = validateContent(content).map((i) => i.message).join('\n');
-    expect(msgs).toMatch(/unknown template variable \{Rival_leader\}/);
-    expect(msgs).not.toMatch(/\{Rival\}|\{us\}|\{rival_capital\}/);
+    expect(msgs).toMatch(/unknown template variable \{enemy\}/);
+    expect(msgs).not.toMatch(/\{Rival\}|\{us\}|\{rival_capital\}|\{Rival_leader\}/);
   });
 });

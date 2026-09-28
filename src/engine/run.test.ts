@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fixture } from './fixture';
 import { Rng } from './rng';
-import { buryCard, choose, createRun, deserialise, pickPiece, serialise, view } from './run';
+import { buryCard, choose, createRun, deserialise, pickPiece, serialise, template, view } from './run';
 import type { Content, RunState } from './types';
 
 const content: Content = fixture();
@@ -233,6 +233,16 @@ describe('acts and flashpoints', () => {
     expect(s.phase).toBe('ended');
     expect(['standdown_quiet', 'survival_cold', 'fallback_standdown', 'fallback_survival', 'impeached', 'nuclear_war', 'launch']).toContain(s.ending);
     if (s.ending === 'standdown_quiet' || s.ending === 'survival_cold') expect(s.act).toBe(5);
+  });
+});
+
+describe('template', () => {
+  it('substitutes seat-relative names, with capitalised variants', () => {
+    const s = run('t');
+    expect(template(content, s, '{Rival} met {us} in {capital}; {rival_leader} and {Other_leader} spoke.')).toBe(
+      'The federation met the republic in Capital; the Leader and The Leader spoke.',
+    );
+    expect(template(content, s, 'keep {unknown} as is')).toBe('keep {unknown} as is');
   });
 });
 

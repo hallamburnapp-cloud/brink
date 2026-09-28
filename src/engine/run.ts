@@ -105,11 +105,8 @@ export function template(content: Content, state: RunState, text: string): strin
   const other = content.seats[seat.rivals[1]];
   const map: Record<string, string> = {
     us: seat.the,
-    Us: cap(seat.the),
     rival: rival.the,
-    Rival: cap(rival.the),
     other: other.the,
-    Other: cap(other.the),
     leader: seat.leader_title,
     capital: seat.capital,
     rival_capital: rival.capital,
@@ -120,7 +117,13 @@ export function template(content: Content, state: RunState, text: string): strin
     rival_leader: rival.leader_title,
     other_leader: other.leader_title,
   };
-  return text.replace(/\{(\w+)\}/g, (m, k: string) => (k in map ? map[k] : m));
+  // Any variable may be written with a capital first letter ({Rival}, {Rival_leader}) to start a sentence.
+  return text.replace(/\{(\w+)\}/g, (m, k: string) => {
+    if (k in map) return map[k];
+    const lower = k.charAt(0).toLowerCase() + k.slice(1);
+    if (lower in map) return cap(map[lower]);
+    return m;
+  });
 }
 
 function cap(s: string): string {

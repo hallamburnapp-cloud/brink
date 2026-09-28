@@ -283,11 +283,14 @@ export function validateContent(content: Content): ContentIssue[] {
   return issues;
 }
 
-/** Template variables the engine substitutes (see template() in engine/run.ts). */
+/** Template variables the engine substitutes (see template() in engine/run.ts); a capitalised first letter is allowed. */
 export const TEMPLATE_VARS = new Set([
-  'us', 'Us', 'rival', 'Rival', 'other', 'Other', 'leader', 'capital', 'rival_capital', 'other_capital',
-  'rival_adj', 'other_adj', 'us_adj', 'rival_leader', 'other_leader',
+  'us', 'rival', 'other', 'leader', 'capital', 'rival_capital', 'other_capital', 'rival_adj', 'other_adj', 'us_adj', 'rival_leader', 'other_leader',
 ]);
+
+function knownTemplate(name: string): boolean {
+  return TEMPLATE_VARS.has(name) || TEMPLATE_VARS.has(name.charAt(0).toLowerCase() + name.slice(1));
+}
 
 function lint(where: string, text: string, issues: ContentIssue[]): void {
   for (const w of FORBIDDEN_WORDS) {
@@ -295,7 +298,7 @@ function lint(where: string, text: string, issues: ContentIssue[]): void {
     if (re.test(text)) issues.push({ level: 'error', where, message: `copy contains forbidden real-world or placeholder term "${w.trim()}"` });
   }
   for (const m of text.matchAll(/\{(\w+)\}/g)) {
-    if (!TEMPLATE_VARS.has(m[1])) issues.push({ level: 'error', where, message: `unknown template variable {${m[1]}} (known: ${[...TEMPLATE_VARS].join(', ')})` });
+    if (!knownTemplate(m[1])) issues.push({ level: 'error', where, message: `unknown template variable {${m[1]}} (known: ${[...TEMPLATE_VARS].join(', ')}, optionally capitalised)` });
   }
 }
 
