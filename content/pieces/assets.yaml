@@ -253,6 +253,7 @@
   art: asset_nc3
   tags: [nuclear]
   grants: [asset_deadman]
+  unlock: { id: the_switch, label: Deadman Switch, hint: Lose a run to nuclear war. }
   modifiers:
     - { kind: rule, rule: deadman_switch }
     - { kind: leverage, tags: [nuclear], mult_add: 1 }
@@ -290,6 +291,7 @@
   art: doctrine_hotline
   tags: [diplomacy, back_channel]
   grants: [asset_open_line]
+  unlock: { id: two_standdowns, label: The Open Line, hint: Reach Stand-Down twice. }
   modifiers:
     - { kind: retrigger, tags: [back_channel, diplomacy] }
     - { kind: leverage, tags: [back_channel, diplomacy], base_add: 6 }

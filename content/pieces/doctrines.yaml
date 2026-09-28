@@ -276,6 +276,7 @@
   tags: [nuclear, escalatory]
   grants: [doctrine_madman]
   excludes: [minimal_deterrence]
+  unlock: { id: over_the_top, label: Madman Theory, hint: Take escalation to 95 or above and not end the world. }
   modifiers:
     - { kind: leverage, when: { values: { escalation: { min: 90 } } }, mult_mult: 3 }
     - { kind: leverage, per: escalation, per_above: 50, per_step: 10, mult_add: 0.5 }
@@ -296,6 +297,7 @@
   art: doctrine_red_lines
   tags: [escalatory, deterrence]
   grants: [doctrine_brinkmanship]
+  unlock: { id: smash_three, label: Brinkmanship, hint: Smash three antes in one run. }
   modifiers:
     - { kind: leverage, per: escalation, per_above: 50, per_step: 10, mult_add: 1.0 }
     - { kind: accident, mult: 1.15 }

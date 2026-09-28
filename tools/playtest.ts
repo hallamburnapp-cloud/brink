@@ -164,7 +164,7 @@ async function main() {
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
   const context = await browser.newContext({ ...devices['Pixel 7'], reducedMotion: 'reduce' });
   // Playtests may use any seat or tier: pre-unlock everything in this throwaway profile.
-  const allUnlocks = ['seat_federation', 'seat_coalition', 'defcon_4', 'defcon_3', 'defcon_2', 'defcon_1', 'arsenal', 'false_alarm_survivor', 'limited_striker', 'late_hands', 'cool_head', 'low_survivor', 'bankrupt', 'no_backchannel_standdown', 'five_endings', 'unloved_peacemaker'];
+  const allUnlocks = ['seat_federation', 'seat_coalition', 'defcon_4', 'defcon_3', 'defcon_2', 'defcon_1', 'arsenal', 'false_alarm_survivor', 'limited_striker', 'late_hands', 'cool_head', 'low_survivor', 'bankrupt', 'no_backchannel_standdown', 'five_endings', 'unloved_peacemaker', 'over_the_top', 'the_switch', 'two_standdowns', 'smash_three', 'broke_the_game'];
   await context.addInitScript((ids: string[]) => {
     try {
       if (!localStorage.getItem('brink.unlocks')) localStorage.setItem('brink.unlocks', JSON.stringify(ids));

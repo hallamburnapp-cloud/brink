@@ -1,0 +1,34 @@
+# FLASHPOINTS A — The Intercept, The Line at Sea, The Cascade.
+# Cards live in content/cards/fp_intercept.yaml, fp_line_at_sea.yaml, fp_cascade.yaml.
+# Outcome flags (exactly one per path):
+#   fp:intercept_restrained | fp:intercept_retaliated | fp:intercept_exchange
+#   (false-alarm path: fp:intercept_false_alarm_caught)
+#   fp:line_boarded | fp:line_shots | fp:line_stood_off
+#   fp:cascade_moratorium | fp:cascade_blamed | fp:cascade_escalated
+# Forced endings referenced (authored elsewhere): nuclear_intercept_exchange,
+#   nuclear_launch_on_warning, nuclear_straits, nuclear_blind.
+
+- id: fp_intercept
+  name: The Intercept
+  acts: [1, 5]
+  weight: 1
+  entry: fp_intercept_01_one_bird
+  false_alarm_entry: fp_intercept_fa_01_eleven_tracks
+  conditions: { flags_none: [fp:intercept_restrained, fp:intercept_retaliated, fp:intercept_exchange] }
+  blurb: A single vehicle in the air, eleven minutes to Caldor, and interceptors that may or may not work.
+
+- id: fp_line_at_sea
+  name: The Line at Sea
+  acts: [1, 4]
+  weight: 1
+  entry: fp_line_01_the_hail
+  conditions: { flags_none: [fp:line_boarded, fp:line_shots, fp:line_stood_off] }
+  blurb: A freighter and her escort run the line across the Sorrel Straits, and a captain asks what he does at the line.
+
+- id: fp_cascade
+  name: The Cascade
+  acts: [2, 4]
+  weight: 1
+  entry: fp_cascade_01_same_hour
+  conditions: { flags_none: [fp:cascade_moratorium, fp:cascade_blamed, fp:cascade_escalated] }
+  blurb: A satellite comes apart and the warning radars go dark in the same four minutes. Nobody can see, and everybody has to decide.

@@ -1,0 +1,169 @@
+# FLASHPOINT — The Intercept (fp_intercept). Acts 1–5.
+# Normal path (entry fp_intercept_01_one_bird): a real launch, an intercept roll,
+# then the response. Terminals set exactly one of fp:intercept_restrained,
+# fp:intercept_retaliated, fp:intercept_exchange. The catastrophic branch (08)
+# forces nuclear_intercept_exchange on an odds failure.
+# False-alarm path (entry fp_intercept_fa_01_eleven_tracks): the board shows
+# launches that are not there. Launch on Warning turns it into a launch decision
+# (fa_02); otherwise waiting costs (fa_03 / fa_05). Terminals set
+# fp:intercept_false_alarm_caught and clear false_alarm_live.
+# Piece hooks: missile_defence + deterrence_by_denial (04a), no_first_use (09,
+# first_use odds), launch_on_warning (fa_02), hardened_nc3 (fa_05), civil_defence (fa_06).
+
+# ================================================================ normal path
+- id: fp_intercept_01_one_bird
+  flashpoint: fp_intercept
+  advisor: watch_officer
+  acts: [1, 5]
+  timer: 10
+  timeout: right
+  tags: [nuclear, warning, missile_defence]
+  note: Entry. Real launch. Timeout lets it fly, the worse side with an unknown warhead over Caldor.
+  text: >-
+    04:51, one vehicle out of the {rival_adj} northern range, ballistic, both radars
+    and the constellation agree. Predicted impact is the sea off Caldor, and the
+    ellipse has the island in it. Warhead unknown, flight time eleven minutes. The
+    battery commander at Caldor is asking for a release, and I have told him to wait
+    for you.
+  left:
+    text: "Release the interceptors"
+    effects: { military: 12, escalation: 10, economy: -8, trust_primary: -8 }
+    tags: [missile_defence, military, nuclear]
+    odds:
+      label: Intercept
+      base: 0.55
+      tags: [intercept]
+      success:
+        text: >-
+          Two interceptors, one hit, at 04:58 and a hundred and ten miles up. The
+          debris comes down in the sea. Caldor hears the boom and nothing else.
+        effects: { public: 12, allies: 8 }
+        follow: [{ card: fp_intercept_02_splash, in: 0 }]
+      failure:
+        text: >-
+          Two interceptors, two misses. The vehicle comes down thirty miles off
+          Caldor's harbour, and the harbour cameras get all of it.
+        effects: { public: -14, military: -10 }
+        follow: [{ card: fp_intercept_03_two_misses, in: 0 }]
+  right:
+    text: "Let it fly. Track everything."
+    effects: { military: -12, public: -12, intel: 10 }
+    tags: [stall, intel, nuclear]
+    follow:
+      - { card: fp_intercept_04a_the_layer_you_did_not_use, in: 0 }
+      - { card: fp_intercept_04b_splash_zone, in: 0 }
+
+- id: fp_intercept_02_splash
+  flashpoint: fp_intercept
+  advisor: hawk_general
+  acts: [1, 5]
+  tags: [nuclear, military, missile_defence]
+  note: Intercept succeeded. The hawk has a package.
+  text: >-
+    Intercept confirmed, warhead inert, nothing on the island but a broken window
+    in the harbourmaster's office. They will call it a test that strayed. It was
+    aimed to within four miles of a town of nine thousand people. A package that
+    answers a test with a test can be in the air in six minutes, into the sea off
+    their coast, and it would be understood.
+  left:
+    text: "Send the package"
+    effects: { military: 14, escalation: 16, trust_primary: -14, public: 6 }
+    tags: [strike, military, escalatory, nuclear]
+    follow: [{ card: fp_intercept_06_the_package, in: 0 }]
+  right:
+    text: "Call it a test. Get me the line."
+    effects: { military: -14, public: -8, trust_primary: 8, escalation: -6 }
+    tags: [deescalate, reassurance, diplomacy]
+    follow: [{ card: fp_intercept_05_the_line, in: 0 }]
+
+- id: fp_intercept_03_two_misses
+  flashpoint: fp_intercept
+  advisor: watch_officer
+  acts: [1, 5]
+  tags: [nuclear, military, missile_defence]
+  note: Intercept failed. Inert impact, public failure.
+  text: >-
+    Impact 05:02, thirty-one miles east of Caldor harbour, inert. No casualties, a
+    fishing boat with a cracked wheelhouse and a very good camera. Both interceptors
+    are in the sea a long way from where they were meant to be. The battery
+    commander would like it on record that he asked for the release at 04:53.
+  left:
+    text: "Answer it now. Same range, same sea."
+    effects: { military: 12, escalation: 18, trust_primary: -14, public: 10 }
+    tags: [strike, military, escalatory, nuclear]
+    follow: [{ card: fp_intercept_06_the_package, in: 0 }]
+  right:
+    text: "Hotline first. Then the cameras."
+    effects: { military: -12, public: -14, escalation: -4, intel: 8 }
+    tags: [diplomacy, stall, nuclear]
+    follow: [{ card: fp_intercept_05_the_line, in: 0 }]
+
+- id: fp_intercept_04a_the_layer_you_did_not_use
+  flashpoint: fp_intercept
+  advisor: hawk_general
+  acts: [1, 5]
+  conditions: { pieces_any: [missile_defence, deterrence_by_denial] }
+  tags: [nuclear, military, missile_defence, domestic]
+  note: Complicates Missile Defence and Deterrence by Denial. You had the shield and watched.
+  text: >-
+    Impact at 05:02, inert, thirty-one miles off Caldor. We have spent four years
+    and a great deal of money telling them nothing reaches us. Something reached us,
+    on purpose, and the battery that exists to stop it was told to watch. The crews
+    know. By tonight the country will know. I need something to give them.
+  left:
+    text: "Give them the package"
+    effects: { military: 16, escalation: 18, trust_primary: -14, public: 12 }
+    tags: [strike, military, escalatory, nuclear]
+    follow: [{ card: fp_intercept_06_the_package, in: 0 }]
+  right:
+    text: "Give them the truth. Then the line."
+    effects: { military: -16, public: -16, trust_primary: 10, commitment: -8 }
+    tags: [transparency, diplomacy, nuclear]
+    follow: [{ card: fp_intercept_05_the_line, in: 0 }]
+
+- id: fp_intercept_04b_splash_zone
+  flashpoint: fp_intercept
+  advisor: intel_director
+  acts: [1, 5]
+  conditions: { pieces_none: [missile_defence, deterrence_by_denial] }
+  tags: [nuclear, intel, misperception]
+  note: Let it fly, no shield held. The intel director reads the impact.
+  text: >-
+    Impact 05:02, inert, thirty-one miles east of Caldor. We assess with moderate
+    confidence that the aim point was the water, not the island. We assess with high
+    confidence that we were meant to see how long we took to decide. Eleven minutes,
+    and the answer was that we watched. They have that number now.
+  left:
+    text: "Give them a number of our own"
+    effects: { military: 14, escalation: 18, trust_primary: -12, public: 8 }
+    tags: [strike, military, escalatory, nuclear]
+    follow: [{ card: fp_intercept_06_the_package, in: 0 }]
+  right:
+    text: "Take it to the line"
+    effects: { military: -12, public: -10, intel: 8, escalation: -4 }
+    tags: [diplomacy, deescalate, nuclear]
+    follow: [{ card: fp_intercept_05_the_line, in: 0 }]
+
+- id: fp_intercept_05_the_line
+  flashpoint: fp_intercept
+  advisor: hotline
+  acts: [1, 5]
+  tags: [nuclear, diplomacy, misperception]
+  note: Their account. Accepting it costs at home; rejecting it goes to the package.
+  text: >-
+    "{Rival} conducted a scheduled test of a re-entry vehicle into international
+    waters. Notification was filed with the Assembly Secretariat at 04:30
+    {rival_capital} time." A pause. "The Premier regrets any alarm in Caldor." The
+    Secretariat's night desk confirms a fax arrived at 04:31. It was a test, and it
+    was aimed.
+  left:
+    text: "Accept it. Demand the calendar."
+    effects: { escalation: -12, trust_primary: 8, public: -12, military: -10, commitment: -6 }
+    tags: [deescalate, diplomacy, nuclear]
+    spend_charge: deescalation
+    follow: [{ card: fp_intercept_07_the_morning_after, in: 0 }]
+  right:
+    text: "A fax is not a notice. Bombers up."
+    effects: { escalation: 14, military: 12, trust_primary: -12, public: 8, commitment: 8 }
+    tags: [mobilise, military, escalatory, public_commitment]
+    follow: [{ card: fp_intercept_06_the_package, in: 0 }]

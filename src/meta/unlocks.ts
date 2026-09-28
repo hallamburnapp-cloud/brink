@@ -162,6 +162,42 @@ export const UNLOCKS: UnlockDef[] = [
     hint: 'Reach Stand-Down with public support below 35.',
     check: ({ state, ending }) => isStanddown(ending) && state.meters.public < 35,
   },
+  // Legendaries of the scaling core
+  {
+    id: 'over_the_top',
+    kind: 'piece',
+    label: 'Madman Theory',
+    hint: 'Take escalation to 95 or above and not end the world.',
+    check: ({ state, ending }) => state.stats.peakEscalation >= 95 && ending?.kind !== 'nuclear',
+  },
+  {
+    id: 'the_switch',
+    kind: 'piece',
+    label: 'Deadman Switch',
+    hint: 'Lose a run to nuclear war.',
+    check: ({ ending }) => ending?.kind === 'nuclear',
+  },
+  {
+    id: 'two_standdowns',
+    kind: 'piece',
+    label: 'The Open Line',
+    hint: 'Reach Stand-Down twice.',
+    check: ({ stats }) => stats.standdowns >= 2,
+  },
+  {
+    id: 'smash_three',
+    kind: 'piece',
+    label: 'Brinkmanship',
+    hint: 'Smash three antes (twice the target) in one run.',
+    check: ({ state }) => state.stats.antesSmashed >= 3,
+  },
+  {
+    id: 'broke_the_game',
+    kind: 'other',
+    label: 'Broke the Game',
+    hint: 'Score one hundred times the final target.',
+    check: ({ state, content }) => state.score >= (content.acts[content.acts.length - 1]?.target ?? 20000) * 100,
+  },
 ];
 
 const KNOWN = new Set(UNLOCKS.map((u) => u.id));

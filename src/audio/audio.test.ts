@@ -22,6 +22,16 @@ const ALL: Sfx[] = [
   'ring',
   'nuclear',
   'ending',
+  'tally_tick',
+  'tally_mult',
+  'tally_slam',
+  'ante_smash',
+  'ante_miss',
+  'breath',
+  'accident',
+  'accident_clear',
+  'capital',
+  'retrigger',
 ];
 
 function stubStorage(initial: Record<string, string> = {}): Map<string, string> {
@@ -72,9 +82,18 @@ describe('audio without an AudioContext', () => {
       audio.heartbeat(180);
       audio.heartbeat(Number.NaN);
       audio.heartbeat(null);
+      audio.pulse(120);
+      audio.pulse(Number.NaN);
+      audio.pulse(null);
       audio.drone(true, 0.7);
       audio.drone(true);
       audio.drone(false);
+      audio.holdBreath(800);
+      audio.holdBreath(0);
+      audio.holdBreath(Number.NaN);
+      audio.setIntensity(0.9);
+      audio.setIntensity(Number.NaN);
+      audio.setIntensity(-1);
       audio.setVolume(0.5);
       audio.setVolume(Number.NaN);
       audio.setVolume(7);

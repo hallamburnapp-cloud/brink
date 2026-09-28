@@ -40,12 +40,17 @@ const ALL_IDS = [
   'no_backchannel_standdown',
   'five_endings',
   'unloved_peacemaker',
+  'over_the_top',
+  'the_switch',
+  'two_standdowns',
+  'smash_three',
+  'broke_the_game',
 ];
 
 describe('UNLOCKS table', () => {
-  it('has the 16 unlocks with ids matching content', () => {
+  it('has the 21 unlocks with ids matching content', () => {
     expect(UNLOCKS.map((u) => u.id).sort()).toEqual([...ALL_IDS].sort());
-    expect(new Set(UNLOCKS.map((u) => u.id)).size).toBe(16);
+    expect(new Set(UNLOCKS.map((u) => u.id)).size).toBe(21);
     for (const u of UNLOCKS) {
       expect(u.label.length).toBeGreaterThan(0);
       expect(u.hint.length).toBeGreaterThan(0);
@@ -66,8 +71,8 @@ describe('evaluateUnlocks', () => {
   it('unlocks nothing for a run lost in act 1', () => {
     const s = run();
     s.meters.escalation = 100;
-    expect(evaluateUnlocks(ctx(s, 'nuclear_war'))).toEqual([]);
-    expect(unlockedIds()).toEqual([]);
+    expect(evaluateUnlocks(ctx(s, 'nuclear_war'))).toEqual(['the_switch']);
+    expect(unlockedIds()).toEqual(['the_switch']);
   });
 
   it('seat_federation: reaching act 3', () => {
@@ -285,10 +290,10 @@ describe('evaluateUnlocks', () => {
     const stats = emptyStats();
     stats.endingsSeen = { a: 1, b: 1, c: 1, d: 1, e: 1 };
     const fresh = evaluateUnlocks({ ...ctx(s, 'standdown_quiet', stats), content: c2 });
-    const expected = ALL_IDS.filter((id) => id !== 'bankrupt');
+    const expected = ALL_IDS.filter((id) => !['bankrupt', 'over_the_top', 'the_switch', 'two_standdowns', 'smash_three', 'broke_the_game'].includes(id));
     expect([...fresh].sort()).toEqual([...expected].sort());
     // bankrupt needs a loss to economy 0, which contradicts a stand-down.
-    expect(unlockProgress()).toEqual({ total: 16, unlocked: 15 });
+    expect(unlockProgress()).toEqual({ total: 21, unlocked: 15 });
   });
 
   it('persists new unlocks and never reports them twice', () => {
@@ -296,12 +301,12 @@ describe('evaluateUnlocks', () => {
     s.act = 3;
     s.meters.escalation = 100;
     s.trail = [[50, 50, 50, 50, 100]];
-    expect(evaluateUnlocks(ctx(s, 'nuclear_war'))).toEqual(['seat_federation']);
+    expect(evaluateUnlocks(ctx(s, 'nuclear_war'))).toEqual(['seat_federation', 'the_switch']);
     expect(isUnlocked('seat_federation')).toBe(true);
     expect(isUnlocked('seat_coalition')).toBe(false);
-    expect(unlockedIds()).toEqual(['seat_federation']);
-    expect(unlockProgress()).toEqual({ total: 16, unlocked: 1 });
-    expect(unlockedForRun()).toEqual(['seat_federation']);
+    expect(unlockedIds()).toEqual(['seat_federation', 'the_switch']);
+    expect(unlockProgress()).toEqual({ total: 21, unlocked: 2 });
+    expect(unlockedForRun()).toEqual(['seat_federation', 'the_switch']);
     // Same run again: nothing new.
     expect(evaluateUnlocks(ctx(s, 'nuclear_war'))).toEqual([]);
     // A later run adds to the list.
@@ -312,7 +317,7 @@ describe('evaluateUnlocks', () => {
     expect(later).not.toContain('seat_federation');
     expect(unlockedIds()).toContain('seat_federation');
     expect(unlockedIds()).toContain('defcon_4');
-    expect(unlockProgress().unlocked).toBe(6);
+    expect(unlockProgress().unlocked).toBe(7);
   });
 
   it('ignores junk in storage and unknown ids in progress', () => {
@@ -323,7 +328,7 @@ describe('evaluateUnlocks', () => {
     });
     expect(unlockedIds()).toEqual(['seat_federation', 'not_a_real_unlock']);
     expect(isUnlocked('seat_federation')).toBe(true);
-    expect(unlockProgress()).toEqual({ total: 16, unlocked: 1 });
+    expect(unlockProgress()).toEqual({ total: 21, unlocked: 1 });
     __setStorageForTests({ getItem: () => '{"oops":true}', setItem: () => {}, removeItem: () => {} });
     expect(unlockedIds()).toEqual([]);
   });
@@ -360,7 +365,7 @@ describe('FEATURES.allUnlocked', () => {
       expect(mod.isUnlocked('defcon_1')).toBe(true);
       expect(mod.unlockedIds()).toEqual([]);
       expect(mod.unlockedForRun()).toBe('all');
-      expect(mod.unlockProgress()).toEqual({ total: 16, unlocked: 0 });
+      expect(mod.unlockProgress()).toEqual({ total: 21, unlocked: 0 });
     } finally {
       vi.doUnmock('../config');
       vi.resetModules();
