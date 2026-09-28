@@ -214,25 +214,34 @@ async function main() {
         await dialog.waitFor({ state: 'hidden', timeout: 12_000 }).catch(() => {});
         continue;
       }
-      if (await page.getByRole('button', { name: /^Choose one|^Bring in/ }).isVisible().catch(() => false)) {
+      const leave = page.getByRole('button', { name: /^Back to the desk$|^Begin |^Into the endless night$/ });
+      if (await leave.isVisible().catch(() => false)) {
         const pieces = page.locator('button').filter({ hasText: /ADVISOR|DOCTRINE|ASSET/ });
         const names = await pieces.allInnerTexts();
         const prefs = PIECE_PREFS[style];
-        let pickIdx = 0;
-        let best = Infinity;
-        names.forEach((n, i) => {
-          const rank = prefs.findIndex((p) => n.includes(p));
-          const r = rank === -1 ? 99 : rank;
-          if (r < best) {
-            best = r;
-            pickIdx = i;
-          }
-        });
-        await shot('offer');
-        log.push(`## OFFER`, ...names.map((n, i) => `- ${i === pickIdx ? '**TAKEN** ' : ''}${n.replace(/\n+/g, ' · ')}`), '');
-        await pieces.nth(pickIdx).click();
-        await page.getByRole('button', { name: /^Bring in/ }).click();
+        const capital = Number((await page.getByText(/^\d+$/).first().innerText().catch(() => '0')) || 0);
+        // Buy in preference order while affordable (the button is disabled when it is not).
+        const ranked = names.map((n, i) => ({ i, rank: (() => { const r = prefs.findIndex((p) => n.includes(p)); return r === -1 ? 99 : r; })() })).sort((a, b) => a.rank - b.rank);
+        const bought: string[] = [];
+        for (const { i } of ranked) {
+          const b = pieces.nth(i);
+          if (!(await b.isEnabled().catch(() => false))) continue;
+          await b.click().catch(() => {});
+          bought.push(names[i].split('\n')[1] ?? names[i]);
+          await page.waitForTimeout(150);
+          if (bought.length >= 2) break;
+        }
+        await shot('shop');
+        log.push(`## SHOP (capital ${capital})`, ...names.map((n) => `- ${n.replace(/\n+/g, ' · ')}`), bought.length ? `- **BOUGHT** ${bought.join(', ')}` : '- bought nothing', '');
+        await leave.click();
         await page.waitForTimeout(500);
+        continue;
+      }
+      const alert = page.getByRole('alert');
+      if (await alert.isVisible().catch(() => false)) {
+        const txt = (await alert.innerText().catch(() => '')).replace(/\n+/g, ' · ');
+        log.push(`> ⚠ ACCIDENT ${txt}`, '');
+        await alert.waitFor({ state: 'hidden', timeout: 12_000 }).catch(() => {});
         continue;
       }
       const r = await readCard(page);
@@ -270,7 +279,15 @@ async function main() {
       );
       const btn = page.getByRole('button', { name: side === 'left' ? /^Left:/ : /^Right:/ });
       await btn.click({ timeout: 5000 }).catch(() => {});
+      // The tally shows the score; wait for it to clear so the next card is readable.
       await page.waitForTimeout(500);
+      const tallyBox = page.getByLabel(/^Leverage \d+/);
+      if (await tallyBox.isVisible().catch(() => false)) {
+        const scored = await tallyBox.innerText().catch(() => '');
+        const m = scored.match(/\+([\d.,kM]+)/);
+        if (m) log.push(`> leverage +${m[1]}`, '');
+        await tallyBox.waitFor({ state: 'hidden', timeout: 8000 }).catch(() => {});
+      }
     }
     await page.getByRole('button', { name: /replay this seed/i }).waitFor({ timeout: 20_000 });
     await shot('ending');

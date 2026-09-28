@@ -66,12 +66,24 @@ export function allModifiers(ctx: ModContext): ModifierDef[] {
   return out;
 }
 
+/** Rules whose values are levels (take the strongest) rather than counts (sum). */
+const MAX_RULES: ReadonlySet<RuleId> = new Set<RuleId>(['warning_floor', 'military_floor', 'economy_floor', 'sell_bonus']);
+/** Rules whose values multiply (e.g. shop discounts stack multiplicatively). */
+const MULT_RULES: ReadonlySet<RuleId> = new Set<RuleId>(['shop_discount', 'escalate_to_deescalate']);
+
 export function rules(ctx: ModContext): Map<RuleId, number> {
   const map = new Map<RuleId, number>();
   for (const m of allModifiers(ctx)) {
     if (m.kind !== 'rule') continue;
-    const prev = map.get(m.rule) ?? 0;
-    map.set(m.rule, prev + (m.value ?? 1));
+    const v = m.value ?? 1;
+    if (!map.has(m.rule)) {
+      map.set(m.rule, v);
+      continue;
+    }
+    const prev = map.get(m.rule)!;
+    if (MAX_RULES.has(m.rule)) map.set(m.rule, Math.max(prev, v));
+    else if (MULT_RULES.has(m.rule)) map.set(m.rule, prev * v);
+    else map.set(m.rule, prev + v);
   }
   return map;
 }
@@ -102,12 +114,12 @@ export function resolveEffect(key: EffectKey, base: number, tags: readonly strin
   let mult = 1;
   for (const m of allModifiers(ctx)) {
     if (m.kind !== 'effect') continue;
-    if (m.always && skipAlways) continue;
     if (!keyMatches(m.key, key)) continue;
     if (!tagsMatch(m.tags, tags)) continue;
     if (m.sign === 'pos' && base <= 0) continue;
     if (m.sign === 'neg' && base >= 0) continue;
-    if (m.add) add += m.add;
+    // An injected `always` add is already in the base; its mult still applies.
+    if (m.add && !(m.always && skipAlways)) add += m.add;
     if (m.mult !== undefined) mult *= m.mult;
   }
   // Rule-based amplifiers that are cleaner as rules than as generic modifiers.

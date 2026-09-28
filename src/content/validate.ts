@@ -120,15 +120,26 @@ export function validateContent(content: Content): ContentIssue[] {
 
   // ---- cards
   const forcedEndingRefs = new Set<string>();
+  let bluffCards = 0;
   for (const id of content.cardOrder) {
     const c = cards[id];
     const where = `card ${id}`;
     if (!speakers[c.advisor]) err(where, `unknown speaker "${c.advisor}"`);
     if (c.flashpoint && !flashpoints[c.flashpoint]) err(where, `unknown flashpoint "${c.flashpoint}"`);
+    if (c.bluff) {
+      bluffCards++;
+      if (c.flashpoint) err(where, 'a bluff card belongs to no single flashpoint (drop flashpoint:)');
+    }
     for (const t of followTargets(c)) {
       if (!cards[t]) err(where, `follow-up to unknown card "${t}"`);
       else if (t === id) err(where, 'card follows up to itself');
+      else {
+        const target = cards[t];
+        if (target.flashpoint && target.flashpoint !== c.flashpoint) err(where, `follows up to "${t}" which belongs to flashpoint ${target.flashpoint}; it can only surface inside that flashpoint`);
+        if (c.seats && target.seats && !c.seats.every((s) => target.seats!.includes(s))) warn(where, `follow-up "${t}" is limited to fewer seats than this card; it will be dropped for the others`);
+      }
     }
+    if (c.flashpoint && c.warning && c.warning.in > 0) warn(where, 'warning follow-ups inside a flashpoint surface immediately (in is forced to 0)');
     for (const e of endingRefs(c)) {
       forcedEndingRefs.add(e);
       if (!endings[e]) err(where, `forces unknown ending "${e}"`);
@@ -159,19 +170,26 @@ export function validateContent(content: Content): ContentIssue[] {
     lint(`${where}.right`, c.right.text, issues);
   }
 
-  // ---- reachability (BFS from drawable roots + flashpoint entries)
+  if (bluffCards === 0) warn('cards', 'no bluff cards (bluff: true): a missed ante has no "bluff called" card unless every flashpoint sets bluff_entry');
+
+  // ---- reachability (BFS from drawable roots + flashpoint entries + bluff cards)
   const reachable = new Set<string>();
   const stack: string[] = [];
   for (const id of content.cardOrder) {
     const c = cards[id];
-    if (!c.chained && !c.flashpoint && c.weight > 0) stack.push(id);
+    if ((!c.chained && !c.flashpoint && c.weight > 0) || c.bluff) stack.push(id);
   }
   for (const fp of Object.values(flashpoints)) {
-    if (cards[fp.entry]) stack.push(fp.entry);
-    else err(`flashpoint ${fp.id}`, `entry card "${fp.entry}" does not exist`);
-    if (fp.false_alarm_entry) {
-      if (cards[fp.false_alarm_entry]) stack.push(fp.false_alarm_entry);
-      else err(`flashpoint ${fp.id}`, `false_alarm_entry card "${fp.false_alarm_entry}" does not exist`);
+    if (cards[fp.entry]) {
+      stack.push(fp.entry);
+      if (cards[fp.entry].conditions) err(`flashpoint ${fp.id}`, `entry card "${fp.entry}" has conditions; a flashpoint entry must always be playable`);
+    } else err(`flashpoint ${fp.id}`, `entry card "${fp.entry}" does not exist`);
+    for (const [label, entry] of [['false_alarm_entry', fp.false_alarm_entry], ['bluff_entry', fp.bluff_entry]] as const) {
+      if (!entry) continue;
+      if (cards[entry]) {
+        stack.push(entry);
+        if (cards[entry].conditions) err(`flashpoint ${fp.id}`, `${label} card "${entry}" has conditions; it must always be playable`);
+      } else err(`flashpoint ${fp.id}`, `${label} card "${entry}" does not exist`);
     }
     checkCond(`flashpoint ${fp.id}`, fp.conditions);
     if (fp.acts[0] > fp.acts[1]) err(`flashpoint ${fp.id}`, 'acts range is empty');
@@ -233,6 +251,11 @@ export function validateContent(content: Content): ContentIssue[] {
     if (e.trigger.type === 'forced' && !forcedEndingRefs.has(id) && !id.startsWith('fallback_')) err(where, 'forced ending is never referenced by any choice or odds outcome');
     if (e.trigger.type === 'meter' && !id.startsWith('fallback_')) meterTriggers.add(`${e.trigger.key}:${e.trigger.at}`);
     if (e.trigger.type === 'meter' && e.trigger.key === 'escalation' && e.trigger.at === 0) err(where, 'escalation 0 is not an ending trigger');
+    if (e.trigger.type === 'run_end' && !id.startsWith('fallback_')) {
+      const max = e.conditions?.values?.escalation?.max;
+      if (e.kind === 'standdown' && (max === undefined || max > 35)) err(where, 'a stand-down ending must require values.escalation.max ≤ 35 (the engine picks endings by priority, not kind)');
+      if (e.kind === 'survival' && max !== undefined && max <= 35) warn(where, 'a survival ending limited to escalation ≤ 35 competes with stand-downs');
+    }
     lint(where, e.text, issues);
     lint(where, e.compendium, issues);
   }
@@ -250,8 +273,21 @@ export function validateContent(content: Content): ContentIssue[] {
       if (m.kind === 'drift') checkCond(where, m.when);
     }
     for (const x of p.excludes ?? []) if (!pieces[x]) err(where, `excludes unknown piece "${x}"`);
+    if (p.offer_weight <= 0) warn(where, 'offer_weight 0: never offered in the shop');
+    const scoring = p.modifiers.some((m) => m.kind === 'leverage' || m.kind === 'retrigger' || m.kind === 'scale');
+    if (!scoring) warn(where, 'piece has no leverage, retrigger or scale modifier: it cannot help a build scale');
     lint(where, p.blurb, issues);
   }
+  for (const id of content.orderOrder) {
+    const o = content.orders[id];
+    lint(`order ${id}`, o.blurb, issues);
+  }
+  for (const a of Object.values(content.archetypes)) {
+    const where = `archetype ${a.id}`;
+    for (const p of [...a.core, ...a.support]) if (!pieces[p]) err(where, `references unknown piece "${p}"`);
+    lint(where, a.blurb, issues);
+  }
+  for (let i = 1; i < content.acts.length; i++) if (content.acts[i].target <= content.acts[i - 1].target) warn('rules', `act ${content.acts[i].index} target does not rise above act ${content.acts[i - 1].index}`);
   for (const s of SEATS) {
     const seat = seats[s];
     if (!seat) continue;
@@ -267,7 +303,7 @@ export function validateContent(content: Content): ContentIssue[] {
       let drawable = 0;
       for (const id of content.cardOrder) {
         const c = cards[id];
-        if (c.chained || c.flashpoint || c.weight <= 0) continue;
+        if (c.chained || c.flashpoint || c.bluff || c.weight <= 0) continue;
         if (act.index < c.acts[0] || act.index > c.acts[1]) continue;
         if (c.seats && !c.seats.includes(s)) continue;
         drawable++;
@@ -305,6 +341,9 @@ function lint(where: string, text: string, issues: ContentIssue[]): void {
 export function summarise(content: Content): Record<string, number> {
   return {
     cards: content.cardOrder.length,
+    orders: content.orderOrder.length,
+    archetypes: Object.keys(content.archetypes).length,
+    legendaries: content.pieceOrder.filter((id) => content.pieces[id].rarity === 'legendary').length,
     arcs: new Set(content.cardOrder.map((id) => content.cards[id].arc).filter(Boolean)).size,
     pieces: content.pieceOrder.length,
     advisors: content.pieceOrder.filter((id) => content.pieces[id].pool === 'advisor').length,

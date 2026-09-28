@@ -31,6 +31,16 @@ export interface ShareCardData {
   dailyNumber?: number; // e.g. 12 → "BRINK #12"
   streak?: number;
   pieces?: string[]; // display names of held pieces (≤ 4 shown)
+  /** Total leverage scored (the run's score). */
+  score?: number;
+  /** Endless acts survived past the Endgame. */
+  endlessActs?: number;
+}
+
+function scoreLabel(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`;
+  if (n >= 10_000) return `${(n / 1000).toFixed(n >= 100_000 ? 0 : 1)}k`;
+  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 // ------------------------------------------------------------------ constants
@@ -154,6 +164,7 @@ export function shareText(data: ShareCardData): string {
   const ending = `${emoji ? `${emoji} ` : ''}${data.endingName} — ${KIND_LABEL[data.endingKind] ?? 'Ending'}`;
 
   const lines: string[] = [head.join(' · '), ending];
+  if (typeof data.score === 'number') lines.push(`Score ${scoreLabel(data.score)}${data.endlessActs ? ` · endless ${data.endlessActs}` : ''}`);
   if (data.moment) lines.push(`${data.momentLabel}: ${data.moment}`);
   lines.push(...emojiStrip(data.trail));
   lines.push(`Seed ${data.seed} · ${urlOf(data)}`);

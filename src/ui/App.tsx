@@ -17,8 +17,9 @@ export function App() {
   const s = screen.value;
   useEffect(() => {
     const el = document.getElementById('app');
-    if (!el || shake.value === 0) return;
+    if (!el || shake.value.n === 0) return;
     el.classList.remove('shake');
+    el.style.setProperty('--shake', String(Math.min(2, shake.value.strength)));
     void el.offsetWidth;
     el.classList.add('shake');
     const t = setTimeout(() => el.classList.remove('shake'), 700);
@@ -50,10 +51,13 @@ export function App() {
 function Banner() {
   const b = banner.value;
   if (!b) return null;
+  const red = b.kind === 'flashpoint' || b.kind === 'ante_missed' || b.kind === 'deadman';
+  const green = b.kind === 'ante_met' || b.kind === 'ante_smashed';
+  const label = b.kind === 'flashpoint' ? 'PRIORITY' : b.kind === 'ante_missed' ? 'THE ANTE' : green ? 'THE ANTE' : b.kind === 'deadman' ? 'FAILSAFE' : 'BRIEFING';
   return (
     <div class="pointer-events-none fixed inset-x-0 top-[18%] z-50 flex justify-center px-4" aria-live="polite">
-      <div class={`rise ${b.kind === 'flashpoint' ? 'bg-red text-white' : 'paper'} px-6 py-4 text-center shadow-2xl`} style="min-width: 240px">
-        <div class="mono text-[11px] tracking-[0.3em] opacity-80">{b.kind === 'flashpoint' ? 'PRIORITY' : 'BRIEFING'}</div>
+      <div class={`rise ${red ? 'bg-red text-white' : green ? 'bg-green text-ink' : 'paper'} px-6 py-4 text-center shadow-2xl ${b.kind === 'ante_smashed' ? 'scale-110' : ''}`} style="min-width: 240px">
+        <div class="mono text-[11px] tracking-[0.3em] opacity-80">{label}</div>
         <div class="serif text-2xl font-semibold tracking-wide">{b.title}</div>
         {b.sub && <div class="mono mt-1 text-xs tracking-[0.2em] uppercase opacity-80">{b.sub}</div>}
       </div>

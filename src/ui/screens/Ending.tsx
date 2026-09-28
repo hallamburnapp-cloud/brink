@@ -3,7 +3,8 @@ import { BRAND } from '../../config';
 import { emojiStrip, renderShareCard, share, shareText, summariseMoment, type ShareCardData } from '../../meta/share';
 import { track } from '../../meta/analytics';
 import { UNLOCKS } from '../../meta/unlocks';
-import { content, currentEnding, endingText, goto, momentCard, replaySeed, run, runAgain, runMeta, toast } from '../store';
+import { formatScore, getBestScore } from '../../meta/score';
+import { busy, content, continueEndless, currentEnding, endingText, goto, momentCard, replaySeed, run, runAgain, runMeta, toast } from '../store';
 import { Speaker } from './Run';
 import { template } from '../../engine/run';
 
@@ -18,7 +19,6 @@ export function Ending() {
   const [pngUrl, setPngUrl] = useState<string | null>(null);
   if (!s || !m) return null;
   if (!e) {
-    // Content without a matching ending (hot reload mid-run, or a missing fallback): never strand the player.
     return (
       <div class="flex flex-1 flex-col gap-4 rise pt-2">
         <section class="paper rounded-md p-5 text-ink">
@@ -42,6 +42,7 @@ export function Ending() {
   }
   const seat = c.seats[s.seat];
   const moment = momentCard();
+  const best = getBestScore();
   const data: ShareCardData = {
     brand: BRAND.name,
     url: BRAND.url,
@@ -58,6 +59,8 @@ export function Ending() {
     mode: m.mode,
     dailyNumber: m.dailyNumber,
     pieces: s.pieces.map((id) => c.pieces[id]?.name).filter(Boolean) as string[],
+    score: s.score,
+    endlessActs: s.endless ? s.act - c.acts.length : 0,
   };
   useEffect(() => {
     let url: string | null = null;
@@ -96,7 +99,10 @@ export function Ending() {
     <div class="flex flex-1 flex-col gap-4 rise pt-2">
       <div class="mono flex items-center justify-between text-[10px] tracking-[0.24em] text-mute">
         <span>{m.mode === 'daily' ? `DAILY #${m.dailyNumber}` : `SEED ${s.seed}`}</span>
-        <span>{seat.name.toUpperCase()} · DAY {Math.floor(s.day)}</span>
+        <span>
+          {seat.name.toUpperCase()} · DAY {Math.floor(s.day)}
+          {s.endless ? ` · ENDLESS ${s.act - c.acts.length}` : ''}
+        </span>
       </div>
 
       <section class="paper rounded-md p-5">
@@ -112,8 +118,26 @@ export function Ending() {
               <p key={i}>{p}</p>
             ))}
         </div>
-        <div class="mono mt-4 text-[10px] tracking-[0.24em] text-ink-2/70">{Math.floor(s.day)} DAYS IN OFFICE</div>
+        <div class="mt-4 flex items-end justify-between border-t border-ink/10 pt-3">
+          <div>
+            <div class="mono text-[10px] tracking-[0.24em] text-ink-2/70">SCORE</div>
+            <div class="serif text-4xl font-bold tabular-nums text-ink">{formatScore(s.score)}</div>
+          </div>
+          <div class="text-right">
+            <div class="mono text-[10px] tracking-[0.24em] text-ink-2/70">{m.newBest ? 'NEW BEST' : 'BEST'}</div>
+            <div class={`serif text-xl font-semibold tabular-nums ${m.newBest ? 'text-red-2' : 'text-ink-2'}`}>{best ? formatScore(best.score) : formatScore(s.score)}</div>
+          </div>
+        </div>
+        <div class="mono mt-2 text-[10px] tracking-[0.24em] text-ink-2/70">
+          {Math.floor(s.day)} DAYS IN OFFICE · BEST CHOICE {formatScore(s.stats.bestChoice)} · ACCIDENTS SURVIVED {s.stats.accidentsSurvived}
+        </div>
       </section>
+
+      {s.canContinue && (
+        <button class="btn btn-danger" disabled={busy.value} onClick={continueEndless}>
+          Continue into endless escalation
+        </button>
+      )}
 
       {moment && speaker && (
         <section class="paper-dark rounded-md p-4">

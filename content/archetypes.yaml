@@ -1,0 +1,107 @@
+# ARCHETYPES — builds the shop can assemble. Holding two core pieces counts as playing
+# the archetype (used by the compendium and the simulator's "archetype reaches Endgame" target).
+
+- id: madman
+  name: Madman
+  blurb: Live at 90 and dare them. Every move up here is worth three, the accidents roll twice, and the Deadman Switch is the only seatbelt.
+  core: [madman_theory, brinkmanship, the_button, iron_nerve]
+  support: [deadman_switch, hawk_general, contractor, second_strike, launch_on_warning]
+  style: brink
+
+- id: quiet_diplomat
+  name: Quiet Diplomat
+  blurb: Leverage from trust and quiet rooms. Every conversation counts twice and each one makes the next weigh more; the ladder stays low and the ante still falls.
+  core: [open_line, whispers, quiet_room, ambassador]
+  support: [back_channel, dove_fm, courier, hotline_protocol, no_first_use]
+  style: standdown
+
+- id: intel_machine
+  name: Intel Machine
+  blurb: Know everything, fear nothing. Accidents shown in advance, trust in numbers, and a multiplier for every fact you act on.
+  core: [perfect_intel, signals_intercept, cautious_intel, attache]
+  support: [early_warning, transparency, hardened_nc3, war_room]
+  style: hybrid
+
+- id: alliance_engine
+  name: Alliance Engine
+  blurb: Every ally is the whole war in miniature and every joint move is counted twice. The keel holds until the first domino wobbles.
+  core: [domino_theory, alliance_first, tripwire, allied_basing]
+  support: [dove_fm, admiral, war_bonds]
+  style: hybrid
+
+- id: cyber_ghost
+  name: Cyber Ghost
+  blurb: Attribution is a weapon. Cyber cards come thick and fast, each one multiplied, and nobody can prove it was you.
+  core: [cyber_unit, cyber_director, attache]
+  support: [early_warning, commercial_sat, transparency, signals_intercept]
+  style: hybrid
+
+- id: shield_wall
+  name: Shield Wall
+  blurb: Interceptors on every hill. The Intercept is almost safe, deterrence pays, and trust bleeds a point at a time until Midnight.
+  core: [missile_defence, deterrence_by_denial, hardened_nc3]
+  support: [bunker, civil_defence, launch_on_warning, early_warning]
+  style: brink
+
+- id: war_economy
+  name: War Economy
+  blurb: The stronger the economy, the heavier every move. Keep it above 75 and the multiplier is enormous; let it slip and the factories go quiet.
+  core: [war_economy, treasury_hawk, strategic_reserve, trade_desk]
+  support: [fortress, war_bonds, long_table, lobby]
+  style: hybrid
+
+- id: red_lines_gambler
+  name: Red Lines Gambler
+  blurb: Say it on camera, mean it, and get paid for every rung of commitment. The corner you paint yourself into is the point.
+  core: [red_lines, spin_doctor, strategic_ambiguity]
+  support: [press_office, propaganda, hotline_protocol, pollster]
+  style: brink
+
+- id: sea_power
+  name: Sea Power
+  blurb: Carriers, dockyards and an admiral who follows orders. The blockade arcs dominate the deck and every hull counts double.
+  core: [admiral, blue_water_fleet, dockyards]
+  support: [tripwire, field_marshal, hawk_general, strategic_reserve]
+  style: brink
+
+- id: hair_trigger
+  name: Hair Trigger
+  blurb: Short timers, military defaults, escalation that climbs by itself. Fast, lethal, and the Deadman Switch is not optional.
+  core: [predelegation, rapid_response, launch_on_warning]
+  support: [second_strike, madman_theory, deadman_switch, hawk_general]
+  style: brink
+
+- id: deadman
+  name: Deadman
+  blurb: Go over the top on purpose, once. The switch catches you at 70 and everything you scored on the way up stays scored.
+  core: [deadman_switch, brinkmanship, bunker]
+  support: [madman_theory, iron_nerve, hardened_nc3, civil_defence]
+  style: brink
+
+- id: the_ladder
+  name: The Ladder
+  blurb: Limited strikes as tools, each counted twice, each raising the floor. Enormous scaling until the day you cannot climb down.
+  core: [escalate_to_deescalate, second_strike, the_button]
+  support: [hawk_general, field_marshal, staff_college, contractor]
+  style: brink
+
+- id: peace_movement
+  name: Peace Movement
+  blurb: The square loves you, the generals do not. Every step back pays in public and in leverage; the risk is being loved to death.
+  core: [peace_leader, civil_defence, no_first_use]
+  support: [dove_fm, hotline_protocol, pollster, courier]
+  style: standdown
+
+- id: ledger
+  name: The Ledger
+  blurb: "Money is a build. Capital every act, discounts, sell bonuses and a book that gets heavier every week: buy the run you want."
+  core: [long_table, lobby, war_bonds, ledger]
+  support: [fixer, trade_desk, treasury_hawk, fortress]
+  style: hybrid
+
+- id: accident_farmer
+  name: Accident Farmer
+  blurb: Invite the ghosts and survive them. Every accident that does not fire, and every one that does, grows the multiplier.
+  core: [iron_nerve, paranoid_intel, early_warning]
+  support: [bunker, hardened_nc3, madman_theory, civil_defence]
+  style: brink

@@ -15,6 +15,9 @@ export function Intro() {
             <span class="font-semibold">Any meter at the floor or the ceiling</span> ends your time in office. Escalation at the top ends everything.
           </li>
           <li>
+            <span class="font-semibold">Every choice scores leverage</span>: base × mult × the escalation multiplier. Beat the week's target before the flashpoint or your bluff gets called. Higher is worth more. Higher is where the accidents live.
+          </li>
+          <li>
             <span class="font-semibold">What they believe about you</span> is never a number. Listen to the people in the room. Odds are shown before you roll; near misses after.
           </li>
         </ol>

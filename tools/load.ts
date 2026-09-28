@@ -44,6 +44,16 @@ export function loadRaw(root: string): { raw: RawContent; issues: ContentIssue[]
     speakers: { file: 'speakers.yaml', items: (read(join(root, 'speakers.yaml')) as unknown[]) ?? [] },
     rules: { file: 'rules.yaml', item: read(join(root, 'rules.yaml')) },
   };
+  try {
+    if (statSync(join(root, 'orders.yaml')).isFile()) raw.orders = { file: 'orders.yaml', items: (read(join(root, 'orders.yaml')) as unknown[]) ?? [] };
+  } catch {
+    /* optional */
+  }
+  try {
+    if (statSync(join(root, 'archetypes.yaml')).isFile()) raw.archetypes = { file: 'archetypes.yaml', items: (read(join(root, 'archetypes.yaml')) as unknown[]) ?? [] };
+  } catch {
+    /* optional */
+  }
   return { raw, issues };
 }
 

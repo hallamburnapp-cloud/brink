@@ -4,15 +4,34 @@
  */
 import { computed, signal } from '@preact/signals';
 import { content as liveContent, onContentChange } from '../content';
-import { buryCard, choose, createRun, pickPiece, view, template } from '../engine/run';
+import {
+  buryCard,
+  buyOrder,
+  buyPiece,
+  choose,
+  continueRun,
+  createRun,
+  ctxFor,
+  leaveShop,
+  removeTag,
+  rerollCost,
+  rerollShop,
+  sellPiece,
+  sellPrice,
+  template,
+  useOrder,
+  view,
+} from '../engine/run';
 import { randomSeed } from '../engine/rng';
-import type { Content, EndingDef, RollResult, RunEvent, RunState, Seat } from '../engine/types';
+import type { AccidentResult, Content, EndingDef, LeverageBreakdown, RollResult, RunEvent, RunState, Seat } from '../engine/types';
 import { audio } from '../audio';
+import { snd } from './sound';
 import { load, save, remove } from '../meta/storage';
-import { dailyNumber, dailyPlayed, dailySeat, dailySeed, saveDailyRecord } from '../meta/daily';
+import { dailyNumber, dailyPlayed, dailyRecordFromRun, dailySeat, dailySeed, saveDailyRecord } from '../meta/daily';
 import { evaluateUnlocks, isUnlocked, unlockedIds } from '../meta/unlocks';
 import { getStats, recordOffer, recordRun } from '../meta/stats';
 import { countRun, daysSinceFirstRun, track } from '../meta/analytics';
+import { recordScore } from '../meta/score';
 import { FEATURES } from '../config';
 
 export type Screen = 'home' | 'seat' | 'run' | 'ending' | 'compendium' | 'stats' | 'privacy' | 'unlocked' | 'settings' | 'paywall' | 'about';
@@ -24,6 +43,7 @@ export interface RunMeta {
   startedAt: number;
   unlockedNow: string[];
   runsThisSession: number;
+  newBest: boolean;
 }
 
 const RUN_KEY = 'brink.run.current';
@@ -41,9 +61,11 @@ export const run = signal<RunState | null>(null);
 export const runMeta = signal<RunMeta | null>(null);
 export const busy = signal(false);
 export const rollOverlay = signal<{ result: RollResult; slow: boolean } | null>(null);
-export const banner = signal<{ title: string; sub?: string; kind: 'act' | 'flashpoint' } | null>(null);
+export const accidentOverlay = signal<{ result: AccidentResult; phase: 'breath' | 'result' } | null>(null);
+export const tally = signal<{ breakdown: LeverageBreakdown; key: number; actLeverage: number; actTarget: number } | null>(null);
+export const banner = signal<{ title: string; sub?: string; kind: 'act' | 'flashpoint' | 'ante_met' | 'ante_smashed' | 'ante_missed' | 'deadman' } | null>(null);
 export const toasts = signal<{ id: number; text: string; kind?: 'info' | 'warn' | 'good' }[]>([]);
-export const shake = signal(0);
+export const shake = signal<{ n: number; strength: number }>({ n: 0, strength: 1 });
 export const lastApplied = signal<Partial<Record<string, number>>>({});
 export const settings = signal<Settings>(load<Settings>(SETTINGS_KEY, { motion: 'auto', muted: false, seenIntro: false }));
 export const hasSavedRun = signal(false);
@@ -90,6 +112,10 @@ export function reducedMotion(): boolean {
   return typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+function doShake(strength: number): void {
+  shake.value = { n: shake.value.n + 1, strength };
+}
+
 // ------------------------------------------------------------------ boot
 
 export function boot(): void {
@@ -100,24 +126,26 @@ export function boot(): void {
     toast('Content reloaded', 'good');
   });
   const saved = load<{ state: RunState; meta: RunMeta } | null>(RUN_KEY, null);
-  hasSavedRun.value = !!saved && saved.state.phase !== 'ended';
+  hasSavedRun.value = !!saved && saved.state.v === 2 && saved.state.phase !== 'ended';
   if (typeof location !== 'undefined') {
     if (location.pathname === '/privacy') screen.value = 'privacy';
     else if (location.pathname === '/unlocked') screen.value = 'unlocked';
   }
   if (typeof document !== 'undefined') {
-    const unlock = () => {
-      audio.unlock();
-    };
+    const unlock = () => audio.unlock();
     document.addEventListener('pointerdown', unlock, { once: true, passive: true });
     document.addEventListener('keydown', unlock, { once: true });
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) audio.heartbeat(null);
+      if (document.hidden) {
+        snd.heartbeat(null);
+        snd.pulse(null);
+      }
     });
   }
-  // Danger drives the CSS
   danger.subscribe((d) => {
     if (typeof document !== 'undefined') document.documentElement.style.setProperty('--danger', d.toFixed(3));
+    snd.intensity(d);
+    snd.pulse(run.value && screen.value === 'run' && d >= 0.8 && run.value.phase === 'card' ? Math.round(70 + (d - 0.8) * 400) : null);
   });
 }
 
@@ -146,8 +174,11 @@ export function startRun(opts: { mode: 'daily' | 'endless' | 'challenge'; seat: 
     startedAt: Date.now(),
     unlockedNow: [],
     runsThisSession: countRun(),
+    newBest: false,
   };
   rollOverlay.value = null;
+  accidentOverlay.value = null;
+  tally.value = null;
   banner.value = null;
   lastApplied.value = {};
   persist();
@@ -155,8 +186,8 @@ export function startRun(opts: { mode: 'daily' | 'endless' | 'challenge'; seat: 
   const cohortDay = daysSinceFirstRun();
   track('run_start', { seat: opts.seat, mode: opts.mode, difficulty: opts.difficulty ?? 5, runs_this_session: runMeta.value.runsThisSession, days_since_first_run: cohortDay });
   if (opts.mode === 'daily') track('daily_played', { number: dailyNumber(), days_since_first_run: cohortDay });
-  audio.play('ring');
-  showBanner({ title: c.acts[0].name, sub: c.seats[opts.seat].name, kind: 'act' });
+  snd.play('ring');
+  showBanner({ title: c.acts[0].name, sub: `${c.seats[opts.seat].name} · target ${state.actTarget}`, kind: 'act' });
 }
 
 export function startDaily(): void {
@@ -169,9 +200,17 @@ export function startDaily(): void {
 
 export function resumeRun(): boolean {
   const saved = load<{ state: RunState; meta: RunMeta } | null>(RUN_KEY, null);
-  if (!saved || saved.state.phase === 'ended') return false;
-  run.value = saved.state;
-  runMeta.value = saved.meta;
+  if (!saved || saved.state.v !== 2 || saved.state.phase === 'ended') return false;
+  const s = saved.state;
+  // Content may have changed since the save: never resume onto a card that no longer exists.
+  if (s.phase === 'card' && (!s.current || !content.value.cards[s.current])) {
+    remove(RUN_KEY);
+    hasSavedRun.value = false;
+    toast('The saved run referred to cards that no longer exist. Starting fresh.', 'warn');
+    return false;
+  }
+  run.value = s;
+  runMeta.value = { ...saved.meta, newBest: saved.meta.newBest ?? false };
   goto('run');
   return true;
 }
@@ -181,8 +220,9 @@ export function abandonRun(): void {
   runMeta.value = null;
   remove(RUN_KEY);
   hasSavedRun.value = false;
-  audio.heartbeat(null);
-  audio.drone(false);
+  snd.heartbeat(null);
+  snd.pulse(null);
+  snd.drone(false);
   goto('home');
 }
 
@@ -213,16 +253,25 @@ function wait(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/** Commit a decision. The card component has already animated out. */
-export async function decide(side: 'left' | 'right' | 'timeout'): Promise<void> {
+function tallyDuration(total: number): number {
+  if (reducedMotion()) return 500;
+  if (total < 60) return 800;
+  if (total < 400) return 1100;
+  if (total < 3000) return 1500;
+  return 2000;
+}
+
+/** Commit a decision for the card it was issued for. The card component has already animated out. */
+export async function decide(side: 'left' | 'right' | 'timeout', forCard: string): Promise<void> {
   const s = run.value;
-  if (!s || busy.value || s.phase !== 'card') return;
+  if (!s || busy.value || s.phase !== 'card' || s.current !== forCard) return;
   busy.value = true;
-  audio.heartbeat(null);
+  snd.heartbeat(null);
   const wasFlashpoint = !!s.flashpoint;
-  if (side !== 'timeout') audio.play('commit');
+  if (side !== 'timeout') snd.play('commit');
   const { events } = choose(content.value, s, side);
   run.value = { ...s };
+  persist();
   await processEvents(events, wasFlashpoint);
   persist();
   busy.value = false;
@@ -232,7 +281,7 @@ export async function bury(): Promise<void> {
   const s = run.value;
   if (!s || busy.value || s.phase !== 'card' || s.charges.removal <= 0) return;
   busy.value = true;
-  audio.play('slide');
+  snd.play('slide');
   const { events } = buryCard(content.value, s);
   run.value = { ...s };
   toast('Buried. You will not hear about it again.', 'good');
@@ -241,17 +290,119 @@ export async function bury(): Promise<void> {
   busy.value = false;
 }
 
-export async function takePiece(id: string): Promise<void> {
+export async function useOrderAt(index: number): Promise<void> {
   const s = run.value;
-  if (!s || busy.value || s.phase !== 'offer') return;
+  if (!s || busy.value || s.phase !== 'card') return;
   busy.value = true;
-  const { events } = pickPiece(content.value, s, id);
+  const before = s.orders[index];
+  const { events } = useOrder(content.value, s, index);
   run.value = { ...s };
-  audio.play('act');
+  if (events.some((e) => e.type === 'order_used')) {
+    snd.play('reveal');
+    toast(`${content.value.orders[before]?.name ?? 'Order'}: done.`, 'good');
+  } else toast('That order has nothing to act on right now.', 'warn');
   await processEvents(events, false);
   persist();
   busy.value = false;
 }
+
+// ---- shop
+
+export function shopBuy(index: number): void {
+  const s = run.value;
+  if (!s || s.phase !== 'shop') return;
+  const offer = s.shop?.offers[index];
+  const { events } = buyPiece(content.value, s, index);
+  run.value = { ...s };
+  if (events.some((e) => e.type === 'capital')) {
+    snd.play('capital');
+    if (offer) {
+      recordOffer([offer.piece]);
+      if (runMeta.value) runMeta.value = { ...runMeta.value, offered: [...runMeta.value.offered, offer.piece] };
+    }
+    for (const e of events) if (e.type === 'reveal') toast('A hidden value is now readable.', 'good');
+  } else toast(s.capital < (offer?.price ?? 0) ? 'Not enough political capital.' : 'No room in the cabinet. Sell something first.', 'warn');
+  persist();
+}
+
+export function shopSell(pieceId: string): void {
+  const s = run.value;
+  if (!s || s.phase !== 'shop') return;
+  sellPiece(content.value, s, pieceId);
+  run.value = { ...s };
+  snd.play('capital');
+  persist();
+}
+
+export function shopReroll(): void {
+  const s = run.value;
+  if (!s || s.phase !== 'shop') return;
+  const cost = rerollCost(s, ctxFor(content.value, s));
+  if (s.capital < cost) return toast('Not enough political capital to reroll.', 'warn');
+  rerollShop(content.value, s);
+  run.value = { ...s };
+  snd.play('slide');
+  persist();
+}
+
+export function shopBuyOrder(index: number): void {
+  const s = run.value;
+  if (!s || s.phase !== 'shop') return;
+  const { events } = buyOrder(content.value, s, index);
+  run.value = { ...s };
+  if (events.length) snd.play('capital');
+  else toast(s.orders.length >= 2 ? 'You can only carry two orders.' : 'Not enough political capital.', 'warn');
+  persist();
+}
+
+export function shopRemoveTag(tag: string): void {
+  const s = run.value;
+  if (!s || s.phase !== 'shop') return;
+  const { events } = removeTag(content.value, s, tag);
+  run.value = { ...s };
+  if (events.length) {
+    snd.play('commit');
+    toast(`No more ${tag} cards this run.`, 'good');
+  } else toast('Cannot remove that (one per visit, 4 capital).', 'warn');
+  persist();
+}
+
+export async function shopLeave(): Promise<void> {
+  const s = run.value;
+  if (!s || busy.value || s.phase !== 'shop') return;
+  busy.value = true;
+  const { events } = leaveShop(content.value, s);
+  run.value = { ...s };
+  persist();
+  await processEvents(events, false);
+  persist();
+  busy.value = false;
+}
+
+export function shopSellPrice(pieceId: string): number {
+  const s = run.value;
+  return s ? sellPrice(content.value, s, pieceId) : 0;
+}
+
+export function shopRerollCost(): number {
+  const s = run.value;
+  return s ? rerollCost(s, ctxFor(content.value, s)) : 0;
+}
+
+export async function continueEndless(): Promise<void> {
+  const s = run.value;
+  if (!s || busy.value || s.phase !== 'ended' || !s.canContinue) return;
+  busy.value = true;
+  const { events } = continueRun(content.value, s);
+  run.value = { ...s };
+  goto('run');
+  snd.play('act');
+  await processEvents(events, false);
+  persist();
+  busy.value = false;
+}
+
+// ------------------------------------------------------------------ events → feel
 
 async function processEvents(events: RunEvent[], wasFlashpoint: boolean): Promise<void> {
   const c = content.value;
@@ -268,8 +419,22 @@ async function processEvents(events: RunEvent[], wasFlashpoint: boolean): Promis
         toast('Hotline Protocol: no price at home for that one.', 'good');
         break;
       case 'reveal':
-        audio.play('reveal');
-        toast(e.key === 'intel' ? 'Signals: intel reliability is now readable.' : e.key === 'commitment' ? 'You can now see how boxed in you are.' : 'Signals: their trust in you is now readable.', 'good');
+        snd.play('reveal');
+        toast(e.key === 'intel' ? 'Intel reliability is now readable.' : e.key === 'commitment' ? 'You can now see how boxed in you are.' : 'Their trust in you is now readable.', 'good');
+        break;
+      case 'capital':
+        if (e.delta > 0 && e.reason !== 'ante') {
+          snd.play('capital');
+          toast(`+${e.delta} political capital`, 'good', 1600);
+        }
+        break;
+      case 'scale': {
+        const p = c.pieces[e.piece];
+        toast(`${p?.name ?? e.piece} grows: ${e.mult ? `+${e.mult} mult` : ''}${e.base ? ` +${e.base} base` : ''}`, 'good', 1800);
+        snd.play('retrigger');
+        break;
+      }
+      case 'order_used':
         break;
       default:
         break;
@@ -279,46 +444,92 @@ async function processEvents(events: RunEvent[], wasFlashpoint: boolean): Promis
     lastApplied.value = applied;
     const up = Object.entries(applied).some(([k, v]) => (k === 'escalation' ? v < 0 : v > 0));
     const down = Object.entries(applied).some(([k, v]) => (k === 'escalation' ? v > 0 : v < 0));
-    if (down) audio.play('meter_down', { intensity: Math.min(1, Math.max(...Object.values(applied).map((v) => Math.abs(v))) / 20) });
-    if (up) setTimeout(() => audio.play('meter_up'), 140);
+    if (down) snd.play('meter_down', { intensity: Math.min(1, Math.max(...Object.values(applied).map((v) => Math.abs(v))) / 20) });
+    if (up) setTimeout(() => snd.play('meter_up'), 140);
+  }
+
+  // The tally: base counts up, mult counts up, they slam together.
+  const lev = events.find((e) => e.type === 'leverage');
+  if (lev && lev.type === 'leverage') {
+    const ms = tallyDuration(lev.breakdown.total);
+    tally.value = { breakdown: lev.breakdown, key: Date.now(), actLeverage: lev.actLeverage, actTarget: lev.actTarget };
+    await wait(ms);
+    const big = Math.min(1, Math.log10(Math.max(1, lev.breakdown.total)) / 5);
+    snd.play('tally_slam', { intensity: big });
+    if (lev.breakdown.total >= 400) doShake(0.4 + big);
+    await wait(reducedMotion() ? 200 : 450);
+    tally.value = null;
   }
 
   const roll = events.find((e) => e.type === 'roll');
   if (roll && roll.type === 'roll') {
     const slow = wasFlashpoint || !!run.value?.flashpoint;
     rollOverlay.value = { result: roll.result, slow };
-    audio.play('roll');
+    snd.play('roll');
     await wait(slow ? 2600 : 1500);
-    audio.play(roll.result.nearMiss ? 'near_miss' : roll.result.success ? 'roll_success' : 'roll_fail');
+    snd.play(roll.result.nearMiss ? 'near_miss' : roll.result.success ? 'roll_success' : 'roll_fail');
     await wait(slow ? 1400 : 900);
     rollOverlay.value = null;
   }
 
+  const acc = events.find((e) => e.type === 'accident');
+  if (acc && acc.type === 'accident') {
+    accidentOverlay.value = { result: acc.result, phase: 'breath' };
+    const breath = reducedMotion() ? 500 : 1300;
+    snd.breath(breath);
+    await wait(breath);
+    accidentOverlay.value = { result: acc.result, phase: 'result' };
+    if (acc.result.fired) {
+      snd.play('accident', { intensity: Math.min(1, acc.result.p * 2) });
+      doShake(0.8);
+    } else snd.play('accident_clear');
+    await wait(reducedMotion() ? 700 : 1500);
+    accidentOverlay.value = null;
+  }
+
   for (const e of events) {
+    if (e.type === 'ante') {
+      if (e.met) {
+        showBanner({ title: e.smashed ? 'TARGET SMASHED' : 'TARGET MET', sub: `${e.leverage.toLocaleString()} / ${e.target.toLocaleString()} · +${e.capital} capital`, kind: e.smashed ? 'ante_smashed' : 'ante_met' }, 2200);
+        snd.play(e.smashed ? 'ante_smash' : 'capital', { intensity: 1 });
+        if (e.smashed) doShake(1.4);
+      } else {
+        showBanner({ title: 'BLUFF CALLED', sub: `${e.leverage.toLocaleString()} / ${e.target.toLocaleString()}`, kind: 'ante_missed' }, 2400);
+        snd.play('ante_miss');
+        doShake(0.7);
+      }
+      await wait(reducedMotion() ? 600 : 1600);
+    }
+    if (e.type === 'deadman') {
+      showBanner({ title: 'DEADMAN SWITCH', sub: 'The order arrived at a bunker told to wait.', kind: 'deadman' }, 2600);
+      snd.play('flashpoint_hit', { intensity: 1 });
+      doShake(1.2);
+      await wait(reducedMotion() ? 600 : 1800);
+    }
     if (e.type === 'flashpoint_start') {
-      shake.value++;
-      audio.play('flashpoint_hit');
-      audio.drone(true, 0.6 + 0.4 * (run.value?.meters.escalation ?? 0) / 100);
+      doShake(1);
+      snd.play('flashpoint_hit');
+      snd.drone(true, 0.6 + (0.4 * (run.value?.meters.escalation ?? 0)) / 100);
       showBanner({ title: 'FLASHPOINT', sub: e.name, kind: 'flashpoint' }, 2200);
       await wait(600);
     }
-    if (e.type === 'flashpoint_end') {
-      audio.drone(false);
-    }
+    if (e.type === 'flashpoint_end') snd.drone(false);
     if (e.type === 'act_start') {
-      showBanner({ title: e.name, kind: 'act' });
-      audio.play('act');
+      showBanner({ title: e.name, sub: `target ${e.target.toLocaleString()}`, kind: 'act' });
+      snd.play('act');
     }
-    if (e.type === 'offer') {
-      audio.play('offer');
-      if (runMeta.value) runMeta.value = { ...runMeta.value, offered: [...runMeta.value.offered, ...e.pieces] };
-      recordOffer(e.pieces);
+    if (e.type === 'shop') {
+      snd.play('offer');
+      snd.heartbeat(null);
+      snd.pulse(null);
+      if (run.value?.shop) {
+        const ids = run.value.shop.offers.map((o) => o.piece);
+        if (runMeta.value) runMeta.value = { ...runMeta.value, offered: [...runMeta.value.offered, ...ids] };
+      }
     }
-    if (e.type === 'ending') {
-      await finishRun(e.kind);
-    }
+    if (e.type === 'ending') await finishRun(e.kind);
   }
-  if (run.value?.phase === 'card' && run.value.current) audio.play('slide');
+  if (run.value?.phase === 'card' && run.value.current) snd.play('slide');
 }
 
 async function finishRun(kind: string): Promise<void> {
@@ -326,35 +537,43 @@ async function finishRun(kind: string): Promise<void> {
   const m = runMeta.value;
   const c = content.value;
   if (!s || !m) return;
-  audio.heartbeat(null);
-  audio.drone(false);
+  snd.heartbeat(null);
+  snd.pulse(null);
+  snd.drone(false);
   const ending = s.ending ? c.endings[s.ending] : null;
-  const stats = recordRun(s, c, m.offered); // also records the ending in the compendium
+  const stats = recordRun(s, c, []);
   const unlockedNow = evaluateUnlocks({ state: s, content: c, ending: ending ?? null, stats });
-  runMeta.value = { ...m, unlockedNow };
-  if (m.mode === 'daily') {
-    saveDailyRecord({
-      dateKey: dailySeed().replace('daily-', ''),
-      number: m.dailyNumber ?? dailyNumber(),
-      seed: s.seed,
-      seat: s.seat,
-      ending: s.ending ?? 'unknown',
-      kind: ending?.kind ?? kind,
-      days: Math.floor(s.day),
-      act: s.act,
-      playedAt: Date.now(),
-    });
+  const newBest = recordScore(s);
+  runMeta.value = { ...m, unlockedNow, newBest };
+  if (m.mode === 'daily' && !s.endless) {
+    try {
+      // Filed under the seed's day, not the finish day; saveDailyRecord refuses to overwrite (one attempt per day).
+      saveDailyRecord(dailyRecordFromRun(s, c));
+    } catch {
+      /* never block the ending */
+    }
   }
-  track('run_end', { ending: s.ending ?? '', kind, days: Math.floor(s.day), act: s.act, seat: s.seat, pieces: s.pieces.join(','), runs_this_session: m.runsThisSession, mode: m.mode });
+  track('run_end', {
+    ending: s.ending ?? '',
+    kind,
+    days: Math.floor(s.day),
+    act: s.act,
+    seat: s.seat,
+    pieces: s.pieces.join(','),
+    runs_this_session: m.runsThisSession,
+    mode: m.mode,
+    score: s.score,
+    endless: s.endless,
+  });
   remove(RUN_KEY);
   hasSavedRun.value = false;
   if (kind === 'nuclear') {
-    shake.value++;
+    doShake(1.5);
     await wait(900);
-    audio.play('nuclear');
+    snd.play('nuclear');
     await wait(1500);
   } else {
-    audio.play('ending');
+    snd.play('ending');
     await wait(500);
   }
   goto('ending');

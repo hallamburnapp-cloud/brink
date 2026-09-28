@@ -1,203 +1,497 @@
-# ASSETS — capabilities that unlock card lines and change odds.
+# ASSETS — capabilities that unlock card lines, change odds and scale leverage.
 
 - id: early_warning
   pool: asset
+  rarity: common
   name: Early-Warning Constellation
   title: Early-Warning Constellation
   blurb: >-
-    Eyes over the pole, watching for the plume. You will see it coming. You will also
-    see things that are not coming, and someone will eventually try to blind it.
-  mechanics: Warning cards 60% more common. Intel reliability +8. Unlocks jamming and blinding lines.
+    Eyes over the pole, watching for the plume. You will see it coming, and every ghost
+    you correctly ignore teaches the operators something. Someone will eventually try
+    to blind it.
+  mechanics: Warning and intel choices +5 base; every accident that does not fire adds +1 base permanently (max +20). Warning cards 60% more common; intel reliability +8. Unlocks jamming lines.
   accent: "#7fd6e6"
   art: asset_ew
   tags: [space, warning, intel]
   grants: [asset_ew]
   modifiers:
+    - { kind: leverage, tags: [warning, intel], base_add: 5 }
+    - { kind: scale, on: accident_avoided, base_add: 1, max: 2 }
     - { kind: rule, rule: warning_frequency, value: 0.6 }
     - { kind: intel, add: 8 }
 
 - id: back_channel
   pool: asset
+  rarity: uncommon
   name: Back-Channel
   title: Back-Channel
   blurb: >-
     An academic in a neutral capital who happens to have lunch with the right people.
-    Nothing said through him is official, which is why anything can be said.
-  mechanics: Unlocks secret-talks lines. Back-channel rolls +10%. Back-channel cards 50% more common.
+    Nothing said through him is official, which is why anything can be said, and why
+    it weighs so much.
+  mechanics: Back-channel choices +4 base and +0.6 mult; their rolls +10%; back-channel cards 50% more common.
   accent: "#8e6bb3"
   art: asset_back_channel
   tags: [diplomacy, back_channel]
   grants: [asset_back_channel]
   modifiers:
+    - { kind: leverage, tags: [back_channel], base_add: 4, mult_add: 0.6 }
     - { kind: odds, tags: [back_channel], add: 0.10 }
     - { kind: weight, tags: [back_channel], mult: 1.5 }
 
 - id: cyber_unit
   pool: asset
+  rarity: uncommon
   name: Cyber Unit
   title: Cyber Unit
   blurb: >-
     Four hundred people in a building with no sign. They can find out who did it and
     they can do it back. The other side assumes you already have.
-  mechanics: Unlocks attribution and sabotage lines. Cyber rolls +10%. Cyber cards 40% more common. Cyber choices cost 2 trust with both rivals.
+  mechanics: Cyber choices ×1.3 mult; cyber rolls +10%; cyber cards 40% more common. Cyber choices cost 2 trust with both rivals.
   accent: "#3fbf9f"
   art: asset_cyber
   tags: [cyber, attribution]
   grants: [asset_cyber_unit]
   modifiers:
+    - { kind: leverage, tags: [cyber], mult_mult: 1.3 }
     - { kind: odds, tags: [cyber], add: 0.10 }
     - { kind: weight, tags: [cyber], mult: 1.4 }
     - { kind: effect, key: trust, tags: [cyber], add: -2, always: true }
 
 - id: missile_defence
   pool: asset
+  rarity: uncommon
   name: Missile Defence Layer
   title: Missile Defence Layer
   blurb: >-
     Interceptors on rails, radars on hills. It gives you a real chance to catch what
-    comes. It gives them a real reason to think you are planning to make it come.
-  mechanics: Intercept rolls +20%. Trust with the primary rival drifts down about one point every five cards.
+    comes and real weight behind every threat. It gives them a real reason to think you
+    are planning to make it come.
+  mechanics: Intercept, missile-defence and deterrence choices +0.5 mult. Intercept rolls +20%. Trust with the primary rival drifts down about one point every five cards.
   accent: "#7c8b9a"
   art: asset_md
   tags: [missile_defence, deterrence]
   grants: [asset_md]
   modifiers:
+    - { kind: leverage, tags: [intercept, missile_defence, deterrence], mult_add: 0.5 }
     - { kind: odds, tags: [intercept], add: 0.20 }
     - { kind: drift, key: trust_primary, per_card: -0.2 }
 
 - id: blue_water_fleet
   pool: asset
+  rarity: uncommon
   name: Blue-Water Fleet
   title: Blue-Water Fleet
   blurb: >-
     Carriers that can be anywhere in a week and cannot be hidden anywhere at all.
-    Blockades, transits, shows of force. Every option at sea, and the bill for fuel.
-  mechanics: Naval and blockade cards 60% more common. Naval rolls +10%. Naval choices cost 1 economy.
+    Blockades, transits, shows of force, and the bill for fuel.
+  mechanics: Naval and blockade choices ×1.3 mult; those cards 60% more common; naval rolls +10%. Naval choices cost 1 economy.
   accent: "#2f6fb8"
   art: asset_fleet
   tags: [naval, military]
   grants: [asset_fleet]
   modifiers:
+    - { kind: leverage, tags: [naval, blockade], mult_mult: 1.3 }
     - { kind: weight, tags: [naval, blockade], mult: 1.6 }
     - { kind: odds, tags: [naval], add: 0.10 }
     - { kind: effect, key: economy, tags: [naval], add: -1, always: true }
 
 - id: hardened_nc3
   pool: asset
+  rarity: rare
   name: Hardened NC3
   title: Hardened Command & Control
   blurb: >-
     Buried lines, redundant links, three people who must agree before the board is
-    believed. The false alarms still come. They stop arriving as orders.
-  mechanics: Warning cards are true at least 70% of the time regardless of intel. Nuclear-tagged escalation costs ×0.8.
+    believed. The false alarms still come. They stop arriving as orders, and when they
+    do arrive they do less.
+  mechanics: Nuclear choices +0.5 mult. Warning cards are true at least 70% of the time; accidents do 40% less damage; nuclear-tagged escalation costs ×0.8.
   accent: "#c9b98a"
   art: asset_nc3
   tags: [nuclear, intel]
   grants: [asset_nc3]
   unlock: { id: low_survivor, label: Hardened NC3, hint: Survive to Week Three with Launch on Warning. }
   modifiers:
+    - { kind: leverage, tags: [nuclear], mult_add: 0.5 }
     - { kind: rule, rule: warning_floor, value: 70 }
+    - { kind: accident, severity_mult: 0.6 }
     - { kind: effect, key: escalation, tags: [nuclear], sign: pos, mult: 0.8 }
 
 - id: commercial_sat
   pool: asset
+  rarity: common
   name: Commercial Satellite Deal
   title: Commercial Satellite Deal
   blurb: >-
     A private constellation, leased by the hour, cheaper than anything you could build.
-    Their imagery is on your desk before breakfast. Their shareholders are in every
-    capital, and their satellites are now targets.
-  mechanics: Intel reliability +6. Economy drifts up slowly. Space choices cost 2 more escalation. Unlocks entanglement lines.
+    Their imagery is on your desk before breakfast, their dividends in your account.
+    Their satellites are now targets.
+  mechanics: Space choices +6 base. +1 political capital each act; economy drifts up slowly; intel reliability +6. Space choices cost 2 more escalation.
   accent: "#9aa0a6"
   art: asset_comsat
   tags: [space, economy, entanglement]
   grants: [asset_comsat]
   unlock: { id: bankrupt, label: Commercial Satellite Deal, hint: Lose a run to economic collapse. }
   modifiers:
+    - { kind: leverage, tags: [space, entanglement], base_add: 6 }
+    - { kind: rule, rule: capital_per_act, value: 1 }
     - { kind: intel, add: 6 }
     - { kind: drift, key: economy, per_card: 0.15 }
     - { kind: effect, key: escalation, tags: [space], sign: pos, add: 2 }
 
 - id: allied_basing
   pool: asset
+  rarity: common
   name: Allied Basing Rights
   title: Allied Basing Rights
   blurb: >-
-    Runways and harbours on other people's soil. The alliance feels it every day. So
-    does the targeting cell across the border.
-  mechanics: Allies gains ×1.3 and allies drift up about one point every five cards. Basing and proxy cards 30% more common.
+    Runways and harbours on other people's soil. The alliance feels it every day, and
+    every joint move carries that weight. So does the targeting cell across the border.
+  mechanics: Alliance, basing and military choices +5 base and +0.2 mult. Allies gains ×1.3; allies drift up slowly; basing and proxy cards 30% more common.
   accent: "#5aa9d6"
   art: asset_basing
   tags: [alliance, military]
   grants: [asset_basing]
   modifiers:
+    - { kind: leverage, tags: [alliance, basing, military], base_add: 5, mult_add: 0.2 }
     - { kind: effect, key: allies, sign: pos, mult: 1.3 }
     - { kind: drift, key: allies, per_card: 0.2 }
     - { kind: weight, tags: [basing, proxy], mult: 1.3 }
 
 - id: strategic_reserve
   pool: asset
+  rarity: common
   name: Strategic Reserve
   title: Strategic Reserve
   blurb: >-
     Grain, fuel, chips, cash. Ninety days of everything. When the markets panic, you
-    can afford not to.
-  mechanics: Economy cannot fall below 15. Economy costs ×0.7.
+    can afford not to, and what you sell fetches a better price.
+  mechanics: Economy choices +0.4 mult. Economy cannot fall below 15; economy costs ×0.7; sold pieces return 75% of their price.
   accent: "#c1a23a"
   art: asset_reserve
   tags: [economy]
   grants: [asset_reserve]
   modifiers:
+    - { kind: leverage, tags: [economy, sanction], mult_add: 0.4 }
     - { kind: rule, rule: economy_floor, value: 15 }
+    - { kind: rule, rule: sell_bonus, value: 0.75 }
     - { kind: effect, key: economy, sign: neg, mult: 0.7 }
 
 - id: rapid_response
   pool: asset
+  rarity: uncommon
   name: Rapid-Response Brigade
   title: Rapid-Response Brigade
   blurb: >-
     Airborne in six hours, anywhere. Proxy fights stop being something that happens to
-    you. They start being something you can lose in an afternoon.
-  mechanics: Proxy rolls +15%. Proxy cards 30% more common. From Week Three, escalation gains are amplified by 15% per act.
+    you and start being something you can win, or lose, in an afternoon.
+  mechanics: Proxy choices +0.8 mult; proxy rolls +15%; proxy cards 30% more common. From Week Three, escalation gains are amplified by 15% per act.
   accent: "#b8352f"
   art: asset_rrb
   tags: [proxy, military]
   grants: [asset_rrb]
   modifiers:
+    - { kind: leverage, tags: [proxy], mult_add: 0.8 }
     - { kind: odds, tags: [proxy], add: 0.15 }
     - { kind: weight, tags: [proxy], mult: 1.3 }
     - { kind: rule, rule: escalation_twitch }
 
 - id: signals_intercept
   pool: asset
+  rarity: rare
   name: Signals Intercept
   title: Signals Intercept
   blurb: >-
     You are reading their internal traffic. Not all of it, not always in time, but
-    enough to know what they actually think of you.
-  mechanics: Reveals adversary trust on the HUD. Intel reliability +5. Intel rolls +10%.
+    enough to know what they actually think of you, and to move before the accident
+    finds you.
+  mechanics: All choices +0.3 mult. Adversary trust shown as numbers. Accidents 30% less likely; intel reliability +5; intel rolls +10%.
   accent: "#7fd6e6"
   art: asset_sigint
   tags: [intel]
   grants: [asset_sigint]
   unlock: { id: no_backchannel_standdown, label: Signals Intercept, hint: Reach Stand-Down without a Back-Channel. }
   modifiers:
+    - { kind: leverage, mult_add: 0.3 }
     - { kind: rule, rule: reveal_trust }
+    - { kind: accident, mult: 0.7 }
     - { kind: intel, add: 5 }
     - { kind: odds, tags: [intel], add: 0.10 }
 
 - id: civil_defence
   pool: asset
+  rarity: common
   name: Civil Defence Programme
   title: Civil Defence Programme
   blurb: >-
     Sirens tested on Tuesdays, leaflets in every letterbox, a shelter under the school.
     When the nuclear word is spoken, people are frightened. They are not surprised.
-  mechanics: Public costs on nuclear-tagged cards ×0.5. Nuclear and warning cards earn +2 public.
+  mechanics: Nuclear and warning choices +6 base. Public costs on nuclear cards ×0.5 and those cards earn +2 public. Accidents do 20% less damage.
   accent: "#c9b98a"
   art: asset_civil
   tags: [domestic, nuclear]
   grants: [asset_civil_defence]
   modifiers:
+    - { kind: leverage, tags: [nuclear, warning], base_add: 6 }
     - { kind: effect, key: public, tags: [nuclear], sign: neg, mult: 0.5 }
     - { kind: effect, key: public, tags: [nuclear, warning], add: 2, always: true }
+    - { kind: accident, severity_mult: 0.8 }
+
+# ---------------------------------------------------------------- new assets
+
+- id: deadman_switch
+  pool: asset
+  rarity: legendary
+  name: Deadman Switch
+  title: Deadman Switch
+  blurb: >-
+    A system that fires if you do not, so you never have to. Once, if the world is
+    about to end, it does not: the launch order arrives at a bunker that has been
+    told to wait, and the board resets to merely terrible.
+  mechanics: Once per run, a nuclear ending instead sets escalation to 70. Nuclear choices +1 mult.
+  accent: "#e03b3b"
+  art: asset_nc3
+  tags: [nuclear]
+  grants: [asset_deadman]
+  modifiers:
+    - { kind: rule, rule: deadman_switch }
+    - { kind: leverage, tags: [nuclear], mult_add: 1 }
+
+- id: perfect_intel
+  pool: asset
+  rarity: legendary
+  name: Perfect Intel
+  title: Perfect Intel
+  blurb: >-
+    Somebody on their side is yours, and they are very, very good. You know which
+    accidents are going to happen before you choose, and everything you do is done
+    with the answer already in your pocket.
+  mechanics: Accidents are resolved and shown before you choose. All choices +0.5 mult. Accidents 20% less likely.
+  accent: "#7fd6e6"
+  art: asset_sigint
+  tags: [intel]
+  grants: [asset_perfect_intel]
+  modifiers:
+    - { kind: rule, rule: perfect_intel }
+    - { kind: leverage, mult_add: 0.5 }
+    - { kind: accident, mult: 0.8 }
+
+- id: open_line
+  pool: asset
+  rarity: legendary
+  name: The Open Line
+  title: The Open Line
+  blurb: >-
+    Not the red telephone. A number their chief of staff answers on the first ring,
+    because you answered his. Everything said through it is said twice: once to him,
+    once to history.
+  mechanics: Back-channel and diplomacy choices score twice and get +6 base.
+  accent: "#8e6bb3"
+  art: doctrine_hotline
+  tags: [diplomacy, back_channel]
+  grants: [asset_open_line]
+  modifiers:
+    - { kind: retrigger, tags: [back_channel, diplomacy] }
+    - { kind: leverage, tags: [back_channel, diplomacy], base_add: 6 }
+
+- id: war_economy
+  pool: asset
+  rarity: legendary
+  name: Total War Economy
+  title: Total War Economy
+  blurb: >-
+    Every factory on a war footing, every ledger a targeting list. The stronger the
+    economy, the heavier every move you make. The economy does not enjoy it.
+  mechanics: +1 mult per 25 economy above 25 (that is +3 at 100). Economy drifts down about one point every two cards.
+  accent: "#c1a23a"
+  art: asset_reserve
+  tags: [economy, military]
+  grants: [asset_war_economy]
+  modifiers:
+    - { kind: leverage, per: economy, per_above: 25, per_step: 25, mult_add: 1.0 }
+    - { kind: drift, key: economy, per_card: -0.6 }
+
+- id: whispers
+  pool: asset
+  rarity: rare
+  name: Whispers
+  title: Whispers
+  blurb: >-
+    A network of people who talk to people. Every quiet conversation makes the next
+    one easier, and after a month of them you are the most listened-to person alive.
+  mechanics: Each back-channel or diplomacy choice grows +0.25 mult permanently (max +6).
+  accent: "#8e6bb3"
+  art: asset_back_channel
+  tags: [diplomacy, back_channel]
+  grants: [asset_whispers]
+  modifiers:
+    - { kind: scale, on: choice, tags: [back_channel, diplomacy], mult_add: 0.25, max: 6 }
+
+- id: ledger
+  pool: asset
+  rarity: rare
+  name: The Brinkman's Ledger
+  title: The Brinkman's Ledger
+  blurb: >-
+    A leather book, kept since the first week, in which every favour, threat and debt
+    is written down. The longer the crisis, the heavier the book.
+  mechanics: Every act, all choices gain +4 base permanently.
+  accent: "#c9b98a"
+  art: generic
+  tags: [economy, domestic]
+  grants: [asset_ledger]
+  modifiers:
+    - { kind: scale, on: act_start, base_add: 4 }
+    - { kind: leverage, base_add: 4 }
+
+- id: war_bonds
+  pool: asset
+  rarity: rare
+  name: War Bonds
+  title: War Bonds
+  blurb: >-
+    The public buys the crisis by the certificate. Every ante you clear pays a dividend
+    in weight, and the treasury sees a little more each week.
+  mechanics: Each ante met grows +0.3 mult permanently. +1 political capital each act.
+  accent: "#c1a23a"
+  art: asset_reserve
+  tags: [economy, domestic]
+  grants: [asset_war_bonds]
+  modifiers:
+    - { kind: scale, on: ante_met, mult_add: 0.3 }
+    - { kind: rule, rule: capital_per_act, value: 1 }
+
+- id: tripwire
+  pool: asset
+  rarity: rare
+  name: Tripwire Garrison
+  title: Tripwire Garrison
+  blurb: >-
+    Two thousand of your soldiers in an allied capital, not enough to hold it, enough
+    that any attack is an attack on you. Everything the alliance does now carries
+    that weight. Your allies find the weight uncomfortable.
+  mechanics: Alliance, basing and proxy choices ×1.4 mult. Allies drift down about one point every five cards.
+  accent: "#5aa9d6"
+  art: asset_basing
+  tags: [alliance, proxy, military]
+  grants: [asset_tripwire]
+  modifiers:
+    - { kind: leverage, tags: [alliance, alliance_demand, basing, proxy], mult_mult: 1.4 }
+    - { kind: drift, key: allies, per_card: -0.2 }
+
+- id: quiet_room
+  pool: asset
+  rarity: rare
+  name: The Quiet Room
+  title: The Quiet Room
+  blurb: >-
+    A house in a neutral city with no plaque and a very good cook. What is said there
+    is worth more than anything said in public, and they trust you more for saying it.
+  mechanics: Back-channel choices ×1.6 mult; trust gains from them ×1.2.
+  accent: "#8e6bb3"
+  art: asset_back_channel
+  tags: [diplomacy, back_channel]
+  grants: [asset_quiet_room]
+  modifiers:
+    - { kind: leverage, tags: [back_channel], mult_mult: 1.6 }
+    - { kind: effect, key: trust, tags: [back_channel], sign: pos, mult: 1.2 }
+
+- id: dockyards
+  pool: asset
+  rarity: uncommon
+  name: Naval Dockyards
+  title: Naval Dockyards
+  blurb: >-
+    Cranes, dry docks and a workforce that votes. Every ship you send counts for more.
+    Every ship you send costs a little more too.
+  mechanics: Naval and blockade choices +8 base; they cost 1 economy.
+  accent: "#2f6fb8"
+  art: asset_fleet
+  tags: [naval, economy]
+  grants: [asset_dockyards]
+  modifiers:
+    - { kind: leverage, tags: [naval, blockade], base_add: 8 }
+    - { kind: effect, key: economy, tags: [naval, blockade], add: -1, always: true }
+
+- id: bunker
+  pool: asset
+  rarity: uncommon
+  name: The Deep Bunker
+  title: The Deep Bunker
+  blurb: >-
+    Ninety metres of granite and a bed you have never slept in. Accidents reach you
+    late and softened. The nuclear word, said from down here, carries.
+  mechanics: Accidents do 30% less damage. Nuclear choices +6 base.
+  accent: "#c9b98a"
+  art: asset_civil
+  tags: [nuclear]
+  grants: [asset_bunker]
+  modifiers:
+    - { kind: accident, severity_mult: 0.7 }
+    - { kind: leverage, tags: [nuclear], base_add: 6 }
+
+- id: war_room
+  pool: asset
+  rarity: uncommon
+  name: The War Room
+  title: The War Room
+  blurb: >-
+    Better maps, better clocks, better coffee. Every decision has a few more seconds
+    in it and a little more behind it.
+  mechanics: Timers +3 seconds. All choices +3 base.
+  accent: "#7c8b9a"
+  art: generic
+  tags: [intel, time]
+  grants: [asset_war_room]
+  modifiers:
+    - { kind: timer, add: 3 }
+    - { kind: leverage, base_add: 3 }
+
+- id: staff_college
+  pool: asset
+  rarity: common
+  name: Staff College
+  title: Staff College
+  blurb: >-
+    Officers who have read the same three books you have. Military moves are planned
+    rather than improvised, and it shows.
+  mechanics: Military choices +0.3 mult.
+  accent: "#b8352f"
+  art: generic
+  tags: [military]
+  grants: [asset_staff_college]
+  modifiers:
+    - { kind: leverage, tags: [military, mobilise], mult_add: 0.3 }
+
+- id: trade_desk
+  pool: asset
+  rarity: common
+  name: Trade Desk
+  title: Trade Desk
+  blurb: >-
+    Six people and a screen who know what every port in the world is doing. Economic
+    moves land with the numbers already run, and the treasury sends a little each week.
+  mechanics: Economy and sanction choices +5 base. +1 political capital each act.
+  accent: "#c1a23a"
+  art: asset_reserve
+  tags: [economy]
+  grants: [asset_trade_desk]
+  modifiers:
+    - { kind: leverage, tags: [economy, sanction], base_add: 5 }
+    - { kind: rule, rule: capital_per_act, value: 1 }
+
+- id: courier
+  pool: asset
+  rarity: common
+  name: The Courier
+  title: The Courier
+  blurb: >-
+    A diplomat with a bag that is never searched and a face nobody remembers. Messages
+    arrive whole, and they arrive with weight.
+  mechanics: Diplomacy and back-channel choices +5 base.
+  accent: "#8e6bb3"
+  art: asset_back_channel
+  tags: [diplomacy]
+  grants: [asset_courier]
+  modifiers:
+    - { kind: leverage, tags: [diplomacy, back_channel], base_add: 5 }

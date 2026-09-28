@@ -3,6 +3,7 @@ import { BRAND, FEATURES, VERSION } from '../../config';
 import { dailyDateKey, dailyNumber, dailyPlayed, dailySeat, dailyStreak, getDailyRecord, msUntilNextDaily } from '../../meta/daily';
 import { hasEndless } from '../../meta/unlock';
 import { compendium } from '../../meta/compendium';
+import { formatScore, getBestScore } from '../../meta/score';
 import { content, endlessAvailable, goto, hasSavedRun, resumeRun, startDaily } from '../store';
 import { Mark } from '../components/Mark';
 
@@ -28,6 +29,7 @@ export function Home() {
   }, []);
   const comp = compendium(c);
   const streak = dailyStreak();
+  const best = getBestScore();
 
   return (
     <div class="flex flex-1 flex-col gap-6 pt-6">
@@ -74,6 +76,12 @@ export function Home() {
           <div>
             <div class="serif text-xl font-semibold">Every seat, every seed</div>
             <div class="serif text-xs text-paper/70">Unlimited runs. Choose a seat, a DEFCON tier, share a seed.</div>
+            {best && (
+              <div class="mono mt-1 text-[10px] tracking-[0.14em] text-amber">
+                BEST SCORE {formatScore(best.score)} · {c.seats[best.seat as keyof typeof c.seats]?.name ?? best.seat}
+                {best.endless ? ` · ENDLESS ${best.act - c.acts.length}` : ''}
+              </div>
+            )}
           </div>
           {endlessAvailable.value ? (
             <button class="btn btn-primary" onClick={() => goto('seat')}>

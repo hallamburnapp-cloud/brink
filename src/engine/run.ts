@@ -4,11 +4,17 @@
  * simulator) and returns it with a list of events for the UI and audio.
  * Serialising the state with JSON.stringify and continuing later yields
  * identical results because the RNG state travels with it.
+ *
+ * Loop: card → choose (effects, odds, LEVERAGE, accidents) → … → act end:
+ * ANTE check (leverage vs target) → flashpoint sequence → SHOP → next act.
+ * After the Endgame a win may continue into endless acts with rising targets.
  */
 import { Rng } from './rng';
 import {
   METERS,
-  HIDDEN,
+  type AccidentResult,
+  type AccidentState,
+  type AccidentType,
   type ActDef,
   type CardDef,
   type CardView,
@@ -25,11 +31,13 @@ import {
   type HistoryEntry,
   type MeterKey,
   type Mode,
+  type OrderDef,
   type OutcomeDef,
   type PieceDef,
   type RollResult,
   type RunEvent,
   type RunState,
+  type ScaleTrigger,
   type Seat,
   type Side,
 } from './types';
@@ -47,6 +55,23 @@ import {
   type ModContext,
 } from './modifiers';
 import { activeFlags, checkConditions } from './conditions';
+import {
+  ACCIDENT_LABEL,
+  ACCIDENT_TYPES,
+  MAX_ORDERS,
+  MAX_PIECES,
+  RARITY_WEIGHT,
+  REMOVABLE_TAGS,
+  REMOVE_TAG_PRICE,
+  REROLL_BASE,
+  accidentChance,
+  accidentEffects,
+  accidentModifiers,
+  actTarget,
+  anteReward,
+  computeLeverage,
+  endlessActDef,
+} from './leverage';
 
 export const STANDDOWN_THRESHOLD = 35;
 export const NEAR_MISS_MARGIN = 5;
@@ -70,7 +95,9 @@ export interface StepResult {
 // ------------------------------------------------------------------ helpers
 
 export function actDef(content: Content, act: number): ActDef {
-  return content.acts[Math.min(Math.max(act, 1), content.acts.length) - 1];
+  const acts = content.acts;
+  if (act <= acts.length) return acts[Math.max(act, 1) - 1];
+  return endlessActDef(acts[acts.length - 1], act);
 }
 
 export function difficultyDef(content: Content, level: number): DifficultyDef {
@@ -98,7 +125,15 @@ function saveRng(state: RunState, rng: Rng): void {
   state.rng = rng.snapshot();
 }
 
-/** Replace {us}, {rival}, {other}, {leader}, {capital}, {rival_adj}, {us_adj} in card text. */
+export function maxPieces(ctx: ModContext): number {
+  return MAX_PIECES + ruleValue(ctx, 'extra_piece_slot');
+}
+
+export function maxOrders(ctx: ModContext): number {
+  return MAX_ORDERS + ruleValue(ctx, 'extra_order_slot');
+}
+
+/** Replace {us}, {rival}, {other}, {leader}, {capital}, {rival_adj}, {us_adj}… in card text. */
 export function template(content: Content, state: RunState, text: string): string {
   const seat = content.seats[state.seat];
   const rival = content.seats[seat.rivals[0]];
@@ -138,7 +173,7 @@ export function createRun(content: Content, opts: RunOptions): RunState {
   const diff = difficultyDef(content, difficulty);
   const rng = new Rng(`${opts.seed}|${opts.seat}|${difficulty}`);
   const state: RunState = {
-    v: 1,
+    v: 2,
     seed: opts.seed,
     rng: rng.snapshot(),
     seat: opts.seat,
@@ -152,12 +187,17 @@ export function createRun(content: Content, opts: RunOptions): RunState {
     hidden: { ...seat.hidden },
     flags: [`seat:${opts.seat}`, `mode:${opts.mode}`],
     pieces: [...seat.starting_pieces],
+    pieceState: {},
+    orders: [],
+    removedTags: [],
     seen: [],
     queue: [],
     phase: 'card',
     current: null,
     truth: null,
-    offer: null,
+    accident: null,
+    shop: null,
+    midShopDone: false,
     flashpoint: null,
     flashpointsUsed: [],
     ending: null,
@@ -167,7 +207,30 @@ export function createRun(content: Content, opts: RunOptions): RunState {
     charges: { deescalation: 0, removal: 0 },
     escalationFloor: 0,
     revealed: [],
-    stats: { rolls: 0, nearMisses: 0, timeouts: 0, falseAlarms: 0, trueWarnings: 0 },
+    capital: seat.starting_capital ?? 4,
+    actLeverage: 0,
+    actTarget: actTarget(content, 1, diff.target_scale ?? 1),
+    score: 0,
+    nextRetrigger: 0,
+    nextMult: 1,
+    deadmanUsed: false,
+    endless: false,
+    canContinue: false,
+    lastLeverage: null,
+    stats: {
+      rolls: 0,
+      nearMisses: 0,
+      timeouts: 0,
+      falseAlarms: 0,
+      trueWarnings: 0,
+      accidents: 0,
+      accidentsSurvived: 0,
+      antesMet: 0,
+      antesSmashed: 0,
+      antesMissed: 0,
+      bestChoice: 0,
+      peakEscalation: state_peak(seat.meters.escalation + diff.start_escalation),
+    },
   };
   if (opts.unlocked && opts.unlocked !== 'all') state.flags.push(...opts.unlocked.map((u) => `unlocked:${u}`));
   else state.flags.push('unlocked:all');
@@ -177,6 +240,10 @@ export function createRun(content: Content, opts: RunOptions): RunState {
   drawNext(content, state, rng, events);
   saveRng(state, rng);
   return state;
+}
+
+function state_peak(v: number): number {
+  return clamp(v, 0, 100);
 }
 
 function resetCharges(content: Content, state: RunState): void {
@@ -227,6 +294,7 @@ export function view(content: Content, state: RunState): CardView | null {
     isFlashpoint: !!state.flashpoint,
     flashpointName: fp ? fp.name : null,
     tags: card.tags,
+    accident: state.accident ? { ...state.accident, label: ACCIDENT_LABEL[state.accident.type] } : null,
   };
 }
 
@@ -254,7 +322,17 @@ function choiceView(content: Content, state: RunState, card: CardDef, side: Side
     const r = resolveOdds(choice.odds.base, choice.odds.tags, ctx, state.hidden);
     odds = { label: choice.odds.label, p: r.p };
   }
-  return { side, text: template(content, state, choice.text), preview, hiddenCosts, odds, tags: choice.tags, usesCharge };
+  return {
+    side,
+    text: template(content, state, choice.text),
+    preview,
+    hiddenCosts,
+    odds,
+    tags: choice.tags,
+    usesCharge,
+    leverage: computeLeverage(content, state, choice, ctx.pieces),
+    capital: choice.capital ?? 0,
+  };
 }
 
 function wouldUseCharge(state: RunState, choice: ChoiceDef, ctx: ModContext): boolean {
@@ -273,8 +351,9 @@ function effectiveBase(state: RunState, choice: ChoiceDef, ctx: ModContext, uses
     if ((e.allies ?? 0) < 0) delete e.allies;
   }
   // Commitment trap: walking back a public commitment costs more public the more committed you are.
+  // The base trap doubles the cost at full commitment; commitment_lock pieces add to it.
   if (choice.tags.includes('walk_back') && (e.public ?? 0) < 0) {
-    const lock = ruleValue(ctx, 'commitment_lock', 1);
+    const lock = 1 + ruleValue(ctx, 'commitment_lock', 0);
     e.public = (e.public ?? 0) * (1 + (state.hidden.commitment / 100) * lock);
   }
   return e;
@@ -299,6 +378,9 @@ export function choose(content: Content, state: RunState, side: Side | 'timeout'
   } else resolvedSide = side;
   const choice = card[resolvedSide];
 
+  // 0. Leverage is scored on the state as shown to the player (what you see is what you score).
+  const lv = computeLeverage(content, state, choice, ctx.pieces);
+
   // 1. Effects (with charge + commitment trap), through the resolver.
   const usesCharge = wouldUseCharge(state, choice, ctx);
   if (usesCharge) {
@@ -307,8 +389,9 @@ export function choose(content: Content, state: RunState, side: Side | 'timeout'
   }
   const applied = applyEffects(content, state, rng, effectiveBase(state, choice, ctx, usesCharge), choice.tags, ctx);
   events.push({ type: 'effects', applied });
+  if (choice.capital) addCapital(state, choice.capital, 'choice', events);
 
-  const entry: HistoryEntry = { card: card.id, side, act: state.act, day: state.day, applied: { ...applied } };
+  const entry: HistoryEntry = { card: card.id, side: resolvedSide, timedOut: side === 'timeout', act: state.act, day: state.day, applied: { ...applied }, leverage: lv.total };
   let forcedEnding: string | undefined = choice.ending;
 
   // 2. Odds roll.
@@ -316,14 +399,7 @@ export function choose(content: Content, state: RunState, side: Side | 'timeout'
     const o = resolveOdds(choice.odds.base, choice.odds.tags, ctx, state.hidden);
     const r = rng.roll(o.p);
     const margin = Math.abs(o.p - r.roll) * 100;
-    const result: RollResult = {
-      label: choice.odds.label,
-      p: o.p,
-      roll: r.roll,
-      success: r.success,
-      margin,
-      nearMiss: margin < NEAR_MISS_MARGIN,
-    };
+    const result: RollResult = { label: choice.odds.label, p: o.p, roll: r.roll, success: r.success, margin, nearMiss: margin < NEAR_MISS_MARGIN };
     state.stats.rolls++;
     if (result.nearMiss) state.stats.nearMisses++;
     entry.roll = result;
@@ -335,9 +411,12 @@ export function choose(content: Content, state: RunState, side: Side | 'timeout'
       for (const k of Object.keys(a2) as EffectKey[]) entry.applied[k] = (entry.applied[k] ?? 0) + (a2[k] ?? 0);
       events.push({ type: 'effects', applied: a2 });
     }
+    if (outcome.capital) addCapital(state, outcome.capital, 'roll', events);
     applyFlags(state, outcome.set, outcome.clear, events);
-    queueFollows(state, rng, outcome.follow, !!card.flashpoint);
+    queueFollows(content, state, rng, outcome.follow, !!card.flashpoint);
     if (outcome.ending) forcedEnding = outcome.ending;
+    grow(content, state, r.success ? 'roll_success' : 'roll_failure', choice.tags, events);
+    if (result.nearMiss) grow(content, state, 'near_miss', choice.tags, events);
   }
 
   // 3. Flags, reveals, follow-ups.
@@ -346,52 +425,126 @@ export function choose(content: Content, state: RunState, side: Side | 'timeout'
     state.revealed.push(choice.reveal);
     events.push({ type: 'reveal', key: choice.reveal });
   }
-  queueFollows(state, rng, choice.follow, !!card.flashpoint);
+  queueFollows(content, state, rng, choice.follow, !!card.flashpoint);
 
   // 4. Warning resolution: the truth was decided on draw; the right branch is queued now.
   if (card.warning && state.truth !== null) {
     entry.truth = state.truth;
     const w = card.warning;
-    state.queue.push({ card: state.truth ? w.true_follow : w.false_follow, in: w.in });
+    queueFollows(content, state, rng, [{ card: state.truth ? w.true_follow : w.false_follow, in: w.in }], !!card.flashpoint);
     if (state.truth) state.stats.trueWarnings++;
     else state.stats.falseAlarms++;
     events.push({ type: 'warning', truth: state.truth });
   }
   state.truth = null;
 
-  // 5. Bookkeeping.
+  // 5. Leverage.
+  state.score += lv.total;
+  if (!card.flashpoint) state.actLeverage += lv.total;
+  if (lv.total > state.stats.bestChoice) state.stats.bestChoice = lv.total;
+  state.lastLeverage = lv;
+  state.nextRetrigger = 0;
+  state.nextMult = 1;
+  events.push({ type: 'leverage', breakdown: lv, actLeverage: state.actLeverage, actTarget: state.actTarget });
+  grow(content, state, 'choice', choice.tags, events);
+
+  // 6. Accident.
+  let accidentFired = false;
+  if (state.accident) {
+    const acc = state.accident;
+    let fired: boolean;
+    let roll: number;
+    if (acc.known !== null) {
+      fired = acc.known;
+      roll = fired ? 0 : 1;
+    } else {
+      roll = rng.next();
+      fired = roll < acc.p;
+      if (!fired && hasRule(ctx, 'accidents_twice')) {
+        const r2 = rng.next();
+        if (r2 < acc.p) {
+          fired = true;
+          roll = r2;
+        }
+      }
+    }
+    const { severityMult } = accidentModifiers(ctx.pieces);
+    let appliedAcc: Effects = {};
+    if (fired) {
+      state.stats.accidents++;
+      appliedAcc = applyEffects(content, state, rng, accidentEffects(acc.type, state.meters.escalation, severityMult), ['accident', acc.type], ctx);
+      if (acc.type === 'false_alarm') addFlag(state, 'false_alarm_live');
+      accidentFired = true;
+    }
+    const result: AccidentResult = { type: acc.type, p: acc.p, roll, fired, applied: appliedAcc };
+    entry.accident = result;
+    events.push({ type: 'accident', result });
+    if (!fired) grow(content, state, 'accident_avoided', undefined, events);
+    state.accident = null;
+  }
+
+  // 7. Bookkeeping.
   markSeen(state, card.id);
   state.history.push(entry);
   state.cardsPlayed++;
-  if (card.flashpoint) state.day += FLASHPOINT_DAY_PER_CARD;
+  if (card.flashpoint || card.bluff) state.day += FLASHPOINT_DAY_PER_CARD;
   else {
     state.actCards++;
     state.day += act.day_per_card;
   }
   if (card.arc) addFlag(state, `arc:${card.arc}`);
   state.trail.push([state.meters.public, state.meters.military, state.meters.allies, state.meters.economy, state.meters.escalation]);
+  if (state.meters.escalation > state.stats.peakEscalation) state.stats.peakEscalation = state.meters.escalation;
 
-  // 6. Passive drift from doctrines and advisors.
+  // 8. Passive drift from doctrines and advisors.
   applyDrift(content, state, rng, ctx);
 
-  // 7. Endings.
+  // 9. Endings (with the Deadman Switch).
   if (forcedEnding) {
-    endRun(content, state, forcedEnding, events);
-    saveRng(state, rng);
-    return { state, events };
+    const e = content.endings[forcedEnding];
+    if (e && e.kind === 'nuclear' && tryDeadman(content, state, ctx, events)) {
+      /* survived */
+    } else {
+      endRun(content, state, forcedEnding, events);
+      saveRng(state, rng);
+      return { state, events };
+    }
   }
   const trig = thresholdTrigger(state);
   if (trig) {
-    endRun(content, state, pickEnding(content, state, trig)?.id ?? fallbackEndingId(trig), events);
+    if (trig.type === 'meter' && trig.key === 'escalation' && tryDeadman(content, state, ctx, events)) {
+      /* survived */
+    } else {
+      endRun(content, state, pickEnding(content, state, trig)?.id ?? fallbackEndingId(trig), events);
+      saveRng(state, rng);
+      return { state, events };
+    }
+  }
+  if (accidentFired) {
+    state.stats.accidentsSurvived++;
+    grow(content, state, 'accident_survived', undefined, events);
+  }
+
+  // 10. Mid-act shop, or tick the queue and draw.
+  tickQueue(state);
+  const halfway = act.cards >= 8 && state.actCards === Math.floor(act.cards / 2);
+  if (!state.flashpoint && (card.shop || (!state.midShopDone && halfway))) {
+    state.midShopDone = true;
+    openShop(content, state, rng, true, events);
     saveRng(state, rng);
     return { state, events };
   }
-
-  // 8. Tick queue and draw.
-  tickQueue(state);
   drawNext(content, state, rng, events);
   saveRng(state, rng);
   return { state, events };
+}
+
+function tryDeadman(content: Content, state: RunState, ctx: ModContext, events: RunEvent[]): boolean {
+  if (state.deadmanUsed || !hasRule(ctx, 'deadman_switch')) return false;
+  state.deadmanUsed = true;
+  state.meters.escalation = Math.max(escalationBounds(ctx, state.escalationFloor).floor, 70);
+  events.push({ type: 'deadman' });
+  return true;
 }
 
 /** Chief-of-Staff Fixer: bury the current card without playing it. */
@@ -399,10 +552,11 @@ export function buryCard(content: Content, state: RunState): StepResult {
   const events: RunEvent[] = [];
   if (state.phase !== 'card' || !state.current || state.charges.removal <= 0) return { state, events };
   const card = content.cards[state.current];
-  if (card.flashpoint) return { state, events };
+  if (!card || card.flashpoint || card.bluff) return { state, events };
   state.charges.removal--;
   markSeen(state, card.id);
   state.truth = null;
+  state.accident = null;
   const rng = rngOf(state);
   drawNext(content, state, rng, events);
   saveRng(state, rng);
@@ -417,6 +571,12 @@ function addFlag(state: RunState, f: string): void {
   if (!state.flags.includes(f)) state.flags.push(f);
 }
 
+function addCapital(state: RunState, delta: number, reason: string, events: RunEvent[]): void {
+  if (!delta) return;
+  state.capital = Math.max(0, state.capital + delta);
+  events.push({ type: 'capital', delta, reason });
+}
+
 function applyFlags(state: RunState, set: string[] | undefined, clear: string[] | undefined, events: RunEvent[]): void {
   const s = set ?? [];
   const c = clear ?? [];
@@ -426,11 +586,13 @@ function applyFlags(state: RunState, set: string[] | undefined, clear: string[] 
   events.push({ type: 'flag', set: s, clear: c });
 }
 
-function queueFollows(state: RunState, rng: Rng, follows: import('./types').FollowDef[] | undefined, fromFlashpoint: boolean): void {
+function queueFollows(content: Content, state: RunState, rng: Rng, follows: import('./types').FollowDef[] | undefined, fromFlashpoint: boolean): void {
   if (!follows) return;
   for (const f of follows) {
     if (f.chance !== undefined && rng.next() >= f.chance) continue;
-    if (state.queue.some((q) => q.card === f.card) || state.seen.includes(f.card)) continue;
+    if (state.queue.some((q) => q.card === f.card)) continue;
+    const target = content.cards[f.card];
+    if (target && target.once && state.seen.includes(f.card)) continue;
     state.queue.push({ card: f.card, in: fromFlashpoint ? 0 : f.in });
   }
 }
@@ -469,7 +631,6 @@ function setValue(content: Content, state: RunState, ctx: ModContext, k: EffectK
       const b = escalationBounds(ctx, state.escalationFloor);
       lo = b.floor;
       hi = b.ceiling;
-      // A ceiling below 100 means the doctrine caps escalation; hitting the ceiling is still not war.
       if (hi < 100 && v >= hi) v = hi;
     }
     if (key === 'military') lo = Math.max(lo, ruleValue(ctx, 'military_floor'));
@@ -503,8 +664,27 @@ function applyDrift(content: Content, state: RunState, rng: Rng, ctx: ModContext
     const last = state.history[state.history.length - 1];
     if (last) {
       const card = content.cards[last.card];
-      const c = card && last.side !== 'timeout' ? card[last.side] : card ? card[card.timeout ?? 'right'] : null;
+      const c = card ? card[last.side === 'timeout' ? (card.timeout ?? 'right') : last.side] : null;
       if (c && c.tags.includes('limited_strike')) state.escalationFloor = Math.min(60, state.escalationFloor + 5);
+    }
+  }
+}
+
+// ------------------------------------------------------------------ scaling pieces
+
+function grow(content: Content, state: RunState, trigger: ScaleTrigger, tags: readonly string[] | undefined, events: RunEvent[]): void {
+  for (const id of state.pieces) {
+    const p = content.pieces[id];
+    if (!p) continue;
+    for (const m of p.modifiers) {
+      if (m.kind !== 'scale' || m.on !== trigger) continue;
+      if (m.tags && m.tags.length && (!tags || !m.tags.some((t) => tags.includes(t)))) continue;
+      const ps = (state.pieceState[id] ??= { mult: 0, base: 0, count: 0 });
+      ps.count++;
+      const cap = m.max ?? Infinity;
+      if (m.mult_add) ps.mult = Math.round(Math.min(cap, ps.mult + m.mult_add) * 100) / 100;
+      if (m.base_add) ps.base = Math.min(cap * 10, ps.base + m.base_add);
+      events.push({ type: 'scale', piece: id, mult: ps.mult, base: ps.base });
     }
   }
 }
@@ -551,9 +731,12 @@ function endRun(content: Content, state: RunState, endingId: string, events: Run
   state.ending = ending ? ending.id : endingId;
   state.phase = 'ended';
   state.current = null;
-  state.offer = null;
+  state.shop = null;
+  state.accident = null;
   state.moment = findMoment(content, state, ending);
-  events.push({ type: 'ending', id: state.ending, kind: ending?.kind ?? 'special' });
+  const kind = ending?.kind ?? 'special';
+  state.canContinue = kind === 'standdown' || kind === 'survival';
+  events.push({ type: 'ending', id: state.ending, kind, canContinue: state.canContinue });
 }
 
 /**
@@ -571,7 +754,7 @@ export function findMoment(content: Content, state: RunState, ending: EndingDef 
     let best = last;
     let bestV = -Infinity;
     for (const e of window) {
-      const v = (e.applied[key] ?? 0) * dir;
+      const v = ((e.applied[key] ?? 0) + (e.accident?.applied[key] ?? 0)) * dir;
       if (v > bestV) {
         bestV = v;
         best = e;
@@ -599,6 +782,12 @@ export function findMoment(content: Content, state: RunState, ending: EndingDef 
       }
       return best.card;
     }
+    case 'survival': {
+      // The biggest single score of the run: the moment the bluff held.
+      let best = last;
+      for (const e of h) if (e.leverage > best.leverage) best = e;
+      return best.card;
+    }
     default:
       return last.card;
   }
@@ -616,13 +805,14 @@ function activeArcs(content: Content, state: RunState): Set<string> {
 }
 
 function eligible(content: Content, state: RunState, card: CardDef, pieces: readonly PieceDef[]): boolean {
-  if (card.chained || card.flashpoint) return false;
-  if (state.act < card.acts[0] || state.act > card.acts[1]) return false;
+  if (card.chained || card.flashpoint || card.bluff) return false;
+  if (state.act < card.acts[0] || (state.act <= content.acts.length && state.act > card.acts[1])) return false;
   if (card.seats && !card.seats.includes(state.seat)) return false;
   if (card.modes && !card.modes.includes(state.mode)) return false;
   if (card.once && state.seen.includes(card.id)) return false;
   if (!card.once && state.history.length && state.history[state.history.length - 1].card === card.id) return false;
   if (state.queue.some((q) => q.card === card.id)) return false;
+  if (state.removedTags.length && card.tags.some((t) => state.removedTags.includes(t))) return false;
   return checkConditions(card.conditions, state, pieces);
 }
 
@@ -637,10 +827,12 @@ function drawNext(content: Content, state: RunState, rng: Rng, events: RunEvent[
     const q = state.queue[i];
     if (q.in > 0) continue;
     const card = content.cards[q.card];
-    if (card && state.flashpoint && !card.flashpoint) continue;
+    if (card && state.flashpoint && !card.flashpoint && !card.bluff) continue;
     state.queue.splice(i, 1);
     i--;
     if (!card) continue;
+    // A flashpoint card can only surface inside its flashpoint.
+    if (card.flashpoint && card.flashpoint !== state.flashpoint) continue;
     if (card.seats && !card.seats.includes(state.seat)) continue;
     if (!checkConditions(card.conditions, state, pieces)) continue;
     present(content, state, rng, card);
@@ -651,13 +843,15 @@ function drawNext(content: Content, state: RunState, rng: Rng, events: RunEvent[
   if (state.flashpoint) {
     events.push({ type: 'flashpoint_end', id: state.flashpoint });
     state.flashpoint = null;
+    grow(content, state, 'flashpoint_cleared', undefined, events);
     finishAct(content, state, rng, events);
     return;
   }
 
-  // Act complete: start the flashpoint.
+  // Act complete: settle the ante, then start the flashpoint.
   if (state.actCards >= act.cards) {
-    if (startFlashpoint(content, state, rng, events)) {
+    const bluff = settleAnte(content, state, events);
+    if (startFlashpoint(content, state, rng, events, bluff)) {
       drawNext(content, state, rng, events);
       return;
     }
@@ -679,18 +873,25 @@ function drawNext(content: Content, state: RunState, rng: Rng, events: RunEvent[
     ids.push(id);
     weights.push(w);
   }
-  let idx = rng.weightedIndex(weights);
+  const idx = rng.weightedIndex(weights);
   if (idx < 0) {
     // Content gap: allow repeats of any act-appropriate card whose conditions hold (ignoring `once`).
     const lastId = state.history.length ? state.history[state.history.length - 1].card : null;
     const fallback = content.cardOrder.filter((id) => {
       const c = content.cards[id];
-      if (c.chained || c.flashpoint || c.warning || id === lastId) return false;
-      if (state.act < c.acts[0] || state.act > c.acts[1]) return false;
+      if (c.chained || c.flashpoint || c.bluff || c.warning || id === lastId) return false;
+      if (state.act < c.acts[0] || (state.act <= content.acts.length && state.act > c.acts[1])) return false;
       if (c.seats && !c.seats.includes(state.seat)) return false;
+      if (c.modes && !c.modes.includes(state.mode)) return false;
+      if (state.removedTags.length && c.tags.some((t) => state.removedTags.includes(t))) return false;
       return checkConditions(c.conditions, state, pieces);
     });
     if (fallback.length === 0) {
+      const bluff = settleAnte(content, state, events);
+      if (startFlashpoint(content, state, rng, events, bluff)) {
+        drawNext(content, state, rng, events);
+        return;
+      }
       finishAct(content, state, rng, events);
       return;
     }
@@ -703,24 +904,55 @@ function drawNext(content: Content, state: RunState, rng: Rng, events: RunEvent[
 function present(content: Content, state: RunState, rng: Rng, card: CardDef): void {
   state.current = card.id;
   state.truth = null;
+  state.accident = null;
+  const ctx = ctxFor(content, state);
   if (card.warning) {
-    const ctx = ctxFor(content, state);
     let p = resolveIntel(state.hidden.intel, ctx) / 100 + (card.warning.bias ?? 0);
     const floor = ruleValue(ctx, 'warning_floor');
     if (floor) p = Math.max(p, floor / 100);
     state.truth = rng.next() < clamp(p, 0.05, 0.98);
   }
+  // Accidents: the price of living near the top of the curve.
+  if (!card.flashpoint && !card.bluff) {
+    const { pMult } = accidentModifiers(ctx.pieces);
+    const p = Math.round(clamp(accidentChance(state.meters.escalation) * pMult, 0, 0.9) * 100) / 100;
+    if (p > 0 && rng.next() < 0.75) {
+      const type: AccidentType = ACCIDENT_TYPES[rng.int(ACCIDENT_TYPES.length)];
+      const known = hasRule(ctx, 'perfect_intel') ? rng.next() < p : null;
+      state.accident = { type, p, known } satisfies AccidentState;
+    }
+  }
 }
 
-function startFlashpoint(content: Content, state: RunState, rng: Rng, events: RunEvent[]): boolean {
+/** Compare accumulated leverage with the act's target. Returns true when the bluff is called. */
+function settleAnte(content: Content, state: RunState, events: RunEvent[]): boolean {
+  const target = state.actTarget;
+  const r = anteReward(state.actLeverage, target, state.act);
+  events.push({ type: 'ante', met: r.met, smashed: r.smashed, leverage: state.actLeverage, target, capital: r.capital });
+  if (r.met) {
+    state.stats.antesMet++;
+    addCapital(state, r.capital, 'ante', events);
+    grow(content, state, 'ante_met', undefined, events);
+    if (r.smashed) {
+      state.stats.antesSmashed++;
+      grow(content, state, 'ante_smashed', undefined, events);
+    }
+    return false;
+  }
+  state.stats.antesMissed++;
+  return true;
+}
+
+function startFlashpoint(content: Content, state: RunState, rng: Rng, events: RunEvent[], bluff: boolean): boolean {
   const pieces = heldPieces(content, state);
   const falseAlarm = activeFlags(state, pieces).has('false_alarm_live');
   const ids: string[] = [];
   const weights: number[] = [];
+  const actIndex = Math.min(state.act, content.acts.length);
   for (const id of Object.keys(content.flashpoints)) {
     const fp = content.flashpoints[id];
-    if (state.act < fp.acts[0] || state.act > fp.acts[1]) continue;
-    if (state.flashpointsUsed.includes(id)) continue;
+    if (actIndex < fp.acts[0] || actIndex > fp.acts[1]) continue;
+    if (state.flashpointsUsed.includes(id) && !state.endless) continue;
     if (!checkConditions(fp.conditions, state, pieces)) continue;
     let w = fp.weight;
     if (falseAlarm && fp.false_alarm_entry) w *= 4;
@@ -731,78 +963,207 @@ function startFlashpoint(content: Content, state: RunState, rng: Rng, events: Ru
   if (idx < 0) return false;
   const fp: FlashpointDef = content.flashpoints[ids[idx]];
   state.flashpoint = fp.id;
-  state.flashpointsUsed.push(fp.id);
+  if (!state.flashpointsUsed.includes(fp.id)) state.flashpointsUsed.push(fp.id);
   const entry = falseAlarm && fp.false_alarm_entry ? fp.false_alarm_entry : fp.entry;
   state.queue.unshift({ card: entry, in: 0 });
+  if (bluff) {
+    const bluffCard = fp.bluff_entry ?? pickBluffCard(content, state, rng, pieces);
+    if (bluffCard) state.queue.unshift({ card: bluffCard, in: 0 });
+  }
   events.push({ type: 'flashpoint_start', id: fp.id, name: fp.name });
   return true;
 }
 
+function pickBluffCard(content: Content, state: RunState, rng: Rng, pieces: readonly PieceDef[]): string | null {
+  const ids: string[] = [];
+  const weights: number[] = [];
+  for (const id of content.cardOrder) {
+    const c = content.cards[id];
+    if (!c.bluff) continue;
+    if (c.seats && !c.seats.includes(state.seat)) continue;
+    if (state.seen.includes(id)) continue;
+    if (!checkConditions(c.conditions, state, pieces)) continue;
+    ids.push(id);
+    weights.push(c.weight);
+  }
+  const i = rng.weightedIndex(weights);
+  return i < 0 ? null : ids[i];
+}
+
 function finishAct(content: Content, state: RunState, rng: Rng, events: RunEvent[]): void {
-  if (state.act >= content.acts.length) {
+  if (state.act >= content.acts.length && !state.endless) {
     const e = pickEnding(content, state, { type: 'run_end' });
     endRun(content, state, e?.id ?? (state.meters.escalation <= STANDDOWN_THRESHOLD ? 'fallback_standdown' : 'fallback_survival'), events);
     return;
   }
-  const offer = makeOffer(content, state, rng);
-  if (offer.length === 0) {
-    beginAct(content, state, rng, events);
-    return;
-  }
-  state.phase = 'offer';
-  state.current = null;
-  state.offer = offer;
-  events.push({ type: 'offer', pieces: offer });
+  openShop(content, state, rng, false, events);
 }
+
+// ------------------------------------------------------------------ shop
 
 function isUnlocked(state: RunState, piece: PieceDef): boolean {
   if (!piece.unlock) return true;
   return state.flags.includes('unlocked:all') || state.flags.includes(`unlocked:${piece.unlock.id}`);
 }
 
-/** Three pieces, one per pool where possible, weighted by offer_weight. */
-export function makeOffer(content: Content, state: RunState, rng: Rng): string[] {
-  const byPool: Record<string, { id: string; w: number }[]> = { advisor: [], doctrine: [], asset: [] };
+function shopPrice(ctx: ModContext, base: number): number {
+  const disc = ruleValue(ctx, 'shop_discount', 1);
+  return Math.max(1, Math.round(base * disc));
+}
+
+function offerCandidates(content: Content, state: RunState): { id: string; w: number }[] {
+  const out: { id: string; w: number }[] = [];
   for (const id of content.pieceOrder) {
     const p = content.pieces[id];
     if (state.pieces.includes(id)) continue;
+    if (state.shop && state.shop.offers.some((o) => o.piece === id && !o.sold)) continue;
     if (p.seats && !p.seats.includes(state.seat)) continue;
-    if (p.min_act && state.act + 1 < p.min_act) continue;
+    if (p.min_act && state.act + (state.shop?.mid ? 0 : 1) < p.min_act) continue;
     if (!isUnlocked(state, p)) continue;
     if (p.excludes && p.excludes.some((x) => state.pieces.includes(x))) continue;
     if (state.pieces.some((h) => content.pieces[h]?.excludes?.includes(id))) continue;
-    byPool[p.pool].push({ id, w: p.offer_weight });
-  }
-  const pools = rng.shuffle(['advisor', 'doctrine', 'asset']);
-  const out: string[] = [];
-  for (const pool of pools) {
-    const list = byPool[pool];
-    if (list.length === 0) continue;
-    const i = rng.weightedIndex(list.map((x) => x.w));
-    if (i < 0) continue;
-    out.push(list[i].id);
-    list.splice(i, 1);
-  }
-  // Top up from any pool if a pool was empty.
-  const rest = ([] as { id: string; w: number }[]).concat(byPool.advisor, byPool.doctrine, byPool.asset);
-  while (out.length < 3 && rest.length > 0) {
-    const i = rng.weightedIndex(rest.map((x) => x.w));
-    if (i < 0) break;
-    out.push(rest[i].id);
-    rest.splice(i, 1);
+    out.push({ id, w: RARITY_WEIGHT[p.rarity] * p.offer_weight });
   }
   return out;
 }
 
-export function pickPiece(content: Content, state: RunState, pieceId: string): StepResult {
+function rollOffers(content: Content, state: RunState, rng: Rng, ctx: ModContext): void {
+  const shop = state.shop!;
+  const count = 4 + ruleValue(ctx, 'extra_offer');
+  const pool = offerCandidates(content, state);
+  const offers: typeof shop.offers = [];
+  while (offers.length < count && pool.length > 0) {
+    const i = rng.weightedIndex(pool.map((x) => x.w));
+    if (i < 0) break;
+    const p = content.pieces[pool[i].id];
+    offers.push({ piece: p.id, price: shopPrice(ctx, p.price), sold: false });
+    pool.splice(i, 1);
+  }
+  shop.offers = offers;
+  const orderPool = content.orderOrder.map((id) => ({ id, w: RARITY_WEIGHT[content.orders[id].rarity] }));
+  const orders: typeof shop.orders = [];
+  while (orders.length < 2 && orderPool.length > 0) {
+    const i = rng.weightedIndex(orderPool.map((x) => x.w));
+    if (i < 0) break;
+    const o = content.orders[orderPool[i].id];
+    orders.push({ order: o.id, price: shopPrice(ctx, o.price), sold: false });
+    orderPool.splice(i, 1);
+  }
+  shop.orders = orders;
+}
+
+function openShop(content: Content, state: RunState, rng: Rng, mid: boolean, events: RunEvent[]): void {
+  const ctx = ctxFor(content, state);
+  state.phase = 'shop';
+  state.current = null;
+  state.accident = null;
+  state.shop = { offers: [], orders: [], rerolls: 0, mid, removed: [] };
+  rollOffers(content, state, rng, ctx);
+  events.push({ type: 'shop', mid });
+}
+
+export function rerollCost(state: RunState, ctx: ModContext): number {
+  if (!state.shop) return 0;
+  const free = ruleValue(ctx, 'free_rerolls');
+  if (state.shop.rerolls < free) return 0;
+  return REROLL_BASE + (state.shop.rerolls - free);
+}
+
+export function sellPrice(content: Content, state: RunState, pieceId: string): number {
+  const p = content.pieces[pieceId];
+  if (!p) return 0;
+  const ctx = ctxFor(content, state);
+  const frac = ruleValue(ctx, 'sell_bonus', 0.5);
+  return Math.max(1, Math.floor(p.price * frac));
+}
+
+export function buyPiece(content: Content, state: RunState, index: number): StepResult {
   const events: RunEvent[] = [];
-  if (state.phase !== 'offer' || !state.offer || !state.offer.includes(pieceId)) return { state, events };
-  state.pieces.push(pieceId);
-  state.offer = null;
-  addFlag(state, `piece:${pieceId}`);
-  const rng = rngOf(state);
+  if (state.phase !== 'shop' || !state.shop) return { state, events };
+  const offer = state.shop.offers[index];
+  if (!offer || offer.sold) return { state, events };
+  const ctx = ctxFor(content, state);
+  if (state.capital < offer.price || state.pieces.length >= maxPieces(ctx)) return { state, events };
+  addCapital(state, -offer.price, 'buy', events);
+  offer.sold = true;
+  state.pieces.push(offer.piece);
+  addFlag(state, `piece:${offer.piece}`);
   applyReveals(content, state, events);
-  beginAct(content, state, rng, events);
+  return { state, events };
+}
+
+export function sellPiece(content: Content, state: RunState, pieceId: string): StepResult {
+  const events: RunEvent[] = [];
+  if (state.phase !== 'shop' || !state.shop || !state.pieces.includes(pieceId)) return { state, events };
+  addCapital(state, sellPrice(content, state, pieceId), 'sell', events);
+  state.pieces = state.pieces.filter((p) => p !== pieceId);
+  delete state.pieceState[pieceId];
+  state.flags = state.flags.filter((f) => f !== `piece:${pieceId}`);
+  return { state, events };
+}
+
+export function rerollShop(content: Content, state: RunState): StepResult {
+  const events: RunEvent[] = [];
+  if (state.phase !== 'shop' || !state.shop) return { state, events };
+  const ctx = ctxFor(content, state);
+  const cost = rerollCost(state, ctx);
+  if (state.capital < cost) return { state, events };
+  addCapital(state, -cost, 'reroll', events);
+  state.shop.rerolls++;
+  const rng = rngOf(state);
+  rollOffers(content, state, rng, ctx);
+  saveRng(state, rng);
+  return { state, events };
+}
+
+export function buyOrder(content: Content, state: RunState, index: number): StepResult {
+  const events: RunEvent[] = [];
+  if (state.phase !== 'shop' || !state.shop) return { state, events };
+  const offer = state.shop.orders[index];
+  if (!offer || offer.sold) return { state, events };
+  const ctx = ctxFor(content, state);
+  if (state.capital < offer.price || state.orders.length >= maxOrders(ctx)) return { state, events };
+  addCapital(state, -offer.price, 'buy_order', events);
+  offer.sold = true;
+  state.orders.push(offer.order);
+  return { state, events };
+}
+
+export function removeTag(content: Content, state: RunState, tag: string): StepResult {
+  const events: RunEvent[] = [];
+  if (state.phase !== 'shop' || !state.shop) return { state, events };
+  if (!REMOVABLE_TAGS.includes(tag) || state.removedTags.includes(tag) || state.shop.removed.length >= 1) return { state, events };
+  if (state.capital < REMOVE_TAG_PRICE) return { state, events };
+  addCapital(state, -REMOVE_TAG_PRICE, 'remove_tag', events);
+  state.removedTags.push(tag);
+  state.shop.removed.push(tag);
+  return { state, events };
+}
+
+export function leaveShop(content: Content, state: RunState): StepResult {
+  const events: RunEvent[] = [];
+  if (state.phase !== 'shop' || !state.shop) return { state, events };
+  const mid = state.shop.mid;
+  state.shop = null;
+  const rng = rngOf(state);
+  if (mid) {
+    state.phase = 'card';
+    drawNext(content, state, rng, events);
+  } else beginAct(content, state, rng, events);
+  saveRng(state, rng);
+  return { state, events };
+}
+
+/** Continue past a winning ending into endless acts with rising targets. */
+export function continueRun(content: Content, state: RunState): StepResult {
+  const events: RunEvent[] = [];
+  if (state.phase !== 'ended' || !state.canContinue) return { state, events };
+  state.endless = true;
+  state.canContinue = false;
+  state.ending = null;
+  state.moment = null;
+  const rng = rngOf(state);
+  openShop(content, state, rng, false, events);
   saveRng(state, rng);
   return { state, events };
 }
@@ -810,11 +1171,86 @@ export function pickPiece(content: Content, state: RunState, pieceId: string): S
 function beginAct(content: Content, state: RunState, rng: Rng, events: RunEvent[]): void {
   state.act++;
   state.actCards = 0;
+  state.actLeverage = 0;
+  state.midShopDone = false;
   state.phase = 'card';
+  const diff = difficultyDef(content, state.difficulty);
+  state.actTarget = actTarget(content, state.act, diff.target_scale ?? 1);
   resetCharges(content, state);
+  const ctx = ctxFor(content, state);
+  const perAct = ruleValue(ctx, 'capital_per_act');
+  if (perAct) addCapital(state, perAct, 'act', events);
+  grow(content, state, 'act_start', undefined, events);
   const act = actDef(content, state.act);
-  events.push({ type: 'act_start', act: state.act, name: act.name });
+  events.push({ type: 'act_start', act: state.act, name: act.name, target: state.actTarget });
   drawNext(content, state, rng, events);
+}
+
+// ------------------------------------------------------------------ orders (consumables)
+
+export function useOrder(content: Content, state: RunState, index: number): StepResult {
+  const events: RunEvent[] = [];
+  if (state.phase !== 'card' || !state.current) return { state, events };
+  const id = state.orders[index];
+  const order: OrderDef | undefined = id ? content.orders[id] : undefined;
+  if (!order) return { state, events };
+  const ctx = ctxFor(content, state);
+  const rng = rngOf(state);
+  const e = order.effect;
+  let consumed = true;
+  switch (e.type) {
+    case 'meter': {
+      const before = getValue(state, e.key);
+      setValue(content, state, ctx, e.key, before + e.delta);
+      const after = getValue(state, e.key);
+      events.push({ type: 'effects', applied: { [e.key]: after - before } });
+      break;
+    }
+    case 'retrigger_next':
+      state.nextRetrigger += e.times ?? 1;
+      break;
+    case 'mult_next':
+      state.nextMult *= e.mult;
+      break;
+    case 'reveal':
+      if (!state.revealed.includes(e.key)) {
+        state.revealed.push(e.key);
+        events.push({ type: 'reveal', key: e.key });
+      }
+      break;
+    case 'skip_accident':
+      if (!state.accident) consumed = false;
+      state.accident = null;
+      break;
+    case 'bury': {
+      const card = content.cards[state.current];
+      if (card.flashpoint) {
+        consumed = false;
+        break;
+      }
+      markSeen(state, card.id);
+      state.truth = null;
+      state.accident = null;
+      drawNext(content, state, rng, events);
+      break;
+    }
+    case 'capital':
+      addCapital(state, e.delta, 'order', events);
+      break;
+    case 'charge':
+      state.charges[e.charge] += e.count;
+      break;
+    case 'leverage':
+      state.score += e.amount;
+      state.actLeverage += e.amount;
+      break;
+  }
+  if (consumed) {
+    state.orders.splice(index, 1);
+    events.push({ type: 'order_used', order: order.id });
+  }
+  saveRng(state, rng);
+  return { state, events };
 }
 
 // ------------------------------------------------------------------ serialisation
@@ -825,7 +1261,7 @@ export function serialise(state: RunState): string {
 
 export function deserialise(json: string): RunState {
   const s = JSON.parse(json) as RunState;
-  if (s.v !== 1) throw new Error('Unsupported run state version');
+  if (s.v !== 2) throw new Error('Unsupported run state version');
   return s;
 }
 

@@ -1,21 +1,25 @@
 # ADVISORS — people with agendas. Each grants a flag (has_*) that cards condition
-# on for unique lines, and expresses its power through composable modifiers.
-# See ENGINE.md for the resolver order and SYNERGIES.md for interactions.
+# on for unique lines, and expresses its power through composable modifiers,
+# including LEVERAGE modifiers (base adds, mult adds, mult multipliers, retriggers,
+# scaling). See ENGINE.md for the resolver order and SYNERGIES.md for archetypes.
+# Rarity sets the shop price: common 3, uncommon 5, rare 8, legendary 12.
 
 - id: hawk_general
   pool: advisor
+  rarity: uncommon
   name: General Oren Vasska
   title: the Hawk General
   blurb: >-
-    "Capability is the only language they read." Every military move lands harder.
-    He never mentions what it does to the temperature in the room, and the
-    briefing slides stop showing it.
-  mechanics: Military gains from military, strike, mobilise and deterrence choices ×1.5 and +8% odds on military rolls. Escalation costs of those choices are hidden from previews and +2 higher.
+    "Capability is the only language they read." Every military move lands harder
+    and counts for more. He never mentions what it does to the temperature in the
+    room, and the briefing slides stop showing it.
+  mechanics: Military/strike/mobilise/deterrence choices +8 base and +0.5 mult; military gains ×1.5; +8% odds on military rolls. Their escalation costs are hidden and +2 higher.
   accent: "#b8352f"
   art: hawk_general
   tags: [military, escalatory]
   grants: [has_hawk]
   modifiers:
+    - { kind: leverage, tags: [military, strike, mobilise, deterrence], base_add: 8, mult_add: 0.5 }
     - { kind: effect, key: military, tags: [military, strike, mobilise, deterrence], sign: pos, mult: 1.5 }
     - { kind: effect, key: escalation, tags: [military, strike, mobilise, deterrence], sign: pos, add: 2 }
     - { kind: odds, tags: [military, strike], add: 0.08 }
@@ -23,17 +27,21 @@
 
 - id: dove_fm
   pool: advisor
+  rarity: uncommon
   name: Ilse Marrow
   title: the Dove Foreign Minister
   blurb: >-
     She has a phone number for everyone and has used most of them at 3am. When you
-    step back, it costs you less at home. Your allies notice how often you step back.
-  mechanics: De-escalation choices cut escalation ×1.4 and cost 40% less public and 30% less military. Every de-escalation or concession also costs 2 allies.
+    step back, it costs you less at home and counts for more abroad. Your allies
+    notice how often you step back.
+  mechanics: De-escalation, concession, reassurance and diplomacy +0.75 mult, and +0.2 mult per 10 points of rival trust above 50. De-escalation cuts escalation ×1.4 and costs 40% less public; every de-escalation also costs 2 allies.
   accent: "#4f8fc9"
   art: dove_fm
   tags: [diplomacy, deescalate]
   grants: [has_dove]
   modifiers:
+    - { kind: leverage, tags: [deescalate, concede, reassurance, diplomacy], mult_add: 0.75 }
+    - { kind: leverage, tags: [deescalate, concede, reassurance, diplomacy, back_channel], per: trust_primary, per_above: 50, per_step: 10, mult_add: 0.2 }
     - { kind: effect, key: escalation, tags: [deescalate], sign: neg, mult: 1.4 }
     - { kind: effect, key: public, tags: [deescalate, concede], sign: neg, mult: 0.6 }
     - { kind: effect, key: military, tags: [deescalate, concede], sign: neg, mult: 0.7 }
@@ -42,115 +50,133 @@
 
 - id: paranoid_intel
   pool: advisor
+  rarity: common
   name: Director Sefton Lyle (unsleeping)
   title: the Paranoid Intel Director
   blurb: >-
     Nothing gets past him, including things that are not there. You will hear about
-    every launch, every convoy, every flicker on the board. Some of them will be real.
-  mechanics: Warning cards appear twice as often. Intel reliability −12. Intel-tagged rolls +5%.
+    every launch, every convoy, every flicker on the board. Some of them will be real,
+    and every one you weather makes him a little more useful.
+  mechanics: Warning and intel choices +6 base. Each accident that does not fire grows +0.15 mult (max +3). Warning cards twice as common; intel reliability −12.
   accent: "#7c8b9a"
   art: intel_director
   tags: [intel, warning]
   grants: [has_paranoid_intel]
   excludes: [cautious_intel]
   modifiers:
+    - { kind: leverage, tags: [warning, intel], base_add: 6 }
+    - { kind: scale, on: accident_avoided, mult_add: 0.15, max: 3 }
     - { kind: rule, rule: warning_frequency, value: 1.0 }
     - { kind: intel, add: -12 }
     - { kind: odds, tags: [intel], add: 0.05 }
 
 - id: cautious_intel
   pool: advisor
+  rarity: common
   name: Director Sefton Lyle (measured)
   title: the Cautious Intel Director
   blurb: >-
     He would rather tell you late than tell you wrong. When he does bring something
-    into the room, believe it. The cost is everything he decided not to bring.
-  mechanics: Warning cards appear half as often. Intel reliability +15. Intel-tagged rolls +8%.
+    into the room, believe it. Fewer accidents happen on his watch.
+  mechanics: Intel choices +0.4 mult. Accidents 20% less likely. Warning cards half as common; intel reliability +15; intel rolls +8%.
   accent: "#5f7f9f"
   art: intel_director
   tags: [intel]
   grants: [has_cautious_intel]
   excludes: [paranoid_intel]
   modifiers:
+    - { kind: leverage, tags: [intel, investigate], mult_add: 0.4 }
+    - { kind: accident, mult: 0.8 }
     - { kind: rule, rule: warning_frequency, value: -0.5 }
     - { kind: intel, add: 15 }
     - { kind: odds, tags: [intel], add: 0.08 }
 
 - id: spin_doctor
   pool: advisor
+  rarity: uncommon
   name: Dov Karrick
   title: the Spin Doctor
   blurb: >-
-    The public hears what he decides they hear, so nothing lands as hard as it should.
-    The price is that once he has sold a position, you own it. Reversing costs you the
-    story, not just the policy.
-  mechanics: All public swings ×0.6. Public commitments earn +2 public. Walking back a commitment costs public ×(1 + commitment level).
+    The public hears what he decides they hear, so nothing lands as hard as it should
+    and every statement counts double. The price is that once he has sold a position,
+    you own it.
+  mechanics: Public commitments and domestic choices +0.6 mult. Public swings ×0.6; commitments earn +2 public. Walking back costs public ×(1 + 2 × commitment level).
   accent: "#d98a2b"
   art: spin_doctor
   tags: [domestic, commitment]
   grants: [has_spin]
   modifiers:
+    - { kind: leverage, tags: [public_commitment, domestic], mult_add: 0.6 }
     - { kind: effect, key: public, mult: 0.6 }
     - { kind: effect, key: public, tags: [public_commitment], add: 2, always: true }
     - { kind: rule, rule: commitment_lock, value: 1.0 }
 
 - id: ambassador
   pool: advisor
+  rarity: uncommon
   name: Ambassador Hale Okonkwo-Reyes
   title: the Old Ambassador
   blurb: >-
     Forty years of dinners with people he was supposed to hate. When you need a quiet
     word to reach the other side and be believed, he knows which word and which side.
-  mechanics: Back-channel and diplomacy rolls +12%. Trust gains from back-channel choices ×1.3. Back-channel cards appear 60% more often.
+  mechanics: Back-channel and diplomacy choices +4 base and +0.8 mult; their rolls +12%; trust gains ×1.3; back-channel cards 60% more common.
   accent: "#8e6bb3"
   art: ambassador
   tags: [diplomacy, back_channel]
   grants: [has_ambassador]
   modifiers:
+    - { kind: leverage, tags: [back_channel, diplomacy], base_add: 4, mult_add: 0.8 }
     - { kind: odds, tags: [back_channel, diplomacy], add: 0.12 }
     - { kind: effect, key: trust, tags: [back_channel], sign: pos, mult: 1.3 }
     - { kind: weight, tags: [back_channel], mult: 1.6 }
 
 - id: cyber_director
   pool: advisor
+  rarity: uncommon
   name: Dr Teodora Vance
   title: the Cyber & Space Director
   blurb: >-
     She can tell you what an attack is consistent with. Sometimes, given time, she can
     tell you who. Attribution stops being a shrug and starts being a decision.
-  mechanics: Cyber and attribution cards appear 60% more often. Attribution and cyber rolls +15%. Unlocks resolvable attribution lines.
+  mechanics: Cyber, attribution and space choices +6 base and +0.4 mult. Those cards 60% more common; attribution and cyber rolls +15%.
   accent: "#3fbf9f"
   art: cyber_director
   tags: [cyber, space, attribution]
   grants: [has_cyber_director]
   modifiers:
+    - { kind: leverage, tags: [cyber, attribution, space], base_add: 6, mult_add: 0.4 }
     - { kind: weight, tags: [cyber, attribution, space], mult: 1.6 }
     - { kind: odds, tags: [attribution, cyber], add: 0.15 }
 
 - id: treasury_hawk
   pool: advisor
+  rarity: common
   name: Chancellor Anselm Roke
   title: the Treasury Hawk
   blurb: >-
     Every crisis is a spreadsheet to him and the spreadsheet must balance. The economy
-    holds. The generals start to wonder why their requests keep coming back unsigned.
-  mechanics: Economy costs ×0.6. Military drifts down about one point every four cards.
+    holds and there is always a little more in the account than you expected. The
+    generals wonder why their requests keep coming back unsigned.
+  mechanics: Economy and sanction choices +0.5 mult. +1 political capital each act. Economy costs ×0.6. Military drifts down about one point every four cards.
   accent: "#c1a23a"
   art: treasury
   tags: [economy]
   grants: [has_treasury]
   modifiers:
+    - { kind: leverage, tags: [economy, sanction], mult_add: 0.5 }
+    - { kind: rule, rule: capital_per_act, value: 1 }
     - { kind: effect, key: economy, sign: neg, mult: 0.6 }
     - { kind: drift, key: military, per_card: -0.25 }
 
 - id: fixer
   pool: advisor
+  rarity: uncommon
   name: Ferris Nkemelu
   title: the Chief of Staff
   blurb: >-
-    Once a week, a problem that was on its way to your desk simply is not. You do not
-    ask. He does not tell.
-  mechanics: Once per act, bury the current card without playing it (not during a flashpoint).
+    Once a week, a problem that was on its way to your desk simply is not. The shop
+    keeps a chair for him. You do not ask. He does not tell.
+  mechanics: Once per act, bury the current card. One free reroll per shop visit. All choices +0.2 mult.
   accent: "#b07a4a"
   art: fixer
   tags: [domestic]
@@ -158,57 +184,192 @@
   unlock: { id: five_endings, label: The Chief of Staff, hint: See five different endings. }
   modifiers:
     - { kind: rule, rule: remove_card_per_act, value: 1 }
+    - { kind: rule, rule: free_rerolls, value: 1 }
+    - { kind: leverage, mult_add: 0.2 }
 
 - id: admiral
   pool: advisor
+  rarity: uncommon
   name: Admiral Petra Volanski
   title: the Loyal Admiral
   blurb: >-
     Ships take days to arrive and seconds to be misread. She will give you options at
     sea that nobody else can, and she will follow the order you give, not the one you meant.
-  mechanics: Naval cards appear twice as often. Naval rolls +10%. Military gains from naval choices ×1.3. Unlocks blockade options.
+  mechanics: Naval and blockade choices +8 base and +0.5 mult; those cards twice as common; naval rolls +10%; military gains from naval choices ×1.3.
   accent: "#2f6fb8"
   art: admiral
   tags: [naval, military]
   grants: [has_admiral]
   modifiers:
+    - { kind: leverage, tags: [naval, blockade], base_add: 8, mult_add: 0.5 }
     - { kind: weight, tags: [naval, blockade], mult: 2.0 }
     - { kind: odds, tags: [naval], add: 0.10 }
     - { kind: effect, key: military, tags: [naval], sign: pos, mult: 1.3 }
 
 - id: peace_leader
   pool: advisor
+  rarity: common
   name: Yusra Delacroix-Amin
   title: the Peace Movement Leader
   blurb: >-
     She brought a million people into the square and then she brought them into your
-    cabinet room. They love it when you talk. They hate it when you show strength,
-    even the kind that keeps the talking possible.
-  mechanics: De-escalation and concessions earn +4 public. Deterrence, mobilisation and strikes cost 4 public.
+    cabinet room. They love it when you talk, and the louder they love you the more
+    your talking counts. They hate it when you show strength.
+  mechanics: De-escalation and concessions +6 base, and +0.15 mult per 10 public above 60; they earn +4 public. Deterrence, mobilisation and strikes cost 4 public.
   accent: "#6fbf5c"
   art: peace_leader
   tags: [domestic, deescalate]
   grants: [has_peace_leader]
   unlock: { id: unloved_peacemaker, label: The Peace Movement Leader, hint: Reach Stand-Down with public support below 35. }
   modifiers:
+    - { kind: leverage, tags: [deescalate, concede], base_add: 6 }
+    - { kind: leverage, tags: [deescalate, concede, reassurance], per: public, per_above: 60, per_step: 10, mult_add: 0.15 }
     - { kind: effect, key: public, tags: [deescalate, concede], add: 4, always: true }
     - { kind: effect, key: public, tags: [deterrence, mobilise, strike, limited_strike], add: -4, always: true }
 
 - id: contractor
   pool: advisor
+  rarity: rare
   name: Corin Ashby-Tal
   title: the Defence Contractor
   blurb: >-
     There is always a system that would have prevented this. He can have it in theatre
-    in a week. Somebody has to pay for it, and somebody across the border has to
-    decide what it is for.
-  mechanics: Military gains ×1.4. Military, mobilisation and deterrence choices also cost 2 economy and 2 trust with both rivals.
+    in a week and the invoice on your desk the week after. Somebody across the border
+    has to decide what it is for.
+  mechanics: Military, mobilisation and deterrence choices ×1.5 mult; military gains ×1.4. Those choices also cost 2 economy and 2 trust with both rivals.
   accent: "#9aa0a6"
   art: contractor
   tags: [military, economy]
   grants: [has_contractor]
   unlock: { id: arsenal, label: The Defence Contractor, hint: Reach Week Four with military above 80. }
   modifiers:
+    - { kind: leverage, tags: [military, mobilise, deterrence], mult_mult: 1.5 }
     - { kind: effect, key: military, sign: pos, mult: 1.4 }
     - { kind: effect, key: economy, tags: [military, mobilise, deterrence], add: -2, always: true }
     - { kind: effect, key: trust, tags: [military, mobilise, deterrence], add: -2, always: true }
+
+# ---------------------------------------------------------------- new advisors
+
+- id: iron_nerve
+  pool: advisor
+  rarity: legendary
+  name: Marshal Ilse Kadrey
+  title: the Iron Nerve
+  blurb: >-
+    She has stood in this room for three crises and never once reached for the phone
+    first. Every accident you walk away from, she remembers, and the next time you
+    walk in the room is a little more yours.
+  mechanics: +0.5 mult permanently for every accident you survive; +0.1 mult (max +3) for every accident that does not fire. Accidents 15% more likely.
+  accent: "#c9b98a"
+  art: admiral
+  tags: [military, nerve]
+  grants: [has_iron_nerve]
+  modifiers:
+    - { kind: scale, on: accident_survived, mult_add: 0.5 }
+    - { kind: scale, on: accident_avoided, mult_add: 0.1, max: 3 }
+    - { kind: accident, mult: 1.15 }
+
+- id: long_table
+  pool: advisor
+  rarity: legendary
+  name: Speaker Renata Doss-Halloran
+  title: the Long Table
+  blurb: >-
+    She controls the committee that controls the money. Every week there is more
+    in the account, one more person at the table, and a discount nobody can explain.
+  mechanics: +3 political capital each act. One extra piece offered in every shop. Shop prices ×0.8.
+  accent: "#e6e0c8"
+  art: envoy
+  tags: [economy, domestic]
+  grants: [has_long_table]
+  modifiers:
+    - { kind: rule, rule: capital_per_act, value: 3 }
+    - { kind: rule, rule: extra_offer, value: 1 }
+    - { kind: rule, rule: shop_discount, value: 0.8 }
+    - { kind: leverage, tags: [domestic, economy], base_add: 4 }
+
+- id: field_marshal
+  pool: advisor
+  rarity: rare
+  name: Field Marshal Tobias Renn
+  title: the Field Marshal
+  blurb: >-
+    He does not do politics; he does divisions. Every order you give the army is
+    bigger than you meant, and the public sees the trucks go past.
+  mechanics: Military, mobilisation and strike choices +12 base. Those choices also cost 2 public.
+  accent: "#b8352f"
+  art: hawk_general
+  tags: [military]
+  grants: [has_field_marshal]
+  modifiers:
+    - { kind: leverage, tags: [military, mobilise, strike], base_add: 12 }
+    - { kind: effect, key: public, tags: [military, mobilise, strike], add: -2, always: true }
+
+- id: press_office
+  pool: advisor
+  rarity: rare
+  name: Ottilie Varn
+  title: the Press Secretary
+  blurb: >-
+    Nadia Ferrante's editor was her flatmate. She knows the six o'clock bulletin before
+    it is written, and every domestic win she lands makes the next one land harder.
+  mechanics: Domestic and public-commitment choices +0.7 mult; each successful domestic roll grows +0.1 mult (max +2).
+  accent: "#d0d0d0"
+  art: press
+  tags: [domestic]
+  grants: [has_press_office]
+  modifiers:
+    - { kind: leverage, tags: [domestic, public_commitment], mult_add: 0.7 }
+    - { kind: scale, on: roll_success, tags: [domestic], mult_add: 0.1, max: 2 }
+
+- id: attache
+  pool: advisor
+  rarity: uncommon
+  name: Colonel Idris Fane
+  title: the Defence Attaché
+  blurb: >-
+    He drank with their general staff for six years and still gets the birthday cards.
+    Intelligence and attribution are worth more with him reading them.
+  mechanics: Intel and attribution choices +0.4 mult; intel reliability +5.
+  accent: "#7c8b9a"
+  art: intel_director
+  tags: [intel, attribution]
+  grants: [has_attache]
+  modifiers:
+    - { kind: leverage, tags: [intel, attribution, investigate], mult_add: 0.4 }
+    - { kind: intel, add: 5 }
+
+- id: lobby
+  pool: advisor
+  rarity: uncommon
+  name: Bertrand Okwu-Sallis
+  title: the Party Chair
+  blurb: >-
+    He knows what every seat in the chamber costs. There is more money than there
+    should be and the things you no longer need fetch a better price.
+  mechanics: +2 political capital each act. Sold pieces return 75% of their price.
+  accent: "#a06fd6"
+  art: opposition
+  tags: [domestic, economy]
+  grants: [has_lobby]
+  modifiers:
+    - { kind: rule, rule: capital_per_act, value: 2 }
+    - { kind: rule, rule: sell_bonus, value: 0.75 }
+    - { kind: leverage, tags: [domestic], base_add: 3 }
+
+- id: pollster
+  pool: advisor
+  rarity: common
+  name: Dr Sunniva Reyes-Okafor
+  title: the Pollster
+  blurb: >-
+    She can tell you what the country thinks before the country does, and exactly
+    how far you have painted yourself into the corner.
+  mechanics: Domestic choices +0.3 mult. Your commitment level is shown as a number.
+  accent: "#d98a2b"
+  art: spin_doctor
+  tags: [domestic, intel]
+  grants: [has_pollster]
+  modifiers:
+    - { kind: leverage, tags: [domestic], mult_add: 0.3 }
+    - { kind: rule, rule: reveal_commitment }

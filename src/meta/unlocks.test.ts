@@ -155,11 +155,11 @@ describe('evaluateUnlocks', () => {
       ...content.cards.c_basic,
       id: 'c_strike',
       timeout: 'left',
-      left: { text: 'Limited strike', effects: { escalation: 10 }, tags: ['limited_strike', 'military'] },
-      right: { text: 'Hold', effects: {}, tags: [] },
+      left: { text: 'Limited strike', effects: { escalation: 10 }, tags: ['limited_strike', 'military'], base: 10 },
+      right: { text: 'Hold', effects: {}, tags: [], base: 10 },
     };
     const s = run();
-    s.history.push({ card: 'c_strike', side: 'left', act: 1, day: 2, applied: {} });
+    s.history.push({ card: 'c_strike', side: 'left', act: 1, day: 2, applied: {}, leverage: 0 });
     s.act = 1;
     expect(evaluateUnlocks({ ...ctx(s, 'nuclear_war'), content: c2 })).not.toContain('limited_striker');
     s.act = 2;
@@ -167,14 +167,14 @@ describe('evaluateUnlocks', () => {
     __resetUnlocksForTests();
     // Timeout resolves to the card's timeout side.
     const t = run();
-    t.history.push({ card: 'c_strike', side: 'timeout', act: 1, day: 2, applied: {} });
+    t.history.push({ card: 'c_strike', side: 'timeout', act: 1, day: 2, applied: {}, leverage: 0 });
     t.act = 2;
     expect(chosenTags(c2, t.history[0])).toContain('limited_strike');
     expect(evaluateUnlocks({ ...ctx(t, 'nuclear_war'), content: c2 })).toContain('limited_striker');
     __resetUnlocksForTests();
     // The other side does not count; unknown cards are ignored.
     const u = run();
-    u.history.push({ card: 'c_strike', side: 'right', act: 1, day: 2, applied: {} }, { card: 'missing', side: 'left', act: 1, day: 2, applied: {} });
+    u.history.push({ card: 'c_strike', side: 'right', act: 1, day: 2, applied: {}, leverage: 0 }, { card: 'missing', side: 'left', act: 1, day: 2, applied: {}, leverage: 0 });
     u.act = 2;
     expect(chosenTags(c2, u.history[1])).toEqual([]);
     expect(evaluateUnlocks({ ...ctx(u, 'nuclear_war'), content: c2 })).not.toContain('limited_striker');
@@ -269,7 +269,7 @@ describe('evaluateUnlocks', () => {
 
   it('a perfect run unlocks everything at once', () => {
     const c2: Content = { ...content, cards: { ...content.cards } };
-    c2.cards.c_strike = { ...content.cards.c_basic, id: 'c_strike', left: { text: 'S', effects: {}, tags: ['limited_strike'] } };
+    c2.cards.c_strike = { ...content.cards.c_basic, id: 'c_strike', left: { text: 'S', effects: {}, tags: ['limited_strike'], base: 10 } };
     const s = run({ difficulty: 1 });
     s.act = 5;
     s.meters.public = 20;
@@ -279,7 +279,7 @@ describe('evaluateUnlocks', () => {
       [20, 60, 50, 50, 30],
     ];
     s.seen.push('fp_intercept_fa_x');
-    s.history.push({ card: 'c_strike', side: 'left', act: 2, day: 5, applied: {} });
+    s.history.push({ card: 'c_strike', side: 'left', act: 2, day: 5, applied: {}, leverage: 0 });
     s.stats.timeouts = 5;
     s.pieces.push('launch_on_warning');
     const stats = emptyStats();

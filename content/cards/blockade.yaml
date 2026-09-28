@@ -74,7 +74,7 @@
   tags: [blockade, alliance, alliance_demand]
   conditions: { flags_none: [blockade:declared] }
   text: >-
-    At 05:10 they stopped the Compact ferry Aldrin Star at a line they drew in
+    At 05:10 they stopped the Compact ferry Alder Star at a line they drew in
     the Straits overnight, four hundred passengers aboard, and they are holding
     her there for 'inspection'. My navy is two frigates and a coastguard. Yours
     is a navy. Tell me what you will do, because at nine I have to tell my
@@ -160,7 +160,7 @@
   timeout: left
   tags: [naval, blockade, alliance]
   text: >-
-    Halden and Corvane can be alongside the Aldrin Star at 09:00, four hundred
+    Halden and Corvane can be alongside the Alder Star at 09:00, four hundred
     passengers and a Compact flag between us and their frigate. If they fire
     across her bow my captains fire back, and that is not a decision, that is
     training. If I hold them at twelve miles and talk, the passengers spend
@@ -221,7 +221,7 @@
   acts: [1, 5]
   tags: [diplomacy, blockade, commitment_trap]
   text: >-
-    '{Rival} is prepared to release the Aldrin Star and her passengers at 18:00
+    '{Rival} is prepared to release the Alder Star and her passengers at 18:00
     as a humanitarian gesture, provided {us} confirms that its warships will
     remain outside the quarantine line.' A pause. 'The passengers have been
     well treated.' The second sentence arrives forty seconds after the first,
@@ -280,7 +280,7 @@
   timeout: left
   tags: [naval, blockade, military]
   text: >-
-    The Ostrava Sky, {rival_adj} flag, twenty-two thousand tonnes, reaches our
+    The Ostrel Sky, {rival_adj} flag, twenty-two thousand tonnes, reaches our
     line at 04:20 and has not answered a hail in three hours. Her master has
     orders to proceed and mine has orders to stop her, so one of them is about
     to disobey somebody. Captain Ruys will put a round across her bow at half a
@@ -316,7 +316,7 @@
   acts: [1, 5]
   tags: [naval, blockade, military]
   text: >-
-    The next hull is the Vardo Reach, six hours out, and this time she has a
+    The next hull is the Vardis Reach, six hours out, and this time she has a
     {rival_adj} frigate on her quarter. The frigate is the message: stop the
     freighter and you are stopping a warship. The line can be held with what
     is in place; losses would be possible. A line that is not held is not a
@@ -349,7 +349,7 @@
   acts: [1, 5]
   tags: [blockade, naval, intel]
   text: >-
-    The Ostrava Sky is stopped, and her hold has four hundred tonnes of
+    The Ostrel Sky is stopped, and her hold has four hundred tonnes of
     guidance gyros invoiced as agricultural sensors, and a crew of nineteen who
     are now, technically, detained by {us} on the high seas. I can release the
     ship and hold the cargo in six hours, which is an inspection. Or hold
@@ -372,7 +372,7 @@
   acts: [1, 5]
   tags: [blockade, military, commitment_trap]
   text: >-
-    A line with a hole in it is a suggestion. The Ostrava Sky is unloading at
+    A line with a hole in it is a suggestion. The Ostrel Sky is unloading at
     Vestria Port tonight under lights, and two more hulls have sailed since she
     was allowed through. The line can be closed properly with what is in
     place. Or it can be taken down before it is laughed at twice, and the

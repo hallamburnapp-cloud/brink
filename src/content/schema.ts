@@ -5,23 +5,27 @@
 import { z } from 'zod';
 import type {
   ActDef,
+  ArchetypeDef,
   CardDef,
   Content,
   DifficultyDef,
   EndingDef,
   FlashpointDef,
+  OrderDef,
   PieceDef,
   Seat,
   SeatDef,
   SpeakerDef,
 } from '../engine/types.ts';
 import { SEATS } from '../engine/types.ts';
+import { RARITY_PRICE, deriveBase } from '../engine/leverage.ts';
 
 const seat = z.enum(['republic', 'federation', 'coalition']);
 const mode = z.enum(['daily', 'endless', 'challenge']);
 const meterKey = z.enum(['public', 'military', 'allies', 'economy', 'escalation']);
 const hiddenKey = z.enum(['trust_primary', 'trust_secondary', 'intel', 'commitment']);
 const effectKey = z.enum(['public', 'military', 'allies', 'economy', 'escalation', 'trust_primary', 'trust_secondary', 'intel', 'commitment']);
+const rarity = z.enum(['common', 'uncommon', 'rare', 'legendary']);
 const id = z.string().regex(/^[a-z][a-z0-9_]*$/, 'ids are snake_case: [a-z][a-z0-9_]*');
 const flag = z.string().regex(/^[a-z][a-z0-9_:]*$/, 'flags are snake_case, optionally namespaced with ":"');
 const tag = z.string().regex(/^[a-z][a-z0-9_]*$/);
@@ -44,6 +48,7 @@ export const conditionSchema = z
     seen: z.array(id).optional(),
     unseen: z.array(id).optional(),
     act_card_min: z.number().int().min(0).optional(),
+    act: range.optional(),
   })
   .strict();
 
@@ -59,6 +64,7 @@ const outcomeSchema = z
     set: z.array(flag).optional(),
     clear: z.array(flag).optional(),
     ending: id.optional(),
+    capital: z.number().int().min(-6).max(6).optional(),
   })
   .strict();
 
@@ -77,6 +83,9 @@ export const choiceSchema = z
     text: z.string().min(2).max(90),
     effects: effectsSchema.default({}),
     tags: z.array(tag).default([]),
+    /** Printed base leverage; derived from effects and tags when omitted. */
+    base: z.number().int().min(1).max(80).optional(),
+    capital: z.number().int().min(-6).max(6).optional(),
     odds: oddsSchema.optional(),
     follow: z.array(followSchema).optional(),
     set: z.array(flag).optional(),
@@ -111,6 +120,8 @@ export const cardSchema = z
       .strict()
       .optional(),
     flashpoint: id.optional(),
+    bluff: z.boolean().default(false),
+    shop: z.boolean().default(false),
     chained: z.boolean().optional(),
     note: z.string().optional(),
   })
@@ -141,7 +152,19 @@ const ruleId = z.enum([
   'economy_floor',
   'escalate_to_deescalate',
   'predelegation',
+  'accidents_twice',
+  'deadman_switch',
+  'perfect_intel',
+  'extra_offer',
+  'shop_discount',
+  'capital_per_act',
+  'sell_bonus',
+  'free_rerolls',
+  'extra_order_slot',
+  'extra_piece_slot',
 ]);
+
+const scaleTrigger = z.enum(['accident_survived', 'accident_avoided', 'flashpoint_cleared', 'ante_met', 'ante_smashed', 'choice', 'act_start', 'roll_success', 'roll_failure', 'near_miss']);
 
 const modifierSchema = z.discriminatedUnion('kind', [
   z
@@ -165,6 +188,31 @@ const modifierSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('drift'), key: effectKey, per_card: z.number().min(-3).max(3), when: conditionSchema.optional() }).strict(),
   z.object({ kind: z.literal('floor'), value: z.number().int().min(0).max(90) }).strict(),
   z.object({ kind: z.literal('ceiling'), value: z.number().int().min(10).max(100) }).strict(),
+  z
+    .object({
+      kind: z.literal('leverage'),
+      tags: z.array(tag).optional(),
+      when: conditionSchema.optional(),
+      base_add: z.number().min(-40).max(80).optional(),
+      mult_add: z.number().min(-3).max(12).optional(),
+      mult_mult: z.number().min(0.1).max(10).optional(),
+      per: effectKey.optional(),
+      per_above: z.number().min(0).max(100).optional(),
+      per_step: z.number().min(1).max(50).optional(),
+    })
+    .strict(),
+  z.object({ kind: z.literal('retrigger'), tags: z.array(tag).optional(), when: conditionSchema.optional(), times: z.number().int().min(1).max(3).optional() }).strict(),
+  z
+    .object({
+      kind: z.literal('scale'),
+      on: scaleTrigger,
+      tags: z.array(tag).optional(),
+      mult_add: z.number().min(0).max(3).optional(),
+      base_add: z.number().min(0).max(30).optional(),
+      max: z.number().min(0).max(100).optional(),
+    })
+    .strict(),
+  z.object({ kind: z.literal('accident'), mult: z.number().min(0).max(4).optional(), severity_mult: z.number().min(0).max(4).optional() }).strict(),
   z.object({ kind: z.literal('rule'), rule: ruleId, value: z.number().optional() }).strict(),
 ]);
 
@@ -174,10 +222,12 @@ export const pieceSchema = z
   .object({
     id,
     pool: z.enum(['advisor', 'doctrine', 'asset']),
+    rarity: rarity.default('common'),
+    price: z.number().int().min(1).max(30).optional(),
     name: z.string().min(2).max(60),
     title: z.string().min(2).max(60),
     blurb: z.string().min(10).max(320),
-    mechanics: z.string().min(10).max(320),
+    mechanics: z.string().min(10).max(360),
     accent: z.string().regex(/^#[0-9a-fA-F]{6}$/),
     art: id,
     modifiers: z.array(modifierSchema).default([]),
@@ -188,6 +238,43 @@ export const pieceSchema = z
     min_act: z.number().int().min(1).max(5).optional(),
     excludes: z.array(id).optional(),
     unlock: unlockSchema.optional(),
+  })
+  .strict();
+
+const orderEffect = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('meter'), key: effectKey, delta: z.number().int().min(-40).max(40) }).strict(),
+  z.object({ type: z.literal('retrigger_next'), times: z.number().int().min(1).max(3).optional() }).strict(),
+  z.object({ type: z.literal('reveal'), key: hiddenKey }).strict(),
+  z.object({ type: z.literal('skip_accident') }).strict(),
+  z.object({ type: z.literal('bury') }).strict(),
+  z.object({ type: z.literal('capital'), delta: z.number().int().min(1).max(10) }).strict(),
+  z.object({ type: z.literal('charge'), charge: z.enum(['deescalation', 'removal']), count: z.number().int().min(1).max(3) }).strict(),
+  z.object({ type: z.literal('leverage'), amount: z.number().int().min(1).max(5000) }).strict(),
+  z.object({ type: z.literal('mult_next'), mult: z.number().min(1.1).max(10) }).strict(),
+]);
+
+export const orderSchema = z
+  .object({
+    id,
+    name: z.string().min(2).max(40),
+    blurb: z.string().min(10).max(240),
+    mechanics: z.string().min(5).max(200),
+    price: z.number().int().min(1).max(20),
+    rarity: rarity.default('common'),
+    effect: orderEffect,
+    art: id,
+    accent: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  })
+  .strict();
+
+export const archetypeSchema = z
+  .object({
+    id,
+    name: z.string().min(2).max(40),
+    blurb: z.string().min(10).max(320),
+    core: z.array(id).min(2),
+    support: z.array(id).default([]),
+    style: z.enum(['brink', 'standdown', 'hybrid']),
   })
   .strict();
 
@@ -230,6 +317,7 @@ export const seatSchema = z
     vulnerabilities: z.string().min(5).max(200),
     accent: z.string().regex(/^#[0-9a-fA-F]{6}$/),
     starting_pieces: z.array(id).default([]),
+    starting_capital: z.number().int().min(0).max(20).optional(),
     unlock: unlockSchema.optional(),
   })
   .strict();
@@ -243,6 +331,7 @@ export const flashpointSchema = z
     entry: id,
     weight: z.number().min(0).max(10).default(1),
     false_alarm_entry: id.optional(),
+    bluff_entry: id.optional(),
     blurb: z.string().min(10).max(300),
   })
   .strict();
@@ -267,6 +356,7 @@ export const actSchema = z
     intel_shift: z.number().min(-50).max(50),
     timer_scale: z.number().min(0.3).max(2),
     day_per_card: z.number().min(0.1).max(2),
+    target: z.number().int().min(50),
   })
   .strict();
 
@@ -278,6 +368,7 @@ export const difficultySchema = z
     intel_shift: z.number().min(-50).max(50),
     timer_scale: z.number().min(0.3).max(2),
     start_escalation: z.number().min(-30).max(60),
+    target_scale: z.number().min(0.5).max(3).optional(),
     unlock: id.optional(),
   })
   .strict();
@@ -292,6 +383,8 @@ export interface RawContent {
   flashpoints: { file: string; items: unknown[] }[];
   speakers: { file: string; items: unknown[] };
   rules: { file: string; item: unknown };
+  orders?: { file: string; items: unknown[] };
+  archetypes?: { file: string; items: unknown[] };
 }
 
 export interface ContentIssue {
@@ -364,8 +457,13 @@ export function compileContent(raw: RawContent): { content: Content; issues: Con
       flashpoints[d.id] = { ...d, acts: normActs(d.acts) };
       fpEntries.add(d.entry);
       if (d.false_alarm_entry) fpEntries.add(d.false_alarm_entry);
+      if (d.bluff_entry) fpEntries.add(d.bluff_entry);
     });
   }
+  const compileChoice = (ch: RawCard['left']): CardDef['left'] => ({
+    ...ch,
+    base: ch.base ?? deriveBase(ch.effects, ch.tags, ch.odds),
+  });
   for (const c of rawCards) {
     if (cards[c.id]) {
       err(`card ${c.id}`, 'duplicate card id');
@@ -379,8 +477,8 @@ export function compileContent(raw: RawContent): { content: Content; issues: Con
       acts: normActs(c.acts),
       seats: c.seats as Seat[] | undefined,
       text: c.text,
-      left: c.left,
-      right: c.right,
+      left: compileChoice(c.left),
+      right: compileChoice(c.right),
       timer: c.timer,
       timeout: c.timeout,
       conditions: c.conditions,
@@ -390,7 +488,9 @@ export function compileContent(raw: RawContent): { content: Content; issues: Con
       once: c.once,
       warning: c.warning,
       flashpoint: c.flashpoint,
-      chained,
+      bluff: c.bluff,
+      chained: c.bluff ? false : chained,
+      shop: c.shop,
       note: c.note,
     };
     cards[c.id] = card;
@@ -415,9 +515,49 @@ export function compileContent(raw: RawContent): { content: Content; issues: Con
         err(`${f.file} › ${r.data.id}`, 'duplicate piece id');
         return;
       }
-      pieces[r.data.id] = r.data as PieceDef;
+      pieces[r.data.id] = { ...r.data, price: r.data.price ?? RARITY_PRICE[r.data.rarity] } as PieceDef;
       pieceOrder.push(r.data.id);
     });
+  }
+
+  const orders: Record<string, OrderDef> = {};
+  const orderOrder: string[] = [];
+  if (raw.orders) {
+    if (!Array.isArray(raw.orders.items)) err(raw.orders.file, 'orders file must contain a YAML list');
+    else
+      raw.orders.items.forEach((item, i) => {
+        const r = orderSchema.safeParse(item);
+        if (!r.success) {
+          const guess = (item as any)?.id ? `order ${(item as any).id}` : `item #${i + 1}`;
+          err(`${raw.orders!.file} › ${guess}`, fmtZod(r.error));
+          return;
+        }
+        if (orders[r.data.id]) {
+          err(`${raw.orders!.file} › ${r.data.id}`, 'duplicate order id');
+          return;
+        }
+        orders[r.data.id] = r.data as OrderDef;
+        orderOrder.push(r.data.id);
+      });
+  }
+
+  const archetypes: Record<string, ArchetypeDef> = {};
+  if (raw.archetypes) {
+    if (!Array.isArray(raw.archetypes.items)) err(raw.archetypes.file, 'archetypes file must contain a YAML list');
+    else
+      raw.archetypes.items.forEach((item, i) => {
+        const r = archetypeSchema.safeParse(item);
+        if (!r.success) {
+          const guess = (item as any)?.id ? `archetype ${(item as any).id}` : `item #${i + 1}`;
+          err(`${raw.archetypes!.file} › ${guess}`, fmtZod(r.error));
+          return;
+        }
+        if (archetypes[r.data.id]) {
+          err(`${raw.archetypes!.file} › ${r.data.id}`, 'duplicate archetype id');
+          return;
+        }
+        archetypes[r.data.id] = r.data as ArchetypeDef;
+      });
   }
 
   const endings: Record<string, EndingDef> = {};
@@ -476,7 +616,7 @@ export function compileContent(raw: RawContent): { content: Content; issues: Con
   }
 
   return {
-    content: { cards, pieces, endings, seats, flashpoints, speakers, acts, difficulties, cardOrder, pieceOrder, endingOrder },
+    content: { cards, pieces, orders, archetypes, endings, seats, flashpoints, speakers, acts, difficulties, cardOrder, pieceOrder, orderOrder, endingOrder },
     issues,
   };
 }

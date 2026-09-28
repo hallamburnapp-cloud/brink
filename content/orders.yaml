@@ -1,0 +1,131 @@
+# ORDERS — one-shot consumables bought in the shop (max 2 held), used during a card.
+
+- id: stand_down_order
+  name: Stand-Down Order
+  blurb: "A signed order to every command: step back one rung, tonight, no questions. It works exactly once."
+  mechanics: Escalation −20.
+  price: 4
+  rarity: common
+  effect: { type: meter, key: escalation, delta: -20 }
+  art: doctrine_hotline
+  accent: "#4f8fc9"
+
+- id: say_it_again
+  name: Say It Again
+  blurb: Have the statement read twice, once to the room and once to the cameras. The next thing you decide counts twice.
+  mechanics: Your next choice scores twice.
+  price: 5
+  rarity: uncommon
+  effect: { type: retrigger_next }
+  art: spin_doctor
+  accent: "#d98a2b"
+
+- id: double_down
+  name: Double Down
+  blurb: Whatever you were going to do, do it with everything. The next thing you decide carries double weight.
+  mechanics: Your next choice gets ×2 mult.
+  price: 6
+  rarity: uncommon
+  effect: { type: mult_next, mult: 2 }
+  art: doctrine_red_lines
+  accent: "#e03b3b"
+
+- id: intercept_package
+  name: Intercept Package
+  blurb: A folder of their internal traffic, three days old, still warm. You learn what they actually think of you.
+  mechanics: Reveals the primary rival's trust as a number for the rest of the run.
+  price: 3
+  rarity: common
+  effect: { type: reveal, key: trust_primary }
+  art: asset_sigint
+  accent: "#7fd6e6"
+
+- id: duty_officers_veto
+  name: Duty Officer's Veto
+  blurb: A quiet word to the night shift. Whatever is about to go wrong on the board tonight does not, this once.
+  mechanics: Cancels the accident attached to the current card.
+  price: 4
+  rarity: common
+  effect: { type: skip_accident }
+  art: watch_officer
+  accent: "#5f7f9f"
+
+- id: lose_the_memo
+  name: Lose the Memo
+  blurb: The problem on your desk is filed, misfiled, and never seen again. Somebody else's problem now.
+  mechanics: Buries the current card without playing it.
+  price: 3
+  rarity: common
+  effect: { type: bury }
+  art: fixer
+  accent: "#b07a4a"
+
+- id: favour_owed
+  name: Favour Owed
+  blurb: Somebody in the chamber owes you from the last election. You collect.
+  mechanics: +4 political capital.
+  price: 2
+  rarity: common
+  effect: { type: capital, delta: 4 }
+  art: opposition
+  accent: "#a06fd6"
+
+- id: one_more_call
+  name: One More Call
+  blurb: The switchboard is told the line stays open, whatever the protocol says. One more conversation nobody at home will make you pay for.
+  mechanics: +1 Hotline charge (a free de-escalation) this act.
+  price: 4
+  rarity: uncommon
+  effect: { type: charge, charge: deescalation, count: 1 }
+  art: hotline
+  accent: "#e03b3b"
+
+- id: leaked_assessment
+  name: Leaked Assessment
+  blurb: A single page of the national estimate finds its way to the right newspaper. The world reads it, and the world adjusts.
+  mechanics: +300 leverage immediately.
+  price: 5
+  rarity: uncommon
+  effect: { type: leverage, amount: 300 }
+  art: press
+  accent: "#d0d0d0"
+
+- id: calm_the_markets
+  name: Calm the Markets
+  blurb: The central bank says the word "orderly" eleven times in one statement. It works, for now.
+  mechanics: Economy +15.
+  price: 4
+  rarity: common
+  effect: { type: meter, key: economy, delta: 15 }
+  art: treasury
+  accent: "#c1a23a"
+
+- id: rally
+  name: The Rally
+  blurb: Forty thousand people in the square with flags, arranged at short notice by people who are good at it.
+  mechanics: Public +12.
+  price: 4
+  rarity: common
+  effect: { type: meter, key: public, delta: 12 }
+  art: peace_leader
+  accent: "#6fbf5c"
+
+- id: muster
+  name: The Muster
+  blurb: A parade, a promotion list and a pay rise, announced on the same morning. The officers remember who signed it.
+  mechanics: Military +12.
+  price: 4
+  rarity: common
+  effect: { type: meter, key: military, delta: 12 }
+  art: hawk_general
+  accent: "#b8352f"
+
+- id: personal_letter
+  name: Personal Letter
+  blurb: Handwritten, carried by someone they know, saying the one thing you would never say in a communiqué.
+  mechanics: Primary rival trust +15.
+  price: 4
+  rarity: uncommon
+  effect: { type: meter, key: trust_primary, delta: 15 }
+  art: ambassador
+  accent: "#8e6bb3"

@@ -154,15 +154,29 @@ export function ChoiceButtons({ card, disabled, onHover, onCommit }: ChoiceButto
         onFocus={() => onHover(side)}
         onBlur={() => onHover(null)}
         onClick={() => onCommit(side)}
-        aria-label={`${side === 'left' ? 'Left' : 'Right'}: ${c.text}${c.odds ? `, ${c.odds.label} ${Math.round(c.odds.p * 100)} percent` : ''}`}
+        aria-label={`${side === 'left' ? 'Left' : 'Right'}: ${c.text}${c.odds ? `, ${c.odds.label} ${Math.round(c.odds.p * 100)} percent` : ''}, leverage ${c.leverage.total}`}
       >
         <span class="serif text-[15px] leading-tight text-paper">{c.text}</span>
-        <span class="mono flex items-center gap-2 text-[10px] tracking-[0.14em] text-mute">
+        <span class="mono flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] tracking-[0.14em] text-mute">
+          <span class="text-paper/90" title={`${c.leverage.base} base × ${c.leverage.mult} mult × ${c.leverage.escMult} escalation${c.leverage.retriggers ? ` × ${1 + c.leverage.retriggers} retrigger` : ''}`}>
+            <span class="text-blue">{c.leverage.base}</span>
+            <span class="text-mute">×</span>
+            <span class="text-red">{c.leverage.mult}</span>
+            {c.leverage.escMult > 1 && (
+              <>
+                <span class="text-mute">×</span>
+                <span class="text-amber">{c.leverage.escMult}</span>
+              </>
+            )}
+            <span class="text-mute"> = </span>
+            <span class="font-bold text-paper">{c.leverage.total.toLocaleString()}</span>
+          </span>
           {c.odds && (
             <span class={c.odds.p >= 0.6 ? 'text-green' : c.odds.p >= 0.45 ? 'text-amber' : 'text-red'}>
               {c.odds.label.toUpperCase()} {Math.round(c.odds.p * 100)}%
             </span>
           )}
+          {c.capital !== 0 && <span class="text-amber">{c.capital > 0 ? `+${c.capital}` : c.capital} PC</span>}
           {c.usesCharge && <span class="text-blue">HOTLINE</span>}
           {c.hiddenCosts.length > 0 && <span class="text-red">?</span>}
         </span>

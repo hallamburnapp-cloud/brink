@@ -7,19 +7,31 @@ export async function playToEnd(page: Page, pick: 'left' | 'right' | 'alternate'
     step++;
     // Ending?
     if (await page.getByRole('button', { name: /replay this seed/i }).isVisible().catch(() => false)) return;
-    // Offer?
-    const offerBtn = page.getByRole('button', { name: /^Bring in|^Choose one/ });
-    if (await offerBtn.isVisible().catch(() => false)) {
-      const pieces = page.locator('button').filter({ hasText: /ADVISOR|DOCTRINE|ASSET/ });
-      if ((await pieces.count()) > 0) await pieces.first().click();
-      await page.getByRole('button', { name: /^Bring in/ }).click();
+    // Shop? Buy the first affordable piece, then leave.
+    const leave = page.getByRole('button', { name: /^Back to the desk$|^Begin |^Into the endless night$/ });
+    if (await leave.isVisible().catch(() => false)) {
+      const affordable = page.locator('button').filter({ hasText: /ADVISOR|DOCTRINE|ASSET/ }).filter({ hasNot: page.locator('text=BOUGHT') });
+      const n = await affordable.count();
+      for (let i = 0; i < n; i++) {
+        const b = affordable.nth(i);
+        if (await b.isEnabled().catch(() => false)) {
+          await b.click().catch(() => {});
+          break;
+        }
+      }
+      await leave.click();
       await page.waitForTimeout(400);
       continue;
     }
-    // Roll overlay: wait for it to clear.
+    // Roll / accident overlays: wait for them to clear.
     const overlay = page.getByRole('dialog');
     if (await overlay.isVisible().catch(() => false)) {
       await overlay.waitFor({ state: 'hidden', timeout: 10_000 }).catch(() => {});
+      continue;
+    }
+    const alert = page.getByRole('alert');
+    if (await alert.isVisible().catch(() => false)) {
+      await alert.waitFor({ state: 'hidden', timeout: 10_000 }).catch(() => {});
       continue;
     }
     const left = page.getByRole('button', { name: /^Left:/ });

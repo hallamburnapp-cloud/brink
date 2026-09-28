@@ -1,6 +1,11 @@
 /**
  * The whole data model of BRINK. Content (YAML) compiles to these types;
  * the engine is a pure function over them and a serialisable RunState.
+ *
+ * The core loop is brinkmanship scaling: every choice scores LEVERAGE =
+ * BASE × MULT × ESCALATION-MULTIPLIER (× retriggers). Each act sets a leverage
+ * TARGET (an ante) that must be met before its Flashpoint; political capital
+ * buys posture pieces and one-shot orders in the shop between acts.
  */
 
 export type Seat = 'republic' | 'federation' | 'coalition';
@@ -38,6 +43,8 @@ export interface OutcomeDef {
   set?: string[];
   clear?: string[];
   ending?: string;
+  /** Political capital delta. */
+  capital?: number;
 }
 
 export interface OddsDef {
@@ -54,8 +61,12 @@ export interface OddsDef {
 export interface ChoiceDef {
   text: string;
   effects: Effects;
-  /** Tags that effect modifiers match on (e.g. military, deescalate, public_commitment). */
+  /** Tags that modifiers match on (e.g. military, deescalate, public_commitment). */
   tags: string[];
+  /** Printed base leverage. Compiled from effects/tags when the author omits it. */
+  base: number;
+  /** Political capital delta. */
+  capital?: number;
   odds?: OddsDef;
   follow?: FollowDef[];
   set?: string[];
@@ -84,6 +95,8 @@ export interface ConditionDef {
   unseen?: string[];
   /** Only when this many cards or more have been played this act. */
   act_card_min?: number;
+  /** Act range (inclusive), for modifiers that switch on late. */
+  act?: RangeCond;
 }
 
 export interface WarningDef {
@@ -121,8 +134,12 @@ export interface CardDef {
   warning?: WarningDef;
   /** Belongs to this flashpoint sequence (drawn only inside it). */
   flashpoint?: string;
+  /** A "bluff called" card: may surface inside any flashpoint. */
+  bluff: boolean;
   /** Only reachable through a follow-up queue (never drawn randomly). */
   chained: boolean;
+  /** Opens the shop after this card is played (mid-act shop). */
+  shop: boolean;
   /** Authoring notes; ignored by the engine. */
   note?: string;
 }
@@ -130,7 +147,13 @@ export interface CardDef {
 export type Pool = 'advisor' | 'doctrine' | 'asset';
 export const POOLS: readonly Pool[] = ['advisor', 'doctrine', 'asset'] as const;
 
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'legendary';
+export const RARITIES: readonly Rarity[] = ['common', 'uncommon', 'rare', 'legendary'] as const;
+
 export type Sign = 'pos' | 'neg';
+
+/** What a scaling piece grows on. */
+export type ScaleTrigger = 'accident_survived' | 'accident_avoided' | 'flashpoint_cleared' | 'ante_met' | 'ante_smashed' | 'choice' | 'act_start' | 'roll_success' | 'roll_failure' | 'near_miss';
 
 /**
  * Composable modifiers. See ENGINE.md for the resolution order.
@@ -141,6 +164,10 @@ export type Sign = 'pos' | 'neg';
  * - weight: changes card draw weights by tag or id.
  * - drift: passive per-card change to a value.
  * - floor / ceiling: clamps on escalation.
+ * - leverage: base additions, mult additions and mult multipliers by choice tag / condition.
+ * - retrigger: scores matching choices again.
+ * - scale: grows the piece's own permanent bonus during the run.
+ * - accident: multiplies accident probability (or severity).
  * - rule: named engine rule (see RuleId).
  */
 export type ModifierDef =
@@ -161,6 +188,10 @@ export type ModifierDef =
   | { kind: 'drift'; key: EffectKey; per_card: number; when?: ConditionDef }
   | { kind: 'floor'; value: number }
   | { kind: 'ceiling'; value: number }
+  | { kind: 'leverage'; tags?: string[]; when?: ConditionDef; base_add?: number; mult_add?: number; mult_mult?: number; /** Per 10 points of a value above `per_above` (e.g. escalation above 50): scales mult_add. */ per?: EffectKey; per_above?: number; per_step?: number }
+  | { kind: 'retrigger'; tags?: string[]; when?: ConditionDef; times?: number }
+  | { kind: 'scale'; on: ScaleTrigger; tags?: string[]; mult_add?: number; base_add?: number; max?: number }
+  | { kind: 'accident'; mult?: number; severity_mult?: number }
   | { kind: 'rule'; rule: RuleId; value?: number };
 
 export type RuleId =
@@ -170,7 +201,7 @@ export type RuleId =
   | 'free_deescalation_per_act'
   /** Player may remove N drawn cards per act (Fixer). */
   | 'remove_card_per_act'
-  /** Hidden value revealed on HUD (value = key index in HIDDEN). */
+  /** Hidden value revealed on HUD. */
   | 'reveal_intel'
   | 'reveal_trust'
   | 'reveal_commitment'
@@ -190,13 +221,13 @@ export type RuleId =
   | 'allies_anchor'
   /** Military meter cannot fall below value while doctrine held (Pre-delegation). */
   | 'military_floor'
-  /** No First Use: flashpoints tagged first_use get +odds (handled via odds mod) and military drifts (handled via drift). Marker only. */
+  /** No First Use marker. */
   | 'nfu'
   /** Adversary reads your moves as more aggressive: escalation from military tags +value. */
   | 'security_dilemma'
-  /** Deterrence marker: adversary less likely to probe (proxy cards weight down) but trust down. */
+  /** Deterrence marker. */
   | 'deterrence'
-  /** Reassurance marker: trust recovers each card by value. */
+  /** Reassurance marker. */
   | 'reassurance'
   /** Public commitment tags raise commitment by extra value. */
   | 'red_lines'
@@ -205,18 +236,41 @@ export type RuleId =
   /** Limited-strike choices cost less escalation (value = mult) but floor rises 5 per use. */
   | 'escalate_to_deescalate'
   /** Timer expiry defaults to the military-preferred choice. */
-  | 'predelegation';
+  | 'predelegation'
+  /** Accidents roll twice; fires if either roll fires (Madman Theory). */
+  | 'accidents_twice'
+  /** Once per run, a nuclear ending instead sets escalation to 70 (Deadman Switch). */
+  | 'deadman_switch'
+  /** Accidents are resolved on draw and shown before the choice (Perfect Intel). */
+  | 'perfect_intel'
+  /** Extra piece offers in the shop. */
+  | 'extra_offer'
+  /** Shop prices multiplied by value (e.g. 0.75). */
+  | 'shop_discount'
+  /** Political capital gained at the start of each act. */
+  | 'capital_per_act'
+  /** Sell price fraction (default 0.5) replaced by value. */
+  | 'sell_bonus'
+  /** Free rerolls per shop visit. */
+  | 'free_rerolls'
+  /** Extra order slots. */
+  | 'extra_order_slot'
+  /** Extra piece slots. */
+  | 'extra_piece_slot';
 
 export interface PieceDef {
   id: string;
   pool: Pool;
+  rarity: Rarity;
+  /** Shop price; defaults by rarity (common 3, uncommon 5, rare 8, legendary 12). */
+  price: number;
   /** In-world name (e.g. "General Oren Vasska"). */
   name: string;
   /** Archetype title (e.g. "the Hawk General"). */
   title: string;
   /** One or two sentences, in-world, about what this piece does — mechanics felt, not explained. */
   blurb: string;
-  /** Plain mechanical summary shown in the compendium. */
+  /** Plain mechanical summary shown in the shop and compendium. */
   mechanics: string;
   /** Accent colour for the portrait/card frame. */
   accent: string;
@@ -226,7 +280,7 @@ export interface PieceDef {
   /** Flags granted while held (cards can condition on them). */
   grants: string[];
   tags: string[];
-  /** Weight when offered between acts (default 1). */
+  /** Weight when offered (default 1). */
   offer_weight: number;
   /** Only offered to these seats. */
   seats?: Seat[];
@@ -236,6 +290,40 @@ export interface PieceDef {
   excludes?: string[];
   /** Meta unlock (undefined = available from the start). */
   unlock?: { id: string; label: string; hint: string };
+}
+
+export type OrderEffect =
+  | { type: 'meter'; key: EffectKey; delta: number }
+  | { type: 'retrigger_next'; times?: number }
+  | { type: 'reveal'; key: HiddenKey }
+  | { type: 'skip_accident' }
+  | { type: 'bury' }
+  | { type: 'capital'; delta: number }
+  | { type: 'charge'; charge: 'deescalation' | 'removal'; count: number }
+  | { type: 'leverage'; amount: number }
+  | { type: 'mult_next'; mult: number };
+
+export interface OrderDef {
+  id: string;
+  name: string;
+  blurb: string;
+  mechanics: string;
+  price: number;
+  rarity: Rarity;
+  effect: OrderEffect;
+  /** Icon id. */
+  art: string;
+  accent: string;
+}
+
+export interface ArchetypeDef {
+  id: string;
+  name: string;
+  blurb: string;
+  /** Holding two of these counts as playing the archetype. */
+  core: string[];
+  support: string[];
+  style: 'brink' | 'standdown' | 'hybrid';
 }
 
 export type EndingKind = 'nuclear' | 'removed' | 'standdown' | 'survival' | 'special';
@@ -282,6 +370,8 @@ export interface SeatDef {
   vulnerabilities: string;
   accent: string;
   starting_pieces: string[];
+  /** Starting political capital (default 4). */
+  starting_capital?: number;
   unlock?: { id: string; label: string; hint: string };
 }
 
@@ -295,6 +385,8 @@ export interface FlashpointDef {
   weight: number;
   /** Alternative entry when a false alarm is live (flag false_alarm_live). */
   false_alarm_entry?: string;
+  /** Card played first when the act's leverage target was missed (the bluff is called). */
+  bluff_entry?: string;
   blurb: string;
 }
 
@@ -321,6 +413,8 @@ export interface ActDef {
   timer_scale: number;
   /** Days advanced per card. */
   day_per_card: number;
+  /** Leverage that must be accumulated during the act (the ante). */
+  target: number;
 }
 
 export interface DifficultyDef {
@@ -331,12 +425,16 @@ export interface DifficultyDef {
   intel_shift: number;
   timer_scale: number;
   start_escalation: number;
+  /** Multiplier on leverage targets (default 1). */
+  target_scale?: number;
   unlock?: string;
 }
 
 export interface Content {
   cards: Record<string, CardDef>;
   pieces: Record<string, PieceDef>;
+  orders: Record<string, OrderDef>;
+  archetypes: Record<string, ArchetypeDef>;
   endings: Record<string, EndingDef>;
   seats: Record<Seat, SeatDef>;
   flashpoints: Record<string, FlashpointDef>;
@@ -346,12 +444,13 @@ export interface Content {
   /** Ordered ids for stable iteration. */
   cardOrder: string[];
   pieceOrder: string[];
+  orderOrder: string[];
   endingOrder: string[];
 }
 
 // ------------------------------------------------------------------ run state
 
-export type Phase = 'card' | 'offer' | 'ended';
+export type Phase = 'card' | 'shop' | 'ended';
 
 export interface RollResult {
   label: string;
@@ -363,15 +462,64 @@ export interface RollResult {
   nearMiss: boolean;
 }
 
+export type AccidentType = 'false_alarm' | 'misread' | 'rogue_commander' | 'attribution_error';
+
+export interface AccidentState {
+  type: AccidentType;
+  /** Probability shown before the choice. */
+  p: number;
+  /** Resolved in advance (Perfect Intel) or null until the choice. */
+  known: boolean | null;
+}
+
+export interface AccidentResult {
+  type: AccidentType;
+  p: number;
+  roll: number;
+  fired: boolean;
+  applied: Effects;
+}
+
+export interface LeverageTerm {
+  source: string;
+  value: number;
+}
+
+export interface LeverageBreakdown {
+  /** Printed base of the choice plus additions. */
+  base: number;
+  baseTerms: LeverageTerm[];
+  /** Additive mult total (starting at 1). */
+  multAdd: number;
+  multAddTerms: LeverageTerm[];
+  /** Product of multiplicative mults. */
+  multMult: number;
+  multMultTerms: LeverageTerm[];
+  /** Final mult before escalation. */
+  mult: number;
+  /** Escalation multiplier from the curve. */
+  escMult: number;
+  escalation: number;
+  /** Extra scorings of this choice. */
+  retriggers: number;
+  retriggerTerms: LeverageTerm[];
+  /** base × mult × escMult × (1 + retriggers), rounded. */
+  total: number;
+}
+
 export interface HistoryEntry {
   card: string;
+  /** The side actually played (a timeout records the side it resolved to, with timedOut set). */
   side: Side | 'timeout';
+  timedOut?: boolean;
   act: number;
   day: number;
   /** Deltas actually applied to visible meters and hidden values. */
   applied: Effects;
   roll?: RollResult;
   truth?: boolean;
+  leverage: number;
+  accident?: AccidentResult;
 }
 
 export interface QueuedCard {
@@ -379,8 +527,39 @@ export interface QueuedCard {
   in: number;
 }
 
+export interface ShopOffer {
+  piece: string;
+  price: number;
+  sold: boolean;
+}
+
+export interface ShopOrderOffer {
+  order: string;
+  price: number;
+  sold: boolean;
+}
+
+export interface ShopState {
+  offers: ShopOffer[];
+  orders: ShopOrderOffer[];
+  rerolls: number;
+  /** Mid-act shop returns to the cards; end-of-act shop begins the next act. */
+  mid: boolean;
+  /** Tags removed from the deck this visit (limit 1 per visit). */
+  removed: string[];
+}
+
+export interface PieceRunState {
+  /** Permanent mult bonus grown during the run. */
+  mult: number;
+  /** Permanent base bonus grown during the run. */
+  base: number;
+  /** Trigger count. */
+  count: number;
+}
+
 export interface RunState {
-  v: 1;
+  v: 2;
   seed: string;
   rng: [number, number, number, number];
   seat: Seat;
@@ -395,14 +574,21 @@ export interface RunState {
   hidden: Record<HiddenKey, number>;
   flags: string[];
   pieces: string[];
+  pieceState: Record<string, PieceRunState>;
+  orders: string[];
+  /** Tags removed from the deck by the shop. */
+  removedTags: string[];
   seen: string[];
   queue: QueuedCard[];
   phase: Phase;
   current: string | null;
   /** For a warning card: whether it is true (decided on draw, resolved on choice). */
   truth: boolean | null;
-  /** Piece ids currently offered between acts. */
-  offer: string[] | null;
+  /** Accident attached to the current card, if any. */
+  accident: AccidentState | null;
+  shop: ShopState | null;
+  /** Shops opened this act (mid-act shop once). */
+  midShopDone: boolean;
   /** Flashpoint id while inside a flashpoint sequence. */
   flashpoint: string | null;
   /** Flashpoints already used this run. */
@@ -417,7 +603,40 @@ export interface RunState {
   /** Escalation floor raised by Escalate-to-De-escalate uses. */
   escalationFloor: number;
   revealed: HiddenKey[];
-  stats: { rolls: number; nearMisses: number; timeouts: number; falseAlarms: number; trueWarnings: number };
+  /** Political capital. */
+  capital: number;
+  /** Leverage accumulated this act. */
+  actLeverage: number;
+  /** Leverage target for this act. */
+  actTarget: number;
+  /** Total leverage: the score. */
+  score: number;
+  /** Extra scorings queued by orders for the next choice. */
+  nextRetrigger: number;
+  /** Extra mult queued by orders for the next choice. */
+  nextMult: number;
+  /** Deadman Switch used. */
+  deadmanUsed: boolean;
+  /** Playing on past the Endgame. */
+  endless: boolean;
+  /** Set when a win ending fired and the player may continue. */
+  canContinue: boolean;
+  /** Last leverage breakdown (for the tally animation). */
+  lastLeverage: LeverageBreakdown | null;
+  stats: {
+    rolls: number;
+    nearMisses: number;
+    timeouts: number;
+    falseAlarms: number;
+    trueWarnings: number;
+    accidents: number;
+    accidentsSurvived: number;
+    antesMet: number;
+    antesSmashed: number;
+    antesMissed: number;
+    bestChoice: number;
+    peakEscalation: number;
+  };
 }
 
 export interface ChoiceView {
@@ -430,6 +649,8 @@ export interface ChoiceView {
   odds?: { label: string; p: number };
   tags: string[];
   usesCharge: boolean;
+  leverage: LeverageBreakdown;
+  capital: number;
 }
 
 export interface CardView {
@@ -447,6 +668,7 @@ export interface CardView {
   isFlashpoint: boolean;
   flashpointName: string | null;
   tags: string[];
+  accident: (AccidentState & { label: string }) | null;
 }
 
 export type RunEvent =
@@ -454,11 +676,18 @@ export type RunEvent =
   | { type: 'roll'; result: RollResult }
   | { type: 'flag'; set: string[]; clear: string[] }
   | { type: 'warning'; truth: boolean }
-  | { type: 'act_start'; act: number; name: string }
+  | { type: 'act_start'; act: number; name: string; target: number }
   | { type: 'flashpoint_start'; id: string; name: string }
   | { type: 'flashpoint_end'; id: string }
-  | { type: 'offer'; pieces: string[] }
-  | { type: 'ending'; id: string; kind: EndingKind }
+  | { type: 'shop'; mid: boolean }
+  | { type: 'ending'; id: string; kind: EndingKind; canContinue: boolean }
   | { type: 'timeout' }
   | { type: 'reveal'; key: HiddenKey }
-  | { type: 'charge_used'; charge: 'deescalation' };
+  | { type: 'charge_used'; charge: 'deescalation' }
+  | { type: 'leverage'; breakdown: LeverageBreakdown; actLeverage: number; actTarget: number }
+  | { type: 'accident'; result: AccidentResult }
+  | { type: 'ante'; met: boolean; smashed: boolean; leverage: number; target: number; capital: number }
+  | { type: 'capital'; delta: number; reason: string }
+  | { type: 'scale'; piece: string; mult: number; base: number }
+  | { type: 'deadman' }
+  | { type: 'order_used'; order: string };

@@ -33,7 +33,7 @@ describe('stats', () => {
 
   it('records a lost run', () => {
     const before = Date.now();
-    const s = recordRun(ended('nuclear_war', { day: 9.5, act: 3, pieces: ['p_hawk', 'p_hotline'], stats: { rolls: 4, nearMisses: 2, timeouts: 3, falseAlarms: 1, trueWarnings: 0 } }), content, ['p_hawk', 'p_dove', 'p_hotline']);
+    const s = recordRun(ended('nuclear_war', { day: 9.5, act: 3, pieces: ['p_hawk', 'p_hotline'], stats: { rolls: 4, nearMisses: 2, timeouts: 3, falseAlarms: 1, trueWarnings: 0, accidents: 0, accidentsSurvived: 0, antesMet: 0, antesSmashed: 0, antesMissed: 0, bestChoice: 0, peakEscalation: 0 } }), content, ['p_hawk', 'p_dove', 'p_hotline']);
     expect(s.runs).toBe(1);
     expect(s.bestDays).toBe(9);
     expect(s.totalDays).toBe(9);

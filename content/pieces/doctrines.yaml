@@ -1,13 +1,16 @@
-# DOCTRINES — rules that change how escalation, intel and adversary trust behave.
+# DOCTRINES — rules that change how escalation, intel and adversary trust behave,
+# and how leverage scales.
 
 - id: launch_on_warning
   pool: doctrine
+  rarity: rare
   name: Launch on Warning
   title: Launch on Warning
   blurb: >-
     They know that if the board lights up, you will not wait to see whether it was real.
-    They probe less. The board still lights up sometimes when nothing is there.
-  mechanics: Adversary rolls +8%; proxy and probe cards 40% rarer; deterrence costs less escalation. A false alarm that survives to a flashpoint forces the launch decision.
+    They probe less. Every step up the ladder counts for more, and the board still
+    lights up sometimes when nothing is there.
+  mechanics: +0.4 mult per 10 escalation above 60. Adversary rolls +8%; proxy and probe cards 40% rarer; deterrence costs less escalation. Accidents 30% more likely. A false alarm that survives to a flashpoint forces the launch decision.
   accent: "#e03b3b"
   art: doctrine_low
   tags: [nuclear, deterrence]
@@ -15,25 +18,29 @@
   excludes: [minimal_deterrence]
   unlock: { id: false_alarm_survivor, label: Launch on Warning, hint: Survive a false alarm that reached a flashpoint. }
   modifiers:
+    - { kind: leverage, per: escalation, per_above: 60, per_step: 10, mult_add: 0.4 }
     - { kind: rule, rule: launch_on_warning }
     - { kind: rule, rule: deterrence }
     - { kind: odds, tags: [adversary], add: 0.08 }
     - { kind: weight, tags: [proxy, probe], mult: 0.6 }
     - { kind: effect, key: escalation, tags: [deterrence], sign: pos, mult: 0.7 }
+    - { kind: accident, mult: 1.3 }
 
 - id: deterrence_by_denial
   pool: doctrine
+  rarity: uncommon
   name: Deterrence by Denial
   title: Deterrence by Denial
   blurb: >-
     If their missiles cannot get through, they will not fire them. That is the theory.
     On the other side of the border it reads: he is building a shield so he can strike first.
-  mechanics: Intercept rolls +15%. Missile-defence cards 50% more common. Trust with the primary rival drifts down about one point every four cards.
+  mechanics: Missile-defence and deterrence choices +0.6 mult. Intercept rolls +15%; missile-defence cards 50% more common. Trust with the primary rival drifts down about one point every four cards.
   accent: "#7c8b9a"
   art: doctrine_denial
   tags: [deterrence, missile_defence]
   grants: [doctrine_denial]
   modifiers:
+    - { kind: leverage, tags: [missile_defence, deterrence, intercept], mult_add: 0.6 }
     - { kind: rule, rule: deterrence }
     - { kind: odds, tags: [intercept], add: 0.15 }
     - { kind: weight, tags: [missile_defence], mult: 1.5 }
@@ -41,34 +48,43 @@
 
 - id: strategic_ambiguity
   pool: doctrine
+  rarity: uncommon
   name: Strategic Ambiguity
   title: Strategic Ambiguity
   blurb: >-
     Never say what you would do. They will fill the silence with their own fears, and
-    sometimes with their own hopes. Your hands stay free. The room gets stranger.
-  mechanics: Every trust change gets ±6 noise. Commitment gains halved. Misperception cards 50% more common.
+    when they fear you, everything you do weighs more. Your hands stay free. The room
+    gets stranger.
+  mechanics: Misperception choices +0.5 mult; all choices +0.3 mult while rival trust is 40 or below. Every trust change gets ±6 noise; commitment gains halved; misperception cards 50% more common.
   accent: "#8e6bb3"
   art: doctrine_ambiguity
   tags: [misperception]
   grants: [doctrine_ambiguity]
   modifiers:
+    - { kind: leverage, tags: [misperception], mult_add: 0.5 }
+    - { kind: leverage, when: { values: { trust_primary: { max: 40 } } }, mult_add: 0.3 }
     - { kind: rule, rule: trust_variance, value: 6 }
     - { kind: effect, key: commitment, sign: pos, mult: 0.5 }
     - { kind: weight, tags: [misperception], mult: 1.5 }
 
 - id: no_first_use
   pool: doctrine
+  rarity: uncommon
   name: No First Use
   title: No First Use
   blurb: >-
-    You said it out loud and you meant it. Slowly, they start to believe you. The
-    generals believe you too, which is the problem.
-  mechanics: Trust with the primary rival recovers about one point every three cards. Nuclear and de-escalation choices cost 2 military. First-use rolls +20%.
+    You said it out loud and you meant it. Slowly, they start to believe you, and the
+    more they believe you the more your restraint is worth. The generals believe you
+    too, which is the problem.
+  mechanics: De-escalation, reassurance and nuclear choices +0.5 mult, and +0.25 mult per 10 rival trust above 60. Rival trust recovers about one point every three cards. Nuclear and de-escalation choices cost 2 military. First-use rolls +20%.
   accent: "#4f8fc9"
   art: doctrine_nfu
   tags: [nuclear, reassurance]
   grants: [doctrine_nfu]
+  excludes: [the_button]
   modifiers:
+    - { kind: leverage, tags: [deescalate, reassurance, nuclear], mult_add: 0.5 }
+    - { kind: leverage, tags: [deescalate, reassurance, nuclear, diplomacy, back_channel], per: trust_primary, per_above: 60, per_step: 10, mult_add: 0.25 }
     - { kind: rule, rule: nfu }
     - { kind: rule, rule: reassurance }
     - { kind: drift, key: trust_primary, per_card: 0.34 }
@@ -77,86 +93,105 @@
 
 - id: escalate_to_deescalate
   pool: doctrine
+  rarity: rare
   name: Escalate to De-escalate
   title: Escalate to De-escalate
   blurb: >-
-    A sharp, limited blow to remind them what the ladder looks like. It works, mostly.
-    Each time you use it, the bottom rung is a little higher than it was.
-  mechanics: Limited strikes cost half their escalation and appear 50% more often. Each limited strike raises the escalation floor by 5 (max 60).
+    A sharp, limited blow to remind them what the ladder looks like. It works, mostly,
+    and it counts for a great deal. Each time you use it, the bottom rung is a little
+    higher than it was.
+  mechanics: Limited strikes and strikes ×1.6 mult. Limited strikes cost half their escalation and appear 50% more often. Each limited strike raises the escalation floor by 5 (max 60).
   accent: "#d98a2b"
   art: doctrine_e2d
   tags: [escalatory, limited_strike]
   grants: [doctrine_e2d]
   unlock: { id: limited_striker, label: Escalate to De-escalate, hint: Order a limited strike and survive to the next act. }
   modifiers:
+    - { kind: leverage, tags: [limited_strike, strike], mult_mult: 1.6 }
     - { kind: rule, rule: escalate_to_deescalate, value: 0.5 }
     - { kind: weight, tags: [limited_strike], mult: 1.5 }
 
 - id: alliance_first
   pool: doctrine
+  rarity: common
   name: Alliance First
   title: Alliance First
   blurb: >-
-    Nothing without consultation. The alliance holds like a keel. It also decides,
-    increasingly, where the ship goes.
-  mechanics: Allies drift 1 point per card toward 50. Alliance choices raise commitment +3. Allied demand cards appear 60% more often.
+    Nothing without consultation. The alliance holds like a keel, and the tighter it
+    holds the more every joint move weighs. It also decides, increasingly, where the
+    ship goes.
+  mechanics: Alliance choices +6 base and +0.3 mult, plus +0.15 mult per 10 allies above 60. Allies drift 1 point per card toward 50; alliance choices raise commitment +3; allied demand cards 60% more common.
   accent: "#5aa9d6"
   art: doctrine_alliance
   tags: [alliance]
   grants: [doctrine_alliance_first]
   excludes: [fortress]
   modifiers:
+    - { kind: leverage, tags: [alliance, alliance_demand, basing], base_add: 6, mult_add: 0.3 }
+    - { kind: leverage, tags: [alliance, alliance_demand, basing], per: allies, per_above: 60, per_step: 10, mult_add: 0.15 }
     - { kind: rule, rule: allies_anchor, value: 1 }
     - { kind: effect, key: commitment, tags: [alliance], add: 3, always: true }
     - { kind: weight, tags: [alliance_demand], mult: 1.6 }
 
 - id: fortress
   pool: doctrine
+  rarity: common
   name: Fortress
   title: Fortress
   blurb: >-
-    Stockpiles, reserves, borders that close on a schedule. Sanctions bounce off. Your
-    friends notice you have stopped picking up.
-  mechanics: Economy costs ×0.5. Allies drift down about one point every three cards.
+    Stockpiles, reserves, borders that close on a schedule. Sanctions bounce off and
+    there is always money for one more thing. Your friends notice you have stopped
+    picking up.
+  mechanics: Economy and sanction choices +0.4 mult. +1 political capital each act. Economy costs ×0.5. Allies drift down about one point every three cards.
   accent: "#c1a23a"
   art: doctrine_fortress
   tags: [economy]
   grants: [doctrine_fortress]
   excludes: [alliance_first]
   modifiers:
+    - { kind: leverage, tags: [economy, sanction], mult_add: 0.4 }
+    - { kind: rule, rule: capital_per_act, value: 1 }
     - { kind: effect, key: economy, sign: neg, mult: 0.5 }
     - { kind: drift, key: allies, per_card: -0.3 }
 
 - id: transparency
   pool: doctrine
+  rarity: uncommon
   name: Transparency
   title: Transparency
   blurb: >-
     Publish the assessments. Brief the press before the leak. You will know more and
-    they will believe you when it matters. Every secret you do keep will cost double.
-  mechanics: Intel reliability +10. Trust gains from transparency choices ×1.3. Secrecy choices cost 4 public.
+    they will believe you when it matters; every gamble that pays makes the next one
+    count. Every secret you do keep will cost double.
+  mechanics: Transparency and intel choices +0.5 mult; each successful roll grows +0.1 mult (max +2). Intel reliability +10; trust gains from transparency ×1.3; secrecy choices cost 4 public.
   accent: "#e6e0c8"
   art: doctrine_transparency
   tags: [intel, transparency]
   grants: [doctrine_transparency]
   modifiers:
+    - { kind: leverage, tags: [transparency, intel, investigate], mult_add: 0.5 }
+    - { kind: scale, on: roll_success, mult_add: 0.1, max: 2 }
     - { kind: intel, add: 10 }
     - { kind: effect, key: trust, tags: [transparency], sign: pos, mult: 1.3 }
     - { kind: effect, key: public, tags: [secrecy], add: -4, always: true }
 
 - id: red_lines
   pool: doctrine
+  rarity: rare
   name: Red Lines
   title: Red Lines
   blurb: >-
     Say exactly what you will not tolerate, in public, on camera. They back down more
-    often. When they do not, you find out what you have promised.
-  mechanics: Public commitments raise commitment by +8 extra. Adversary rolls +8%. Walking back costs public ×(1 + 0.5 × commitment). Commitment-trap cards 50% more common.
+    often, and the more boxed in you are the more every stand is worth. When they do
+    not back down, you find out what you have promised.
+  mechanics: Public commitments, deterrence and commitment-trap choices +0.8 mult, plus +0.3 mult per 10 commitment above 50. Commitments +8 extra; adversary rolls +8%. Walking back costs public ×(1 + 1.5 × commitment). Commitment-trap cards 50% more common.
   accent: "#b8352f"
   art: doctrine_red_lines
   tags: [commitment, deterrence]
   grants: [doctrine_red_lines]
   modifiers:
+    - { kind: leverage, tags: [public_commitment, deterrence, commitment_trap], mult_add: 0.8 }
+    - { kind: leverage, per: commitment, per_above: 50, per_step: 10, mult_add: 0.3 }
     - { kind: rule, rule: red_lines, value: 8 }
     - { kind: rule, rule: commitment_lock, value: 0.5 }
     - { kind: odds, tags: [adversary], add: 0.08 }
@@ -164,33 +199,38 @@
 
 - id: hotline_protocol
   pool: doctrine
+  rarity: uncommon
   name: Hotline Protocol
   title: Hotline Protocol
   blurb: >-
     A line that is always answered and a rule that using it is never weakness. Once a
     week you can pick up the phone and nobody at home will make you pay for it.
-  mechanics: One free de-escalation per act. Marked choices cost nothing on public, military or allies.
+  mechanics: De-escalation choices +0.4 mult. One free de-escalation per act (marked choices cost nothing on public, military or allies).
   accent: "#e03b3b"
   art: doctrine_hotline
   tags: [deescalate, diplomacy]
   grants: [doctrine_hotline]
   modifiers:
+    - { kind: leverage, tags: [deescalate], mult_add: 0.4 }
     - { kind: rule, rule: free_deescalation_per_act, value: 1 }
 
 - id: predelegation
   pool: doctrine
+  rarity: uncommon
   name: Pre-delegation
   title: Pre-delegation
   blurb: >-
-    Commanders in the field may act without waking you. The clock runs faster and the
-    officers love you for it. When you hesitate, they do not.
-  mechanics: Timers ×0.75. Military cannot fall below 20. Military gains ×1.2. Expired timers pick the military option.
+    Commanders in the field may act without waking you. The clock runs faster, the
+    officers love you for it, and every military order arrives with weight already
+    behind it. When you hesitate, they do not.
+  mechanics: Military and strike choices +0.5 mult. Timers ×0.75; military cannot fall below 20; military gains ×1.2; expired timers pick the military option.
   accent: "#2f6fb8"
   art: doctrine_predelegation
   tags: [military, time]
   grants: [doctrine_predelegation]
   unlock: { id: late_hands, label: Pre-delegation, hint: Let five timers expire in one run and survive it. }
   modifiers:
+    - { kind: leverage, tags: [military, strike, mobilise], mult_add: 0.5 }
     - { kind: rule, rule: predelegation }
     - { kind: rule, rule: military_floor, value: 20 }
     - { kind: timer, mult: 0.75 }
@@ -198,21 +238,137 @@
 
 - id: minimal_deterrence
   pool: doctrine
+  rarity: rare
   name: Minimal Deterrence
   title: Minimal Deterrence
   blurb: >-
     Enough to make the unthinkable stay unthinkable and not one warhead more. You
-    cannot drift into the end of the world. You can still be pushed there, and your
-    generals feel every cut.
-  mechanics: Escalation cannot exceed 95 by drift or ordinary choices; only a flashpoint catastrophe can start the war. Military losses ×1.5. Adversary rolls −8%. Proxy and probe cards 40% more common.
+    cannot drift into the end of the world, and calm hands count for more. You can
+    still be pushed there, and your generals feel every cut.
+  mechanics: All choices +0.5 mult while escalation is 60 or below. Escalation cannot exceed 95 by ordinary means; only a flashpoint catastrophe can start the war. Military losses ×1.5; adversary rolls −8%; proxy and probe cards 40% more common.
   accent: "#6fbf5c"
   art: doctrine_minimal
   tags: [nuclear, restraint]
   grants: [doctrine_minimal]
-  excludes: [launch_on_warning]
+  excludes: [launch_on_warning, madman_theory]
   unlock: { id: cool_head, label: Minimal Deterrence, hint: Finish a run in which escalation never passed 50. }
   modifiers:
+    - { kind: leverage, when: { values: { escalation: { max: 60 } } }, mult_add: 0.5 }
     - { kind: ceiling, value: 95 }
     - { kind: effect, key: military, sign: neg, mult: 1.5 }
     - { kind: odds, tags: [adversary], add: -0.08 }
     - { kind: weight, tags: [proxy, probe], mult: 1.4 }
+
+# ---------------------------------------------------------------- new doctrines
+
+- id: madman_theory
+  pool: doctrine
+  rarity: legendary
+  name: Madman Theory
+  title: Madman Theory
+  blurb: >-
+    Let them believe you might actually do it. Up where the air is thin, every move
+    you make is worth three of theirs. The board lights up more often up here, and
+    it lights up twice.
+  mechanics: ×3 mult while escalation is 90 or above; +0.5 mult per 10 escalation above 50. Accidents roll twice (fire if either roll fires) and are 20% more likely.
+  accent: "#e03b3b"
+  art: doctrine_low
+  tags: [nuclear, escalatory]
+  grants: [doctrine_madman]
+  excludes: [minimal_deterrence]
+  modifiers:
+    - { kind: leverage, when: { values: { escalation: { min: 90 } } }, mult_mult: 3 }
+    - { kind: leverage, per: escalation, per_above: 50, per_step: 10, mult_add: 0.5 }
+    - { kind: rule, rule: accidents_twice }
+    - { kind: accident, mult: 1.2 }
+
+- id: brinkmanship
+  pool: doctrine
+  rarity: legendary
+  name: Brinkmanship
+  title: Brinkmanship
+  blurb: >-
+    The game of chicken, played by states. Every rung above the middle of the ladder
+    is worth a full extra measure of weight, and the higher you climb the less your
+    hands are your own.
+  mechanics: +1 mult per 10 escalation above 50 (that is +4.5 at 95). Accidents 15% more likely.
+  accent: "#b8352f"
+  art: doctrine_red_lines
+  tags: [escalatory, deterrence]
+  grants: [doctrine_brinkmanship]
+  modifiers:
+    - { kind: leverage, per: escalation, per_above: 50, per_step: 10, mult_add: 1.0 }
+    - { kind: accident, mult: 1.15 }
+
+- id: domino_theory
+  pool: doctrine
+  rarity: legendary
+  name: Domino Theory
+  title: Domino Theory
+  blurb: >-
+    If one falls, they all fall, so every proxy and every ally is the whole war in
+    miniature. Each such move is counted twice. Your allies feel the weight of being
+    the first domino.
+  mechanics: Proxy and alliance choices score twice. Those choices also cost 2 allies.
+  accent: "#5aa9d6"
+  art: doctrine_alliance
+  tags: [alliance, proxy]
+  grants: [doctrine_domino]
+  modifiers:
+    - { kind: retrigger, tags: [proxy, alliance, alliance_demand, basing] }
+    - { kind: effect, key: allies, tags: [proxy, alliance, alliance_demand, basing], add: -2, always: true }
+
+- id: the_button
+  pool: doctrine
+  rarity: legendary
+  name: The Button
+  title: The Button
+  blurb: >-
+    It is on the desk. Everyone in every room you enter knows it is on the desk.
+    Strikes, threats and the nuclear word carry two and a half times the weight, and
+    every one of them nudges the world a little closer.
+  mechanics: Strike, limited-strike and nuclear choices ×2.5 mult; those choices also cost 4 escalation.
+  accent: "#e03b3b"
+  art: asset_nc3
+  tags: [nuclear, escalatory]
+  grants: [doctrine_button]
+  excludes: [no_first_use]
+  modifiers:
+    - { kind: leverage, tags: [strike, limited_strike, nuclear], mult_mult: 2.5 }
+    - { kind: effect, key: escalation, tags: [strike, limited_strike, nuclear], add: 4, always: true }
+
+- id: second_strike
+  pool: doctrine
+  rarity: rare
+  name: Second Strike
+  title: Second Strike
+  blurb: >-
+    Whatever they do, you can do back, and they know it. Every strike you order is
+    counted twice, once for the blow and once for the promise of the next.
+  mechanics: Strike and limited-strike choices score twice; they cost 3 more escalation.
+  accent: "#b8352f"
+  art: doctrine_e2d
+  tags: [nuclear, escalatory]
+  grants: [doctrine_second_strike]
+  modifiers:
+    - { kind: retrigger, tags: [strike, limited_strike] }
+    - { kind: effect, key: escalation, tags: [strike, limited_strike], add: 3, always: true }
+
+- id: propaganda
+  pool: doctrine
+  rarity: uncommon
+  name: Managed Truth
+  title: Managed Truth
+  blurb: >-
+    The bulletins say what the ministry says. The public hears less, and what they
+    hear is bigger. Nobody abroad believes a word, which is not the point.
+  mechanics: Domestic and public-commitment choices +6 base. Public swings ×0.8. Trust gains ×0.8.
+  accent: "#d98a2b"
+  art: doctrine_transparency
+  tags: [domestic]
+  grants: [doctrine_propaganda]
+  excludes: [transparency]
+  modifiers:
+    - { kind: leverage, tags: [domestic, public_commitment], base_add: 6 }
+    - { kind: effect, key: public, mult: 0.8 }
+    - { kind: effect, key: trust, sign: pos, mult: 0.8 }
