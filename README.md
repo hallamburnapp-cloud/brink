@@ -8,6 +8,15 @@ meters, four hidden values you only ever hear about, posture pieces that combine
 into builds, flashpoints with visible odds, forty-plus endings, a daily seed shared
 by everyone, and an instant restart.
 
+The heart of it is brinkmanship scaling. Every choice scores **leverage** =
+base × mult × the escalation curve (×1 below 30, ×2 at 50, ×5 at 80, ×12 at 95,
+×20 at 99). Each week is an **ante**: hit the leverage target or the other side
+calls your bluff. Political capital buys **pieces** and one-shot **orders** in the
+shop between weeks. Above 50 the odds of an **accident** (false alarm, misread,
+rogue commander, attribution error) are shown before every choice. 100 is nuclear
+war. The best runs live at 85–97 and get out. Winners can keep going into endless
+escalation for a local best score. See ENGINE.md and SYNERGIES.md.
+
 Working title: BRINK (one constant in `src/config.ts`). © Hallam Burnapp. All rights reserved.
 
 ## Run it
@@ -57,7 +66,7 @@ asset checklist in `tauri/`; iOS/Android groundwork in `capacitor.config.ts`.
 ## Layout
 
 ```
-content/     YAML: cards, endings, pieces, seats, flashpoints, speakers, rules  → CONTENT.md
+content/     YAML: cards, endings, pieces, orders, archetypes, seats, flashpoints, speakers, rules → CONTENT.md
 src/engine   pure deterministic engine                                          → ENGINE.md
 src/content  zod schema, compiler, semantic validator
 src/sim      bot policies + simulator                                           → BALANCE.md

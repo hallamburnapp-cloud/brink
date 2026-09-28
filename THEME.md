@@ -46,7 +46,12 @@ pulse. Nothing else needs to know about escalation to feel it.
 | Flashpoint | 650ms screen shake, red inset pulse (`.pulse-red`) while inside, drone in audio |
 | Odds roll | Overlay; needle sweeps with a cubic ease and decaying wobble (1.3s; 2.4s slow-motion inside flashpoints with red pulse); HELD/FAILED then "Missed by 3%" |
 | Nuclear ending | Shake, 0.9s pause, silence then one low note (audio), 1.5s before the ending screen |
-| Reduced motion | Honoured via `prefers-reduced-motion` and the Settings override (`[data-motion="reduce"]`): no shake, pulse, tilt rotation, sweep or overshoot |
+| Leverage tally | Overlay after commit: base counts up in ticks (pitch rising per step), then each mult chip lands (`tally_mult`), then the escalation multiplier, then the total slams in. Duration scales with the result (short for tens, 1.4s for thousands); the slam sound and a screen shake scale with `log10(total)` (CSS var `--shake`) |
+| Ante | The ante bar fills toward the target; when the target is smashed the total slams twice as hard with `ante_smash` (a rising sweep into a chord); a missed ante drops the HUD into red and plays `ante_miss` |
+| Accident odds | Strip under the meters shows the roll ("Attribution error · 7%"); on commit the bus ducks (held breath, 0.6–2s scaled by escalation) before the result: `accident` (tritone squares then a boom) or `accident_clear` |
+| Escalation ≥ 80 | Continuous pulse heartbeat (70 bpm at 80 rising to 150 at 99), the drone filter opens with intensity and the paper tints red; the tally sounds detune wider |
+| Endless | Home and ending show the local best score; the act banner reads the endless act number and the curve label |
+| Reduced motion | Honoured via `prefers-reduced-motion` and the Settings override (`[data-motion="reduce"]`): no shake, pulse, tilt rotation, sweep or overshoot; the tally still counts (numbers are information) but without shake |
 
 All animation runs on `transform`/`opacity` for 60fps; the card sets `will-change: transform` and `touch-action: none`.
 
