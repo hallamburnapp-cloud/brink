@@ -444,10 +444,11 @@
   text: >-
     Their northern fleet's logistics traffic crosses the Straits on a single
     cable that runs forty metres from ours, and we know its route because they
-    used our survey. A grapnel from the Admiral's boat cuts it tonight, and a
-    cut cable looks like a cut cable. Nobody would be able to prove it was us,
-    which is precisely what they will say about theirs, and then there are two
-    unexplained events and a pattern.
+    used our survey. The Admiral has a boat that can cut it tonight with a
+    grapnel, and a cut cable looks like a cut cable. Nobody would be able to
+    prove it was us, which is precisely what they will say about theirs, and
+    then there are two unexplained events and a pattern, and I will be asked
+    which of them I am confident about.
   left:
     text: "Cut it"
     effects: { escalation: 5, military: 4, commitment: 3 }

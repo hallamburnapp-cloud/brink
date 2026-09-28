@@ -16,7 +16,30 @@ export function Ending() {
   const c = content.value;
   const [png, setPng] = useState<Blob | null>(null);
   const [pngUrl, setPngUrl] = useState<string | null>(null);
-  if (!s || !e || !m) return null;
+  if (!s || !m) return null;
+  if (!e) {
+    // Content without a matching ending (hot reload mid-run, or a missing fallback): never strand the player.
+    return (
+      <div class="flex flex-1 flex-col gap-4 rise pt-2">
+        <section class="paper rounded-md p-5 text-ink">
+          <div class="mono text-[11px] tracking-[0.3em] text-ink-2/70">RECORD ENDS</div>
+          <h2 class="serif mt-1 text-3xl font-semibold">The file closes here.</h2>
+          <p class="serif mt-3 text-[15px]">Day {Math.floor(s.day)}. The record for this run has no ending on file ({s.ending ?? 'none'}).</p>
+        </section>
+        <div class="grid grid-cols-2 gap-2">
+          <button class="btn btn-danger" onClick={runAgain}>
+            Run again
+          </button>
+          <button class="btn" onClick={replaySeed}>
+            Replay this seed
+          </button>
+        </div>
+        <button class="btn" onClick={() => goto('home')}>
+          Home
+        </button>
+      </div>
+    );
+  }
   const seat = c.seats[s.seat];
   const moment = momentCard();
   const data: ShareCardData = {
