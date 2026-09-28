@@ -42,6 +42,7 @@ stops being individual.
 | 6 | The fictional world reads as grounded, not generic | Medium: store-page bounce, "which country am I" | Days 0–10 | Protocol P + comment coding |
 | 7 | No-social positioning does not kill virality | High: no organic growth at all | Days 0–13 | Events |
 | 8 | Content authoring at 300+ cards keeps quality | Medium-high: the deck dilutes | Days −3–13 | Sim + read-aloud + Protocol P |
+| 9 | "Broke the game" runs (score ≥ 100× the final target) happen often enough to be talked about | Medium: the endless mode has no legend | Days 0–13 | Best-score events + a fourth "break it" simulator policy (BALANCE.md, T5 measured 0.03% with the survival heuristic; max 1.45M) |
 | 9 | Balance targets hold for humans as well as bots | Medium-high: too punishing or too easy | Days 0–13 | Events vs sim |
 | 10 | PWA install and offline matter | Low-medium: wasted engineering | Days 0–13 | Events |
 
