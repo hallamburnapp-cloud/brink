@@ -25,6 +25,9 @@ export function Ending() {
           <div class="mono text-[11px] tracking-[0.3em] text-ink-2/70">RECORD ENDS</div>
           <h2 class="serif mt-1 text-3xl font-semibold">The file closes here.</h2>
           <p class="serif mt-3 text-[15px]">Day {Math.floor(s.day)}. The record for this run has no ending on file ({s.ending ?? 'none'}).</p>
+          <p class="mono mt-2 text-[11px] tracking-wider text-ink-2">
+            {Math.floor(s.day)} DAYS IN OFFICE · SCORE {formatScore(s.score)}
+          </p>
         </section>
         <div class="grid grid-cols-2 gap-2">
           <button class="btn btn-danger" onClick={runAgain}>

@@ -1,9 +1,10 @@
 import { expect, type Page } from '@playwright/test';
 
 /** Play the current run to its end by tapping choice buttons and taking the first offered piece. */
-export async function playToEnd(page: Page, pick: 'left' | 'right' | 'alternate' = 'alternate', maxSteps = 400): Promise<void> {
+export async function playToEnd(page: Page, pick: 'left' | 'right' | 'alternate' = 'alternate', maxSteps = 2000, budgetMs = 200_000): Promise<void> {
   let step = 0;
-  while (step < maxSteps) {
+  const started = Date.now();
+  while (step < maxSteps && Date.now() - started < budgetMs) {
     step++;
     // Ending?
     if (await page.getByRole('button', { name: /replay this seed/i }).isVisible().catch(() => false)) return;
@@ -39,13 +40,15 @@ export async function playToEnd(page: Page, pick: 'left' | 'right' | 'alternate'
     if (await left.isVisible().catch(() => false)) {
       const side = pick === 'alternate' ? (step % 2 ? 'left' : 'right') : pick;
       const btn = side === 'left' ? left : right;
-      if (await btn.isEnabled()) {
+      // The tally / accident animations disable the choices briefly; wait them out rather than spend steps.
+      await expect(btn).toBeEnabled({ timeout: 8_000 }).catch(() => {});
+      if (await btn.isEnabled().catch(() => false)) {
         await btn.click();
-        await page.waitForTimeout(450);
+        await page.waitForTimeout(250);
         continue;
       }
     }
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(200);
   }
   throw new Error('Run did not end within the step budget');
 }
