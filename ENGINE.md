@@ -109,7 +109,7 @@ flashpoint cards (and bluff cards) surface; ordinary follow-ups wait.
 
 Opens after each flashpoint (and once mid-act at the halfway card, or after a card with
 `shop: true`). Offers 4 pieces (+`extra_offer`) weighted by rarity (common 10, uncommon
-6, rare 2.5, legendary 0.8) × `offer_weight`, priced by rarity (3/5/8/12 × `shop_discount`),
+6, rare 2.5, legendary 1.2) × `offer_weight`, priced by rarity (3/5/7/8 × `shop_discount`),
 and 2 orders. Reroll costs 2, +1 per reroll (`free_rerolls` first); selling returns 50%
 (`sell_bonus`); removing a tag from the deck costs 4, once per visit, from a fixed list of
 removable tags. Max 6 pieces (`extra_piece_slot`) and 2 orders (`extra_order_slot`).

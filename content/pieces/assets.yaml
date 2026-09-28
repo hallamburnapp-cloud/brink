@@ -2,7 +2,7 @@
 
 - id: early_warning
   pool: asset
-  rarity: common
+  rarity: uncommon
   name: Early-Warning Constellation
   title: Early-Warning Constellation
   blurb: >-
@@ -220,7 +220,7 @@
 
 - id: civil_defence
   pool: asset
-  rarity: common
+  rarity: uncommon
   name: Civil Defence Programme
   title: Civil Defence Programme
   blurb: >-

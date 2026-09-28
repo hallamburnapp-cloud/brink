@@ -228,8 +228,8 @@ export function accidentModifiers(pieces: readonly PieceDef[]): { pMult: number;
 
 // ------------------------------------------------------------------ shop
 
-export const RARITY_PRICE = { common: 3, uncommon: 5, rare: 7, legendary: 9 } as const;
-export const RARITY_WEIGHT = { common: 10, uncommon: 6, rare: 2.5, legendary: 0.8 } as const;
+export const RARITY_PRICE = { common: 3, uncommon: 5, rare: 7, legendary: 8 } as const;
+export const RARITY_WEIGHT = { common: 10, uncommon: 6, rare: 2.5, legendary: 1.2 } as const;
 export const REROLL_BASE = 2;
 export const REMOVE_TAG_PRICE = 4;
 export const MAX_PIECES = 6;

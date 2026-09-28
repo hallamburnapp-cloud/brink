@@ -527,7 +527,7 @@ Choices and odds outcomes may grant `capital` (political capital) — use ±1..�
 domestic wins and losses, +2..+3 for the rare windfall.
 
 **Pieces** (`content/pieces/*.yaml`) carry `rarity` (common/uncommon/rare/legendary →
-price 3/5/8/12), and leverage modifiers:
+price 3/5/7/8), and leverage modifiers:
 ```yaml
 - { kind: leverage, tags: [naval], base_add: 8, mult_add: 0.5 }             # by tag
 - { kind: leverage, when: { values: { escalation: { min: 90 } } }, mult_mult: 3 }   # conditional
