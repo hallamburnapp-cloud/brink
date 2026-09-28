@@ -1,0 +1,478 @@
+# fp_midnight — MIDNIGHT. The deadline hour of an ultimatum, yours or theirs,
+# and the forty minutes on either side of it. Acts 2–5.
+#
+# Shape: one unconditioned entry (the chair) → three mutually exclusive branch
+# cards on the ultimatum arc's flags (theirs / ours / neither) → an optional
+# piece layer (red_lines, spin_doctor, strategic_ambiguity, hotline_protocol;
+# mutually exclusive by pieces_none, no follows of their own: the queue carries
+# the next spine card) → the midnight call (hotline, spend_charge) or the hour
+# after (the General, timer) → terminals. The engine forces `in: 0` inside a
+# flashpoint; follow lists are ordered, and a queued card whose conditions fail
+# is dropped, which is how the branching and the piece layer work.
+#
+# Forces: the commitment trap (public_commitment / walk_back), the hotline
+# (spend_charge: deescalation), "They blink" adversary rolls at 0.4–0.6,
+# Strategic Ambiguity's two readings.
+#
+# Outcomes (terminals set exactly one): fp:midnight_backed_down,
+# fp:midnight_called_bluff, fp:midnight_passed. The catastrophic branch forces
+# the ending `nuclear_midnight`.
+#
+# The world: our battalion on Hollin Ridge in Vestria; their column at the
+# Sallow crossing in Amberline; the empty depot at Tessel.
+
+# ---------------------------------------------------------------- entry
+
+- id: fp_midnight_01_one_chair
+  flashpoint: fp_midnight
+  advisor: aide
+  acts: [2, 5]
+  tags: [commitment_trap, domestic, personal]
+  note: Entry, no conditions. Who sits beside you at midnight. Both follow lists branch on the ultimatum flags on the next card.
+  text: >-
+    It is 23:10 and the deadline is at midnight, which every clock in the
+    building now shows in red because someone in Facilities thought it would
+    help. The General has asked to sit with you for the hour and so has the
+    Foreign Minister, and there is one chair beside yours. I can put the other
+    in the corridor with a telephone. Whoever sits in the corridor will
+    remember it.
+  left:
+    text: "The General takes the chair"
+    effects: { military: 6, commitment: 8, escalation: 4, trust_primary: -8 }
+    tags: [military, deterrence, commitment_trap]
+    follow:
+      - { card: fp_midnight_02_their_hour, in: 0 }
+      - { card: fp_midnight_03_our_hour, in: 0 }
+      - { card: fp_midnight_04_full_readiness, in: 0 }
+  right:
+    text: "The Minister takes the chair"
+    effects: { military: -5, trust_primary: 8, public: -3, allies: -2 }
+    tags: [diplomacy, reassurance, personal]
+    follow:
+      - { card: fp_midnight_02_their_hour, in: 0 }
+      - { card: fp_midnight_03_our_hour, in: 0 }
+      - { card: fp_midnight_04_full_readiness, in: 0 }
+
+# ---------------------------------------------------------------- branches (one of three)
+
+- id: fp_midnight_02_their_hour
+  flashpoint: fp_midnight
+  advisor: hotline
+  acts: [2, 5]
+  conditions: { flags_all: [ultimatum:received], flags_none: [ultimatum:issued] }
+  tags: [commitment_trap, diplomacy, misperception]
+  note: Their deadline. Left goes to the call through the piece layer; right goes to the hour after through the piece layer.
+  text: >-
+    '{Rival} confirms that the hour it named stands. {Rival_leader} will be in
+    his operations room from 23:45, and this line will remain open until 00:15,
+    after which it will be closed for the night.' Twenty-two seconds. 'He asks
+    whether {leader} will be available, or whether {us} has now said everything
+    it intends to say.'
+  left:
+    text: "I will be on the line at midnight"
+    effects: { public: -4, military: -3, trust_primary: 8, commitment: -6 }
+    tags: [diplomacy, reassurance, stall]
+    follow:
+      - { card: fp_midnight_06_the_word_any, in: 0 }
+      - { card: fp_midnight_07_two_statements, in: 0 }
+      - { card: fp_midnight_08_two_readings, in: 0 }
+      - { card: fp_midnight_09_the_protocol, in: 0 }
+      - { card: fp_midnight_05_four_minutes, in: 0 }
+  right:
+    text: "Everything has been said. Midnight is theirs"
+    effects: { commitment: 12, escalation: 5, trust_primary: -10, public: 3 }
+    tags: [deterrence, public_commitment, commitment_trap]
+    follow:
+      - { card: fp_midnight_06_the_word_any, in: 0 }
+      - { card: fp_midnight_07_two_statements, in: 0 }
+      - { card: fp_midnight_08_two_readings, in: 0 }
+      - { card: fp_midnight_09_the_protocol, in: 0 }
+      - { card: fp_midnight_10_the_hour_after, in: 0 }
+
+- id: fp_midnight_03_our_hour
+  flashpoint: fp_midnight
+  advisor: hawk_general
+  acts: [2, 5]
+  conditions: { flags_all: [ultimatum:issued] }
+  tags: [commitment_trap, military, strike]
+  note: Our deadline. Right rolls They blink; success skips straight to the bluff-called terminal, failure to the hour after.
+  text: >-
+    The column at the Sallow crossing has forty-one minutes to be somewhere
+    else and is not moving, apart from one fuel truck the analysts are arguing
+    about. The package is airborne and holding at the edge of their radar, as
+    it was said it would be. Midnight was your word. It has been repeated to
+    the crews, and they are not asking what it meant.
+  left:
+    text: "Keep the line open. Offer them the hour"
+    effects: { commitment: -10, public: -4, military: -4, trust_primary: 6 }
+    tags: [diplomacy, stall, walk_back]
+    follow:
+      - { card: fp_midnight_06_the_word_any, in: 0 }
+      - { card: fp_midnight_07_two_statements, in: 0 }
+      - { card: fp_midnight_08_two_readings, in: 0 }
+      - { card: fp_midnight_09_the_protocol, in: 0 }
+      - { card: fp_midnight_05_four_minutes, in: 0 }
+  right:
+    text: "Midnight is midnight. Hold"
+    effects: { commitment: 10, escalation: 4, military: 3 }
+    tags: [deterrence, military, public_commitment]
+    odds:
+      label: They blink
+      base: 0.5
+      tags: [adversary, military]
+      success:
+        text: "At 23:58 the column began to move, slowly, the right way, filmed from both banks. The package turned for home at 00:03, and the crews were told the word had meant what it said."
+        effects: { public: 6, trust_primary: -8, escalation: -5 }
+        follow: [{ card: fp_midnight_14_they_blinked, in: 0 }]
+      failure:
+        text: "Midnight. The fuel truck moved. Nothing else did, and the package is still holding at the edge of their radar, burning fuel it cannot get back."
+        effects: { escalation: 5, military: -2, public: -2 }
+        follow: [{ card: fp_midnight_10_the_hour_after, in: 0 }]
+
+- id: fp_midnight_04_full_readiness
+  flashpoint: fp_midnight
+  advisor: rival_leader
+  acts: [2, 5]
+  conditions: { flags_none: [ultimatum:issued, ultimatum:received] }
+  tags: [commitment_trap, domestic, diplomacy]
+  note: Neutral path, no ultimatum arc. A two-hour deadline delivered to his own people first. Right rolls They blink at 0.4.
+  text: >-
+    'At midnight {rival} goes to full readiness and stays there until the
+    {us_adj} battalion leaves Hollin Ridge. I would rather it did not come to
+    this, and I am saying so at ten at night to my own people, so that nobody
+    can tell them tomorrow that I did not.' He said it at 22:00. The embassy
+    sent the tape at 22:20, and someone has cut off the anthem at the end.
+  left:
+    text: "Answer him on the line, not on the air"
+    effects: { public: -4, military: -3, trust_primary: 8, commitment: -4 }
+    tags: [diplomacy, reassurance, stall]
+    follow:
+      - { card: fp_midnight_06_the_word_any, in: 0 }
+      - { card: fp_midnight_07_two_statements, in: 0 }
+      - { card: fp_midnight_08_two_readings, in: 0 }
+      - { card: fp_midnight_09_the_protocol, in: 0 }
+      - { card: fp_midnight_05_four_minutes, in: 0 }
+  right:
+    text: "Match it. Full readiness at 23:59"
+    effects: { military: 6, escalation: 6, commitment: 8, trust_primary: -10 }
+    tags: [mobilise, military, deterrence, escalatory]
+    odds:
+      label: They blink
+      base: 0.4
+      tags: [adversary, military]
+      success:
+        text: "At 00:06 their readiness order was rescinded 'in light of clarifications received'. Nobody in this building has clarified anything."
+        effects: { public: 5, escalation: -4, trust_primary: -6 }
+        follow: [{ card: fp_midnight_14_they_blinked, in: 0 }]
+      failure:
+        text: "Midnight. Both sides at full readiness, forty metres of river between two regiments, and their first registering round on the ridge at 00:09."
+        effects: { escalation: 6, allies: -3 }
+        follow: [{ card: fp_midnight_10_the_hour_after, in: 0 }]
+
+# ---------------------------------------------------------------- the call (hotline, spend_charge)
+
+- id: fp_midnight_05_four_minutes
+  flashpoint: fp_midnight
+  advisor: hotline
+  acts: [2, 5]
+  tags: [diplomacy, commitment_trap, deescalate]
+  note: The midnight call. Left is the Hotline Protocol's free de-escalation and a walk-back; without the doctrine the commitment trap bites the public cost. Right rolls They blink.
+  text: >-
+    '{Rival_leader} proposes that both sides announce a pause at 00:30. {Us}
+    first, {rival} four minutes later, so that his people hear it from him
+    second.' A pause, of what the translator does not say and nobody asks.
+    The line stays open after the message ends, and somebody in the room in
+    {rival_capital} coughs and is not translated.
+  left:
+    text: "Announce the pause. Us first"
+    effects: { escalation: -10, trust_primary: 12, commitment: -12, public: -6, military: -5, allies: -2 }
+    tags: [deescalate, walk_back, diplomacy]
+    spend_charge: deescalation
+    follow: [{ card: fp_midnight_12_have_you_eaten, in: 0 }]
+  right:
+    text: "Four minutes is four minutes. They go first"
+    effects: { commitment: 10, escalation: 4, trust_primary: -6 }
+    tags: [deterrence, public_commitment, stall]
+    odds:
+      label: They blink
+      base: 0.45
+      tags: [adversary]
+      success:
+        text: "At 00:31 {rival_capital} announced a pause 'pending clarification'. At 00:35 nobody in your building had said the word, and nobody had to."
+        effects: { escalation: -6, public: 6, trust_primary: -6 }
+        follow: [{ card: fp_midnight_14_they_blinked, in: 0 }]
+      failure:
+        text: "00:30 passed. At 00:41 their guns began registering on the ridge, one round every six minutes, walking towards the battalion."
+        effects: { escalation: 8, allies: -3, military: 2 }
+        follow: [{ card: fp_midnight_10_the_hour_after, in: 0 }]
+
+# ---------------------------------------------------------------- piece layer (one of four, no follows: the queue carries on)
+
+- id: fp_midnight_06_the_word_any
+  flashpoint: fp_midnight
+  advisor: legal
+  acts: [2, 5]
+  conditions: { pieces_any: [red_lines] }
+  tags: [commitment_trap, domestic]
+  note: Red Lines, gift and bill in one. The doctrine lifts the roll; redrawing the line pays the trap.
+  text: >-
+    You said 'midnight' on camera, and you said 'any', and both words are now
+    in the record with your name against them. I have checked what they oblige
+    you to do, and it is nothing. I have checked what they oblige you to be
+    seen to do, and it is everything, by about 00:05, on every channel. The law
+    is quite relaxed about tonight, and the record is not.
+  left:
+    text: "The line holds. Say so again, now"
+    effects: { commitment: 12, public: 3, escalation: 4, trust_primary: -8 }
+    tags: [public_commitment, commitment_trap, deterrence]
+    odds:
+      label: They blink
+      base: 0.55
+      tags: [adversary]
+      success:
+        text: "Their liaison rang at 23:52 to ask what, precisely, 'any' would mean after midnight. Asking is not nothing."
+        effects: { escalation: -4, intel: 4, trust_primary: -2 }
+      failure:
+        text: "Their liaison did not ring. At 23:55 their guns fired one registering round, so that 'any' would have something to be."
+        effects: { escalation: 6, trust_primary: -8, military: 2 }
+  right:
+    text: "Redraw it. Quietly, before midnight"
+    effects: { commitment: -14, public: -5, trust_primary: 6, military: -3, intel: -4 }
+    tags: [walk_back, secrecy, domestic]
+
+- id: fp_midnight_07_two_statements
+  flashpoint: fp_midnight
+  advisor: spin_doctor
+  acts: [2, 5]
+  conditions: { pieces_any: [spin_doctor], pieces_none: [red_lines] }
+  tags: [commitment_trap, domestic]
+  note: The Spin Doctor. He can make either statement true for a while; the one you pick is the one you own.
+  text: >-
+    I have two statements for 00:05 and they cannot both be true. One says the
+    deadline was met, which I can make true for about nine days whatever
+    happens at midnight. The other says the deadline was never the point, which
+    is true, and which I can keep alive for about nine hours. Tell me which one
+    goes in the shredder, because the shredder is slow and so am I after
+    midnight.
+  left:
+    text: "'Met.' Whatever happens"
+    effects: { commitment: 10, public: 5, trust_primary: -10, escalation: 2, intel: -4 }
+    tags: [public_commitment, domestic, secrecy]
+  right:
+    text: "'Never the point.' Say it now"
+    effects: { commitment: -12, public: -5, trust_primary: 6, military: -3, allies: 2 }
+    tags: [walk_back, domestic, transparency]
+
+- id: fp_midnight_08_two_readings
+  flashpoint: fp_midnight
+  advisor: dove_fm
+  acts: [2, 5]
+  conditions: { pieces_any: [strategic_ambiguity], pieces_none: [red_lines, spin_doctor] }
+  tags: [misperception, diplomacy, commitment_trap]
+  note: Strategic Ambiguity at the hour it stops being a policy. Right rolls on whether they read the silence right.
+  text: >-
+    {Rival_capital} is holding two readings of your silence and acting on both,
+    which is what I asked for when I asked for the doctrine. Their air-defence
+    crews were stood to at 23:00, and their ambassador across the square has
+    accepted a second glass. At 00:01 the silence stops being a policy and
+    becomes an answer. They will decide which one it was, and I would rather we
+    did.
+  left:
+    text: "Tell them which. Now, privately"
+    effects: { trust_primary: 12, commitment: 6, intel: 4, military: -4, public: -2 }
+    tags: [diplomacy, back_channel, transparency]
+  right:
+    text: "Let them keep both"
+    effects: { military: 3, commitment: 4, intel: -4 }
+    tags: [secrecy, misperception, deterrence]
+    odds:
+      label: They read it right
+      base: 0.45
+      tags: [adversary, intel]
+      success:
+        text: "At 23:58 the ambassador ordered dessert. The crews were stood down at 00:20, which their notification called the end of a drill."
+        effects: { escalation: -4, trust_primary: 4 }
+      failure:
+        text: "At 23:58 the ambassador left without his coat. The crews stayed stood to, and at 00:10 two of their regiments left barracks."
+        effects: { escalation: 7, trust_primary: -10, intel: -6 }
+
+- id: fp_midnight_09_the_protocol
+  flashpoint: fp_midnight
+  advisor: hotline
+  acts: [2, 5]
+  conditions: { pieces_any: [hotline_protocol], pieces_none: [red_lines, spin_doctor, strategic_ambiguity] }
+  tags: [diplomacy, commitment_trap, misperception]
+  note: Hotline Protocol, the bill. Your own rule obliges you at the worst possible minute, and says nothing about what refusing means.
+  text: >-
+    'Under the protocol agreed for this line, {rival} requests a call at 23:50
+    and notes that the protocol requires an answer within ten minutes.' It is
+    23:47. The protocol was yours; it says that picking up before a deadline is
+    never weakness, and it does not say what not picking up is. The line is
+    open, and they are counting the ten minutes from the end
+    of the message.
+  left:
+    text: "Take the call. Now"
+    effects: { trust_primary: 10, military: -4, public: -3, commitment: -6, escalation: -4 }
+    tags: [deescalate, diplomacy, reassurance]
+  right:
+    text: "Let the ten minutes pass"
+    effects: { trust_primary: -12, commitment: 6, escalation: 5, public: 2, intel: 2 }
+    tags: [stall, deterrence, secrecy]
+
+# ---------------------------------------------------------------- the hour after (timer)
+
+- id: fp_midnight_10_the_hour_after
+  flashpoint: fp_midnight
+  advisor: hawk_general
+  acts: [2, 5]
+  timer: 9
+  timeout: left
+  tags: [commitment_trap, military, strike, escalatory]
+  note: The deadline has passed and the package has twenty minutes of fuel. Timeout delivers it, the worse side. Roll failure opens the catastrophic branch.
+  text: >-
+    The hour has passed. Their guns are registering on the ridge, one round
+    every six minutes, walking towards the battalion, and their column has not
+    moved. The package has been holding for fifty minutes and has fuel for
+    twenty more, and a target that has been empty of people since ten. Deliver
+    it and the night has an author; bring it home and it has a different one.
+  left:
+    text: "Deliver it"
+    effects: { military: 5, escalation: 8, public: 3, trust_primary: -14, allies: -3 }
+    tags: [limited_strike, strike, military, escalatory, commitment_trap]
+    odds:
+      label: They hold
+      base: 0.5
+      tags: [adversary, strike]
+      success:
+        text: "The depot at Tessel burned for an hour. Their guns stopped at 01:10, and their liaison used the word 'exercise' twice, once for each side."
+        effects: { escalation: 4, public: 3, trust_primary: -6 }
+        follow: [{ card: fp_midnight_13_the_record, in: 0 }]
+      failure:
+        text: "'{Rival} will respond at a time and place of its choosing.' At 01:14 the northern radar reported a change in their launch posture, and nobody said the word software. The General has put the second package up without asking, because he did not need to."
+        effects: { escalation: 10, allies: -3, intel: -6 }
+        follow: [{ card: fp_midnight_11_nine_minutes, in: 0 }]
+  right:
+    text: "Bring it home"
+    effects: { public: -7, commitment: -12, military: -5, allies: -3, trust_primary: 8, escalation: -4 }
+    tags: [walk_back, concede, deescalate]
+    follow: [{ card: fp_midnight_13_the_record, in: 0 }]
+
+# ---------------------------------------------------------------- catastrophe (terminal; failures force nuclear_midnight)
+
+- id: fp_midnight_11_nine_minutes
+  flashpoint: fp_midnight
+  advisor: rival_leader
+  acts: [2, 5]
+  timer: 8
+  timeout: left
+  tags: [nuclear, misperception, commitment_trap]
+  note: Terminal. Both rolls can end the run; holding is the better gamble, striking pays more. Timeout says nothing, the worse side.
+  text: >-
+    'My generals tell me your second package is airborne and that I have nine
+    minutes to decide what it is for. I am on this line because I would rather
+    ask you than them. Tell me what is in the air, and I will tell them, and we
+    will see which of us is believed.' The translator's voice has changed, and
+    behind him somebody is counting, and the count is not translated.
+  left:
+    text: "Say nothing. Let the package fly"
+    effects: { military: 7, escalation: 30, public: 4, trust_primary: -30 }
+    tags: [strike, military, nuclear, escalatory]
+    odds:
+      label: First blow
+      base: 0.4
+      tags: [strike, military]
+      success:
+        text: "Their posture reverted at 01:31 and their column moved at dawn, the wrong way for them. Tessel is not there any more, and neither is the town's water."
+        effects: { public: 3, allies: -6, trust_secondary: -12 }
+        set: [fp:midnight_passed]
+      failure:
+        text: "The package reached its target. Theirs reached its."
+        ending: nuclear_midnight
+  right:
+    text: "Tell him. Everything in the air"
+    effects: { military: -7, public: -4, commitment: -10, escalation: 7 }
+    tags: [transparency, deescalate, nuclear, reassurance]
+    odds:
+      label: He believes you
+      base: 0.6
+      tags: [adversary, first_use, diplomacy]
+      success:
+        text: "'Then we will both recall what we can.' The package turned at 01:29 and their posture reverted at 01:33, and neither side has said which happened first."
+        effects: { escalation: -7, trust_primary: 14, allies: -2 }
+        set: [fp:midnight_passed]
+      failure:
+        text: "He believed you. The men counting behind him did not."
+        ending: nuclear_midnight
+
+# ---------------------------------------------------------------- terminals
+
+- id: fp_midnight_12_have_you_eaten
+  flashpoint: fp_midnight
+  advisor: family
+  acts: [2, 5]
+  tags: [personal, domestic, commitment_trap]
+  note: Terminal, backed down. You paused. Whether you dress it tonight is the last choice of the night.
+  text: >-
+    It is 00:50 and you are home, which I did not expect. The television says
+    'pause' and then says it again in a different voice, and I have turned it
+    off. There is soup. I am not asking what you gave them, I am asking whether
+    you are going to sleep, or whether you are going to sit at that table and
+    write the thing you will say tomorrow to make it sound like something else.
+  left:
+    text: "Sleep. Let it be what it was"
+    effects: { public: -5, trust_primary: 10, commitment: -10, military: -3 }
+    tags: [personal, reassurance, concede]
+    set: [fp:midnight_backed_down]
+  right:
+    text: "Write it. Pass the soup"
+    effects: { public: 4, trust_primary: -8, commitment: 10, escalation: 2 }
+    tags: [personal, public_commitment, domestic]
+    set: [fp:midnight_backed_down]
+
+- id: fp_midnight_13_the_record
+  flashpoint: fp_midnight
+  advisor: legal
+  acts: [2, 5]
+  tags: [commitment_trap, domestic, transparency]
+  note: Terminal, deadline passed. Reached after the strike or after bringing the package home under fire. Two logs, eleven minutes apart.
+  text: >-
+    It is 02:00 and there are two logs of tonight, the one the machines kept
+    and the one the room kept, and they disagree about eleven minutes. In forty
+    years someone will read whichever survives. You may publish the machines'
+    log at 06:00, gaps and all, or classify both and let the gaps be filled by
+    people who were not here. Both are lawful, and only one is a decision you
+    can later be seen to have made.
+  left:
+    text: "Publish the machines' log at six"
+    effects: { public: -5, trust_primary: 10, military: -4, escalation: -5, intel: 4 }
+    tags: [transparency, deescalate, domestic]
+    set: [fp:midnight_passed]
+  right:
+    text: "Classify both. Forty years"
+    effects: { public: 3, trust_primary: -10, allies: -3, commitment: 6, intel: -4 }
+    tags: [secrecy, domestic, commitment_trap]
+    set: [fp:midnight_passed]
+
+- id: fp_midnight_14_they_blinked
+  flashpoint: fp_midnight
+  advisor: spin_doctor
+  acts: [2, 5]
+  tags: [commitment_trap, domestic, diplomacy]
+  note: Terminal, bluff called. The headline decides whether he can ever blink again.
+  text: >-
+    They blinked at four minutes past and I have it from three sources and a
+    clock. I can have 'blinked' on every front page by six, which buys you a
+    month at home and costs you every midnight after this one, because a man
+    who has been seen to blink does not do it twice. Or I can have 'both sides
+    stepped back', which is not true, polls at fifty-two and leaves him a door.
+    Choose the headline and I will make the rest of it true.
+  left:
+    text: "'Blinked.' Every front page"
+    effects: { public: 7, trust_primary: -14, escalation: 2, commitment: 10 }
+    tags: [public_commitment, domestic, deterrence]
+    set: [fp:midnight_called_bluff]
+  right:
+    text: "'Both sides stepped back'"
+    effects: { public: -3, trust_primary: 10, escalation: -7, allies: 2, commitment: -6 }
+    tags: [reassurance, deescalate, diplomacy]
+    set: [fp:midnight_called_bluff]

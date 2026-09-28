@@ -1,0 +1,724 @@
+# advisors — personal lines, no arc: loyalty, rivalry, resignation threats,
+# leaks. Every card is gated on the advisor pieces involved, so the build talks
+# back. Each advisor's agenda shows in what they ask for at 3am: the General
+# wants readiness and to plan as if you had not said it; the Foreign Minister
+# wants a number nobody else has; the unsleeping Director wants to read the
+# cabinet's mail; the measured one wants three more days; Karrick wants the
+# front page; the Ambassador wants a lunch; Vance wants her paragraph back;
+# Roke wants the word 'ceiling'; Nkemelu wants you not to ask; the Admiral wants
+# to know who gives the next order; Delacroix-Amin wants a sentence; Ashby-Tal
+# wants a signature, at eleven percent off. Four cards put a doctrine on trial.
+# One rare card (adv_21) offers the letter; signing forces ending
+# special_resigned (authored by the endings job).
+# Flags set: advisors:general_rebuked, advisors:general_backed,
+# advisors:contract_signed, advisors:contract_refused, advisors:admiral_overruled,
+# advisors:fm_freelancing, advisors:cabinet_watched, advisors:chancellor_letter,
+# advisors:standing_orders, advisors:promised_no, advisors:square_leaves,
+# advisors:leak_hunt, advisors:letter_refused, advisors:nfu_hollow.
+
+# ---------------------------------------------------------------- pairings
+
+- id: adv_01_a_senior_defence_source
+  advisor: aide
+  acts: [1, 5]
+  conditions: { pieces_all: [hawk_general, dove_fm] }
+  tags: [personal, domestic]
+  note: Hawk and Dove. He briefed against her; she has read it twice. Which of them you keep is decided by breakfast.
+  text: >-
+    Tomorrow's front page quotes 'a senior defence source' saying the Foreign
+    Minister is 'negotiating with herself'. The General's office has not denied
+    it, and the Foreign Minister has read it twice in my presence. She has asked
+    for five minutes before the morning meeting. He has asked whether the
+    morning meeting is still at eight.
+  left:
+    text: "The General apologises. Publicly"
+    effects: { military: -5, allies: 3, trust_primary: 3, public: -2 }
+    tags: [personal, transparency, diplomacy]
+    set: [advisors:general_rebuked]
+  right:
+    text: "Sources are weather"
+    effects: { military: 3, allies: -3, trust_primary: -3, commitment: 3 }
+    tags: [personal, secrecy, deterrence]
+    set: [advisors:general_backed]
+
+- id: adv_02_what_a_person_is_worth
+  advisor: spin_doctor
+  acts: [1, 5]
+  timer: 10
+  timeout: left
+  conditions: { pieces_all: [paranoid_intel, spin_doctor] }
+  tags: [personal, intel, domestic]
+  note: Paranoid Director and Spin Doctor. A week on the front page against a source who is a person.
+  text: >-
+    Lyle's overnight assessment says they moved warheads to the Sallow crossing,
+    moderate confidence, single source. If it is on the front page by six we own
+    the week and they spend it denying. Lyle says publishing burns the source
+    and the source is a person. I asked him what a person is worth against a
+    week, and he did not answer, which is an answer.
+  left:
+    text: "Give it to Ferrante"
+    effects: { public: 6, intel: -9, trust_primary: -5, commitment: 4 }
+    tags: [personal, domestic, public_commitment]
+  right:
+    text: "The source stays a person"
+    effects: { public: -3, intel: 4, military: 2 }
+    tags: [personal, intel, secrecy]
+
+- id: adv_03_the_invoice
+  advisor: treasury
+  acts: [1, 4]
+  conditions: { pieces_all: [treasury_hawk, contractor] }
+  tags: [personal, economy, military]
+  note: Treasury Hawk and Contractor. The capability is the reserve, twice, and forty seats.
+  text: >-
+    Ashby-Tal's 'layered coastal capability' is on your desk for signature at
+    1.4 billion over three years, which is the strategic reserve, twice. I have
+    also been sent, by someone who wanted me to have it, the forty members of
+    the House whose constituencies build it. Sign and the numbers stop
+    balancing in March. Refuse and forty people find out who told you to.
+  left:
+    text: "Sign it"
+    effects: { economy: -8, military: 6, public: 2, trust_primary: -3 }
+    tags: [personal, military, economy]
+    set: [advisors:contract_signed]
+  right:
+    text: "Send it back unsigned"
+    effects: { military: -5, public: -3, economy: 3 }
+    tags: [personal, economy, stall]
+    set: [advisors:contract_refused]
+    follow: [{ card: adv_27_no_hard_feelings, in: 3, chance: 0.8 }]
+
+- id: adv_04_over_her_head
+  advisor: admiral
+  acts: [1, 5]
+  timer: 10
+  timeout: right
+  conditions: { pieces_all: [admiral, hawk_general] }
+  tags: [personal, naval, military]
+  note: Admiral and General. His staff moved her frigates while she slept. Who gives the next order.
+  text: >-
+    At 02:00 the General's staff signalled my two frigates in the Straits to
+    close to visual range of the {rival_adj} picket, and my captains did it,
+    because the signal carried your authority and I was asleep. It is the right
+    move if we want them to see us; it is my move to give, not his. I will
+    follow the order you give tonight. I would like to know who gives the next
+    one.
+  left:
+    text: "The sea is the Admiral's"
+    effects: { military: -3, escalation: -2, intel: 2, allies: 2 }
+    tags: [personal, naval, deescalate]
+  right:
+    text: "The General had my authority"
+    effects: { military: 4, escalation: 3, allies: -2, intel: -2 }
+    tags: [personal, military, escalatory]
+    set: [advisors:admiral_overruled]
+
+- id: adv_05_one_sentence
+  advisor: peace_leader
+  acts: [1, 4]
+  conditions: { pieces_all: [peace_leader, spin_doctor] }
+  tags: [personal, domestic, reassurance]
+  note: Peace Leader and Spin Doctor. Karrick wants her on the steps. She wants a sentence he says you cannot say.
+  text: >-
+    Mr Karrick would like me beside you on the steps on Saturday, in front of
+    the square, because the square is mine and the steps are yours. I will stand
+    there if you say one sentence, that {us} will not be the first to fire. Not
+    'seeks', not 'hopes'. He tells me you cannot say it; I am asking you, not
+    him.
+  left:
+    text: "Say the sentence"
+    effects: { public: 6, military: -6, trust_primary: 5, commitment: 5 }
+    tags: [personal, public_commitment, reassurance]
+  right:
+    text: "The steps are mine"
+    effects: { public: -5, military: 3, trust_primary: -2, escalation: 1 }
+    tags: [personal, deterrence, domestic]
+
+- id: adv_06_you_may_prefer_not_to_know
+  advisor: legal
+  acts: [2, 5]
+  conditions: { pieces_any: [fixer] }
+  tags: [personal, domestic]
+  note: Fixer and the Attorney General. A subpoena went away with a committee chair's health. She can find out how.
+  text: >-
+    On Tuesday the Straits Committee was going to subpoena your Chief of Staff's
+    telephone records. On Wednesday the committee chair recused himself, citing
+    his health, and the subpoena went with him. Mr Nkemelu says he sent flowers.
+    I can find out what else he sent, and once I know I am obliged to act on it,
+    so you may prefer that I do not know.
+  left:
+    text: "Find out"
+    effects: { public: -4, intel: 3, economy: -2 }
+    tags: [personal, investigate, transparency]
+  right:
+    text: "I would prefer you did not"
+    effects: { public: 2, commitment: 3, intel: -2 }
+    tags: [personal, secrecy]
+    follow: [{ card: adv_28_the_florist, in: 4, chance: 0.5 }]
+
+# ---------------------------------------------------------------- one voice each
+
+- id: adv_07_the_army_will_hear_it
+  advisor: hawk_general
+  acts: [2, 5]
+  timer: 10
+  timeout: left
+  conditions: { pieces_any: [hawk_general] }
+  tags: [personal, military]
+  note: The General's letter is with a journalist, timed for six. The timeout keeps the readiness level.
+  text: >-
+    If the readiness level is lowered tonight I will not be the officer who
+    tells the army why. My letter is drafted and a copy is with a journalist I
+    trust, timed for six. Raise it to where it was, or accept the letter, and
+    understand that the second is also read in {rival_capital}, as a government
+    that has mislaid its soldiers.
+  left:
+    text: "Keep the readiness level"
+    effects: { military: 5, escalation: 4, trust_primary: -4, public: 1 }
+    tags: [personal, military, deterrence, mobilise]
+  right:
+    text: "Lower it. He will stay"
+    effects: { military: -6, escalation: -4, trust_primary: 4, public: -2 }
+    tags: [personal, deescalate, domestic]
+    odds:
+      label: He stays
+      base: 0.6
+      tags: [military]
+      success:
+        text: "He stays. The letter goes back in the drawer, and the journalist gets a different story at six."
+        effects: { military: 2 }
+      failure:
+        text: "The letter runs at six. He withdraws it at nine, after the Admiral has a word, and by then everyone has read it."
+        effects: { public: -4, military: -3 }
+
+- id: adv_08_a_number_not_on_any_list
+  advisor: dove_fm
+  acts: [2, 5]
+  conditions: { pieces_any: [dove_fm] }
+  tags: [personal, diplomacy, back_channel]
+  note: The Dove has been calling their Foreign Minister on her own. The only line without a translator.
+  text: >-
+    I should tell you that I have spoken to the {rival_adj} Foreign Minister
+    three times this week, on a number that is not on any list, and that nobody
+    at this table knew. We have agreed nothing; we have agreed what each of us
+    would need in order to agree to something. You may stop me. If you do, we
+    lose the only line that does not have a translator on it.
+  left:
+    text: "Keep talking. Tell no one"
+    effects: { trust_primary: 6, military: -3, allies: -3, commitment: -2 }
+    tags: [personal, back_channel, secrecy, diplomacy]
+    set: [advisors:fm_freelancing]
+  right:
+    text: "Every call goes through me"
+    effects: { trust_primary: -4, military: 2, intel: 2, public: 1 }
+    tags: [personal, diplomacy, stall]
+
+- id: adv_09_the_other_seven
+  advisor: intel_director
+  acts: [1, 5]
+  conditions: { pieces_any: [paranoid_intel] }
+  tags: [personal, intel]
+  note: The unsleeping Director wants the cabinet's mail for fourteen days. The roll is whether he finds anyone.
+  text: >-
+    We assess, with moderate confidence, that the contents of Monday's
+    principals meeting were known in {rival_capital} by Tuesday. Nine people
+    were in the room; I was one and you were another. I would like authority to
+    review the communications of the other seven, including the Foreign
+    Minister and the General, for fourteen days, and I would like them not to be
+    told.
+  left:
+    text: "Fourteen days. Nobody is told"
+    effects: { intel: 6, military: -4, allies: -3 }
+    tags: [personal, intel, secrecy, investigate]
+    set: [advisors:cabinet_watched]
+    odds:
+      label: Leak found
+      base: 0.5
+      tags: [intel]
+      success:
+        text: "A deputy in the Treasury, a friend in the trade mission. Handled, quietly, by Thursday."
+        effects: { intel: 4, public: 2 }
+      failure:
+        text: "Fourteen days, seven ministers, nothing. On day fifteen the General finds the tap."
+        effects: { military: -5, public: -3, allies: -2 }
+  right:
+    text: "Not my cabinet"
+    effects: { intel: -5, military: 2, public: 2 }
+    tags: [personal, transparency, stall]
+
+- id: adv_10_three_days
+  advisor: intel_director
+  acts: [1, 4]
+  conditions: { pieces_any: [cautious_intel] }
+  tags: [personal, intel]
+  note: The measured Director held a report for three days. He was right. The General has said otherwise to the gallery.
+  text: >-
+    The report on the rocket brigade at the Sallow crossing reached your desk
+    this morning; it reached mine on Friday. I held it for three days because
+    the imagery was single-source and the source has been wrong twice this
+    year. It is now corroborated and I stand by the delay. The General does
+    not, and has said so to the press gallery in language I would not repeat.
+  left:
+    text: "Three days was right"
+    effects: { intel: 5, military: -5, public: -2 }
+    tags: [personal, intel, investigate]
+  right:
+    text: "Next time I hear it on Friday"
+    effects: { intel: -4, military: 3, escalation: 2 }
+    tags: [personal, intel, military]
+
+- id: adv_11_over_dinner
+  advisor: ambassador
+  acts: [2, 5]
+  conditions: { pieces_all: [cautious_intel, ambassador] }
+  tags: [personal, back_channel, intel]
+  note: Ambassador and measured Director. An assessment given away as a courtesy tells them what we can see.
+  text: >-
+    Lyle has an assessment saying their build-up at the Sallow crossing is
+    defensive, and he is, for once, confident. I would like to give it to their
+    ambassador over dinner, as a courtesy, so that they know we know. Lyle says
+    an assessment given away tells them what we can see, and that the last time
+    an ambassador did this it was three months before anyone told us it had
+    been read aloud in their war council.
+  left:
+    text: "Let him have the dinner"
+    effects: { trust_primary: 6, intel: -5, military: -2 }
+    tags: [personal, back_channel, transparency, diplomacy]
+    odds:
+      label: Believed
+      base: 0.6
+      tags: [back_channel, diplomacy]
+      success:
+        text: "Their ambassador reads it twice and orders a second bottle. Their picket at the crossing stands down by morning."
+        effects: { escalation: -4, trust_primary: 3 }
+      failure:
+        text: "Their ambassador thanks him warmly. Two days later the assessment is quoted, inaccurately, in their state bulletin."
+        effects: { intel: -4, public: -3 }
+  right:
+    text: "Lyle's paper stays here"
+    effects: { trust_primary: -3, intel: 3, escalation: 1 }
+    tags: [personal, intel, secrecy]
+
+- id: adv_12_a_tourist_visa
+  advisor: ambassador
+  acts: [2, 5]
+  conditions: { pieces_any: [ambassador] }
+  tags: [personal, back_channel, diplomacy]
+  note: The Ambassador has a visa, a hotel near the opera and a lunch. Nobody has sent him. That is the point.
+  text: >-
+    I have a tourist visa for {rival_capital} valid from Thursday, a hotel near
+    the opera and a lunch with a man I have known for thirty years who now sits
+    two doors from {rival_leader}. Nobody has sent me; that is the point. If I
+    am seen you will say I am on holiday, and I am seventy-one, so people will
+    believe you. If I am not seen we may learn what they actually want.
+  left:
+    text: "Go. You are on holiday"
+    effects: { trust_primary: 4, intel: 3, public: -2, military: -2 }
+    tags: [personal, back_channel, secrecy]
+    odds:
+      label: The lunch happens
+      base: 0.6
+      tags: [back_channel]
+      success:
+        text: "Two hours, no notes. What they want is smaller than the General thinks and larger than the Foreign Minister hopes."
+        effects: { trust_primary: 4, intel: 4 }
+      failure:
+        text: "He is photographed at the airport by their press. The holiday story lasts a day."
+        effects: { public: -5, trust_primary: -3, allies: -2 }
+  right:
+    text: "Ambassadors do not take holidays"
+    effects: { trust_primary: -2, intel: -2, military: 1 }
+    tags: [personal, stall, diplomacy]
+
+- id: adv_13_ninety_percent
+  advisor: cyber_director
+  acts: [1, 5]
+  timer: 12
+  timeout: right
+  conditions: { pieces_any: [cyber_director] }
+  tags: [personal, attribution, cyber]
+  note: Vance's 'consistent with' has been briefed as 'ninety percent'. She wants her sentence back before it becomes a war.
+  text: >-
+    Someone in this building briefed the gallery that my attribution of the grid
+    intrusion is 'ninety percent', when my assessment says 'consistent with
+    {rival_adj} tooling, moderate confidence', which is a different sentence. I
+    want to correct the record before it becomes a casus belli with my name on
+    it. Mr Karrick says correcting it makes us look divided. We are divided.
+  left:
+    text: "Correct the record"
+    effects: { public: -4, intel: 4, trust_primary: 4, military: -2 }
+    tags: [personal, transparency, attribution]
+  right:
+    text: "Ninety is close enough"
+    effects: { public: 3, intel: -5, trust_primary: -4, commitment: 4 }
+    tags: [personal, attribution, public_commitment, secrecy]
+
+- id: adv_14_is_and_consistent_with
+  advisor: cyber_director
+  acts: [2, 5]
+  conditions: { pieces_all: [cyber_director, paranoid_intel] }
+  tags: [personal, attribution, intel]
+  note: Cyber Director and unsleeping Director. He rewrote her paragraph. He is right about the cost of nothing, wrong about the words.
+  text: >-
+    Director Lyle has rewritten my paragraph: where I wrote 'consistent with' he
+    has written 'is', and where I wrote 'moderate' he has deleted the word. He
+    says a leader who is handed 'consistent with' at 3am does nothing, and that
+    doing nothing has a cost too. He is right about that. He is not right about
+    the paragraph.
+  left:
+    text: "Her paragraph goes to the meeting"
+    effects: { intel: 4, military: -3, escalation: -2, public: -1 }
+    tags: [personal, attribution, intel, stall]
+  right:
+    text: "His paragraph"
+    effects: { intel: -4, military: 3, escalation: 3, commitment: 3 }
+    tags: [personal, attribution, escalatory]
+
+- id: adv_15_the_word_ceiling
+  advisor: treasury
+  acts: [2, 5]
+  conditions: { pieces_any: [treasury_hawk] }
+  tags: [personal, economy, domestic]
+  note: The Chancellor has a number and a letter. One word in public keeps the letter in the drawer.
+  text: >-
+    Here is the number: we borrow at 1.9 percent this morning, on Monday after
+    the General's press conference it will be 3.1, and a chancellor who lets it
+    reach four is not a chancellor. I have written my letter. I would rather not
+    send it, and I will not, if you say the word 'ceiling' in public today about
+    the defence estimates. The General will hear the word too.
+  left:
+    text: "Say 'ceiling'"
+    effects: { economy: 5, military: -6, public: -2, commitment: 3 }
+    tags: [personal, economy, public_commitment, domestic]
+  right:
+    text: "No ceilings this month"
+    effects: { economy: -6, military: 4, public: 2 }
+    tags: [personal, military, economy]
+    set: [advisors:chancellor_letter]
+
+- id: adv_16_a_fellowship_abroad
+  advisor: fixer
+  acts: [2, 5]
+  conditions: { pieces_any: [fixer] }
+  tags: [personal, domestic, secrecy]
+  note: The Fixer made a story go away. The foundation that paid for it would like a word about tariffs.
+  text: >-
+    The story about your brother's import licences is no longer running. The
+    journalist has taken a fellowship abroad, quite suddenly, with a stipend
+    from a foundation I am told is very respectable. You did not ask and I did
+    not tell. There is one loose end, which is that the foundation would like a
+    word about the Amberline tariff schedule, and I have said you are a
+    listener.
+  left:
+    text: "Listen to the foundation"
+    effects: { public: 3, economy: -4, allies: -2, trust_secondary: -2 }
+    tags: [personal, economy, secrecy]
+  right:
+    text: "Bring the journalist home"
+    effects: { public: -6, economy: 2, trust_secondary: 2 }
+    tags: [personal, transparency, domestic]
+
+- id: adv_17_forty_minutes
+  advisor: admiral
+  acts: [1, 4]
+  conditions: { pieces_any: [admiral] }
+  tags: [personal, naval]
+  note: The Admiral's captain could not reach you for forty minutes with a submarine at four thousand yards.
+  text: >-
+    Captain Dray of the Tern could not reach you last night for forty minutes
+    because the switchboard was holding for the General. He had a {rival_adj}
+    submarine at four thousand yards and an order that said 'hold and report',
+    so he held. Next time he may not have forty minutes. I would like to give him
+    a standing order for when he cannot reach you, or a promise that he always
+    can.
+  left:
+    text: "Give him the standing order"
+    effects: { military: 4, escalation: 3, commitment: 3, intel: -2 }
+    tags: [personal, naval, military]
+    set: [advisors:standing_orders]
+  right:
+    text: "He can always reach me"
+    effects: { military: -3, intel: 3, escalation: -2, public: -1 }
+    tags: [personal, naval, stall]
+
+- id: adv_18_as_a_person
+  advisor: peace_leader
+  acts: [2, 5]
+  conditions: { pieces_any: [peace_leader] }
+  tags: [personal, nuclear, domestic]
+  note: 3am. Not the movement, a person. Whether you would give the order. Either answer costs the square or the army.
+  text: >-
+    It is three in the morning and I am not here as the movement. I am here to
+    ask you, as a person, whether you would give the order, because I have sat
+    in your cabinet for a month and I still do not know. If the answer is yes I
+    will leave in the morning and take the square with me. If the answer is no,
+    say it to me now, and I will hold you to it later.
+  left:
+    text: "No. I would not"
+    effects: { public: 4, military: -6, trust_primary: 3, commitment: 5 }
+    tags: [personal, nuclear, reassurance]
+    set: [advisors:promised_no]
+  right:
+    text: "You do not get to ask that"
+    effects: { public: -6, military: 3, trust_primary: -2 }
+    tags: [personal, deterrence, domestic]
+    set: [advisors:square_leaves]
+
+- id: adv_19_both_sides_of_the_border
+  advisor: contractor
+  acts: [2, 5]
+  conditions: { pieces_any: [contractor] }
+  tags: [personal, economy, military]
+  note: The Contractor has a radar contract with Amberline. It can see into us as easily as out. Tuesdays.
+  text: >-
+    You will hear tomorrow that Halvard Systems has a radar contract with
+    Amberline, and that Amberline's radar can see into {us} as easily as out of
+    it. It is a defensive capability and it was signed before I joined you. I
+    can cancel it and eat the penalty, or you can let it stand and I can tell
+    you, every Tuesday, what the Amberline radar is looking at.
+  left:
+    text: "Let it stand. Tuesdays"
+    effects: { intel: 6, allies: -4, public: -3, trust_primary: -2 }
+    tags: [personal, intel, secrecy, economy]
+  right:
+    text: "Cancel it"
+    effects: { economy: -4, public: 3, allies: 2, intel: -2 }
+    tags: [personal, economy, transparency]
+
+- id: adv_20_the_minutes
+  advisor: aide
+  acts: [2, 5]
+  conditions: { pieces_any: [hawk_general, spin_doctor, treasury_hawk] }
+  tags: [personal, domestic, intel]
+  note: Ferrante has the minutes, not a summary. Five copies. You still sit with all five on Monday.
+  text: >-
+    Ferrante has Tuesday's minutes. Not a summary: the minutes, with three lines
+    you would not want read aloud and one of yours about the Foreign Minister.
+    Five people had copies. Director Lyle can tell you which one by Friday, if
+    you want to know which one; you will still have to sit with all five on
+    Monday.
+  left:
+    text: "Find the leak"
+    effects: { intel: 4, military: -3, public: -3 }
+    tags: [personal, investigate, intel]
+    set: [advisors:leak_hunt]
+    odds:
+      label: Leak found
+      base: 0.5
+      tags: [intel]
+      success:
+        text: "A junior in the Cabinet Office, in love with a reporter. Gone by Friday, and the other four never know they were counted."
+        effects: { public: 2, intel: 2 }
+      failure:
+        text: "Five people, five alibis. On Monday they all know they were suspected, and the meeting is very short."
+        effects: { military: -3, allies: -2, economy: -2 }
+  right:
+    text: "Leaks are weather"
+    effects: { public: -5, commitment: 3, trust_primary: -2 }
+    tags: [personal, stall, domestic]
+
+# ---------------------------------------------------------------- the letter (rare)
+
+- id: adv_21_a_line_at_the_bottom
+  advisor: aide
+  acts: [3, 5]
+  weight: 0.5
+  conditions: { values: { public: { max: 30 } } }
+  tags: [personal, domestic]
+  note: Rare. Public below 30. The cabinet has left a letter. Signing forces ending special_resigned (endings job).
+  text: >-
+    It is 02:40. The Chancellor, the Attorney General and two others were in
+    the anteroom together for an hour and have left a letter. It is short; it
+    says the country needs a leader it can hear, and that they will serve
+    whoever the party chooses by noon. There is a line at the bottom for your
+    signature, and I have not read past that line, and I will not.
+  left:
+    text: "Sign it"
+    tags: [personal, concede, domestic]
+    ending: special_resigned
+  right:
+    text: "Tear it up"
+    effects: { public: -4, military: -3, allies: -3, commitment: 6 }
+    tags: [personal, deterrence, domestic]
+    set: [advisors:letter_refused]
+
+# ---------------------------------------------------------------- doctrines on trial
+
+- id: adv_22_seven_times_in_ten
+  advisor: intel_director
+  acts: [1, 5]
+  conditions: { pieces_any: [launch_on_warning] }
+  tags: [personal, nuclear, intel]
+  note: Launch on Warning, questioned by the man who reads the board. He wants a second radar and a second voice.
+  text: >-
+    Your doctrine says that if the board lights, you fire before you know. I
+    would like it recorded that the board is right roughly seven times in ten,
+    that the other three are mostly software and weather, and that I have never
+    once been asked for a confidence level in the ninety seconds the doctrine
+    allows. I am asking for a second radar and a second voice before release.
+    The General will call it a delay.
+  left:
+    text: "Two voices before release"
+    effects: { military: -6, intel: 5, escalation: -3, trust_primary: 3 }
+    tags: [personal, nuclear, intel, investigate]
+  right:
+    text: "The doctrine stands"
+    effects: { military: 4, commitment: 4, intel: -3, escalation: 2 }
+    tags: [personal, nuclear, deterrence, escalatory]
+
+- id: adv_23_as_if_you_had_not_said_it
+  advisor: hawk_general
+  acts: [2, 5]
+  conditions: { pieces_any: [no_first_use] }
+  tags: [personal, nuclear, military]
+  note: No First Use, questioned by the General. Every plan on his desk begins on the second day of a war.
+  text: >-
+    You said it out loud, and their planners took you at your word. So did
+    mine, which is the problem; every plan on my desk now begins on the second
+    day of a war. I would like authority to plan as though you had not said it,
+    quietly, for the days before the second day. Nobody would know, which is the
+    point of planning.
+  left:
+    text: "Plan as if I had not said it"
+    effects: { military: 5, trust_primary: -5, commitment: -3, intel: 2 }
+    tags: [personal, nuclear, military, secrecy]
+    set: [advisors:nfu_hollow]
+    odds:
+      label: It stays in the safe
+      base: 0.6
+      tags: [intel]
+      success:
+        text: "The plans stay in the safe. The General sleeps better and the Foreign Minister does not know why."
+        effects: { military: 2 }
+      failure:
+        text: "The cover sheet is in {rival_capital} within a week. Your word is now their word for 'plan'."
+        effects: { trust_primary: -8, public: -3 }
+  right:
+    text: "I meant it. Plan from there"
+    effects: { military: -5, trust_primary: 4, commitment: 4, public: 1 }
+    tags: [personal, nuclear, reassurance]
+
+- id: adv_24_engineers
+  advisor: dove_fm
+  acts: [2, 5]
+  conditions: { pieces_any: [red_lines] }
+  tags: [personal, commitment_trap, diplomacy]
+  note: Red Lines, questioned by the Foreign Minister. Forty engineers are on our side of the river you named.
+  text: >-
+    You said, on camera, that a {rival_adj} unit crossing the Aum would be a red
+    line. There are now forty {rival_adj} engineers on our side of the river at
+    Kestrel Bridge, repairing a span the flood took, at the request of the
+    Vestrian council, under an agreement that predates your sentence. Their
+    general staff have asked, through me, whether engineers count. I have not
+    answered, because whatever I say is your line now.
+  left:
+    text: "The line is where I said"
+    effects: { commitment: 8, escalation: 5, public: 3, trust_primary: -6, military: 3 }
+    tags: [personal, public_commitment, deterrence, commitment_trap]
+    odds:
+      label: They pull the engineers
+      base: 0.5
+      tags: [adversary]
+      success:
+        text: "The engineers leave at dusk with the span half-built. The council in Sennet is furious with everyone."
+        effects: { escalation: -3, public: 3 }
+      failure:
+        text: "They stay. Forty engineers, one red line, and a camera crew on the bridge by morning."
+        effects: { escalation: 7, public: -4, commitment: 4 }
+  right:
+    text: "Engineers do not count"
+    effects: { public: -6, commitment: -7, trust_primary: 5, allies: -3, escalation: -3 }
+    tags: [personal, walk_back, diplomacy, deescalate]
+
+- id: adv_25_one_of_them_did
+  advisor: legal
+  acts: [2, 5]
+  timer: 9
+  timeout: left
+  conditions: { pieces_any: [predelegation] }
+  tags: [personal, military, domestic]
+  note: Pre-delegation, questioned by the Attorney General. A commander acted without waking you. The drone was a balloon.
+  text: >-
+    Your standing orders say commanders may act without waking you, and at
+    03:15 the commander at Hollin did: two aircraft, a {rival_adj} drone, a
+    lawful engagement under the orders as written. You may do this. Whether you
+    can later be seen to have done it, when the drone turns out to be a weather
+    balloon carrying a news agency's camera, is a different question, and it is
+    being asked in the gallery now.
+  left:
+    text: "The orders stand"
+    effects: { military: 4, escalation: 4, public: -3, commitment: 3 }
+    tags: [personal, military, deterrence]
+  right:
+    text: "Pull the authority back tonight"
+    effects: { military: -7, escalation: -3, public: 2, trust_primary: 3 }
+    tags: [personal, deescalate, transparency]
+
+# ---------------------------------------------------------------- more pairings
+
+- id: adv_26_the_square_does_not_keep_a_diary
+  advisor: dove_fm
+  acts: [2, 5]
+  conditions: { pieces_all: [dove_fm, peace_leader] }
+  tags: [personal, diplomacy, domestic]
+  note: Dove and Peace Leader. Every time the square fills, her calls get shorter. She needs Tuesday.
+  text: >-
+    Every time the square fills, {rival_capital} reads it as a government that
+    cannot say no, and my calls get shorter. Ms Delacroix-Amin has a hundred
+    thousand people booked for Sunday. I am asking you to ask her to make it
+    Tuesday, after I have finished a conversation I cannot describe to her. She
+    will say the square does not keep a diary, and she will be right, and I
+    still need Tuesday.
+  left:
+    text: "Ask her for Tuesday"
+    effects: { trust_primary: 5, public: -5, military: 1 }
+    tags: [personal, diplomacy, stall, back_channel]
+  right:
+    text: "Sunday is Sunday"
+    effects: { public: 5, trust_primary: -4, commitment: 2, military: -2 }
+    tags: [personal, domestic]
+
+# ---------------------------------------------------------------- chained
+
+- id: adv_27_no_hard_feelings
+  advisor: contractor
+  acts: [1, 5]
+  conditions: { pieces_any: [contractor] }
+  tags: [personal, economy, domestic]
+  note: Chained from adv_03 right. The Contractor briefs whoever asks. The Opposition asked.
+  text: >-
+    I understand entirely, and I want you to know there are no hard feelings at
+    Halvard. Mr Ahlgren has asked for a briefing on the coastal capability and I
+    have said yes, because it is my job to brief whoever asks. He asks very good
+    questions about what a government that refused it would say to the families
+    on the coast. I can still bring the price down, by eleven percent.
+  left:
+    text: "Eleven percent. Sign"
+    effects: { economy: -6, military: 5, public: 2, trust_primary: -2 }
+    tags: [personal, military, economy]
+    set: [advisors:contract_signed]
+  right:
+    text: "Brief whoever you like"
+    effects: { public: -5, military: -3, economy: 2, commitment: 2 }
+    tags: [personal, economy, stall]
+
+- id: adv_28_the_florist
+  advisor: aide
+  acts: [2, 5]
+  conditions: { pieces_any: [fixer] }
+  tags: [personal, domestic]
+  note: Chained from adv_06 right. Ferrante has the florist's receipts. The Fixer can make eleven o'clock go away too.
+  text: >-
+    Ferrante has the florist's receipt from the committee chair's illness, and
+    the florist's other receipts, and a question for you at eleven about
+    whether the Chief of Staff acts on your instruction. Mr Nkemelu says he can
+    make the eleven o'clock go away as well. The Attorney General has asked me
+    to note the time she was not told.
+  left:
+    text: "Let him make it go away"
+    effects: { public: 3, allies: -3, commitment: 4 }
+    tags: [personal, secrecy, domestic]
+  right:
+    text: "Answer the question at eleven"
+    effects: { public: -6, allies: 2, trust_primary: 2 }
+    tags: [personal, transparency, domestic]

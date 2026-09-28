@@ -247,7 +247,7 @@ Flashpoints: `fp_intercept` (The Intercept, acts 1–5, has false-alarm entry) �
 Author base numbers for act 1 and let the engine scale costs:
 - Ordinary card: effects ±3..±8 on one or two meters, ±3..±10 on hidden values.
 - Arc development: ±6..±12. Arc resolution: ±10..±18.
-- Flashpoint: ±12..±30; a catastrophic failure may force an ending.
+- Flashpoint: ±8..±16 on visible meters (a five-card sequence must be survivable from a healthy state on its restrained path, and its firm path must not add more than ~50 escalation with average luck); a catastrophic failure may force an ending, and only those cards use ±30.
 - Escalation: ordinary +2..+8 / −2..−6; flashpoint −10..−20 on a good resolution.
 - A choice should never be free. Both choices should cost something; the good choice
   costs the thing you can currently least afford.

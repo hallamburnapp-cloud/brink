@@ -1,0 +1,870 @@
+# pressure — the seat-agnostic domestic and economic deck. No arc, no
+# conditions: these keep the deck deep between arcs. Markets, the press, the
+# opposition, the security council, sleep and family, legal advice, the
+# military's patience, allied phone calls, rumours, minor states asking for
+# help, the peace movement. Every card is a real dilemma; hidden values carry
+# the slow story. Act bands: 10 × [1,2], 10 × [2,3], 10 × [3,4], 10 × [4,5].
+
+# ---- week one / two -----------------------------------------------------------
+
+- id: press_01_the_opening_bell
+  advisor: treasury
+  acts: [1, 2]
+  tags: [economy, domestic]
+  text: >-
+    The exchange opens at nine and the futures say it opens eleven per cent
+    down. I can have a guarantee for the four clearing banks drafted by eight,
+    which stops the fall and tells everyone we expected one. Or we say nothing
+    and let it find a floor. Floors are cheaper than guarantees, right up until
+    they are not.
+  left:
+    text: "Guarantee the banks"
+    effects: { economy: -4, public: 3, commitment: 4 }
+    tags: [economy, public_commitment, domestic]
+  right:
+    text: "Let it find a floor"
+    effects: { economy: -7, public: -2, trust_secondary: 2 }
+    tags: [economy, stall, domestic]
+
+- id: press_02_the_first_question
+  advisor: press
+  acts: [1, 2]
+  timer: 10
+  timeout: right
+  tags: [domestic, intel]
+  text: >-
+    The security council met at two this morning for ninety minutes and the
+    Foreign Minister left through the kitchen. I have that from two people who
+    were not in the room. My deadline is six. Do you want to tell me what it
+    was about, or do you want to tell me it did not happen?
+  left:
+    text: "It happened. Here is the context"
+    effects: { public: -3, intel: -2, trust_primary: 2, commitment: 2 }
+    tags: [transparency, domestic]
+  right:
+    text: "There was no meeting"
+    effects: { trust_primary: -1 }
+    tags: [secrecy, domestic]
+    odds:
+      label: It holds
+      base: 0.55
+      tags: [intel]
+      success:
+        effects: { public: 2, military: 1 }
+      failure:
+        text: "She runs the kitchen door on the front page, with a photograph."
+        effects: { public: -7, allies: -2, commitment: -2 }
+
+- id: press_03_the_loyal_opposition
+  advisor: opposition
+  acts: [1, 2]
+  tags: [domestic]
+  text: >-
+    I can stand behind you at the podium at noon and say the word 'united', and
+    it will be worth six points to you by the weekend. In return I would like
+    to be in the room when the next readiness decision is taken. Not consulted
+    afterwards. In the room.
+  left:
+    text: "In the room, then"
+    effects: { public: 5, intel: -4, military: -2, commitment: 2 }
+    tags: [domestic, transparency]
+  right:
+    text: "The podium is enough"
+    effects: { public: -4, intel: 1 }
+    capital: -1
+    tags: [domestic, secrecy]
+
+- id: press_04_three_twenty
+  advisor: family
+  acts: [1, 2]
+  once: false
+  weight: 0.8
+  tags: [personal, filler]
+  text: >-
+    It is twenty past three. You have been awake since four yesterday and you
+    read the same page of that folder three times while I was standing here.
+    There is soup. There is also a bed, which I mention only because you seem
+    to have forgotten where it is.
+  left:
+    text: "Two hours. Wake me if it moves"
+    effects: { intel: -3, escalation: -2 }
+    tags: [personal, stall]
+  right:
+    text: "I'll sleep when it's over"
+    effects: { intel: 2, escalation: 2 }
+    tags: [personal]
+
+- id: press_05_the_council_mood
+  advisor: aide
+  acts: [1, 2]
+  once: false
+  tags: [domestic, military]
+  text: >-
+    The security council is at nine. The General and the Foreign Minister have
+    not spoken directly since Tuesday and are using me as a corridor. Both have
+    papers on the readiness level and both expect you to choose one in the
+    room. The papers are eleven pages and two pages respectively.
+  left:
+    text: "Raise the readiness level"
+    effects: { military: 5, escalation: 4, trust_primary: -4 }
+    tags: [military, mobilise, domestic]
+  right:
+    text: "Hold it. Tell them why"
+    effects: { military: -4, escalation: -1, trust_primary: 2, allies: 1 }
+    tags: [reassurance, domestic]
+
+- id: press_06_what_you_may_do
+  advisor: legal
+  acts: [1, 2]
+  tags: [domestic, intel]
+  text: >-
+    The {rival_adj} trade delegation flies home at eleven. Under the emergency
+    provisions you may hold them for questioning for seventy-two hours, and I
+    have a form. What you may do and what you will later be seen to have done
+    are two different columns, and the second one has no time limit.
+  left:
+    text: "Hold them"
+    effects: { intel: 4, trust_primary: -6, public: 3, escalation: 3 }
+    tags: [intel, escalatory, domestic]
+  right:
+    text: "Let them fly"
+    effects: { intel: -2, trust_primary: 3, public: -2, military: -2 }
+    tags: [reassurance, domestic]
+
+- id: press_07_the_generals_patience
+  advisor: hawk_general
+  acts: [1, 2]
+  timer: 10
+  timeout: left
+  tags: [military, domestic]
+  text: >-
+    Three orders are on your desk unsigned. Exercise Ironwood, the reserve
+    call-up for two brigades, and the dispersal of the northern squadrons. My
+    staff have started saying you are afraid of the paper. I do not say it. I
+    am saying they say it.
+  left:
+    text: "Sign Ironwood. The rest waits"
+    effects: { military: 6, escalation: 4, trust_primary: -4, economy: -2 }
+    tags: [military, mobilise]
+  right:
+    text: "Nothing is signed this week"
+    effects: { military: -6, escalation: -1, allies: 2, trust_primary: 2 }
+    tags: [stall, reassurance, domestic]
+
+- id: press_08_the_call_from_varga
+  advisor: ally_leader
+  acts: [1, 2]
+  tags: [alliance, alliance_demand]
+  text: >-
+    My cabinet read the {rival_adj} statement on their phones before your
+    embassy had finished translating it. I do not need to be your first call.
+    I need to not be your ninth. Tell me what you will do about the Straits,
+    and I will tell my parliament I already knew.
+  left:
+    text: "You hear it first from now on"
+    effects: { allies: 5, commitment: 4, intel: -3 }
+    tags: [alliance, public_commitment]
+  right:
+    text: "You'll hear it with everyone"
+    effects: { allies: -6, commitment: -1, intel: 2 }
+    tags: [alliance, secrecy]
+
+- id: press_09_amberline_asks
+  advisor: envoy
+  acts: [1, 2]
+  tags: [diplomacy, alliance, commitment_trap]
+  text: >-
+    Amberline's foreign minister has asked me to ask you for a written
+    guarantee of its neutrality, to be read in its parliament on Thursday.
+    {Rival} has been asked for the same letter. Whoever signs first is a
+    guarantor. Whoever signs second is a signatory.
+  left:
+    text: "Sign it"
+    effects: { commitment: 6, allies: 3, trust_primary: -3, escalation: 2 }
+    tags: [public_commitment, diplomacy, alliance]
+  right:
+    text: "Assurances, not a letter"
+    effects: { allies: -3, trust_primary: 2, public: -2 }
+    tags: [diplomacy, stall]
+
+- id: press_10_the_square
+  advisor: peace_leader
+  acts: [1, 2]
+  tags: [domestic]
+  text: >-
+    There are forty thousand people in Founders' Square and it is raining. I
+    can ask them to go home at ten, and most of them will. I can also stay,
+    and then you are the person who left forty thousand people in the rain. I
+    would rather you came out and told them something true.
+  left:
+    text: "Come out and speak to them"
+    effects: { public: 4, military: -4, trust_primary: 2 }
+    tags: [domestic, reassurance, deescalate]
+  right:
+    text: "Ask them to go home"
+    effects: { public: -3, military: 2, trust_primary: -1 }
+    tags: [domestic, stall]
+
+# ---- week two / three ---------------------------------------------------------
+
+- id: press_11_the_currency
+  advisor: treasury
+  acts: [2, 3]
+  once: false
+  tags: [economy]
+  text: >-
+    The currency is down nine per cent in six sessions and the {other_adj}
+    funds are the ones buying it. I can defend the rate with the reserve, which
+    lasts about eleven days at this speed. Or I can let it float, and bread
+    costs what bread costs. Floating is honest. Honest is expensive.
+  left:
+    text: "Defend the rate"
+    effects: { economy: -7, public: 3 }
+    tags: [economy, public_commitment, domestic]
+  right:
+    text: "Let it float"
+    effects: { economy: -3, public: -5, trust_secondary: 3 }
+    tags: [economy, domestic]
+
+- id: press_12_the_leak
+  advisor: press
+  acts: [2, 3]
+  timer: 10
+  timeout: right
+  tags: [domestic, intel]
+  text: >-
+    I have the minutes. Not a summary, the minutes, with the Foreign Minister's
+    handwriting in the margin. They run at six unless someone gives me a reason
+    by five. A reason is not the same thing as a threat, and I have had two of
+    those already this afternoon.
+  left:
+    text: "Brief her at five. All of it"
+    effects: { public: -3, commitment: 3, trust_primary: -2, intel: -2 }
+    tags: [transparency, domestic]
+  right:
+    text: "Kill the story"
+    effects: { military: 1 }
+    tags: [secrecy, domestic]
+    odds:
+      label: It holds
+      base: 0.45
+      tags: [intel]
+      success:
+        text: "Her editor pulls it. Nobody says why, and she knows."
+        effects: { public: 2, intel: 2 }
+      failure:
+        text: "It runs at six, with a second story about the attempt to stop it."
+        effects: { public: -8, allies: -3, commitment: -2 }
+
+- id: press_13_the_confidence_motion
+  advisor: opposition
+  acts: [2, 3]
+  tags: [domestic]
+  text: >-
+    I have tabled a confidence motion for Thursday. I will withdraw it on
+    Wednesday if you give my party the Defence portfolio in a war cabinet.
+    Otherwise we vote, and I have counted, and I think you should count too.
+  left:
+    text: "Defence is yours. Withdraw it"
+    effects: { public: 3, military: -3, intel: -4, commitment: 2 }
+    capital: 1
+    tags: [domestic]
+  right:
+    text: "Table it. I've counted too"
+    effects: { commitment: 3 }
+    tags: [domestic, public_commitment]
+    odds:
+      label: The house holds
+      base: 0.6
+      tags: [diplomacy]
+      success:
+        effects: { public: 5, military: 2 }
+        capital: 2
+      failure:
+        text: "You survive by four votes and lose the evening news."
+        effects: { public: -8, allies: -2 }
+        capital: -2
+
+- id: press_14_the_hospital
+  advisor: family
+  acts: [2, 3]
+  weight: 0.8
+  tags: [personal, filler]
+  text: >-
+    My mother is in the Mercy on the fourth floor and she has asked for you
+    twice, by your first name, which she has not used since the wedding.
+    Visiting ends at eight. I am not asking you to fix anything. I am telling
+    you where I will be.
+  left:
+    text: "One hour. I'm coming"
+    effects: { intel: -3, military: -1, public: 2 }
+    tags: [personal]
+  right:
+    text: "I can't leave the building"
+    effects: { intel: 2, escalation: 1 }
+    tags: [personal]
+
+- id: press_15_the_colonels_column
+  advisor: aide
+  acts: [2, 3]
+  tags: [domestic, military]
+  text: >-
+    The morning column quotes 'a serving officer' saying the leadership is
+    sleepwalking. The Chief of Staff's office says it was a colonel on the
+    planning staff and they know which one. They would like to retire him by
+    Friday. The column has been read, so far, by everyone.
+  left:
+    text: "Retire him quietly"
+    effects: { military: -4, intel: 2, public: 2 }
+    tags: [domestic, secrecy]
+  right:
+    text: "Leave him where he is"
+    effects: { military: 3, public: -4, commitment: -2 }
+    tags: [domestic, stall]
+
+- id: press_16_the_lawyer_at_midnight
+  advisor: legal
+  acts: [2, 3]
+  tags: [intel, domestic]
+  text: >-
+    This is a draft order for the interception of {rival_adj} diplomatic
+    traffic routed through our exchanges. It is lawful under one reading of the
+    Communications Act and I can give you that reading in writing. If it is
+    ever read out in a courtroom, the reading will be mine and the signature
+    will be yours.
+  left:
+    text: "Sign it"
+    effects: { intel: 4, trust_primary: -3 }
+    tags: [intel, secrecy]
+    odds:
+      label: It stays secret
+      base: 0.6
+      tags: [intel]
+      success:
+        effects: { intel: 4, military: 2 }
+      failure:
+        text: "Eleven days later a junior at the exchange takes it to a newspaper."
+        effects: { public: -6, trust_primary: -6, allies: -3 }
+  right:
+    text: "Narrow it. Bring it back"
+    effects: { military: -2, allies: 2, trust_primary: 1 }
+    tags: [stall, intel]
+
+- id: press_17_the_joint_statement
+  advisor: ally_leader
+  acts: [2, 3]
+  tags: [alliance, alliance_demand, commitment_trap]
+  text: >-
+    The Compact has a joint statement drafted and it names {rival} in the first
+    sentence and 'all necessary measures' in the third. Five capitals have
+    signed. I am holding it for yours until nine, and at nine I release it with
+    or without you, and either way it will have been read in {rival_capital}
+    by ten.
+  left:
+    text: "Sign it"
+    effects: { allies: 6, commitment: 5, trust_primary: -5, escalation: 3 }
+    tags: [alliance, public_commitment]
+  right:
+    text: "Our own words, our own time"
+    effects: { allies: -5, trust_primary: 2, commitment: -1, public: -1 }
+    tags: [alliance, stall]
+
+- id: press_18_the_rumour
+  advisor: intel_director
+  acts: [2, 3]
+  once: false
+  weight: 0.8
+  tags: [intel, misperception]
+  text: >-
+    A single source in {rival_capital} reports {rival_leader} was driven to the
+    Military Hospital at 03:00 and has not been seen since. We assess the
+    source as previously reliable and currently frightened. It is the kind of
+    thing that is either true or was meant to reach us.
+  left:
+    text: "Task everything on it"
+    effects: { intel: 2, economy: -1 }
+    tags: [intel, investigate]
+    odds:
+      label: Single source
+      base: 0.5
+      tags: [intel]
+      success:
+        effects: { intel: 5, trust_primary: -2 }
+      failure:
+        text: "It was a dental appointment. They noticed us noticing."
+        effects: { intel: -2, trust_primary: -5 }
+  right:
+    text: "We don't chase rumours"
+    effects: { intel: -3, trust_primary: 1, military: -1 }
+    tags: [stall, intel]
+
+- id: press_19_caldor_asks
+  advisor: ambassador
+  acts: [2, 3]
+  tags: [alliance, naval, diplomacy]
+  text: >-
+    The Governor of Caldor rang me at home, which he has done twice in thirty
+    years. He would like one of our frigates in Caldor harbour by the weekend,
+    visibly, 'for the reassurance of the population'. The last time somebody
+    asked me for a reassuring frigate, the reassurance lasted until the second
+    frigate arrived.
+  left:
+    text: "Send the frigate"
+    effects: { military: 3, allies: 4, escalation: 3, economy: -1 }
+    tags: [naval, military, alliance]
+    odds:
+      label: They stand off
+      base: 0.55
+      tags: [adversary, naval]
+      success:
+        effects: { allies: 3, trust_primary: -3 }
+      failure:
+        text: "Two of theirs anchor outside the harbour the next morning."
+        effects: { escalation: 6, trust_primary: -5, military: 2 }
+  right:
+    text: "Send me instead"
+    effects: { allies: -3, public: -2, trust_primary: 2 }
+    tags: [diplomacy, reassurance, alliance]
+
+- id: press_20_the_hunger_strike
+  advisor: peace_leader
+  acts: [2, 3]
+  tags: [domestic]
+  text: >-
+    Twelve students have been outside the Ministry for nine days without
+    eating, and this morning one of them stopped standing up. They want fifteen
+    minutes with you and they want it filmed. The doctors say two more days.
+    The police say tonight.
+  left:
+    text: "Fifteen minutes. Filmed"
+    effects: { public: 4, military: -3, trust_primary: 2, commitment: 2 }
+    tags: [domestic, reassurance, transparency]
+  right:
+    text: "Ambulances, tonight"
+    effects: { public: -5, military: 2, commitment: 1 }
+    tags: [domestic, secrecy]
+
+# ---- week three / four --------------------------------------------------------
+
+- id: press_21_the_bond_auction
+  advisor: treasury
+  acts: [3, 4]
+  once: false
+  tags: [economy]
+  text: >-
+    This morning's bond auction covered sixty-one per cent of the offer, which
+    is a polite way of saying it failed. The central bank can buy the rest
+    before anyone notices the number, and I mean before four o'clock. Or the
+    yield prints, the {other_adj} funds see it, and we borrow from them at
+    their price.
+  left:
+    text: "Buy it quietly"
+    effects: { economy: -5, public: 2, commitment: 2, intel: -1 }
+    tags: [economy, secrecy]
+  right:
+    text: "Let the yield print"
+    effects: { economy: -8, public: -3, trust_secondary: 3 }
+    tags: [economy, transparency]
+
+- id: press_22_the_interview
+  advisor: press
+  acts: [3, 4]
+  timer: 10
+  timeout: right
+  tags: [domestic, nuclear]
+  text: >-
+    We are live at eight and my first question is whether you would ever
+    authorise a nuclear strike first. I am telling you now because I do not do
+    ambushes on this subject. You can say never, and live with it. You can say
+    you do not discuss doctrine, and I will ask it again, slower.
+  left:
+    text: "Never first"
+    effects: { public: 5, commitment: 6, military: -4, trust_primary: 4 }
+    tags: [public_commitment, nuclear, reassurance]
+  right:
+    text: "I don't discuss doctrine"
+    effects: { public: -4, military: 2, trust_primary: -2, escalation: 1 }
+    tags: [nuclear, secrecy, misperception]
+
+- id: press_23_the_floor
+  advisor: opposition
+  acts: [3, 4]
+  tags: [domestic]
+  text: >-
+    Two of your own members will cross the floor at three unless you rule out a
+    ground deployment to Vestria from the despatch box today. They came to me
+    because they could not get to you. I am telling you because I would rather
+    win the argument than the seats. Only slightly.
+  left:
+    text: "Rule it out"
+    effects: { public: 3, military: -5, commitment: 5, trust_primary: 3 }
+    tags: [public_commitment, domestic, reassurance]
+  right:
+    text: "Let them cross"
+    effects: { public: -5, military: 3 }
+    capital: -1
+    tags: [domestic]
+
+- id: press_24_the_birthday
+  advisor: family
+  acts: [3, 4]
+  weight: 0.8
+  tags: [personal, filler]
+  text: >-
+    She is fourteen at six o'clock and she has told her friends you will be
+    there, which she has never done before, because she knows better. I have a
+    cake and eleven teenagers and no plan. Twenty minutes. You do not have to
+    eat anything.
+  left:
+    text: "Twenty minutes. Cake"
+    effects: { intel: -2, escalation: -2, public: 1 }
+    tags: [personal, stall]
+  right:
+    text: "Put her on the phone"
+    effects: { intel: 2, escalation: 1 }
+    tags: [personal]
+
+- id: press_25_the_minute
+  advisor: aide
+  acts: [3, 4]
+  tags: [domestic, military]
+  text: >-
+    The council split six to five on the readiness order and the six have asked
+    for the vote to be minuted. The five, led by the General, have asked that
+    it not be. There is no rule. There is a precedent, from the last crisis,
+    and nobody remembers how it ended because nobody wrote it down.
+  left:
+    text: "Minute the vote"
+    effects: { military: -3, allies: 3, commitment: 3, intel: 2 }
+    tags: [transparency, domestic]
+  right:
+    text: "No vote. My decision"
+    effects: { military: 4, escalation: 3, public: -2, commitment: 1 }
+    tags: [domestic, secrecy, military]
+
+- id: press_26_the_detainees
+  advisor: legal
+  acts: [3, 4]
+  tags: [domestic]
+  text: >-
+    Forty-one {rival_adj} nationals have been held under the emergency
+    provisions for eleven days without charge, and the High Court sits on
+    Monday. I can charge nine of them. The other thirty-two I can hold for
+    another fortnight or release by Sunday. Whatever we do, {rival_capital} has
+    forty of ours.
+  left:
+    text: "Charge nine. Release the rest"
+    effects: { trust_primary: 4, public: -3, intel: -3, military: -1 }
+    tags: [reassurance, domestic]
+  right:
+    text: "Hold them all"
+    effects: { public: 2, trust_primary: -6, allies: -3, intel: 1 }
+    tags: [escalatory, domestic]
+
+- id: press_27_the_resignation
+  advisor: hawk_general
+  acts: [3, 4]
+  timer: 12
+  timeout: left
+  tags: [military, domestic]
+  text: >-
+    My letter is in the envelope and the envelope is on your desk. It is dated
+    noon. If the mobilisation order for the northern brigades is signed before
+    then, the letter does not exist. I have served four leaders and I have
+    never done this, and I am doing it because the window closes on Thursday.
+  left:
+    text: "Sign the mobilisation"
+    effects: { military: 8, escalation: 7, economy: -4, trust_primary: -6 }
+    tags: [mobilise, military]
+  right:
+    text: "Accept the letter"
+    effects: { military: -8, escalation: -2, public: -3, allies: 2, trust_primary: 2 }
+    tags: [domestic, deescalate]
+
+- id: press_28_the_compact_vote
+  advisor: ally_leader
+  acts: [3, 4]
+  tags: [alliance, alliance_demand, nuclear]
+  text: >-
+    My parliament votes at eleven tonight on whether your aircraft may stay on
+    our soil. I have the numbers if I can say your aircraft carry no nuclear
+    weapons. I do not have the numbers if I cannot. I am not asking whether it
+    is true, I am asking whether I may say it.
+  left:
+    text: "Say it"
+    effects: { allies: 6, commitment: 5, military: -4, trust_primary: 3 }
+    tags: [alliance, public_commitment, nuclear, reassurance]
+  right:
+    text: "Neither confirm nor deny"
+    effects: { military: 2, commitment: 1 }
+    tags: [alliance, secrecy, misperception, nuclear]
+    odds:
+      label: Her vote holds
+      base: 0.45
+      tags: [alliance]
+      success:
+        effects: { allies: 2, trust_primary: -2 }
+      failure:
+        text: "Her parliament votes 88 to 71 to give your squadrons thirty days."
+        effects: { allies: -10, escalation: 2, military: -2 }
+
+- id: press_29_vestria_asks
+  advisor: envoy
+  acts: [3, 4]
+  tags: [diplomacy]
+  text: >-
+    Vestria's provisional council has asked the Assembly for a hundred and
+    twenty unarmed observers. {Rival} will veto the resolution unless {us}
+    abstains on the Caldor motion the same afternoon. I have the text of both.
+    I am not going to tell you which one matters more, because I am the one who
+    will be blamed either way.
+  left:
+    text: "Abstain. Get them in"
+    effects: { allies: -4, public: -2 }
+    tags: [diplomacy, concede, deescalate]
+    odds:
+      label: Veto lifts
+      base: 0.5
+      tags: [diplomacy, adversary]
+      success:
+        effects: { escalation: -4, trust_primary: 4 }
+      failure:
+        text: "They veto anyway. You abstained for nothing, on television."
+        effects: { public: -4, trust_primary: -3, commitment: -2 }
+  right:
+    text: "Vote our line"
+    effects: { allies: 3, trust_primary: -3, escalation: 2, commitment: 2 }
+    tags: [public_commitment, diplomacy]
+
+- id: press_30_the_march
+  advisor: peace_leader
+  acts: [3, 4]
+  tags: [domestic]
+  text: >-
+    Two hundred thousand on Saturday, and the route passes the Ministry at two.
+    The General has asked the police to move it three streets east, out of the
+    line of sight from his windows. The organisers have asked me to ask you to
+    speak at the end. You cannot do both, and I would like you to know that I
+    know that.
+  left:
+    text: "I'll speak at the end"
+    effects: { public: 5, military: -6, trust_primary: 3, commitment: 3 }
+    tags: [domestic, reassurance, public_commitment, deescalate]
+  right:
+    text: "Move the route"
+    effects: { public: -5, military: 3, escalation: 1 }
+    tags: [domestic, military]
+
+# ---- week four / endgame ------------------------------------------------------
+
+- id: press_31_the_run
+  advisor: treasury
+  acts: [4, 5]
+  once: false
+  timer: 10
+  timeout: right
+  tags: [economy, domestic]
+  text: >-
+    There were queues outside four banks at seven this morning and eleven per
+    cent of deposits have left in three days. I can guarantee every deposit in
+    the country by nine, which costs more than we have and works because
+    nobody checks. Or we close the banks for the weekend and hope Monday is a
+    different country.
+  left:
+    text: "Guarantee every deposit"
+    effects: { economy: -8, public: 6, commitment: 4 }
+    tags: [economy, public_commitment, domestic]
+  right:
+    text: "Close the banks till Monday"
+    effects: { economy: -5, public: -8, military: 2 }
+    tags: [economy, stall, domestic]
+
+- id: press_32_the_final_edition
+  advisor: press
+  acts: [4, 5]
+  timer: 10
+  timeout: right
+  tags: [domestic, misperception]
+  text: >-
+    Are we at war? I am printing one of two front pages at midnight and I would
+    rather it was the right one. 'Yes' is a headline. 'No' is a headline.
+    '{Leader} declined to say' is also a headline, and it is the one they will
+    read in {rival_capital}.
+  left:
+    text: "No. Print no"
+    effects: { public: 3, commitment: 5, trust_primary: 3, military: -4 }
+    tags: [public_commitment, reassurance, domestic]
+  right:
+    text: "Print what you have"
+    effects: { public: -6, trust_primary: -4, escalation: 3, military: 2 }
+    tags: [secrecy, misperception, domestic]
+
+- id: press_33_the_unity_government
+  advisor: opposition
+  acts: [4, 5]
+  tags: [domestic]
+  text: >-
+    I am offering a government of national unity, announced tonight, with my
+    party taking Defence and the Treasury. You keep the chair and the war. My
+    members think I am mad for offering it and yours think you are mad if you
+    refuse it. The two groups are the same size, which is the point.
+  left:
+    text: "Unity. Announce it"
+    effects: { public: 6, military: -4, intel: -3, commitment: 3, economy: 2 }
+    capital: 1
+    tags: [domestic, transparency]
+  right:
+    text: "Not while I hold this office"
+    effects: { military: 3 }
+    capital: -1
+    tags: [domestic, public_commitment]
+    odds:
+      label: The house holds
+      base: 0.5
+      tags: [diplomacy]
+      success:
+        effects: { public: 3, commitment: 2 }
+      failure:
+        text: "Eleven of your own abstain on the supply vote. The papers count them by name."
+        effects: { public: -9, economy: -3 }
+        capital: -2
+
+- id: press_34_the_suitcase
+  advisor: family
+  acts: [4, 5]
+  tags: [personal]
+  text: >-
+    I packed a bag for the children. It is by the door and I have not told them
+    why. Your office says there is a place for them and for me at the site,
+    and a bed for you that you will not use. Tell me to unpack it and I will.
+    Tell me tonight.
+  left:
+    text: "Send them tonight"
+    effects: { public: -5, escalation: 2, intel: 1 }
+    tags: [personal, secrecy]
+  right:
+    text: "Unpack it. Nobody goes"
+    effects: { public: 2, escalation: -1, intel: -2 }
+    tags: [personal, reassurance]
+
+- id: press_35_the_list
+  advisor: aide
+  acts: [4, 5]
+  tags: [domestic, military, personal]
+  text: >-
+    The continuity list has a hundred and forty names and two of them cannot
+    both be on it. The General wants his operations staff in the second bunker,
+    which is the Foreign Minister's seat and her deputy's. He has a point about
+    the staff. She has a point about what a bunker full of operations staff
+    decides.
+  left:
+    text: "The General's staff go"
+    effects: { military: 5, allies: -4, trust_primary: -3, escalation: 1 }
+    tags: [military, domestic]
+  right:
+    text: "The Foreign Minister keeps her seat"
+    effects: { military: -5, allies: 3, trust_primary: 2 }
+    tags: [domestic, diplomacy]
+
+- id: press_36_the_delegation
+  advisor: legal
+  acts: [4, 5]
+  tags: [nuclear, domestic]
+  text: >-
+    This delegates release authority to the theatre commander if the command
+    centre cannot be reached for forty minutes. It is lawful. It is also, in
+    practice, irreversible, because the first anyone will know it has been used
+    is afterwards. I have drafted it three times to make forty minutes look
+    like a long time.
+  left:
+    text: "Sign the delegation"
+    effects: { military: 6, escalation: 6, trust_primary: -6, intel: -2 }
+    tags: [nuclear, military, escalatory]
+  right:
+    text: "Authority stays in this room"
+    effects: { military: -5, escalation: -2, trust_primary: 3 }
+    tags: [nuclear, deescalate]
+
+- id: press_37_the_ramps
+  advisor: hawk_general
+  acts: [4, 5]
+  timer: 8
+  timeout: left
+  tags: [military]
+  text: >-
+    Their bombers are on the ramps at Harrow Field with crews aboard, and ours
+    are in hangars with crews asleep. Dispersal takes four hours and cannot be
+    hidden. Not dispersing takes no time and cannot be undone. I would like
+    the four hours.
+  left:
+    text: "Disperse the force"
+    effects: { military: 6, escalation: 6, trust_primary: -5, economy: -2 }
+    tags: [military, mobilise]
+  right:
+    text: "Hold them on the ground"
+    effects: { military: -6, escalation: -1, trust_primary: 2, public: -1 }
+    tags: [reassurance, stall]
+
+- id: press_38_the_last_call
+  advisor: ally_leader
+  acts: [4, 5]
+  tags: [alliance, alliance_demand, commitment_trap]
+  text: >-
+    My parliament votes at dawn on leaving the joint command. Half of them
+    think you will not come if it starts. I need one sentence from you,
+    tonight, that I can read out, and it has to have the word 'everything' in
+    it. I know what I am asking, and I am asking anyway.
+  left:
+    text: "We will defend you with everything"
+    effects: { commitment: 8, escalation: 4, trust_primary: -5 }
+    tags: [alliance, public_commitment, deterrence]
+    odds:
+      label: She holds them
+      base: 0.55
+      tags: [alliance]
+      success:
+        effects: { allies: 8, military: 2 }
+      failure:
+        text: "They vote to leave anyway, 101 to 98, with your sentence read into the record."
+        effects: { allies: -6, public: -3 }
+  right:
+    text: "I can't say that tonight"
+    effects: { allies: -8, commitment: -2, trust_primary: 2, military: -2 }
+    tags: [alliance, stall]
+
+- id: press_39_amberline_flees
+  advisor: envoy
+  acts: [4, 5]
+  tags: [diplomacy, alliance]
+  text: >-
+    Amberline's cabinet is at your border in six cars with their families and
+    the national archive in a lorry. They are asking for asylum in {capital}.
+    {Rival} says it is a coup in progress and that anyone who receives them is
+    a party to it. The Assembly can receive them instead, in about three weeks.
+  left:
+    text: "Take them in tonight"
+    effects: { allies: 3, public: 2, trust_primary: -6, escalation: 4 }
+    tags: [alliance, escalatory, diplomacy]
+  right:
+    text: "Route them to the Assembly"
+    effects: { allies: -3, public: -3, trust_primary: 2, commitment: -1 }
+    tags: [diplomacy, stall]
+
+- id: press_40_the_vigil
+  advisor: peace_leader
+  acts: [4, 5]
+  tags: [domestic]
+  text: >-
+    There are candles around the whole Ministry, six thousand of them, and the
+    people holding them have said they will stay until morning. The General's
+    convoy is due through the north gate at four. He has asked for the street
+    cleared by three. I have asked them to sit down.
+  left:
+    text: "The convoy goes round"
+    effects: { military: -4, public: 4, trust_primary: 2, escalation: -1 }
+    tags: [domestic, deescalate]
+  right:
+    text: "Clear the street at three"
+    effects: { public: -6, military: 3, escalation: 1 }
+    capital: -1
+    tags: [domestic, military]

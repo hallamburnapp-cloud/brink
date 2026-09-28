@@ -1,0 +1,452 @@
+# alliance — seat-agnostic alliance management, no arc. The Northern Compact
+# (Prime Minister Selene Varga, eleven governments, its airfield at Hollin), the
+# minor states (Vestria and its town of Sennet, Amberline the buffer, the Isle of
+# Caldor and its premier Dagny Holt), and the Assembly of Nations (Secretary
+# Lindqvist). Forces: entanglement and the commitment level (every reassurance to
+# an ally is a promise the rival reads as a ring closing; every hedge is a door
+# the ally hears closing), consultation versus speed, the Compact deciding for
+# you. Piece hooks: alliance_first (allies decide, alliance_demand), allied_basing
+# (Hollin as a target, basing), fortress (Varga notices you have stopped picking
+# up), dove_fm (her form of words). Twelve cards are unconditioned to keep the
+# deck deep; six carry conditions.
+# Flags set: alliance:guarantee_given, alliance:guarantee_withheld,
+# alliance:vestria_backed, alliance:compact_split, alliance:council_obeyed,
+# alliance:council_overruled, alliance:hollin_reinforced, alliance:varga_snubbed.
+# Cross-hooks (flags_any): proxy:brigade_deployed, blockade:declared,
+# ultimatum:received, cables:cut, fp:intercept_retaliated.
+
+# ---------------------------------------------------------------- unconditioned
+
+- id: ally_01_what_will_you_do
+  advisor: ally_leader
+  acts: [1, 2]
+  weight: 1.5
+  tags: [alliance, public_commitment]
+  note: Varga at 03:10. The first promise of the run, or the first hedge; either is heard in two capitals.
+  text: >-
+    Two {rival_adj} battalions moved up to the Vestrian line overnight and my
+    parliament sits at nine. I am going to be asked whether {us} would fight for
+    Sennet, and I can say yes, or I can say that I do not know, or I can say
+    what you tell me to say. Do not tell me how you feel about it.
+  left:
+    text: "Tell them yes"
+    effects: { allies: 7, commitment: 8, trust_primary: -6, escalation: 3 }
+    tags: [alliance, public_commitment]
+    set: [alliance:guarantee_given]
+  right:
+    text: "Tell them we are consulting"
+    effects: { allies: -6, trust_primary: 3, public: -3, commitment: -2 }
+    tags: [alliance, stall]
+    set: [alliance:guarantee_withheld]
+
+- id: ally_02_the_resolution
+  advisor: envoy
+  acts: [1, 3]
+  tags: [alliance, diplomacy]
+  note: A co-sponsor is a party. An empty chair is also a message.
+  text: >-
+    The Assembly votes on Thursday on a resolution calling the {rival_adj}
+    exercises in the Sorrel Straits 'a threat to navigation', and the Compact
+    wants your name on it as a co-sponsor. {Rival_capital} has told me, through
+    the usual three people, that a co-sponsor is a party. Abstain and eleven
+    delegations will notice which chair was empty. I have drafted both speeches,
+    because that is the job.
+  left:
+    text: "Co-sponsor it"
+    effects: { allies: 6, trust_primary: -7, trust_secondary: -2, commitment: 4 }
+    tags: [alliance, diplomacy, public_commitment]
+  right:
+    text: "Abstain"
+    effects: { allies: -6, trust_primary: 4, public: -2 }
+    tags: [alliance, stall, diplomacy]
+
+- id: ally_03_the_liaison
+  advisor: aide
+  acts: [1, 4]
+  timer: 10
+  timeout: right
+  tags: [alliance, military]
+  note: Consultation versus speed, in a lift. The timeout starts the call without him.
+  text: >-
+    The General's call with theatre command starts in four minutes. The Compact
+    liaison, Colonel Ostrander, is in the lift; the consultation clause says he
+    sits in on anything that moves aircraft out of Hollin. The General says the
+    lift is slow tonight.
+  left:
+    text: "Hold the call for the Colonel"
+    effects: { military: -4, allies: 5, intel: 2 }
+    tags: [alliance, stall, transparency]
+  right:
+    text: "Start without him"
+    effects: { military: 4, allies: -6, intel: -2 }
+    tags: [military, secrecy, alliance]
+
+- id: ally_04_northern_anvil
+  advisor: hawk_general
+  acts: [1, 3]
+  tags: [alliance, military, deterrence]
+  note: The exercise the allies were promised is the mobilisation the rival was warned about.
+  text: >-
+    Northern Anvil begins Monday: nine thousand troops, four Compact brigades,
+    forty kilometres from the Vestrian line, eighteen months in the planning.
+    Varga's defence minister called it 'the reassurance we were promised'. Their
+    general staff have moved a rocket brigade to the Sallow crossing to watch
+    it. A cancellation would be noticed by both audiences.
+  left:
+    text: "Anvil goes ahead"
+    effects: { military: 6, allies: 6, trust_primary: -8, escalation: 5 }
+    tags: [military, alliance, deterrence, mobilise]
+  right:
+    text: "Postpone it a month"
+    effects: { military: -5, allies: -6, trust_primary: 5, escalation: -3 }
+    tags: [alliance, deescalate]
+
+- id: ally_05_vestria_applies
+  advisor: ambassador
+  acts: [1, 4]
+  tags: [alliance, entanglement, misperception]
+  note: A yes is a ring closing; a no is a door closing. He remembers the last time.
+  text: >-
+    Vestria has formally applied to join the Compact, and the letter reached
+    Varga's office and mine within the same hour, which tells you who drafted
+    it. Thirty years ago a small country asked a larger one for the same thing;
+    the larger one said yes in a warm speech and there was a war within the year
+    that neither of them started. {Rival_capital} will read a yes as a ring
+    closing. Sennet will read a no as a door.
+  left:
+    text: "Back the application"
+    effects: { allies: 7, trust_primary: -9, escalation: 4, commitment: 6 }
+    tags: [alliance, public_commitment, entanglement]
+    set: [alliance:vestria_backed]
+  right:
+    text: "Not this year"
+    effects: { allies: -6, trust_primary: 5, public: -3, commitment: -2 }
+    tags: [alliance, stall]
+
+- id: ally_06_stolen_paper
+  advisor: press
+  acts: [1, 5]
+  tags: [alliance, domestic, commitment_trap]
+  note: A leaked cable says you would not fight for Caldor. Whatever you say next is the policy.
+  text: >-
+    A Compact cable, copied to eleven capitals, says your Foreign Ministry told
+    them privately that {us} 'would not go to war over the Isle of Caldor'. I
+    have it; so does Premier Holt, who is on the six o'clock news in forty
+    minutes. I am not asking whether it is genuine. I am asking what you will
+    say when she has finished.
+  left:
+    text: "We would fight for every rock"
+    effects: { public: 4, allies: 6, commitment: 9, trust_primary: -5 }
+    tags: [public_commitment, alliance, deterrence]
+  right:
+    text: "We do not comment on stolen paper"
+    effects: { allies: -7, public: -4, commitment: -2, intel: 2 }
+    tags: [stall, alliance, secrecy]
+
+- id: ally_07_the_runway_bill
+  advisor: treasury
+  acts: [1, 3]
+  tags: [alliance, economy]
+  note: Solidarity has a unit price. Allies remember accounting.
+  text: >-
+    The Compact's runway extension at Hollin is forty percent over budget, and
+    Varga's parliament has voted, generously, that the overrun is ours. Two
+    hundred and eighty million, payable before the tarmac cures. We can pay it
+    and call it solidarity, or decline and call it accounting. Historically,
+    allies remember accounting.
+  left:
+    text: "Pay it"
+    effects: { economy: -7, allies: 6, military: 2 }
+    tags: [alliance, economy]
+  right:
+    text: "Runways are not solidarity"
+    effects: { allies: -6, economy: 3, public: 2, commitment: -2 }
+    tags: [alliance, economy, stall]
+
+- id: ally_08_whose_rules
+  advisor: admiral
+  acts: [2, 5]
+  timer: 10
+  timeout: left
+  tags: [alliance, naval, entanglement]
+  note: An allied ship under our command is hailed. Whose rules of engagement is whose war.
+  text: >-
+    The Compact corvette Halvorsen sails under my tactical command in the
+    Straits and has just been told by a {rival_adj} destroyer to alter course.
+    Her captain is asking whether he is under your rules or his own; his say
+    turn away, yours say hold. He is forty minutes from the destroyer's guns and
+    eleven hours from his own Prime Minister.
+  left:
+    text: "Our rules. He holds"
+    effects: { allies: 5, military: 3, escalation: 5, commitment: 5, trust_primary: -4 }
+    tags: [naval, alliance, entanglement, deterrence]
+    odds:
+      label: They give way
+      base: 0.55
+      tags: [naval, adversary]
+      success:
+        text: "The destroyer turns at two miles. Varga's parliament applauds a ship that is not hers."
+        effects: { public: 4, allies: 3 }
+      failure:
+        text: "The destroyer closes to a mile and holds there for six hours. Nobody fires. Everybody films."
+        effects: { escalation: 7, allies: -3, public: -2 }
+  right:
+    text: "His ship, his rules"
+    effects: { allies: -6, military: -3, escalation: -3, trust_primary: 2 }
+    tags: [naval, alliance, deescalate]
+
+- id: ally_09_a_second_signature
+  advisor: other_leader
+  acts: [2, 5]
+  tags: [alliance, diplomacy, misperception]
+  note: Help that helps the helper. Two signatures, and observers nobody asked the Compact about.
+  text: >-
+    '{Other} is prepared to join {us} in guaranteeing Amberline's neutrality,
+    jointly, in writing, next week. Two signatures are harder to argue with than
+    one. You will appreciate that it also means {other_adj} observers on
+    Amberline's border with the Compact, which I am told the Compact would find
+    reassuring, though nobody has asked them.'
+  left:
+    text: "Sign jointly"
+    effects: { trust_secondary: 7, allies: -6, trust_primary: -2, escalation: -2 }
+    tags: [diplomacy, alliance, deescalate]
+  right:
+    text: "Amberline is a Compact matter"
+    effects: { trust_secondary: -6, allies: 5, commitment: 3 }
+    tags: [alliance, deterrence, stall]
+
+- id: ally_10_the_free_vote
+  advisor: opposition
+  acts: [1, 5]
+  tags: [alliance, domestic]
+  note: A reasonable motion with lethal timing. Whip for eleven capitals, or let the House decide for them.
+  text: >-
+    My members will table a motion on Tuesday requiring a vote of the House
+    before any Compact obligation is honoured with force. It is reasonable, it
+    is popular, and I have counted: it passes unless you whip against it. If
+    you whip, I will ask on the floor which of the eleven capitals you are
+    whipping for.
+  left:
+    text: "Whip against it"
+    effects: { public: -6, allies: 6, commitment: 4 }
+    tags: [alliance, domestic, public_commitment]
+  right:
+    text: "Let the House decide"
+    effects: { public: 5, allies: -8, commitment: -4, trust_primary: 3 }
+    tags: [domestic, alliance, stall]
+
+- id: ally_11_is_a_grid_armed
+  advisor: legal
+  acts: [2, 5]
+  tags: [alliance, cyber, commitment_trap]
+  note: The treaty says an attack on one is an attack on all. Nobody has ever said what an attack is.
+  text: >-
+    Vestria's grid went down for six hours last night, and the Compact treaty
+    says an armed attack on one is an attack on all. Whether a power cut is
+    'armed' is a question three of my predecessors declined to answer, which is
+    why we are all still here. Varga wants your reading by noon. Whatever you
+    say becomes the definition, for them and for you.
+  left:
+    text: "A grid is an armed attack"
+    effects: { allies: 7, commitment: 8, trust_primary: -5, escalation: 4 }
+    tags: [public_commitment, alliance, cyber, deterrence]
+  right:
+    text: "Not this grid. Not this time"
+    effects: { allies: -6, commitment: -3, trust_primary: 3, public: -2 }
+    tags: [alliance, stall, misperception]
+
+- id: ally_12_forty_observers
+  advisor: envoy
+  acts: [3, 5]
+  tags: [alliance, diplomacy]
+  note: The Compact wants our officers on the line as a promise; the rival will accept no great-power uniform.
+  text: >-
+    The Assembly will put forty unarmed observers on the Vestrian line from the
+    first, if the votes hold. The Compact wants {us_adj} officers among them, as
+    a promise. {Rival_capital} says it will accept the mission only if no great
+    power wears its uniform on the line, and it has said so in writing, which
+    it rarely does. I can deliver either version and be hated for either.
+  left:
+    text: "Our officers go"
+    effects: { allies: 6, trust_primary: -5, escalation: 2, intel: 3 }
+    tags: [alliance, public_commitment, military]
+    odds:
+      label: They accept the mission
+      base: 0.45
+      tags: [adversary, diplomacy]
+      success:
+        text: "They accept, with a note about uniforms that nobody reads aloud. Forty observers, six of them ours, on the line by the first."
+        effects: { trust_primary: 4, escalation: -3 }
+      failure:
+        text: "They withdraw consent for the mission entirely. Forty observers stay in Vellmar, and the line has no witnesses."
+        effects: { escalation: 5, allies: -3, intel: -3 }
+  right:
+    text: "No uniforms. Fund it instead"
+    effects: { allies: -5, trust_primary: 5, economy: -4, escalation: -3 }
+    tags: [alliance, diplomacy, deescalate]
+
+# ---------------------------------------------------------------- conditioned (six)
+
+- id: ally_13_two_of_eleven
+  advisor: ally_leader
+  acts: [3, 5]
+  conditions:
+    flags_any: [proxy:brigade_deployed, blockade:declared, ultimatum:received, cables:cut, fp:intercept_retaliated, alliance:guarantee_withheld, alliance:varga_snubbed]
+  tags: [alliance, diplomacy]
+  note: Cross-hook. After the month so far, two members want their own talks. The roll is the Compact itself.
+  text: >-
+    Two of my eleven have asked {rival_capital} for bilateral talks, quietly,
+    and {rival_capital} has said yes, loudly. If I call an emergency council for
+    tomorrow I can hold the line, provided I can tell them you will be in the
+    room and that the room decides something. Or I can let them go, and you and
+    I can stop pretending the Compact is eleven.
+  left:
+    text: "Call the council. I'll be there"
+    effects: { military: -3, commitment: 5, allies: 2 }
+    tags: [alliance, diplomacy, public_commitment]
+    odds:
+      label: The Compact holds
+      base: 0.55
+      tags: [alliance, diplomacy]
+      success:
+        text: "Nine to two, then eleven to nothing once the two saw the count. The bilateral talks are 'postponed'."
+        effects: { allies: 8, trust_primary: -4 }
+      failure:
+        text: "Seven to four. The four walk out before the count is read, and {rival_capital} issues its invitation in writing."
+        effects: { allies: -8, public: -3, trust_primary: -2 }
+        set: [alliance:compact_split]
+  right:
+    text: "Let them talk"
+    effects: { allies: -7, trust_primary: 5, escalation: -3, public: -2 }
+    tags: [alliance, deescalate, stall]
+    set: [alliance:compact_split]
+
+- id: ally_14_the_council_voted
+  advisor: ally_leader
+  acts: [2, 5]
+  weight: 1.2
+  conditions: { pieces_any: [alliance_first] }
+  tags: [alliance_demand, alliance, commitment_trap]
+  note: Alliance First. Nothing without consultation, so the consultation happened while you slept.
+  text: >-
+    The council voted at 01:00, nine to two, to close Vestrian airspace to
+    {rival_adj} military flights from Friday, and under the consultation
+    protocol your representative voted with the nine. I did not wake you; you
+    told us nothing without consultation, and this was consultation. The first
+    {rival_adj} transport is due over Sennet at 06:40 on Friday. Somebody's
+    aircraft will have to meet it.
+  left:
+    text: "The Compact has spoken. Enforce it"
+    effects: { military: 5, allies: 7, escalation: 8, trust_primary: -8, commitment: 8 }
+    tags: [alliance_demand, alliance, military, public_commitment]
+    set: [alliance:council_obeyed]
+  right:
+    text: "Withdraw our vote"
+    effects: { allies: -10, public: -4, commitment: -5, trust_primary: 4 }
+    tags: [alliance_demand, alliance, walk_back]
+    set: [alliance:council_overruled]
+
+- id: ally_15_caldors_objection
+  advisor: aide
+  acts: [2, 5]
+  timer: 9
+  timeout: right
+  conditions: { pieces_any: [alliance_first] }
+  tags: [alliance_demand, alliance, naval]
+  note: Alliance First cuts both ways. The smallest member holds your fleet for seventy-two hours.
+  text: >-
+    Premier Holt of Caldor has invoked the consultation clause against your
+    fleet's transit of Caldor Roads at dawn. Under the protocol one member's
+    objection holds for seventy-two hours. The Admiral says seventy-two hours is
+    where a fleet stops being a message and starts being a target. Holt says her
+    island is the target.
+  left:
+    text: "Honour the objection"
+    effects: { military: -6, allies: 5, escalation: -3, public: -3 }
+    tags: [alliance_demand, alliance, stall, deescalate]
+  right:
+    text: "Transit at dawn"
+    effects: { military: 4, allies: -9, escalation: 3, commitment: 3 }
+    tags: [alliance_demand, naval, military, escalatory]
+
+- id: ally_16_inside_the_ring
+  advisor: hawk_general
+  acts: [2, 5]
+  weight: 1.2
+  conditions: { pieces_any: [allied_basing] }
+  tags: [basing, alliance, military]
+  note: Allied Basing. The runways that lift the alliance are now inside their rocket ring.
+  text: >-
+    Their rocket brigade at the Sallow crossing rotated its launchers overnight
+    and Hollin is now inside the ring. Varga's defence minister has asked,
+    publicly, for two air-defence batteries on the field by the weekend.
+    Batteries at Hollin read in {rival_capital} as the first thing you put in
+    before you put in the second. No batteries reads in Varga's parliament as
+    the runways being ours and the risk being theirs.
+  left:
+    text: "Send the batteries"
+    effects: { military: 5, allies: 7, trust_primary: -6, escalation: 4, economy: -3 }
+    tags: [basing, alliance, military, deterrence]
+    set: [alliance:hollin_reinforced]
+    odds:
+      label: Read as defensive
+      base: 0.5
+      tags: [adversary]
+      success:
+        text: "Their attaché calls the batteries 'defensive' on the record, once, and is not corrected."
+        effects: { trust_primary: 3 }
+      failure:
+        text: "Their evening bulletin shows the batteries arriving under the single word 'first'."
+        effects: { escalation: 6, trust_primary: -4 }
+  right:
+    text: "Thin the field out quietly"
+    effects: { allies: -7, military: -4, trust_primary: 4, escalation: -3, intel: -2 }
+    tags: [basing, alliance, deescalate, secrecy]
+
+- id: ally_17_the_fourth_call
+  advisor: ally_leader
+  acts: [2, 5]
+  weight: 1.3
+  conditions: { pieces_any: [fortress] }
+  tags: [alliance, economy]
+  note: Fortress. Your friends notice you have stopped picking up. She has a flight booked.
+  text: >-
+    This is my fourth call this week and the first you have taken. Your borders
+    close on a schedule, your reserve is ninety days and your ministers have
+    stopped returning mine; the Compact has noticed that {us} is becoming a
+    country with walls. I am flying to {other_capital} on Monday unless I have
+    a reason not to. Give me one I can say out loud.
+  left:
+    text: "Open the reserve to the Compact"
+    effects: { economy: -8, allies: 9, public: -3 }
+    tags: [alliance, economy]
+  right:
+    text: "Fly to {other_capital}, then"
+    effects: { allies: -9, trust_secondary: -3, economy: 2, public: 2 }
+    tags: [alliance, stall, secrecy]
+    set: [alliance:varga_snubbed]
+
+- id: ally_18_a_form_of_words
+  advisor: dove_fm
+  acts: [2, 5]
+  weight: 1.2
+  conditions: { pieces_any: [dove_fm] }
+  tags: [alliance, misperception, diplomacy]
+  note: The Dove. The paper that reassures Sennet is the last gap in the fence from where they sit.
+  text: >-
+    Varga wants a written guarantee for Vestria by Friday, and from where I sit
+    it is the right thing to want. From {rival_capital} the same piece of paper
+    is the last gap in a fence, and I have spent three weeks persuading them
+    the fence was not being built. I can find a form of words that reassures
+    Sennet without alarming {rival_capital}. It will reassure nobody very much,
+    and that is the point.
+  left:
+    text: "Give them the guarantee"
+    effects: { allies: 7, commitment: 7, trust_primary: -8, escalation: 4 }
+    tags: [alliance, public_commitment]
+    set: [alliance:guarantee_given]
+  right:
+    text: "Her form of words"
+    effects: { allies: -6, trust_primary: 5, commitment: -3, public: -3 }
+    tags: [alliance, reassurance, diplomacy]
+    set: [alliance:guarantee_withheld]
