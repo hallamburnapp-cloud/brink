@@ -10,13 +10,22 @@ All notable changes to BRINK. Dates are UTC.
 - Antes: per-act leverage targets, political capital rewards with a smash bonus, and "bluff called" cards when missed.
 - The shop between acts and mid-act: pieces by rarity with prices, rerolls, selling, tag removal, one-shot orders (13), capped at 6 pieces and 2 orders.
 - Deadman Switch, endless escalation after a win with rising targets and a climbing curve, total-leverage score with a local best.
+- Engine-set outcome flags (`accident:*`, `ante:*`, `peak:*`, `deadman:fired`, `endless`) that endings and cards can condition on; a called bluff is dealt even when no flashpoint is left for the act; One More Call charges spend without the Hotline.
+- Rule maps and active-flag sets are cached on the hot path (simulations ~25% faster, replay unchanged).
 - Review fixes: commitment lock semantics, warning follow-ups inside flashpoints, once-semantics in queues, timeout side recording, mode checks in fallback draws, injected `always` multipliers, rule level merging.
 
 ### Content
 - 64 posture pieces (19 advisors, 18 doctrines, 27 assets) with rarities and leverage lanes, including 10 legendaries; 13 orders; 15 archetypes; 6 bluff cards.
+- 17 scaling-core endings: the four accident wars, the spent Deadman Switch, the endless night, called bluffs, smashed antes, minimal deterrence, from the brink, living at ninety, and two endless-only removals.
 
 ### UI
 - Animated leverage tally (base counts up, mult counts up, slam scaled to the result), ante bar and capital in the HUD, accident strip with WILL FIRE/CLEAR under Perfect Intel, the shop screen, orders bar, ante banners, endless continuation and best score on the ending and home screens.
+- Sound for the loop: tally ticks and mult chips, a slam that scales with the result, ante smash and miss, a held breath before accident rolls, accident and clear, capital, retrigger; a continuous pulse above escalation 80 and a global intensity that colours the drone.
+- Share card carries the score (and the endless act count).
+
+### Tooling
+- Simulator rewritten for the loop: shop-aware policies that buy pieces and orders, endless continuation, archetype tracking, the T1–T5 targets, weakest cards and pieces; `BRINK_SIM_LENIENT=1` runs with content errors for early reads.
+- Playwright e2e emulates reduced motion and waits for enabled choices so full runs fit the budget.
 
 ## 0.1.0 — 2026-09-28 (build night)
 
