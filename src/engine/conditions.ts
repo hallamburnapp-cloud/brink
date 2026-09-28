@@ -1,9 +1,22 @@
 import type { ConditionDef, EffectKey, PieceDef, RunState } from './types';
 
 /** Flags active right now: run flags plus flags granted by held pieces. */
+// One-entry cache: a draw checks every card against the same flags and pieces.
+// `state.flags` only grows in place (push) or is replaced (filter), so the
+// array identity plus its length is a sound key.
+let lastFlags: readonly string[] | null = null;
+let lastLen = -1;
+let lastPieces: readonly PieceDef[] | null = null;
+let lastSet: Set<string> | null = null;
+
 export function activeFlags(state: RunState, pieces: readonly PieceDef[]): Set<string> {
+  if (lastSet && lastFlags === state.flags && lastLen === state.flags.length && lastPieces === pieces) return lastSet;
   const s = new Set(state.flags);
   for (const p of pieces) for (const g of p.grants) s.add(g);
+  lastFlags = state.flags;
+  lastLen = state.flags.length;
+  lastPieces = pieces;
+  lastSet = s;
   return s;
 }
 

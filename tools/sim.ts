@@ -158,11 +158,12 @@ function loadForSim(useFixture: boolean, quiet: boolean): Content {
   }
   const { content, issues } = loadContent();
   const errors = issues.filter((i) => i.level === 'error').length;
-  if (errors > 0) {
-    console.error('Content has validation errors; fix them before simulating:');
+  if (errors > 0 && !process.env.BRINK_SIM_LENIENT) {
+    console.error('Content has validation errors; fix them before simulating (BRINK_SIM_LENIENT=1 overrides):');
     console.error(formatIssues(issues));
     process.exit(1);
   }
+  if (errors > 0 && !quiet) console.error(`Simulating with ${errors} content error(s) (BRINK_SIM_LENIENT).`);
   if (!quiet && issues.length) console.error(formatIssues(issues));
   return content;
 }

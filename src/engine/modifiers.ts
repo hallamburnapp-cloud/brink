@@ -71,7 +71,12 @@ const MAX_RULES: ReadonlySet<RuleId> = new Set<RuleId>(['warning_floor', 'milita
 /** Rules whose values multiply (e.g. shop discounts stack multiplicatively). */
 const MULT_RULES: ReadonlySet<RuleId> = new Set<RuleId>(['shop_discount', 'escalate_to_deescalate']);
 
+/** Rule maps are pure functions of the held pieces; cache them per pieces array (one draw or choose builds one ctx). */
+const RULE_CACHE = new WeakMap<readonly PieceDef[], Map<RuleId, number>>();
+
 export function rules(ctx: ModContext): Map<RuleId, number> {
+  const cached = RULE_CACHE.get(ctx.pieces);
+  if (cached) return cached;
   const map = new Map<RuleId, number>();
   for (const m of allModifiers(ctx)) {
     if (m.kind !== 'rule') continue;
@@ -85,6 +90,7 @@ export function rules(ctx: ModContext): Map<RuleId, number> {
     else if (MULT_RULES.has(m.rule)) map.set(m.rule, prev * v);
     else map.set(m.rule, prev + v);
   }
+  RULE_CACHE.set(ctx.pieces, map);
   return map;
 }
 
