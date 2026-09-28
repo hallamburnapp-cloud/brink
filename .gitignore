@@ -1,0 +1,17 @@
+node_modules
+dist
+dist-itch
+.vite
+coverage
+playwright-report
+test-results
+e2e/.auth
+*.log
+.env
+.env.*
+!.env.example
+.wrangler
+worker/node_modules
+worker/dist
+src-tauri/target
+public/og-image.png

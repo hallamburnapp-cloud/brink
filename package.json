@@ -1,0 +1,43 @@
+{
+  "name": "brink",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "BRINK — a run-based crisis-strategy game about holding the world together.",
+  "author": "Hallam Burnapp",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run content:validate && npm run og && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "content:validate": "tsx tools/validate.ts",
+    "content:compile": "tsx tools/compile.ts",
+    "sim": "tsx tools/sim.ts",
+    "sim:smoke": "tsx tools/sim.ts --runs 300 --quiet",
+    "og": "tsx tools/og-image.ts",
+    "e2e": "playwright test",
+    "build:itch": "tsx tools/build-itch.ts",
+    "size": "tsx tools/size-check.ts"
+  },
+  "dependencies": {
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@preact/preset-vite": "^2.10.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.19.0",
+    "js-yaml": "^4.1.0",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vite": "^8.3.1",
+    "vite-plugin-pwa": "^1.3.0",
+    "vitest": "^5.0.2",
+    "zod": "^4.1.0"
+  }
+}
