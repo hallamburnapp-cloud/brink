@@ -154,11 +154,11 @@
     like you to come to the school. The head would like you not to.
   left:
     text: "I'll go to the school tomorrow"
-    effects: { public: 3, intel: -2, military: -1 }
+    effects: { public: 4, intel: -3, military: -2 }
     tags: [personal, reassurance]
   right:
     text: "Not while it's like this"
-    effects: { public: -2, intel: 1, escalation: 1 }
+    effects: { public: -3, intel: 2, escalation: 1 }
     tags: [personal, stall]
 
 - id: dom_coa_08_two_million_shareholders

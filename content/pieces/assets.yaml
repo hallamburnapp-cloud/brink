@@ -67,7 +67,7 @@
     Interceptors on rails, radars on hills. It gives you a real chance to catch what
     comes and real weight behind every threat. It gives them a real reason to think you
     are planning to make it come.
-  mechanics: Intercept, missile-defence and deterrence choices +0.5 mult. Intercept rolls +20%. Trust with the primary rival drifts down about one point every five cards.
+  mechanics: Intercept, missile-defence and deterrence choices +0.5 mult. Intercept rolls +20%. Every successful intercept roll grows +0.4 mult permanently (max +4). Trust with the primary rival drifts down about one point every ten cards.
   accent: "#7c8b9a"
   art: asset_md
   tags: [missile_defence, deterrence]
@@ -75,7 +75,8 @@
   modifiers:
     - { kind: leverage, tags: [intercept, missile_defence, deterrence], mult_add: 0.5 }
     - { kind: odds, tags: [intercept], add: 0.20 }
-    - { kind: drift, key: trust_primary, per_card: -0.2 }
+    - { kind: drift, key: trust_primary, per_card: -0.1 }
+    - { kind: scale, on: roll_success, tags: [intercept], mult_add: 0.4, max: 4 }
 
 - id: blue_water_fleet
   pool: asset
@@ -126,7 +127,7 @@
     A private constellation, leased by the hour, cheaper than anything you could build.
     Their imagery is on your desk before breakfast, their dividends in your account.
     Their satellites are now targets.
-  mechanics: Space choices +6 base. +1 political capital each act; economy drifts up slowly; intel reliability +6. Space choices cost 2 more escalation.
+  mechanics: Space choices +6 base and earn +2 economy. +2 political capital each act; economy drifts up slowly; intel reliability +6.
   accent: "#9aa0a6"
   art: asset_comsat
   tags: [space, economy, entanglement]
@@ -134,10 +135,10 @@
   unlock: { id: bankrupt, label: Commercial Satellite Deal, hint: Lose a run to economic collapse. }
   modifiers:
     - { kind: leverage, tags: [space, entanglement], base_add: 6 }
-    - { kind: rule, rule: capital_per_act, value: 1 }
+    - { kind: rule, rule: capital_per_act, value: 2 }
     - { kind: intel, add: 6 }
     - { kind: drift, key: economy, per_card: 0.15 }
-    - { kind: effect, key: escalation, tags: [space], sign: pos, add: 2 }
+    - { kind: effect, key: economy, tags: [space], sign: pos, add: 2 }
 
 - id: allied_basing
   pool: asset
@@ -389,13 +390,13 @@
   blurb: >-
     A house in a neutral city with no plaque and a very good cook. What is said there
     is worth more than anything said in public, and they trust you more for saying it.
-  mechanics: Back-channel choices ×1.6 mult; trust gains from them ×1.2.
+  mechanics: Back-channel and diplomacy choices +8 base and ×1.4 mult; trust gains from back-channels ×1.2.
   accent: "#8e6bb3"
   art: asset_back_channel
   tags: [diplomacy, back_channel]
   grants: [asset_quiet_room]
   modifiers:
-    - { kind: leverage, tags: [back_channel], mult_mult: 1.6 }
+    - { kind: leverage, tags: [back_channel, diplomacy], mult_mult: 1.4, base_add: 8 }
     - { kind: effect, key: trust, tags: [back_channel], sign: pos, mult: 1.2 }
 
 - id: dockyards

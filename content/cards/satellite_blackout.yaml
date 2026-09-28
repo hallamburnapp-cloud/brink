@@ -80,13 +80,13 @@
     considered' in mine, and you know which one my editor prefers.
   left:
     text: "Say technical fault"
-    effects: { public: 3, intel: -4, trust_primary: 2, commitment: -3 }
+    effects: { public: 4, intel: -5, military: -3, commitment: -3 }
     tags: [domestic, secrecy, reassurance]
     set: [blackout:started]
     follow: [{ card: blackout_05_the_report, in: 2 }]
   right:
     text: "Say every option is being considered"
-    effects: { public: 2, escalation: 4, commitment: 6, trust_primary: -4 }
+    effects: { public: 3, escalation: 6, military: 3, commitment: 6, trust_primary: -5 }
     tags: [public_commitment, deterrence, domestic]
     set: [blackout:started]
     follow: [{ card: blackout_04_the_guess, in: 1 }]

@@ -136,11 +136,11 @@
     than write that you said they were not there."
   left:
     text: "Confirm them. Forty, advising."
-    effects: { public: -3, commitment: 6, trust_primary: -3, allies: 2 }
+    effects: { public: -4, commitment: 6, allies: 3, trust_primary: -2, escalation: 2 }
     tags: [transparency, public_commitment, domestic]
   right:
     text: "No comment"
-    effects: { public: -5, intel: -2, trust_primary: -2, commitment: 3 }
+    effects: { public: 2, intel: -2, trust_primary: -2, commitment: 4 }
     tags: [secrecy, stall, domestic]
     follow: [{ card: proxy_18_how_many, in: 3, chance: 0.7 }]
 

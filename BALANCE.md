@@ -270,7 +270,18 @@ The Button ×4, retrigger-all on Open Line), which lifts every human's ceiling b
 four targets; (3) a lower final ante, which would make the Endgame trivial. Route (1) is recommended and is written up
 in RISKS.md and SUMMARY.md as the first post-launch balance task.
 
-## Final report (iteration 8)
+### Iteration 9 — the rewrites applied
+
+The 15 card rewrites and 5 piece rewrites from the final report below were applied (plus `adv_01` loosened to
+`pieces_any` and the new closer `defector_23_nothing_crossed` for the doubted defector path). Full-scale
+(`--seed iter9`): **T1 PASS 6.82%**, **T2 PASS 10 of 15**, **T3 PASS** (top paranoid_intel 24.3%), **T4 PASS 17.9 min**,
+T5 0% (max 533,791). The new weakest-piece list is predelegation, commercial_sat, open_line, quiet_room, dockyards
+(all within ±2.5pp of neutral, none a mandatory pick); the new weakest-card list is led by the new closer and the
+rewritten defector cards, which now have visible stakes but are still the quiet end of the deck. Two cards were never
+seen in 60,000 runs (`adv_27_no_hard_feelings`, `debris_17_eleven_seconds`): both gates need a specific pair; loosen
+in the next content pass.
+
+## Final report (iteration 8, rewrites since applied in iteration 9)
 
 The report is `sim-output/report-latest.md` (regenerate with `npm run sim -- --runs 20000 --policy all --seed iter8`).
 The tables below are lifted from it.
@@ -279,7 +290,7 @@ The tables below are lifted from it.
 
 The simulator's impact score (mean visible-meter swing per play + mean gap between the two previews) undervalues cards
 whose stakes are hidden values, and it flags breather cards that exist for pacing. The rewrites below keep each card's
-job and give it visible teeth; where the two sides were near-identical they now diverge.
+job and give it visible teeth; where the two sides were near-identical they now diverge. **Applied in iteration 9.**
 
 | # | Card | Seen | Left % | Impact | Problem | Proposed rewrite |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -304,7 +315,7 @@ needs two specific advisors); loosen to `pieces_any` or attach it to the hawk al
 
 ### The 5 weakest pieces, with rewrites
 
-Ranked by the lowest combined rank of buy rate and |Δ win| (pieces nobody wants, or that change nothing).
+Ranked by the lowest combined rank of buy rate and |Δ win| (pieces nobody wants, or that change nothing). **Applied in iteration 9.**
 
 | # | Piece | Rarity | Buy rate | Held runs | Δ win | Problem | Proposed rewrite |
 | --- | --- | --- | --- | --- | --- | --- | --- |

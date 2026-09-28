@@ -29,18 +29,30 @@
     passengers.
   left:
     text: "Fly him in tonight"
-    effects: { intel: 5, trust_primary: -3, public: -1 }
+    effects: { intel: 4, trust_primary: -4, public: -2 }
     tags: [intel, secrecy]
-    set: [defector:arrived]
-    follow: [{ card: defector_04_lantern, in: 2 }]
+    set: [defector:arrived, defector:flown]
+    follow: [{ card: defector_04_lantern, in: 1 }]
   right:
     text: "Leave him on Caldor. Send a team."
-    effects: { intel: -3, military: -2, public: -2 }
+    effects: { intel: -2, military: -3, allies: 2 }
     tags: [stall, investigate, intel]
     set: [defector:arrived]
     follow: [{ card: defector_04_lantern, in: 3 }]
+    odds:
+      label: The passengers are counted
+      base: 0.6
+      tags: [intel]
+      success:
+        text: "The harbour police counted eleven and wrote ten. He is on the mainland by dark, and nobody on the island can say when."
+        effects: { intel: 4 }
+      failure:
+        text: "A stringer counted the passengers and one of them had a diplomatic passport. It is on the wire before the team lands."
+        effects: { public: -4, trust_primary: -3 }
+        follow: [{ card: defector_16_six_oclock, in: 2 }]
 
 # ---------------------------------------------------------------- entry 2 (acts 3–4)
+
 - id: defector_02_the_embassy_gate
   arc: defector
   advisor: ambassador
@@ -58,16 +70,16 @@
     seen to have been talking to.
   left:
     text: "Get him out of Amberline"
-    effects: { intel: 5, trust_secondary: -5, public: -1 }
+    effects: { intel: 5, trust_secondary: -6, allies: -3 }
     tags: [secrecy, intel]
     set: [defector:arrived]
     follow: [{ card: defector_04_lantern, in: 2 }]
   right:
     text: "Interview him there. Slowly."
-    effects: { intel: 2, trust_secondary: -2, military: -2, trust_primary: -3 }
+    effects: { intel: 2, trust_secondary: 2, military: -3, trust_primary: -3, escalation: -1 }
     tags: [stall, investigate, diplomacy]
-    set: [defector:arrived]
-    follow: [{ card: defector_04_lantern, in: 3 }]
+    set: [defector:arrived, defector:slow]
+    follow: [{ card: defector_04_lantern, in: 4 }]
 
 # ---------------------------------------------------------------- entry 3 (acts 4–5)
 - id: defector_03_the_basement
@@ -368,12 +380,12 @@
     can later be seen to have done depends on which form I file on Thursday.
   left:
     text: "Asylum. File it."
-    effects: { public: 2, intel: -3, trust_primary: -4, commitment: 3 }
+    effects: { public: 3, intel: -4, trust_primary: -4, commitment: 3 }
     tags: [transparency, domestic]
     follow: [{ card: defector_16_six_oclock, in: 2, chance: 0.6 }]
   right:
     text: "Detain him. Quietly."
-    effects: { public: -4, intel: 3, allies: -2 }
+    effects: { public: -2, intel: 5, allies: -2, military: 2 }
     tags: [secrecy, domestic]
 
 - id: defector_14_absent_without_leave
@@ -439,10 +451,10 @@
         set: [defector:believed]
       failure:
         text: "The friend talks about his grandchildren for two hours. The next morning their embassy asks, formally, why our ambassador is asking about colonels."
-        effects: { intel: -3, trust_primary: -5, public: -2 }
+        effects: { intel: -3, trust_primary: -5, public: -4, allies: -3 }
   right:
     text: "No lunches. He is ours now."
-    effects: { trust_primary: -2, intel: -2, commitment: 3 }
+    effects: { trust_primary: -2, intel: -3, commitment: 4, military: 2 }
     tags: [secrecy, stall]
 
 - id: defector_16_six_oclock
@@ -556,10 +568,13 @@
         effects: { escalation: 7, allies: -3, trust_secondary: -3 }
   right:
     text: "Take his phone"
-    effects: { intel: 2, public: -3, commitment: 2 }
+    effects: { intel: 3, public: -3, commitment: 2 }
     tags: [secrecy, personal]
 
 # ---------------------------------------------------------------- cross-arc hook
+    set: [defector:held]
+    follow: [{ card: defector_23_nothing_crossed, in: 3 }]
+
 - id: defector_20_page_forty
   arc: defector
   advisor: intel_director
@@ -633,3 +648,30 @@
     text: "Ask what care means"
     effects: { trust_primary: -4, public: 3, intel: 2, escalation: 2 }
     tags: [diplomacy, personal]
+
+# ---------------------------------------------------------------- the doubted path closes
+- id: defector_23_nothing_crossed
+  arc: defector
+  advisor: aide
+  acts: [3, 5]
+  chained: true
+  tags: [intel, misperception]
+  conditions:
+    flags_all: [defector:held]
+    flags_none: [defector:returned, defector:public]
+  note: Closer for the doubted path. The nineteenth passes. Lyle was right, or the plan was never for the Straits.
+  text: >-
+    It is the twentieth. Nothing crossed the Straits on the nineteenth, which is
+    what the Colonel's fourteen hundred pages said would happen if we did nothing,
+    and also what they said would happen if we did everything. Director Lyle would
+    like it noted that he assessed this. The Colonel would like to know whether he
+    can go outside, and the minder would like to know who pays for the room.
+  left:
+    text: "Let him go. Quietly."
+    effects: { intel: 4, public: 2, trust_primary: 2 }
+    tags: [concede, intel]
+    set: [defector:returned]
+  right:
+    text: "Keep him. The plan may be late."
+    effects: { military: -3, trust_primary: 3, intel: -2, economy: -1 }
+    tags: [stall, intel, secrecy]

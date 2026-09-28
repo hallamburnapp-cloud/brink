@@ -87,11 +87,11 @@
     to have forgotten where it is.
   left:
     text: "Two hours. Wake me if it moves"
-    effects: { intel: -3, escalation: -2 }
+    effects: { intel: -4, escalation: -2, public: 2 }
     tags: [personal, stall]
   right:
     text: "I'll sleep when it's over"
-    effects: { intel: 2, escalation: 2 }
+    effects: { intel: 3, escalation: 2, public: -2 }
     tags: [personal]
 
 - id: press_05_the_council_mood
@@ -297,11 +297,11 @@
     you where I will be.
   left:
     text: "One hour. I'm coming"
-    effects: { intel: -3, military: -1, public: 2 }
+    effects: { intel: -4, military: -2, public: 4 }
     tags: [personal]
   right:
     text: "I can't leave the building"
-    effects: { intel: 2, escalation: 1 }
+    effects: { intel: 3, escalation: 1, public: -3 }
     tags: [personal]
 
 - id: press_15_the_colonels_column
@@ -389,13 +389,13 @@
       base: 0.5
       tags: [intel]
       success:
-        effects: { intel: 5, trust_primary: -2 }
+        effects: { intel: 6, trust_primary: -2, military: 2 }
       failure:
         text: "It was a dental appointment. They noticed us noticing."
-        effects: { intel: -2, trust_primary: -5 }
+        effects: { intel: -3, trust_primary: -6, escalation: 3 }
   right:
     text: "We don't chase rumours"
-    effects: { intel: -3, trust_primary: 1, military: -1 }
+    effects: { intel: -4, trust_primary: 2, public: -2 }
     tags: [stall, intel]
 
 - id: press_19_caldor_asks
@@ -517,11 +517,11 @@
     eat anything.
   left:
     text: "Twenty minutes. Cake"
-    effects: { intel: -2, escalation: -2, public: 1 }
+    effects: { intel: -3, escalation: -2, public: 3 }
     tags: [personal, stall]
   right:
     text: "Put her on the phone"
-    effects: { intel: 2, escalation: 1 }
+    effects: { intel: 2, escalation: 2, public: -3 }
     tags: [personal]
 
 - id: press_25_the_minute

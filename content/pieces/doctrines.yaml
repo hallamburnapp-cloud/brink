@@ -34,7 +34,7 @@
   blurb: >-
     If their missiles cannot get through, they will not fire them. That is the theory.
     On the other side of the border it reads: he is building a shield so he can strike first.
-  mechanics: Missile-defence and deterrence choices +0.6 mult. Intercept rolls +15%; missile-defence cards 50% more common. Trust with the primary rival drifts down about one point every four cards.
+  mechanics: Missile-defence and deterrence choices +0.6 mult. Intercept rolls +15%; missile-defence cards 50% more common. Deterrence choices a further +0.3 mult; accidents do 15% less damage. While escalation is 60 or above, trust with the primary rival drifts down about one point every four cards.
   accent: "#7c8b9a"
   art: doctrine_denial
   tags: [deterrence, missile_defence]
@@ -44,7 +44,9 @@
     - { kind: rule, rule: deterrence }
     - { kind: odds, tags: [intercept], add: 0.15 }
     - { kind: weight, tags: [missile_defence], mult: 1.5 }
-    - { kind: drift, key: trust_primary, per_card: -0.25 }
+    - { kind: drift, key: trust_primary, per_card: -0.25, when: { values: { escalation: { min: 60 } } } }
+    - { kind: leverage, tags: [deterrence], mult_add: 0.3 }
+    - { kind: accident, severity_mult: 0.85 }
 
 - id: strategic_ambiguity
   pool: doctrine

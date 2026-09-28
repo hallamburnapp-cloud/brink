@@ -19,11 +19,11 @@
     ministry would like you to know that only one of them can be true at nine.
   left:
     text: "Run the queue. Blame the sanctions"
-    effects: { public: -3, trust_primary: -3, commitment: 2, intel: 1 }
+    effects: { public: -5, economy: 2, trust_primary: -3, commitment: 2 }
     tags: [domestic, transparency]
   right:
     text: "Run the harvest"
-    effects: { public: 3, intel: -3, commitment: 1 }
+    effects: { public: 4, intel: -3, economy: -2, commitment: 2 }
     tags: [domestic, secrecy]
 
 - id: dom_fed_02_sixty_one_days
@@ -59,11 +59,11 @@
     releases, and nobody there believes those. Neither, I suspect, do you.
   left:
     text: "Twenty minutes. Nothing excluded"
-    effects: { public: -2, trust_primary: 3, trust_secondary: 2, commitment: -1, intel: 1 }
+    effects: { public: -3, trust_primary: 4, trust_secondary: 3, allies: 2, intel: 1 }
     tags: [transparency, domestic]
   right:
     text: "Pull it"
-    effects: { public: 2, trust_primary: -4, allies: -3, intel: -2 }
+    effects: { public: 3, trust_primary: -5, allies: -4, intel: -2, economy: -1 }
     tags: [secrecy, domestic]
 
 # ---- week two / three ---------------------------------------------------------
@@ -236,11 +236,11 @@
     read out abroad every night for a month.
   left:
     text: "Release them tonight"
-    effects: { public: 3, military: -3, trust_primary: 3, trust_secondary: 2 }
+    effects: { public: 4, military: -5, trust_primary: 3, trust_secondary: 2, escalation: -2 }
     tags: [deescalate, domestic, reassurance]
   right:
     text: "Charge them"
-    effects: { public: 1, trust_primary: -4, trust_secondary: -3, intel: -2 }
+    effects: { public: -3, military: 3, trust_primary: -4, trust_secondary: -4, intel: -2 }
     tags: [domestic, secrecy]
 
 # ---- week four / endgame ------------------------------------------------------

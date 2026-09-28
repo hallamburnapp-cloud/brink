@@ -11,7 +11,7 @@ the numbers say, and what is left. Everything named here is in this folder.
 | Area | Delivered |
 | --- | --- |
 | Engine (`src/engine`) | Deterministic, serialisable run state; leverage = base × mult × escalation curve × retriggers with a documented resolve order; accidents above 50; per-act antes with bluff cards; political capital and the shop (pieces, rerolls, selling, tag removal, one-shot orders); Deadman Switch; endless escalation; cooling and recovery drifts; 92 endings with "the moment it went wrong"; 314 unit tests including replay determinism |
-| Content (`content/`) | **450 cards** (10 arcs, 5 flashpoints with 68 cards, 6 bluff cards, pressure, three domestic decks, alliance, advisors), **92 endings** (26 nuclear, 34 removed, 17 stand-down, 13 survival, 2 special, 12 fallbacks), **64 pieces** (19 advisors, 18 doctrines, 27 assets; 10 legendaries), **13 orders**, **15 archetypes**, 23 speakers, 3 seats, 5 DEFCON tiers; validator clean (0 errors, 0 warnings) |
+| Content (`content/`) | **451 cards** (10 arcs, 5 flashpoints with 68 cards, 6 bluff cards, pressure, three domestic decks, alliance, advisors), **92 endings** (26 nuclear, 34 removed, 17 stand-down, 13 survival, 2 special, 12 fallbacks), **64 pieces** (19 advisors, 18 doctrines, 27 assets; 10 legendaries), **13 orders**, **15 archetypes**, 23 speakers, 3 seats, 5 DEFCON tiers; validator clean (0 errors, 0 warnings) |
 | Content pipeline | Zod schema and compiler, semantic validator (dangling references, reachability, impossible conditions, unreachable endings, deck depth, fictional-world lint, unknown template variables), Vite virtual module with hot reload that keeps a run in progress |
 | Game (`src/ui`) | Preact + Tailwind v4 on a phone-first layout: drag/tilt card, five meters with preview dots, the leverage line under every choice, animated tally with slam scaled to the result, ante bar and capital in the HUD, accident strip, shop, orders bar, timers with heartbeat, odds roll overlay with near misses, banners, ending screen with score and local best, compendium, service record, settings, privacy, purchase and restore screens, first-run standing orders, reduced motion |
 | Sound (`src/audio`) | Web Audio synthesis, no assets: 26 sounds including tally ticks, mult chips, slam, ante smash and miss, held breath, accident and clear, capital, retrigger; heartbeat and escalation pulse; drone; global intensity |
@@ -33,17 +33,17 @@ pieces, orders, rerolls and tag removals in the shop. Above 50 the odds of an
 war; the best runs live at 85–97 and get out. Winners can continue into endless
 escalation, where the curve doubles every act, for a local best score.
 
-## What the simulator says (BALANCE.md, iteration 8, 60,000 runs)
+## What the simulator says (BALANCE.md, iteration 9, 60,000 runs)
 
 | Target | Result |
 | --- | --- |
-| T1 Heuristic wins 5–12% at DEFCON 5 | **PASS** 6.7% |
-| T2 ≥ 10 archetypes reach the Endgame ≥ 10% of the time | **PASS** 11 of 15 |
-| T3 No piece in > 35% of winning builds | **PASS** top 22.9% |
+| T1 Heuristic wins 5–12% at DEFCON 5 | **PASS** 6.8% |
+| T2 ≥ 10 archetypes reach the Endgame ≥ 10% of the time | **PASS** 10 of 15 |
+| T3 No piece in > 35% of winning builds | **PASS** top 24.3% |
 | T4 Median run 15–25 estimated minutes | **PASS** 17.9 min |
-| T5 ≥ 3% of runs score 100× the final target | **FAIL** 0.03% (five runs did; best 1.45 million) |
+| T5 ≥ 3% of runs score 100× the final target | **FAIL** 0–0.03% across iterations 7–9 (five runs did in iteration 8; best 1.45 million) |
 
-Eight iterations are logged with hypotheses and before/after numbers. The big
+Nine iterations are logged with hypotheses and before/after numbers. The big
 levers, in order of effect: flashpoint numbers (±8..±16, not ±12..±30), act cost
 scaling (1.08/1.16/1.28/1.40), cooling (escalation −0.5 per ordinary card above 25),
 recovery (office meters +0.15 toward 50), the economy (stipend, consolation,
@@ -68,7 +68,7 @@ e2e suite (daily run, replay, unlock flow, tampered token, restore) is green.
 
 1. **T5.** Add an aggressive simulator policy and re-tune the legendaries against it
    (BALANCE.md "On T5").
-2. **The 15 weakest cards.** Apply the rewrites in BALANCE.md; they are YAML-ready.
+2. **The next 15 weakest cards.** The first fifteen (and five pieces) were rewritten in iteration 9; the report's method finds the next set.
 3. **Content polish from the review** (scratch notes in BALANCE.md and CONTENT.md
    §4.6): repeated punchlines across arcs, the `warning` domain tag, the blockade
    strand with `shots_fired`, the proxy stall after two cards.

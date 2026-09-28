@@ -14,9 +14,9 @@ The seven forces the brief asked for, and where they live mechanically:
 | Misperception | Warning truth rolls against intel reliability; `trust_variance` (Strategic Ambiguity); hidden values steering `adversary` odds |
 | Time pressure | Timers scaled per act × difficulty × pieces; Pre-delegation picks the military side on expiry |
 | Attribution ambiguity | `attribution`/`cyber` odds tags; pieces that unlock resolvable attribution lines; wrong attribution burns trust with the wrong power |
-| Entanglement | Commercial Satellite Deal (+2 escalation on space; intel from a private asset that becomes a target), Cyber Unit (trust −2 on cyber always), Early-Warning jamming arcs |
+| Entanglement | Commercial Satellite Deal (+2 economy on space; intel from a private asset that becomes a target), Cyber Unit (trust −2 on cyber always), Early-Warning jamming arcs |
 | Commitment traps | `public_commitment` raises commitment; `walk_back` costs public × (1 + commitment × lock); Red Lines / Spin Doctor raise the lock |
-| Security dilemma | Military tags cost trust (Contractor, Cyber Unit), trust drifts down under Missile Defence / Denial, trust lowers `adversary` odds at the flashpoints |
+| Security dilemma | Military tags cost trust (Contractor, Cyber Unit), trust drifts down under Missile Defence (slowly) and under Denial while escalation is 60 or above, trust lowers `adversary` odds at the flashpoints |
 | Deterrence vs reassurance | Deterrence pieces buy `adversary` odds now and bleed trust later; reassurance pieces (NFU, Dove, Back-Channel) do the reverse; Minimal Deterrence caps drift but weakens deterrence |
 
 ## Designed interactions
@@ -31,8 +31,8 @@ signature the simulator should show (checked in BALANCE.md).
 3. **Gunboats — Hawk General + Loyal Admiral.** Naval cards ×2 weight, naval military gains ×1.3×1.5, naval odds +10%, hidden escalation. The blockade arcs dominate the deck and each boarding looks free. *Fails* at the Line at Sea when the roll misses. 
 4. **Sea Control — Loyal Admiral + Blue-Water Fleet.** Naval/blockade weight ×3.2, naval odds +20%, economy −1 on every naval move. You can win every fight at sea and lose the economy to fuel. Adding Strategic Reserve (economy floor 15) removes the brake entirely.
 5. **Hair Trigger — Pre-delegation + Rapid-Response Brigade.** Timers ×0.75, expiries pick the military option, proxy odds +15%, escalation ×1.15/act from Week Three. Fast and lethal; the military floor at 20 keeps the officers loyal while the world burns. *Unlock path:* five expiries in one run.
-6. **The Shield — Missile Defence Layer + Deterrence by Denial.** Intercept odds +35% makes The Intercept almost safe; trust with the primary rival drifts −0.45 per card (≈ −27 over a run), which is −13% on every `adversary` roll by the Endgame. The security dilemma as a number: the safer you are from missiles, the less they believe you at Midnight.
-7. **Shield and Promise — Missile Defence + No First Use.** NFU's +0.34 trust drift cancels the shield's −0.2. Intercept +20%, first-use rolls +20%. Reassurance neutralises provocation; the cost is 2 military on every nuclear or de-escalation choice.
+6. **The Shield — Missile Defence Layer + Deterrence by Denial.** Intercept odds +35% makes The Intercept almost safe; trust with the primary rival drifts −0.1 per card, and −0.35 while escalation is 60 or above (≈ −15 over a hot run), which is −7% on every `adversary` roll by the Endgame. The security dilemma as a number: the safer you are from missiles, the less they believe you at Midnight.
+7. **Shield and Promise — Missile Defence + No First Use.** NFU's +0.34 trust drift more than cancels the shield's −0.1. Intercept +20%, first-use rolls +20%. Reassurance neutralises provocation; the cost is 2 military on every nuclear or de-escalation choice.
 
 ### Warnings and intelligence
 
@@ -47,7 +47,7 @@ signature the simulator should show (checked in BALANCE.md).
 ### Attribution and entanglement
 
 15. **Attribution — Cyber & Space Director + Cyber Unit.** Cyber/attribution/space cards ×2.24 weight, attribution odds +25%, resolvable attribution lines unlocked. But every cyber choice costs 2 trust with both rivals: knowing who did it makes retaliation tempting and retaliation makes the next attribution matter more.
-16. **Entangled — Cyber Unit + Early-Warning Constellation + Commercial Satellite Deal.** Reliability +14, warnings +60%, +2 escalation on every space choice, economy drifting up from the deal. Everything you own is dual-use and everything dual-use is a target. The Cascade flashpoint is where this build is decided.
+16. **Entangled — Cyber Unit + Early-Warning Constellation + Commercial Satellite Deal.** Reliability +14, warnings +60%, +2 economy on every space choice, economy drifting up from the deal. Everything you own is dual-use and everything dual-use is a target. The Cascade flashpoint is where this build is decided.
 17. **Managed Openness — Transparency + Spin Doctor.** Secrecy costs 4 public but public swings are ×0.6, so secrets cost 2.4; reliability +10; commitment lock 1.0. Open by default, boxed in by your own statements.
 18. **Owning It — Transparency + Cyber Unit.** Cyber costs trust; transparency choices earn trust ×1.3. Disclosing an intrusion (`cyber_ew:disclosed`) recovers what the unit costs. The rare build where admitting things is the mechanic.
 
@@ -84,11 +84,11 @@ often each reaches the Endgame.
 | Archetype | Core pieces | How it scales | How it dies |
 | --- | --- | --- | --- |
 | **Madman** (brink) | Madman Theory, Brinkmanship, The Button, Iron Nerve | ×3 above 90, +1 mult per 10 escalation above 50, strikes ×2.5, survivors grow +0.5 | Accidents roll twice at 45%; one bad roll at 97 is the war |
-| **Quiet Diplomat** (stand-down) | The Open Line, Whispers, The Quiet Room, Old Ambassador | Every back-channel scores twice, ×1.6, +0.25 permanent per talk, +0.8 mult | Escalation stays low so the curve never helps: the ante must be met on volume |
+| **Quiet Diplomat** (stand-down) | The Open Line, Whispers, The Quiet Room, Old Ambassador | Every back-channel scores twice, +8 base and ×1.4 on back-channel and diplomacy, +0.25 permanent per talk, +0.8 mult | Escalation stays low so the curve never helps: the ante must be met on volume |
 | **Intel Machine** (hybrid) | Perfect Intel, Signals Intercept, Cautious Director, Attaché | Accidents shown in advance, −50% accident odds, +0.5/+0.3/+0.4 mult on everything or intel | Low raw base; needs an escalation lane to hit 20,000 |
 | **Alliance Engine** (hybrid) | Domino Theory, Alliance First, Tripwire, Allied Basing | Alliance and proxy choices scored twice ×1.4, +6 base, +0.15 per 10 allies above 60 | Allies bleed −2 per scored choice: abandonment |
 | **Cyber Ghost** (hybrid) | Cyber Unit, Cyber & Space Director, Attaché | Cyber cards ×2.24 weight, ×1.3 mult, +6 base, attribution +25% | Trust −2 per cyber move: adversary rolls fail at Midnight |
-| **Shield Wall** (brink) | Missile Defence, Deterrence by Denial, Hardened NC3 | Intercept/deterrence +1.1 mult, intercept +35%, accidents ×0.6 severity | Trust drift −0.45/card |
+| **Shield Wall** (brink) | Missile Defence, Deterrence by Denial, Hardened NC3 | Intercept/deterrence +1.4 mult (+0.4 more per successful intercept, max +4), intercept +35%, accidents ×0.6 × 0.85 severity | Trust drift −0.45/card |
 | **War Economy** (hybrid) | Total War Economy, Treasury Hawk, Strategic Reserve, Trade Desk | +1 mult per 25 economy above 25, economy floor 15, +2 capital/act | Economy drifts −0.6/card: the multiplier melts |
 | **Red Lines Gambler** (brink) | Red Lines, Spin Doctor, Strategic Ambiguity | +0.8 mult on commitments, +0.3 per 10 commitment above 50, ±6 trust noise | The commitment trap: walking back costs public ×(1 + 2.5 × commitment) |
 | **Sea Power** (brink) | Loyal Admiral, Blue-Water Fleet, Naval Dockyards | Naval cards ×3.2 weight, +16 base, ×1.3 mult, +0.5 mult | Economy −2 per naval move |

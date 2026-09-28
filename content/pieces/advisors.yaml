@@ -138,7 +138,7 @@
   blurb: >-
     She can tell you what an attack is consistent with. Sometimes, given time, she can
     tell you who. Attribution stops being a shrug and starts being a decision.
-  mechanics: Cyber, attribution and space choices +6 base and +0.4 mult. Those cards 60% more common; attribution and cyber rolls +15%.
+  mechanics: Cyber, attribution and space choices +6 base and +0.4 mult. Those cards 60% more common; attribution and cyber rolls +20%. Accidents 15% less likely; +1 political capital each act.
   accent: "#3fbf9f"
   art: cyber_director
   tags: [cyber, space, attribution]
@@ -146,7 +146,9 @@
   modifiers:
     - { kind: leverage, tags: [cyber, attribution, space], base_add: 6, mult_add: 0.4 }
     - { kind: weight, tags: [cyber, attribution, space], mult: 1.6 }
-    - { kind: odds, tags: [attribution, cyber], add: 0.15 }
+    - { kind: odds, tags: [attribution, cyber], add: 0.2 }
+    - { kind: accident, mult: 0.85 }
+    - { kind: rule, rule: capital_per_act, value: 1 }
 
 - id: treasury_hawk
   pool: advisor

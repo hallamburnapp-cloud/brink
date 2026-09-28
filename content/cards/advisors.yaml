@@ -21,7 +21,7 @@
 - id: adv_01_a_senior_defence_source
   advisor: aide
   acts: [1, 5]
-  conditions: { pieces_all: [hawk_general, dove_fm] }
+  conditions: { pieces_any: [hawk_general, dove_fm] }
   tags: [personal, domestic]
   note: Hawk and Dove. He briefed against her; she has read it twice. Which of them you keep is decided by breakfast.
   text: >-
