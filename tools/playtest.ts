@@ -247,9 +247,16 @@ async function main() {
         continue;
       }
       if (r.act !== lastAct) {
+        const actOnly = r.act.replace(/\s*Day \d+.*$/i, '');
+        const wasFlashpoint = /FLASHPOINT/.test(lastAct);
+        const isFlashpoint = /FLASHPOINT/.test(r.act);
+        const newAct = actOnly !== lastAct.replace(/\s*Day \d+.*$/i, '');
         lastAct = r.act;
-        log.push(`## ${r.act}`, '');
-        if (/FLASHPOINT/.test(r.act)) await shot('flashpoint');
+        if (newAct) {
+          log.push(`## ${actOnly}`, '');
+          if (isFlashpoint && !wasFlashpoint) await shot('flashpoint');
+          else if (!isFlashpoint) await shot('card');
+        }
       }
       if (r.timer) timers++;
       const side = await decide(page, r);

@@ -549,7 +549,7 @@
       base: 0.5
       tags: [secondary, intel]
       success:
-        text: "{Other} reads it for a day and sends him back to us with a note that says, in full, that he is ours, they think."
+        text: "{Other} reads it for a day and sends him back with a one-line note. The note says he is ours, they think."
         effects: { intel: 2, trust_secondary: 2, public: -2 }
       failure:
         text: "{Other} believes him. At midnight {other_leader} asks you why you did not, and their fleet sails for the Straits on the exercise's own timetable."

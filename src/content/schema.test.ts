@@ -84,4 +84,20 @@ describe('shipped pieces, seats, speakers and rules', () => {
     expect(msgs).toMatch(/never:set/);
     expect(msgs).toMatch(/forbidden real-world/);
   });
+  it('validator flags unknown template variables but accepts known ones', () => {
+    const { content } = compileContent(
+      minimalRaw([
+        {
+          id: 'a_01',
+          advisor: 'aide',
+          text: '{Rival} has answered {us} through {rival_capital}; {Rival_leader} is annoyed.',
+          left: { text: 'Left' },
+          right: { text: 'Right' },
+        },
+      ]),
+    );
+    const msgs = validateContent(content).map((i) => i.message).join('\n');
+    expect(msgs).toMatch(/unknown template variable \{Rival_leader\}/);
+    expect(msgs).not.toMatch(/\{Rival\}|\{us\}|\{rival_capital\}/);
+  });
 });

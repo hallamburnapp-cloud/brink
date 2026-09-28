@@ -1,0 +1,733 @@
+# blockade — a quarantine of the Sorrel Straits: theirs, against the Isle of
+# Caldor and a Compact ferry, or ours, against freighters bound for Vestria.
+# Forces: deterrence against reassurance (a ship shadowed or a ship boarded),
+# time pressure (hulls arrive on their own schedule; timers), and commitment
+# (once the line is announced you own it: public_commitment / walk_back). The
+# Fortress and the Strategic Reserve let you outlast a closed strait; the
+# Admiral and the Blue-Water Fleet unlock boarding and the carrier.
+# Flags: blockade:declared, blockade:ours, blockade:run, blockade:lifted,
+#        blockade:shots_fired.
+# Cross-hooks (flags_any): cables:cut, ultimatum:received, proxy:clash.
+# Piece hooks: admiral, blue_water_fleet, fortress, strategic_reserve.
+
+# ---- entries (non-chained; each starts the arc once) --------------------------
+
+- id: blockade_01_the_quarantine
+  arc: blockade
+  advisor: hotline
+  acts: [1, 2]
+  weight: 1.5
+  tags: [blockade, naval, commitment_trap]
+  conditions: { flags_none: [blockade:declared] }
+  text: >-
+    '{Rival} informs {us} that from 06:00 the Sorrel Straits are under maritime
+    quarantine. Vessels bound for the Isle of Caldor will be stopped and
+    inspected for material of a military character. This is not a blockade.'
+    There is a pause of eleven seconds before the last sentence, and the
+    translator reads it twice.
+  left:
+    text: "Our ships sail on schedule. Say so"
+    effects: { commitment: 8, escalation: 5, military: 3, public: 3, trust_primary: -4 }
+    tags: [public_commitment, deterrence, naval]
+    set: [blockade:declared]
+    follow: [{ card: blockade_04_the_schedule, in: 1 }]
+  right:
+    text: "Ask what 'military character' means"
+    effects: { commitment: -2, public: -3, intel: 4, trust_primary: 2, allies: -2 }
+    tags: [diplomacy, stall, intel]
+    set: [blockade:declared]
+    follow: [{ card: blockade_05_the_manifest, in: 1 }]
+
+- id: blockade_02_the_generals_line
+  arc: blockade
+  advisor: hawk_general
+  acts: [2, 3]
+  weight: 1.2
+  tags: [blockade, naval, military]
+  conditions: { flags_none: [blockade:declared] }
+  text: >-
+    Three freighters left {rival_capital} at dawn carrying what we assess are
+    guidance sections for Vestria. They transit the Straits in thirty hours. A
+    line across the narrows at Caldor stops them; nothing else does, and
+    nothing else is being offered. Ships would be positioned by tonight; some
+    traffic would be inconvenienced.
+  left:
+    text: "Draw the line. Stop everything"
+    effects: { military: 6, escalation: 8, commitment: 8, economy: -4, allies: -2 }
+    tags: [blockade, naval, military, public_commitment]
+    set: [blockade:declared, blockade:ours]
+    follow: [{ card: blockade_06_the_word, in: 1 }]
+  right:
+    text: "Inspect. Do not stop"
+    effects: { military: 3, escalation: 4, commitment: 4, economy: -2, intel: 2 }
+    tags: [blockade, naval, deterrence]
+    set: [blockade:declared, blockade:ours]
+    follow: [{ card: blockade_14_the_first_hull, in: 2 }]
+
+- id: blockade_03_the_ferry
+  arc: blockade
+  advisor: ally_leader
+  acts: [3, 5]
+  weight: 1.2
+  timer: 12
+  timeout: right
+  tags: [blockade, alliance, alliance_demand]
+  conditions: { flags_none: [blockade:declared] }
+  text: >-
+    At 05:10 they stopped the Compact ferry Aldrin Star at a line they drew in
+    the Straits overnight, four hundred passengers aboard, and they are holding
+    her there for 'inspection'. My navy is two frigates and a coastguard. Yours
+    is a navy. Tell me what you will do, because at nine I have to tell my
+    parliament what I will do, and I would like it to be the same thing.
+  left:
+    text: "We will bring her through"
+    effects: { allies: 7, commitment: 8, escalation: 6, military: 3 }
+    tags: [public_commitment, alliance, naval, deterrence]
+    set: [blockade:declared]
+    follow: [{ card: blockade_08_the_ferry_line, in: 1 }]
+  right:
+    text: "Give me until nine"
+    effects: { allies: -7, public: -3, commitment: -1, intel: 2 }
+    tags: [stall, alliance]
+    set: [blockade:declared]
+    follow: [{ card: blockade_10_the_release, in: 2 }]
+
+# ---- their line (chained) ----------------------------------------------------
+
+- id: blockade_04_the_schedule
+  arc: blockade
+  advisor: admiral
+  acts: [1, 5]
+  timer: 10
+  timeout: right
+  tags: [naval, blockade, commitment_trap]
+  text: >-
+    The Meridian Vale, Caldor flag, fourteen thousand tonnes of winter fuel and
+    flour, reaches their line at 15:40 whatever we decide, because she is a
+    ship and not a cabinet. Halden can be alongside her at 15:00. If their
+    frigate puts a boat in the water, my captain's orders are to place Halden
+    between them, and then it is their captain's decision, not yours.
+  left:
+    text: "Escort her through"
+    effects: { military: 5, escalation: 6, commitment: 5, economy: -1 }
+    tags: [naval, military, deterrence]
+    odds:
+      label: They blink
+      base: 0.5
+      tags: [adversary, naval]
+      success:
+        text: "Their frigate turned away at two miles. The Vale is in Caldor Roads, and on every front page."
+        set: [blockade:run]
+        effects: { public: 7, allies: 5, trust_primary: -5, escalation: -3 }
+      failure:
+        text: "They put a boat in the water and boarded her, politely, with cameras, while Halden watched."
+        effects: { public: -6, allies: -4, escalation: 5, military: -3 }
+        follow: [{ card: blockade_09_boarded, in: 1 }]
+  right:
+    text: "Hold her at Caldor Roads"
+    effects: { military: -4, public: -5, economy: -3, commitment: -4, allies: -3 }
+    tags: [walk_back, stall, naval]
+    follow: [{ card: blockade_12_the_call, in: 2 }]
+
+- id: blockade_05_the_manifest
+  arc: blockade
+  advisor: legal
+  acts: [1, 5]
+  tags: [blockade, diplomacy, commitment_trap]
+  text: >-
+    They are inspecting for 'material of a military character bound for
+    Caldor', which under their reading covers fertiliser, fuel and a container
+    of forklifts. Under the Assembly's convention, stopping neutral ships on
+    the high seas is a blockade, and a blockade is an act of war, but only if
+    the injured party calls it one. If you call it one you may act as if it is
+    one. You will also be seen to have decided to.
+  left:
+    text: "Call it a blockade"
+    effects: { commitment: 8, escalation: 5, public: 3, allies: 3, trust_primary: -4 }
+    tags: [public_commitment, deterrence, blockade]
+    follow: [{ card: blockade_04_the_schedule, in: 1 }]
+  right:
+    text: "Call it a dispute over inspections"
+    effects: { commitment: -3, public: -4, allies: -3, trust_primary: 4, escalation: -2 }
+    tags: [diplomacy, stall, reassurance]
+    follow: [{ card: blockade_12_the_call, in: 3 }]
+
+- id: blockade_08_the_ferry_line
+  arc: blockade
+  advisor: admiral
+  acts: [1, 5]
+  timer: 9
+  timeout: left
+  tags: [naval, blockade, alliance]
+  text: >-
+    Halden and Corvane can be alongside the Aldrin Star at 09:00, four hundred
+    passengers and a Compact flag between us and their frigate. If they fire
+    across her bow my captains fire back, and that is not a decision, that is
+    training. If I hold them at twelve miles and talk, the passengers spend
+    another night at anchor and Prime Minister Varga spends it on the phone to
+    you.
+  left:
+    text: "Take her through"
+    effects: { military: 5, escalation: 5, commitment: 5, allies: 2 }
+    tags: [naval, military, deterrence, alliance]
+    odds:
+      label: The line holds
+      base: 0.55
+      tags: [naval, adversary]
+      success:
+        text: "Their frigate gave way at a mile and a half, and the passengers cheered from the rail."
+        set: [blockade:run]
+        effects: { allies: 8, public: 6, trust_primary: -6, escalation: -2 }
+        follow: [{ card: blockade_12_the_call, in: 2 }]
+      failure:
+        text: "Two rounds across her bow. Halden answered."
+        set: [blockade:shots_fired]
+        effects: { escalation: 12, allies: 3, public: -3, military: 3, trust_primary: -8 }
+        follow: [{ card: blockade_16_eight_minutes, in: 0 }]
+  right:
+    text: "Hold at twelve miles. Talk"
+    effects: { allies: -6, commitment: -6, escalation: -2, military: -3, public: -3 }
+    tags: [walk_back, stall, naval, diplomacy]
+    follow: [{ card: blockade_10_the_release, in: 1 }]
+
+- id: blockade_09_boarded
+  arc: blockade
+  advisor: dove_fm
+  acts: [1, 5]
+  tags: [blockade, diplomacy, misperception]
+  text: >-
+    They boarded the Vale at the line, politely, with cameras, and forty
+    containers of Caldor's winter fuel are now in a {rival_adj} port while our
+    destroyer filmed it. In {rival_capital} this is restraint; here it is
+    humiliation; both are true, which is the trouble with lines. We could draw
+    one of our own across the narrows and stop their ships in turn. Then there
+    would be two lines, and we would all be standing on the wrong side of one
+    of them.
+  left:
+    text: "Draw our own line"
+    effects: { military: 6, escalation: 8, commitment: 6, economy: -4, public: 4 }
+    tags: [blockade, naval, military, public_commitment, escalatory]
+    set: [blockade:ours]
+    follow: [{ card: blockade_06_the_word, in: 1 }]
+  right:
+    text: "Take it to the Assembly"
+    effects: { public: -6, allies: 4, escalation: -3, commitment: -4, trust_primary: 2, military: -3 }
+    tags: [diplomacy, deescalate, stall]
+    follow: [{ card: blockade_12_the_call, in: 2 }]
+
+- id: blockade_10_the_release
+  arc: blockade
+  advisor: hotline
+  acts: [1, 5]
+  tags: [diplomacy, blockade, commitment_trap]
+  text: >-
+    '{Rival} is prepared to release the Aldrin Star and her passengers at 18:00
+    as a humanitarian gesture, provided {us} confirms that its warships will
+    remain outside the quarantine line.' A pause. 'The passengers have been
+    well treated.' The second sentence arrives forty seconds after the first,
+    as if someone had to be asked.
+  left:
+    text: "Confirm it. Get them home"
+    effects: { allies: 3, public: -5, commitment: -9, escalation: -6, trust_primary: 5, military: -4 }
+    tags: [walk_back, concede, deescalate, diplomacy]
+    follow: [{ card: blockade_21_the_formula, in: 3 }]
+  right:
+    text: "No conditions. Release her"
+    effects: { commitment: 6, escalation: 4, military: 2 }
+    tags: [deterrence, public_commitment, diplomacy]
+    odds:
+      label: They blink
+      base: 0.4
+      tags: [adversary, diplomacy]
+      success:
+        text: "She sailed at 18:10 with no conditions mentioned by anyone. Their line was quietly redrawn around the ferry route."
+        effects: { public: 7, allies: 7, trust_primary: -3, escalation: -3 }
+      failure:
+        text: "She is still at anchor. Four hundred people have been told the delay is {us_adj}."
+        effects: { escalation: 8, allies: -6, public: -4 }
+        follow: [{ card: blockade_12_the_call, in: 1 }]
+
+# ---- our line (chained) ------------------------------------------------------
+
+- id: blockade_06_the_word
+  arc: blockade
+  advisor: legal
+  acts: [1, 5]
+  tags: [blockade, commitment_trap, naval]
+  text: >-
+    'Blockade' is a word with a legal meaning and you have not used it;
+    'quarantine' has none, which is why everyone uses it. Under one word your
+    captains may fire a warning shot at a master who refuses to stop, and under
+    the other they may not, and at 04:00 tomorrow a captain will need to know
+    which he is under. I can give you the word now, or explain afterwards
+    which one he chose.
+  left:
+    text: "Blockade. Say the word"
+    effects: { commitment: 8, escalation: 5, allies: -3, public: 2, trust_primary: -5, military: 2 }
+    tags: [public_commitment, blockade, deterrence]
+    follow: [{ card: blockade_14_the_first_hull, in: 1 }]
+  right:
+    text: "Quarantine. Keep it vague"
+    effects: { commitment: 2, military: -3, intel: -3, public: -2, trust_primary: 1 }
+    tags: [blockade, stall, secrecy]
+    follow: [{ card: blockade_14_the_first_hull, in: 2 }]
+
+- id: blockade_14_the_first_hull
+  arc: blockade
+  advisor: admiral
+  acts: [1, 5]
+  timer: 10
+  timeout: left
+  tags: [naval, blockade, military]
+  text: >-
+    The Ostrava Sky, {rival_adj} flag, twenty-two thousand tonnes, reaches our
+    line at 04:20 and has not answered a hail in three hours. Her master has
+    orders to proceed and mine has orders to stop her, so one of them is about
+    to disobey somebody. Captain Ruys will put a round across her bow at half a
+    mile unless I tell him otherwise, and I need to tell him in the next ten
+    minutes.
+  left:
+    text: "Stop her. Warning shot if she runs"
+    effects: { military: 4, escalation: 5, commitment: 4 }
+    tags: [naval, military, blockade, deterrence]
+    odds:
+      label: She heaves to
+      base: 0.6
+      tags: [naval, adversary]
+      success:
+        text: "She stopped at the second hail, eight hundred metres from the line, with her master swearing in three languages."
+        effects: { military: 5, public: 5, trust_primary: -6, commitment: 3 }
+        follow: [{ card: blockade_17_hold_and_search, in: 1 }]
+      failure:
+        text: "The first round went across her bow. The second, from a nervous gun, went into her bridge windows. She stopped."
+        set: [blockade:shots_fired]
+        effects: { escalation: 12, public: -3, trust_primary: -10, military: 3 }
+        follow: [{ card: blockade_16_eight_minutes, in: 0 }]
+  right:
+    text: "Let her through, this once"
+    effects: { public: -7, commitment: -8, military: -5, escalation: -3, trust_primary: 3 }
+    tags: [walk_back, stall, naval]
+    set: [blockade:run]
+    follow: [{ card: blockade_18_the_hole, in: 2 }]
+
+- id: blockade_15_the_second_hull
+  arc: blockade
+  advisor: hawk_general
+  acts: [1, 5]
+  tags: [naval, blockade, military]
+  text: >-
+    The next hull is the Vardo Reach, six hours out, and this time she has a
+    {rival_adj} frigate on her quarter. The frigate is the message: stop the
+    freighter and you are stopping a warship. The line can be held with what
+    is in place; losses would be possible. A line that is not held is not a
+    line.
+  left:
+    text: "Stop them both"
+    effects: { military: 6, escalation: 8, commitment: 6 }
+    tags: [naval, military, blockade, escalatory]
+    odds:
+      label: They heave to
+      base: 0.4
+      tags: [naval, adversary]
+      success:
+        text: "The frigate slowed at two miles and the freighter followed her. Their statement calls it a courtesy."
+        effects: { military: 8, public: 6, trust_primary: -8, commitment: 4, escalation: -2 }
+      failure:
+        text: "The frigate did not slow. At 04:31 both ships fired, and neither missed."
+        set: [blockade:shots_fired]
+        effects: { escalation: 14, military: 4, public: -4, trust_primary: -10 }
+        follow: [{ card: blockade_16_eight_minutes, in: 0 }]
+  right:
+    text: "Open the line. Call it complete"
+    effects: { public: -6, military: -5, commitment: -9, escalation: -5, trust_primary: 4, allies: -2 }
+    tags: [walk_back, deescalate, blockade]
+    set: [blockade:lifted]
+
+- id: blockade_17_hold_and_search
+  arc: blockade
+  advisor: legal
+  acts: [1, 5]
+  tags: [blockade, naval, intel]
+  text: >-
+    The Ostrava Sky is stopped, and her hold has four hundred tonnes of
+    guidance gyros invoiced as agricultural sensors, and a crew of nineteen who
+    are now, technically, detained by {us} on the high seas. I can release the
+    ship and hold the cargo in six hours, which is an inspection. Or hold
+    both, which is a seizure, and which you will be seen to have done for as
+    long as anyone keeps records.
+  left:
+    text: "Seize ship and cargo"
+    effects: { military: 5, escalation: 7, public: 5, trust_primary: -8, commitment: 5 }
+    tags: [blockade, military, escalatory, naval]
+    follow: [{ card: blockade_12_the_call, in: 1 }]
+  right:
+    text: "Cargo only. Release her by dawn"
+    effects: { military: -2, escalation: 2, public: 2, trust_primary: -3, intel: 5 }
+    tags: [blockade, investigate, reassurance]
+    follow: [{ card: blockade_12_the_call, in: 2 }]
+
+- id: blockade_18_the_hole
+  arc: blockade
+  advisor: hawk_general
+  acts: [1, 5]
+  tags: [blockade, military, commitment_trap]
+  text: >-
+    A line with a hole in it is a suggestion. The Ostrava Sky is unloading at
+    Vestria Port tonight under lights, and two more hulls have sailed since she
+    was allowed through. The line can be closed properly with what is in
+    place. Or it can be taken down before it is laughed at twice, and the
+    reason given later.
+  left:
+    text: "Close it. Stop the next one"
+    effects: { military: 5, escalation: 6, commitment: 6, public: 2 }
+    tags: [blockade, military, naval, public_commitment]
+    follow: [{ card: blockade_15_the_second_hull, in: 2 }]
+  right:
+    text: "Take it down"
+    effects: { public: -8, military: -7, commitment: -10, escalation: -6, trust_primary: 5 }
+    tags: [walk_back, deescalate, blockade]
+    set: [blockade:lifted]
+
+# ---- both lines (chained) ----------------------------------------------------
+
+- id: blockade_12_the_call
+  arc: blockade
+  advisor: hotline
+  acts: [1, 5]
+  tags: [diplomacy, naval, commitment_trap]
+  text: >-
+    The message from {rival_leader} asks whether {us} understands that the
+    Straits are forty miles wide and that his navy has been ordered to
+    proceed. 'Proceed' is read twice. Then the translator says the line will
+    be open all night, and then, unprompted and in his own voice, that he will
+    not be.
+  left:
+    text: "Both navies hold at twelve miles"
+    effects: { escalation: -8, military: -4, commitment: -5, trust_primary: 5, public: -3 }
+    tags: [deescalate, diplomacy, naval]
+    spend_charge: deescalation
+    follow: [{ card: blockade_21_the_formula, in: 2 }]
+  right:
+    text: "Ours proceed too"
+    effects: { commitment: 7, escalation: 6, military: 3 }
+    tags: [deterrence, public_commitment, naval]
+    odds:
+      label: They blink
+      base: 0.45
+      tags: [adversary]
+      success:
+        text: "Their lead frigate turned at eleven miles and called it a course correction."
+        effects: { escalation: -4, public: 7, trust_primary: -6, military: 3 }
+      failure:
+        text: "Neither turned. At 03:12 somebody fired first, and both navies say it was the other."
+        set: [blockade:shots_fired]
+        effects: { escalation: 14, public: -4, military: 4, trust_primary: -8 }
+        follow: [{ card: blockade_16_eight_minutes, in: 0 }]
+
+- id: blockade_16_eight_minutes
+  arc: blockade
+  advisor: admiral
+  acts: [1, 5]
+  timer: 8
+  timeout: right
+  tags: [naval, military, escalatory]
+  text: >-
+    Two rounds across her bow and one into her superstructure, nobody dead, by
+    the grace of a bad gunner. Their frigate has gone to action stations and
+    mine already was. They are nine hundred metres apart with their fire
+    control radars on each other, and in about eight minutes the captains will
+    settle this without either of us.
+  left:
+    text: "Weapons tight. Both withdraw"
+    effects: { escalation: -10, military: -6, public: -5, trust_primary: 4, commitment: -6 }
+    tags: [deescalate, walk_back, naval, reassurance]
+    follow: [{ card: blockade_21_the_formula, in: 2 }]
+  right:
+    text: "Hold station. Fire if fired on"
+    effects: { military: 6, escalation: 8, commitment: 6, public: 3, trust_primary: -6 }
+    tags: [naval, military, deterrence, escalatory]
+
+- id: blockade_21_the_formula
+  arc: blockade
+  advisor: dove_fm
+  acts: [1, 5]
+  tags: [diplomacy, blockade, commitment_trap]
+  text: >-
+    A formula came through {other_capital} at four this morning: a {other_adj}
+    coastguard inspects everything bound for Caldor and Vestria for thirty
+    days, both navies withdraw beyond twelve miles, and nobody says the word
+    'blockade' again. Nobody wins. The Straits open. I have been doing this
+    for thirty years, and the settlements that hold are the ones in which
+    everyone goes home slightly ashamed.
+  left:
+    text: "Take the formula"
+    effects: { escalation: -12, allies: -4, public: -5, commitment: -8, trust_primary: 8, trust_secondary: 5, military: -5 }
+    tags: [deescalate, diplomacy, concede, walk_back]
+    set: [blockade:lifted]
+  right:
+    text: "Not with {other} holding the ring"
+    effects: { escalation: 4, trust_secondary: -7, commitment: 4, military: 2, public: 2 }
+    tags: [deterrence, stall, public_commitment]
+
+# ---- drawable developments and resolutions -----------------------------------
+
+- id: blockade_11_the_queue
+  arc: blockade
+  advisor: treasury
+  acts: [1, 5]
+  tags: [economy, blockade, domestic]
+  conditions:
+    flags_all: [blockade:declared]
+    flags_none: [blockade:lifted]
+  text: >-
+    Ninety-one ships are anchored off Caldor Roads waiting for somebody to
+    decide what a quarantine is, at forty thousand a day each in demurrage,
+    which is a word I had to look up and now cannot stop seeing. Everything
+    that moves through the Straits is up a fifth. A shipping line has asked, in
+    writing, whether {us} will indemnify hulls that run the line, and I
+    mention it because a question with a number in it is a policy.
+  left:
+    text: "Indemnify them"
+    effects: { economy: -8, public: 3, allies: 3, commitment: 5 }
+    tags: [economy, public_commitment, alliance]
+  right:
+    text: "No indemnity. They wait"
+    effects: { economy: -4, public: -5, allies: -4, commitment: -2 }
+    tags: [economy, stall, domestic]
+
+- id: blockade_13_what_they_see
+  arc: blockade
+  advisor: dove_fm
+  acts: [1, 5]
+  tags: [misperception, diplomacy, blockade]
+  conditions:
+    flags_all: [blockade:declared]
+    flags_any: [cables:cut, ultimatum:received, proxy:clash]
+    flags_none: [blockade:lifted]
+  text: >-
+    Whatever else has happened this month, and enough has, add warships at a
+    line in the Straits to it and read it from {rival_capital}. From there it
+    is not a series of incidents, it is a campaign, and they did not start it.
+    I do not say they are right. I say that is what they see, and people who
+    believe they are being encircled do not blink, they brace.
+  left:
+    text: "Offer a pause on all of it"
+    effects: { escalation: -8, commitment: -6, public: -5, military: -4, trust_primary: 6, allies: -2 }
+    tags: [deescalate, diplomacy, reassurance, walk_back]
+  right:
+    text: "One thing at a time. The line stays"
+    effects: { commitment: 4, escalation: 4, trust_primary: -4, military: 2, public: 2 }
+    tags: [deterrence, stall, public_commitment]
+
+- id: blockade_22_two_days
+  arc: blockade
+  advisor: hawk_general
+  acts: [2, 5]
+  tags: [blockade, naval, military]
+  conditions:
+    flags_all: [blockade:declared, blockade:ours]
+    flags_none: [blockade:lifted, blockade:shots_fired]
+  text: >-
+    Their last hull turned back at 03:00 and nothing has approached the line
+    in two days. They call it a pause. It has another name. Eleven ships are
+    now holding a line with nothing to stop, at sea, in winter, and the
+    question of whether they stay is being asked by people who are not at
+    sea.
+  left:
+    text: "Stand the line down, quietly"
+    effects: { military: -5, economy: 6, escalation: -6, commitment: -4, public: -2, trust_primary: 3 }
+    tags: [deescalate, naval, walk_back]
+    set: [blockade:lifted]
+  right:
+    text: "Hold it until they say so"
+    effects: { military: 4, economy: -7, escalation: 3, commitment: 6, trust_primary: -4, allies: -2 }
+    tags: [deterrence, naval, public_commitment, blockade]
+
+- id: blockade_25_their_tankers
+  arc: blockade
+  advisor: treasury
+  acts: [2, 5]
+  tags: [economy, blockade, diplomacy]
+  conditions:
+    flags_all: [blockade:declared]
+    flags_none: [blockade:ours, blockade:lifted]
+  text: >-
+    Their quarantine is into its third week and their tankers are queuing
+    behind it as well as ours, because a strait does not check flags. Two of
+    their frigates went home for a yard period they did not have last month,
+    and the insurance data says the line is thinner before their navy does.
+    They are looking for a way to stop that does not look like stopping. I can
+    afford to hand them one, a joint statement on inspections that says
+    nothing, or to make them queue for it.
+  left:
+    text: "Hand them the exit"
+    effects: { escalation: -10, commitment: -5, public: -3, trust_primary: 7, military: -3, allies: 2 }
+    tags: [deescalate, diplomacy, reassurance]
+    set: [blockade:lifted]
+  right:
+    text: "Make them queue for it"
+    effects: { economy: -6, allies: -3, escalation: 2, commitment: 4, public: 2, trust_primary: -3 }
+    tags: [deterrence, stall, economy]
+
+# ---- pieces: the Admiral, the Blue-Water Fleet -------------------------------
+
+- id: blockade_07_her_ships
+  arc: blockade
+  advisor: admiral
+  acts: [1, 5]
+  weight: 1.2
+  tags: [naval, blockade]
+  conditions:
+    pieces_any: [admiral]
+    flags_all: [blockade:declared]
+    flags_none: [blockade:lifted]
+  text: >-
+    Three of theirs, five of ours, forty miles of water and one tanker that has
+    not answered a hail in six hours. My captains can board her before dawn.
+    Or they can shadow her and let the world watch who moves first.
+  left:
+    text: "Board her"
+    effects: { military: 6, escalation: 7, commitment: 3 }
+    tags: [naval, military, escalatory, blockade]
+    odds:
+      label: Boarding
+      base: 0.6
+      tags: [naval]
+      success:
+        text: "Her master stopped at the second hail. Forty containers of nothing, and a transponder that was simply broken."
+        set: [blockade:run]
+        effects: { public: 5, trust_primary: -6, intel: 3 }
+      failure:
+        text: "She did not stop. One round across the bow, and one into her bridge windows from a gunner who will not forgive himself."
+        set: [blockade:shots_fired]
+        effects: { escalation: 10, public: -6, trust_primary: -6 }
+        follow: [{ card: blockade_16_eight_minutes, in: 0 }]
+  right:
+    text: "Shadow her"
+    effects: { military: -2, escalation: 1, allies: 3, intel: 2, commitment: -2 }
+    tags: [naval, stall, reassurance]
+
+- id: blockade_19_the_carrier
+  arc: blockade
+  advisor: admiral
+  acts: [1, 5]
+  weight: 1.2
+  tags: [naval, blockade, deterrence]
+  conditions:
+    pieces_any: [blue_water_fleet]
+    flags_all: [blockade:declared]
+    flags_none: [blockade:lifted]
+  text: >-
+    The Corvane group can be in the Straits in sixty hours: a carrier, two
+    destroyers, a tanker and eleven thousand people. A carrier in a strait is a
+    sentence that cannot be unsaid and a target that cannot be hidden, and
+    every captain on their side will be told she is there before I have
+    finished telling you. Over the horizon she is a rumour, which is cheaper
+    and less use.
+  left:
+    text: "Send the group in"
+    effects: { military: 8, escalation: 7, economy: -4, commitment: 7, trust_primary: -6, allies: 2 }
+    tags: [naval, mobilise, deterrence, public_commitment, blockade]
+  right:
+    text: "Keep her over the horizon"
+    effects: { military: -3, intel: 3, escalation: 1, allies: -2, economy: -2 }
+    tags: [naval, stall, reassurance]
+
+- id: blockade_20_thirty_one_days
+  arc: blockade
+  advisor: admiral
+  acts: [2, 5]
+  tags: [naval, economy, military]
+  conditions:
+    pieces_any: [blue_water_fleet]
+    flags_all: [blockade:declared]
+    flags_none: [blockade:lifted]
+  text: >-
+    Corvane has been at sea thirty-one days and needs a yard in nine or she
+    loses a shaft, which is the kind of thing that does not care what is
+    happening in the Straits. Bring her home and the line thins by a third and
+    everyone with a periscope knows why. Keep her out and I strip the escorts
+    to feed her, and the escorts are the line.
+  left:
+    text: "Bring her home"
+    effects: { military: -6, allies: -3, commitment: -4, trust_primary: 2, economy: 2 }
+    tags: [naval, stall, deescalate]
+  right:
+    text: "Keep her out. Strip the escorts"
+    effects: { military: 2, economy: -7, escalation: 2, intel: -3, allies: -1 }
+    tags: [naval, military, economy, deterrence]
+
+- id: blockade_26_the_order
+  arc: blockade
+  advisor: admiral
+  acts: [1, 5]
+  tags: [naval, personal, military]
+  conditions:
+    pieces_any: [admiral]
+    flags_all: [blockade:shots_fired]
+  text: >-
+    Captain Ruys fired because your order said 'stop her' and she did not
+    stop. I wrote that order in your words and I would write it again. Now the
+    Assembly wants his name, {rival_capital} wants his command, and two of my
+    other captains have asked, carefully, whether the next order will be one
+    they can be hanged for. I would like to tell them something.
+  left:
+    text: "Stand by the captain"
+    effects: { military: 6, public: 3, trust_primary: -6, allies: -3, commitment: 5 }
+    tags: [military, naval, public_commitment, deterrence]
+  right:
+    text: "Relieve him. Say why"
+    effects: { military: -8, trust_primary: 5, allies: 3, public: -4, escalation: -3 }
+    tags: [walk_back, transparency, reassurance, naval]
+
+# ---- pieces: the Fortress, the Strategic Reserve -----------------------------
+
+- id: blockade_23_two_numbers
+  arc: blockade
+  advisor: treasury
+  acts: [1, 5]
+  weight: 1.2
+  tags: [economy, deterrence, blockade]
+  conditions:
+    pieces_any: [strategic_reserve, fortress]
+    flags_all: [blockade:declared]
+    flags_none: [blockade:lifted]
+  text: >-
+    They believe a closed strait bleeds us, and for most countries they would
+    be right. The reserve says ninety days; their fuel terminal, according to a
+    satellite pass I am not supposed to have seen, says about twenty. I can
+    put those two numbers in the same sentence in public, which ends the
+    argument about who blinks first, or I can let them find out slowly, which
+    is how I prefer to win.
+  left:
+    text: "Say both numbers in public"
+    effects: { commitment: 7, public: 5, escalation: 4, trust_primary: -5, economy: -2 }
+    tags: [public_commitment, deterrence, economy]
+  right:
+    text: "Let them count for themselves"
+    effects: { economy: -4, intel: -2, commitment: 1, allies: -2 }
+    tags: [economy, secrecy, stall]
+
+- id: blockade_24_eleven_days
+  arc: blockade
+  advisor: ally_leader
+  acts: [1, 5]
+  tags: [alliance, economy, alliance_demand]
+  conditions:
+    pieces_any: [strategic_reserve, fortress]
+    flags_all: [blockade:declared]
+    flags_none: [blockade:lifted]
+  text: >-
+    You can outlast a closed strait; I cannot. The Compact has eleven days of
+    fuel and you have, I am told, ninety, behind a border that closes on a
+    schedule. Either your ninety becomes our ninety or my parliament opens its
+    own talks with {rival_capital} on Monday, and I will not be able to stop
+    them, because I will be the one proposing it.
+  left:
+    text: "Share the reserve"
+    effects: { economy: -9, allies: 8, commitment: 4, public: -2 }
+    tags: [alliance, economy, reassurance]
+  right:
+    text: "Hold it. You will have to wait"
+    effects: { allies: -9, public: 2, economy: 1, trust_secondary: -2 }
+    tags: [alliance, economy, stall]

@@ -78,11 +78,11 @@
   conditions: { flags_none: [proxy:clash] }
   note: Late entry. The clash has been running for eleven days without you.
   text: >-
-    Nadia Ferrante, on the record, fourth question. The Halder Front has held
-    Kestrel Bridge for eleven days, Sennet has lost two hundred guardsmen, and
-    your office's only statement on Vestria still calls it a customs dispute. She
-    has a photograph of a {rival_adj} field kitchen on the north bank. "Is there a
-    war in Vestria, and are we in it?"
+    Fourth question, on the record. The Halder Front has held Kestrel Bridge for
+    eleven days, Sennet has lost two hundred guardsmen, and your office's only
+    statement on Vestria still calls it a customs dispute. I have a photograph of
+    a {rival_adj} field kitchen on the north bank. Is there a war in Vestria, and
+    are we in it?
   left:
     text: "It is a customs dispute"
     effects: { public: -5, trust_primary: 2, military: -3 }

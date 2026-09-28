@@ -149,6 +149,10 @@ export function validateContent(content: Content): ContentIssue[] {
       if (ch.text.length > 64) warn(w, `choice text is ${ch.text.length} chars (aim ≤ 60)`);
       if (ch.spend_charge && !ch.tags.includes('deescalate')) warn(w, 'spend_charge choices should be tagged "deescalate"');
       if (ch.odds && JSON.stringify(ch.odds.success) === JSON.stringify(ch.odds.failure)) warn(w, 'odds success and failure outcomes are identical');
+      if (ch.odds) {
+        if (ch.odds.success.text) lint(`${w}.odds.success`, ch.odds.success.text, issues);
+        if (ch.odds.failure.text) lint(`${w}.odds.failure`, ch.odds.failure.text, issues);
+      }
     }
     lint(where, c.text, issues);
     lint(`${where}.left`, c.left.text, issues);
@@ -279,10 +283,19 @@ export function validateContent(content: Content): ContentIssue[] {
   return issues;
 }
 
+/** Template variables the engine substitutes (see template() in engine/run.ts). */
+export const TEMPLATE_VARS = new Set([
+  'us', 'Us', 'rival', 'Rival', 'other', 'Other', 'leader', 'capital', 'rival_capital', 'other_capital',
+  'rival_adj', 'other_adj', 'us_adj', 'rival_leader', 'other_leader',
+]);
+
 function lint(where: string, text: string, issues: ContentIssue[]): void {
   for (const w of FORBIDDEN_WORDS) {
     const re = new RegExp(`(^|[^A-Za-z])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^A-Za-z])`);
     if (re.test(text)) issues.push({ level: 'error', where, message: `copy contains forbidden real-world or placeholder term "${w.trim()}"` });
+  }
+  for (const m of text.matchAll(/\{(\w+)\}/g)) {
+    if (!TEMPLATE_VARS.has(m[1])) issues.push({ level: 'error', where, message: `unknown template variable {${m[1]}} (known: ${[...TEMPLATE_VARS].join(', ')})` });
   }
 }
 
