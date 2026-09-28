@@ -17,9 +17,9 @@ lowest meter; **gambler** takes every roll it can and the higher leverage.
 | Run | Seat | Style | Days | Cards | Ending | Score | Pieces bought |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | PT-DOVE-1 | Republic | dove | 21 | 61 | 🏢 Consulted (removed: allies 100) | 1,642 | Allied Basing Rights, Trade Desk, Ambassador, Commercial Satellite Deal, Fortress |
-| PT-HAWK-1 | Federation | hawk | 9 | 34 | 💥 Harrow Vale (nuclear, forced by the Intercept flashpoint) | 987 | one |
-| PT-BAL-1 | Coalition | balanced | {BAL_DAYS} | {BAL_CARDS} | {BAL_ENDING} | {BAL_SCORE} | {BAL_PIECES} |
-| PT-GAMB-1 | Republic | gambler | {GAMB_DAYS} | {GAMB_CARDS} | {GAMB_ENDING} | {GAMB_SCORE} | {GAMB_PIECES} |
+| PT-HAWK-1 | Federation | hawk | 9 | 34 | 💥 Harrow Vale (nuclear, forced by the Intercept flashpoint) | 625 | none (4 PC at the only shop; nothing it wanted was affordable) |
+| PT-BAL-1 | Coalition | balanced | 16 | 44 | 🏢 Consulted (removed: allies 100) | 1,508 | Peace Movement Leader, Cautious Intel, Allied Basing Rights, The Courier |
+| PT-GAMB-2 | Republic | gambler | 9 | 49 | ⚓ Not Ordinary (nuclear, forced by the Line at Sea flashpoint) | 919 | Alliance First |
 
 Earlier in the night, before the balance pass: hawk-SCALE1 (Republic, 40 cards, ended
 Day 11 on the fallback ending because no endings existed yet) proved the loop in the
@@ -66,16 +66,48 @@ ending is earned by three consecutive decisions; the "moment" card is the nine-m
 card. What felt off: a first-time hawk can end the game on Day 9 without ever seeing
 a shop between acts. The sequence is fair (the calmer side was available and printed
 its leverage), but the odds on the package (25%) read as a trap. Logged for the
-content pass: raise "They swallow it" to 0.35 and let the hotline side cost military
-rather than end the sequence.
+content pass: the package roll is printed at 25% only because trust was on the floor
+(base 0.5, adversary rolls carry ±25% from trust); the sequence is the hawk's own bill.
+Kept. Watched under RISKS.md assumption 5.
 
-### PT-BAL-1 — {BAL_TITLE}
+### PT-BAL-1 — the balanced Coalition is consulted away in sixteen days
 
-{BAL_TEXT}
+The Coalition, balanced style: it reads the preview dots and protects whichever meter
+is lowest. It bought the Peace Movement Leader at the first shop, then Cautious Intel
+and Allied Basing Rights, then the Courier: a stand-down build with an alliance piece
+in it. Week One's ante was met; the Line at Sea flashpoint passed with a failed Boarding
+roll that cost military rather than the run; "It holds: 76%" failed on a 98 in Week Two,
+and "They sign: 50%" failed on a 91. Allies climbed from 46 to 96 in thirty-two cards,
+because every alliance card's safer side is the consulted side, and the run ended on
+Day 16 with the same ending as the dove's: **Consulted**. Score 1,508.
 
-### PT-GAMB-1 — {GAMB_TITLE}
+What felt great: the build was legible by the second shop and the two failed rolls
+were read as bad luck, not as the game cheating (both were printed, both were above
+50%). What felt flat: the balanced bot never looked at the top edge of a meter, and
+neither did the dove; two of four runs ended by *allies 100*, which the simulator's
+heuristic hits in 0.2% of runs because it guards both edges. The meter turns red within
+12 of either edge, so a human sees it coming; a first-time player may not know that
+"too consulted" is a way to lose. Logged: the first-run standing orders should say so
+in one line.
 
-{GAMB_TEXT}
+### PT-GAMB-1 — the gambler clears the Straits
+
+The Republic, gambler style: every roll it can take and the higher leverage. Alliance
+First at the first shop. "Strike: 60%" held by 4 (the near-miss line reads "Held by
+4%"), then the Line at Sea: Boarding held, the Kestrel across the freighter's bow at
+escalation 85 (396 leverage on one card), and "They blink" at 25% failed. The
+percentage was 25 and not 50 because the gambler had spent the rival's trust to the
+floor in Week One, and adversary rolls carry ±25% from trust: the card printed the
+consequence of nine days of choices. Vasska asked for ninety minutes to clear the
+Straits; the torpedo was **Not Ordinary**. Day 9, score 919, best single choice 168.
+
+An earlier gambler run (PT-GAMB-1) reached the same flashpoint at escalation 91 with
+547 leverage on the table and ended the same way; the harness lost its ending screen to
+a page reload and the run is recorded only by its best score (2,026). What felt great:
+the tally at 396 and 547 is the slam the dove never heard. What felt off: nothing in the
+sequence was unfair, but the two aggressive styles both died on Day 9 without a second
+shop, so the aggressive newcomer's first run is short. Reigns-short, with an instant
+restart; kept, and watched (RISKS.md assumption 5).
 
 ## What the runs changed
 
@@ -97,7 +129,7 @@ rather than end the sequence.
 
 | Spec | Result |
 | --- | --- |
-| Daily run: plays a full daily run on a phone, shares, offers an instant restart | {E2E_DAILY} |
+| Daily run: plays a full daily run on a phone, shares, offers an instant restart | pass (1.5 min) |
 | Daily run: replay this seed reproduces the first card | pass (39.7 s) |
 | Unlock flow: Endless is locked, then unlocked after the Stripe redirect | pass |
 | Unlock flow: a tampered token is rejected | pass |
@@ -122,7 +154,7 @@ banner a formality.
 exit; the resignation card (the bot signed it because "Sign it" had no printed cost;
 it now avoids forced losing endings, and the card keeps its trap for humans).
 
-**Not fixed, logged.** The Week One Intercept package odds (0.25) for hawks; the dove's
+**Not fixed, logged.** "Too consulted" as a loss the standing orders should name; the dove's
 low ceiling (a de-escalation build needs one visible payoff moment, e.g. the Quiet
 Room's mult landing on a stand-down card); the harness cannot see ante banners in the
 DOM and so does not log them (the transcripts note antes only through the bluff
