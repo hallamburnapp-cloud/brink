@@ -32,7 +32,9 @@ export const FORBIDDEN_WORDS = [
   'Africa', 'Asia', 'Middle East', 'lorem', 'ipsum', 'TODO', 'TBD', 'placeholder',
 ];
 
-const ENGINE_FLAG_PREFIXES = ['seat:', 'mode:', 'arc:', 'piece:', 'unlocked:'];
+/** Flags the engine sets itself (see CONTENT.md §4.6). `false_alarm_live` and `endless` are exact names. */
+const ENGINE_FLAG_PREFIXES = ['seat:', 'mode:', 'arc:', 'piece:', 'unlocked:', 'accident:', 'ante:', 'peak:', 'deadman:'];
+const ENGINE_FLAGS = new Set(['false_alarm_live', 'endless']);
 
 function choices(c: CardDef): ChoiceDef[] {
   return [c.left, c.right];
@@ -72,7 +74,7 @@ function conditionFlags(cond: ConditionDef | undefined): { required: string[]; f
 }
 
 function flagIsSettable(flag: string, settable: Set<string>): boolean {
-  if (settable.has(flag)) return true;
+  if (settable.has(flag) || ENGINE_FLAGS.has(flag)) return true;
   return ENGINE_FLAG_PREFIXES.some((p) => flag.startsWith(p));
 }
 

@@ -474,6 +474,11 @@ export function choose(content: Content, state: RunState, side: Side | 'timeout'
       state.stats.accidents++;
       appliedAcc = applyEffects(content, state, rng, accidentEffects(acc.type, state.meters.escalation, severityMult), ['accident', acc.type], ctx);
       if (acc.type === 'false_alarm') addFlag(state, 'false_alarm_live');
+      addFlag(state, 'accident:fired');
+      addFlag(state, `accident:${acc.type}`);
+      state.flags = state.flags.filter((f) => !f.startsWith('accident:last_'));
+      addFlag(state, `accident:last_${acc.type}`);
+      if (state.meters.escalation >= 100) addFlag(state, 'accident:fatal');
       accidentFired = true;
     }
     const result: AccidentResult = { type: acc.type, p: acc.p, roll, fired, applied: appliedAcc };
@@ -495,6 +500,7 @@ export function choose(content: Content, state: RunState, side: Side | 'timeout'
   if (card.arc) addFlag(state, `arc:${card.arc}`);
   state.trail.push([state.meters.public, state.meters.military, state.meters.allies, state.meters.economy, state.meters.escalation]);
   if (state.meters.escalation > state.stats.peakEscalation) state.stats.peakEscalation = state.meters.escalation;
+  for (const p of [50, 80, 90, 95] as const) if (state.stats.peakEscalation >= p) addFlag(state, `peak:${p}`);
 
   // 8. Passive drift from doctrines and advisors.
   applyDrift(content, state, rng, ctx);
@@ -543,6 +549,7 @@ function tryDeadman(content: Content, state: RunState, ctx: ModContext, events: 
   if (state.deadmanUsed || !hasRule(ctx, 'deadman_switch')) return false;
   state.deadmanUsed = true;
   state.meters.escalation = Math.max(escalationBounds(ctx, state.escalationFloor).floor, 70);
+  addFlag(state, 'deadman:fired');
   events.push({ type: 'deadman' });
   return true;
 }
@@ -931,15 +938,20 @@ function settleAnte(content: Content, state: RunState, events: RunEvent[]): bool
   events.push({ type: 'ante', met: r.met, smashed: r.smashed, leverage: state.actLeverage, target, capital: r.capital });
   if (r.met) {
     state.stats.antesMet++;
+    addFlag(state, 'ante:met');
     addCapital(state, r.capital, 'ante', events);
     grow(content, state, 'ante_met', undefined, events);
     if (r.smashed) {
       state.stats.antesSmashed++;
+      addFlag(state, 'ante:smashed');
+      if (state.stats.antesSmashed >= 3) addFlag(state, 'ante:smashed_x3');
       grow(content, state, 'ante_smashed', undefined, events);
     }
     return false;
   }
   state.stats.antesMissed++;
+  addFlag(state, 'ante:missed');
+  if (state.stats.antesMissed >= 2) addFlag(state, 'ante:missed_x2');
   return true;
 }
 
@@ -1162,6 +1174,7 @@ export function continueRun(content: Content, state: RunState): StepResult {
   state.canContinue = false;
   state.ending = null;
   state.moment = null;
+  addFlag(state, 'endless');
   const rng = rngOf(state);
   openShop(content, state, rng, false, events);
   saveRng(state, rng);

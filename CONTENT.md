@@ -539,6 +539,24 @@ Accidents are engine content (types, chances and severities live in `src/engine/
 cards never need to reference them, but a false-alarm accident sets `false_alarm_live`,
 so arcs that clear that flag interact with them.
 
+### 4.6 Engine-set outcome flags (condition on these; never set them)
+
+| Flag | Set when |
+|---|---|
+| `accident:fired` | any accident has fired this run |
+| `accident:<type>` | that type has fired (`false_alarm`, `misread`, `rogue_commander`, `attribution_error`) |
+| `accident:last_<type>` | the most recent accident was that type (only one `last_` flag at a time) |
+| `accident:fatal` | an accident took escalation to 100 (the Deadman Switch may still have saved the run) |
+| `ante:met`, `ante:smashed`, `ante:smashed_x3` | an act's leverage target was met / doubled / doubled three times |
+| `ante:missed`, `ante:missed_x2` | the bluff was called once / at least twice |
+| `peak:50`, `peak:80`, `peak:90`, `peak:95` | escalation has reached that value at some point |
+| `deadman:fired` | the Deadman Switch pulled the run back from 100 |
+| `endless` | the player continued past a win into endless escalation |
+
+Endings use them for flavour: a nuclear ending with `flags_all: [accident:fatal, accident:last_rogue_commander]`
+is the rogue-commander war; a stand-down with `flags_none: [peak:50]` is minimal deterrence. Prefer
+`flags_any` and keep a lower-priority sibling so every ending kind stays reachable.
+
 ## 8. Checklist before you commit a file
 
 - `npm run content:validate` passes with no errors (warnings are advice).
