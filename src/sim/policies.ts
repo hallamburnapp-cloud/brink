@@ -21,7 +21,7 @@ import { actDef, difficultyDef } from '../engine/run';
 import type { ArchetypeDef, CardView, ChoiceDef, ChoiceView, Content, EffectKey, Effects, MeterKey, OrderDef, PieceDef, Rarity, RunState } from '../engine/types';
 
 export type Decision = 'left' | 'right' | 'timeout' | 'bury';
-export type PolicyName = 'random' | 'greedy' | 'heuristic';
+export type PolicyName = 'random' | 'greedy' | 'heuristic' | 'breaker';
 
 /**
  * The shop as a policy sees it. The simulator implements it over the engine's
@@ -390,6 +390,27 @@ export interface HeuristicContext {
   held: PieceDef[];
 }
 
+/**
+ * The "breaker" profile: play every run as a brink build sitting just under Madman's
+ * threshold, whatever is held. Set for the duration of one policy call.
+ */
+let FORCE_BRINK = false;
+const BREAKER_BAND: readonly [number, number] = [90, 95];
+
+/** Does a piece make the top of the curve survivable (fewer or softer accidents, a save, foreknowledge)? */
+export function isMitigation(p: PieceDef): boolean {
+  for (const m of p.modifiers) {
+    if (m.kind === 'accident' && ((m.mult !== undefined && m.mult < 1) || (m.severity_mult !== undefined && m.severity_mult < 1))) return true;
+    if (m.kind === 'rule' && (m.rule === 'deadman_switch' || m.rule === 'perfect_intel')) return true;
+  }
+  return false;
+}
+
+/** The breaker climbs only once it holds mitigation and a piece that pays at the top. */
+export function breakerArmed(held: readonly PieceDef[]): boolean {
+  return held.some(isMitigation) && isBrinkBuild(held);
+}
+
 export function heuristicContext(content: Content, state: RunState, view: CardView): HeuristicContext {
   const held = heldPieces(content, state);
   const acc = view.accident;
@@ -398,7 +419,10 @@ export function heuristicContext(content: Content, state: RunState, view: CardVi
   const best = Math.max(view.left.leverage.total, view.right.leverage.total);
   const pace = ante.avg > 0 ? ante.avg : best;
   const unit = Math.max(1, ante.pressure ? Math.min(ante.perCardNeed, best) : pace);
-  return { brink: isBrinkBuild(held), band: brinkBand(held), ante, unit, accidentP, held };
+  const forced = FORCE_BRINK && breakerArmed(held);
+  const brink = forced || isBrinkBuild(held);
+  const band = forced ? BREAKER_BAND : brinkBand(held);
+  return { brink, band, ante, unit, accidentP, held };
 }
 
 export interface SideEvaluation {
@@ -603,6 +627,21 @@ function nextPurchase(content: Content, state: RunState, api: ShopApi, arch: Arc
   const { counts, choices } = chosenTagCounts(content, state);
   const affinity = (i: number) => pieceAffinity(content.pieces[shop.offers[i].piece], counts, choices);
   const byAffinity = (a: number, b: number) => affinity(b) - affinity(a) || byPriceDesc(a, b);
+  if (FORCE_BRINK) {
+    const held = heldPieces(content, state);
+    const haveMit = held.some(isMitigation);
+    const haveBrink = isBrinkBuild(held);
+    const want = affordable.filter((i) => {
+      const p = content.pieces[shop.offers[i].piece];
+      return (!haveMit && isMitigation(p)) || (!haveBrink && isBrinkBuild([p]));
+    });
+    if (want.length) return { index: want.sort(byPriceDesc)[0] };
+    const more = affordable.filter((i) => {
+      const p = content.pieces[shop.offers[i].piece];
+      return isMitigation(p) || isBrinkBuild([p]) || p.modifiers.some((m) => m.kind === 'retrigger' || (m.kind === 'leverage' && m.mult_mult !== undefined));
+    });
+    if (more.length) return { index: more.sort(byPriceDesc)[0] };
+  }
   for (const rarity of ['legendary', 'rare'] as const) {
     const of = affordable.filter((i) => content.pieces[shop.offers[i].piece].rarity === rarity).sort(byAffinity);
     if (of.length) return { index: of[0] };
@@ -767,7 +806,44 @@ export const heuristicPolicy: Policy = {
 
 // ------------------------------------------------------------------ registry
 
+/**
+ * Breaker: the heuristic's shop, orders and card reading, but it treats every run as a
+ * brink build that wants to live at 90–95 and always chases leverage. It exists to
+ * measure the ceiling (T5) rather than survival (T1); it is not part of `--policy all`.
+ */
+export const breakerPolicy: Policy = {
+  name: 'breaker',
+  choose(content, state, view, rng) {
+    FORCE_BRINK = true;
+    try {
+      return heuristicPolicy.choose(content, state, view, rng);
+    } finally {
+      FORCE_BRINK = false;
+    }
+  },
+  useOrder(content, state, view, rng, used) {
+    FORCE_BRINK = true;
+    try {
+      return heuristicPolicy.useOrder(content, state, view, rng, used);
+    } finally {
+      FORCE_BRINK = false;
+    }
+  },
+  shop(content, state, rng, api) {
+    FORCE_BRINK = true;
+    try {
+      heuristicPolicy.shop(content, state, rng, api);
+    } finally {
+      FORCE_BRINK = false;
+    }
+  },
+  continueRun() {
+    return true;
+  },
+};
+
 export const POLICIES: Readonly<Record<PolicyName, Policy>> = {
+  breaker: breakerPolicy,
   random: randomPolicy,
   greedy: greedyPolicy,
   heuristic: heuristicPolicy,

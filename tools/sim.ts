@@ -40,7 +40,7 @@ interface Args {
 
 const USAGE = `usage: tsx tools/sim.ts [options]
   --runs N            runs per policy (default 2000)
-  --policy P          heuristic | greedy | random | all, or a comma list (default all)
+  --policy P          heuristic | greedy | random | breaker | all, or a comma list (default all; breaker is never in all)
   --seat S            republic | federation | coalition | all, or a comma list (default all, round-robin)
   --seed BASE         seed base; run i uses "BASE-i" (default brink)
   --difficulty 1..5   DEFCON level (default 5)

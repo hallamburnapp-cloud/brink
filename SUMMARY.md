@@ -66,8 +66,9 @@ e2e suite (daily run, replay, unlock flow, tampered token, restore) is green.
 
 ## What is not done, and what to do first
 
-1. **T5.** Add an aggressive simulator policy and re-tune the legendaries against it
-   (BALANCE.md "On T5").
+1. **T5.** The aggressive `breaker` policy exists (BALANCE.md iteration 10) and shows the
+   binding constraint is endless survival, not the multiplier; the next step is a gentler
+   endless ramp measured against it.
 2. **The next 15 weakest cards.** The first fifteen (and five pieces) were rewritten in iteration 9; the report's method finds the next set.
 3. **Content polish from the review** (scratch notes in BALANCE.md and CONTENT.md
    §4.6): repeated punchlines across arcs, the `warning` domain tag, the blockade

@@ -281,6 +281,24 @@ rewritten defector cards, which now have visible stakes but are still the quiet 
 seen in 60,000 runs (`adv_27_no_hard_feelings`, `debris_17_eleven_seconds`): both gates need a specific pair; loosen
 in the next content pass.
 
+### Iteration 10 — a fourth policy to measure the ceiling (measured, not tuned)
+
+`breaker` (`src/sim/policies.ts`, not part of `--policy all`): the heuristic's card reading, orders and shop, but it
+buys accident mitigation and a brink piece first and, once armed, plays every run at 90–95. Two probes of 3,000 runs:
+
+| Breaker variant | Win | Nuclear | Median score | p99 | Broke game | Died by Week Three |
+| --- | --- | --- | --- | --- | --- | --- |
+| Climb from Week One, no mitigation | 0.3% | 98% | 5,148 | 39,311 | 0% | 87% |
+| Armed first (mitigation + brink piece), then climb | 6.5% | 84% | 5,058 | 34,695 | 0% | 31% |
+
+Reading: the top of the curve is not survivable without mitigation, and with it the breaker looks like the heuristic,
+because both die inside the first two endless acts (cost scale +0.15 per endless act, intel −5, timers −0.05, a
+flashpoint at the end of every 12-card act). The binding constraint on T5 is endless survival, not the multiplier: a
+build that survived six endless acts at ×2 per act would pass the 700,000 line at the heuristic's own pace. Follow-up
+(not done tonight, because it changes the endless design without a human playtest): a gentler endless ramp
+(+0.05 cost scale per act, a flashpoint every other act) measured against the breaker, with the "broke the game"
+unlock as the reward. `npm run sim -- --policy breaker` reproduces the read.
+
 ## Final report (iteration 8, rewrites since applied in iteration 9)
 
 The report is `sim-output/report-latest.md` (regenerate with `npm run sim -- --runs 20000 --policy all --seed iter8`).
