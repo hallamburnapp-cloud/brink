@@ -500,6 +500,22 @@ function paintDays(ctx: Ctx, data: ShareCardData, heat: number): void {
   const stampColour = RED_KINDS.has(data.endingKind) ? RED : STAMP_MUTED;
   const stampCx = Math.max(CONTENT_L + numberWidth + 200, 800);
   paintStamp(ctx, label, Math.min(stampCx, CONTENT_R - 150), baseline - 70, stampColour, RED_KINDS.has(data.endingKind) ? 0.78 + 0.2 * heat : 0.82);
+
+  // Score (total leverage), right-aligned under the stamp.
+  if (typeof data.score === 'number' && Number.isFinite(data.score)) {
+    ctx.save();
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = INK;
+    ctx.font = `bold 48px ${SERIF}`;
+    ctx.fillText(scoreLabel(data.score), CONTENT_R, baseline + 4);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = INK_MUTED;
+    ctx.font = `22px ${MONO}`;
+    const cap = data.endlessActs ? `SCORE · ENDLESS ${Math.max(1, Math.floor(data.endlessActs))}` : 'SCORE';
+    drawSpaced(ctx, cap, CONTENT_R - spacedWidth(ctx, cap, 5), baseline + 40, 5);
+    ctx.restore();
+  }
 }
 
 function paintStamp(ctx: Ctx, text: string, cx: number, cy: number, colour: string, alpha: number): void {
