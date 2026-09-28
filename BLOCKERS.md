@@ -22,6 +22,14 @@ git push git@github.com:hallamburnapp-cloud/brink.git brink-main:main
 The CI workflow is at `brink/.github/workflows/ci.yml` and becomes active as soon as
 `brink/` is a repository root (GitHub only reads workflows from the root).
 
+Retried at the end of the night with the GitHub connection re-established: creating a
+repository is refused for this integration on both the account and the organisation
+endpoint (403 "Resource not accessible by integration"; `hallamburnapp-cloud` is a
+personal account). The shortest path: the owner creates an empty repository named
+`brink` (no README, no licence) and attaches it to a session with push access; the
+session then pushes the split branch. Nothing else in the project depends on where it
+lives: `BRINK_BASE` handles a sub-path and the two deploy workflows are ready.
+
 ## B-002 Sandbox permission classifier
 Several ordinary operations (adding a git remote to a scratch repo, moving the
 project folder into the checkout, and one `vitest` invocation) were refused by the

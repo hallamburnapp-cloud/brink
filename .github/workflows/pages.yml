@@ -1,0 +1,51 @@
+# Deploys the game to GitHub Pages at https://<owner>.github.io/<repo>/ on every push
+# to main. Enable once in the repository: Settings → Pages → Source: "GitHub Actions".
+# (GitHub Pages serves private repositories only on paid plans; Cloudflare Pages in
+# ci.yml is the free path for a private repository.)
+name: GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build for the repository sub-path
+        run: npm run build
+        env:
+          # Served at https://<owner>.github.io/<repo>/, so assets and the PWA scope live under /<repo>/.
+          BRINK_BASE: /${{ github.event.repository.name }}/
+          # Playable in full without the paywall; set to 'true' with a Worker URL to sell Endless.
+          VITE_PAYWALL: 'false'
+          VITE_ALL_UNLOCKED: '0'
+          PUBLIC_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

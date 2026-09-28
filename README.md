@@ -41,6 +41,24 @@ points it at an existing binary (a pre-installed `/opt/pw-browsers/chromium` is
 detected automatically). `BRINK_CONTENT_LENIENT=1 npx vite build` builds a preview
 even while content has validation errors; `npm run build` refuses.
 
+## Play it
+
+Three ways to see BRINK running as a game, from fastest to most permanent:
+
+1. **On your machine.** `npm install && npm run dev`, then open the printed URL on a phone
+   or in a narrow browser window. The Daily is free; set `VITE_PAYWALL=false` in `.env` to
+   open Endless without the Stripe flow.
+2. **On itch.io in two minutes.** `npm run build:itch` writes `dist-itch/brink-itch.zip`.
+   On itch.io: Create new project → Kind of project "HTML" → upload the zip → tick "This
+   file will be played in the browser" → viewport 430 × 860, portrait → save as Draft.
+   The itch flavour ships with everything unlocked and no paywall.
+3. **A live URL.** `.github/workflows/pages.yml` deploys to GitHub Pages at
+   `https://<owner>.github.io/<repo>/` on every push to `main` (enable once: Settings →
+   Pages → Source: GitHub Actions; free for public repositories). `.github/workflows/ci.yml`
+   deploys to Cloudflare Pages instead, which is free for private repositories: add the
+   secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` to the repository. Both
+   workflows only run when `brink/` is the root of its own repository.
+
 ## Build and deploy
 
 ```bash

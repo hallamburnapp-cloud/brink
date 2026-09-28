@@ -6,8 +6,10 @@ import { fileURLToPath, URL } from 'node:url';
 import { brinkContentPlugin } from './tools/vite-plugin-content.ts';
 import { BRAND } from './src/config.ts';
 
+const base = process.env.BRINK_BASE ?? '/';
+
 export default defineConfig(({ mode }) => ({
-  base: process.env.BRINK_BASE ?? '/',
+  base,
   plugins: [
     preact(),
     tailwindcss(),
@@ -23,7 +25,9 @@ export default defineConfig(({ mode }) => ({
         background_color: '#0b1220',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
+        // A sub-path deploy (GitHub Pages at /brink/) needs the manifest to start and scope there.
+        start_url: base,
+        scope: base,
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
