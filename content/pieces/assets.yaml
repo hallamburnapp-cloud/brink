@@ -9,14 +9,14 @@
     Eyes over the pole, watching for the plume. You will see it coming, and every ghost
     you correctly ignore teaches the operators something. Someone will eventually try
     to blind it.
-  mechanics: Warning and intel choices +5 base; every accident that does not fire adds +1 base permanently (max +20). Warning cards 60% more common; intel reliability +8. Unlocks jamming lines.
+  mechanics: Warning and intel choices +5 base; every accident that does not fire adds +1 base permanently (max +40). Warning cards 60% more common; intel reliability +8. Unlocks jamming lines.
   accent: "#7fd6e6"
   art: asset_ew
   tags: [space, warning, intel]
   grants: [asset_ew]
   modifiers:
     - { kind: leverage, tags: [warning, intel], base_add: 5 }
-    - { kind: scale, on: accident_avoided, base_add: 1, max: 2 }
+    - { kind: scale, on: accident_avoided, base_add: 1, max: 4 }
     - { kind: rule, rule: warning_frequency, value: 0.6 }
     - { kind: intel, add: 8 }
 
@@ -321,13 +321,13 @@
   blurb: >-
     A network of people who talk to people. Every quiet conversation makes the next
     one easier, and after a month of them you are the most listened-to person alive.
-  mechanics: Each back-channel or diplomacy choice grows +0.25 mult permanently (max +6).
+  mechanics: Each back-channel or diplomacy choice grows +0.25 mult permanently (max +12).
   accent: "#8e6bb3"
   art: asset_back_channel
   tags: [diplomacy, back_channel]
   grants: [asset_whispers]
   modifiers:
-    - { kind: scale, on: choice, tags: [back_channel, diplomacy], mult_add: 0.25, max: 6 }
+    - { kind: scale, on: choice, tags: [back_channel, diplomacy], mult_add: 0.25, max: 12 }
 
 - id: ledger
   pool: asset

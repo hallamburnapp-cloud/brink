@@ -210,3 +210,29 @@ Probes (1,000 heuristic runs each) while choosing the pair:
 
 The scaling is the bigger lever; recovery is the gentler one. The chosen pair sits in the middle of T1 with room for the
 full-scale run to land either side.
+
+Full-scale (`--seed iter6`): **T1 PASS 9.76%** (0.27% stand-down, 9.49% survival), **T4 PASS 18.2 min** (p10 9.0, p90
+22.5, 72 cards, 6.7 shops). T2 9 of 15 (10 assembled in ≥ 20 runs; hair_trigger at 8% is the miss; the_ladder, cyber_ghost,
+deadman and madman are assembled in fewer than 5 runs each because their cores are legendary at 12 PC and the bot
+almost never holds 12 PC). T3 dove_fm 41%, civil_defence 35.9%. T5 0% (max 141,473). Antes met 94 / 45 / 29 / 17 / 8%.
+
+### Iteration 7 — builds and the endless
+
+Diagnosis: legendaries were offered in ~6.5% of runs each and bought in 0–1% (price 12 against a median income of 22
+spread over six shop visits); dove_fm (uncommon, +0.75 mult on de-escalation and stronger de-escalation) was the
+calm build's mandatory pick; scaling pieces were capped at +2..+6 so no build could compound; the endless climb
+(+30% per act) and its targets (×2.8 per act) meant every endless act was a missed ante and a flashpoint at the top of
+the curve, so winners died within 1.2 endless acts and the score ceiling sat at 141k.
+
+Changes:
+- Prices 3 / 5 / 8 / 12 → **3 / 5 / 7 / 9**.
+- **dove_fm is rare** (offered ~40% as often).
+- Scale caps doubled (+3 → +6, +2 → +4, +6 → +12; mechanics text updated) so long runs compound.
+- Endless: escalation curve **×2 per endless act** (was +30%), endless targets **×2 per act** (was ×2.8) so a build that is
+  still scaling can keep meeting antes and earning capital; heuristic brink builds now aim for the band their piece is
+  paid from (Madman wants ≥ 90).
+
+Probe (2,000 heuristic runs): T1 7.35%, T4 18.0 min, max score 93k → 234k after the endless changes; endless survival
+still 1.24 acts on average (the endless flashpoint at the top of the curve is what kills). T5 remains 0%: a run needs
+~700,000, which is a perfect build (Σmult +6, Madman ×3, a retrigger, held at 92 for 40 cards with accident mitigation
+= ~11k per card). That build exists in the engine and a strong human can assemble it; the heuristic does not.

@@ -19,7 +19,7 @@ import {
   useOrder,
   view,
 } from './run';
-import { escalationMultiplier } from './leverage';
+import { ENDLESS_CLIMB, escalationMultiplier } from './leverage';
 import type { Content, RunState } from './types';
 
 const content: Content = fixture();
@@ -101,7 +101,7 @@ describe('leverage', () => {
     expect(escalationMultiplier(95)).toBe(12);
     expect(escalationMultiplier(99)).toBe(20);
     expect(escalationMultiplier(65)).toBeCloseTo(3.5);
-    expect(escalationMultiplier(80, 2)).toBe(8);
+    expect(escalationMultiplier(80, 2)).toBe(Math.round(5 * ENDLESS_CLIMB * ENDLESS_CLIMB * 100) / 100);
     const s = run();
     s.meters.escalation = 95;
     s.current = 'c_basic';

@@ -88,7 +88,7 @@ weathering one that does not fire, feeds `scale` pieces (Iron Nerve, Paranoid Di
 ## 4. Antes and flashpoints
 
 Each act has a target (rules.yaml: 250, 450, 1,200, 3,200, 7,000; × difficulty
-`target_scale`; endless acts ×2.8 each). Leverage from ordinary cards accumulates in
+`target_scale`; endless acts ×2 each, matching the endless climb). Leverage from ordinary cards accumulates in
 `actLeverage`; flashpoint cards add to the score but not to the ante. When the act's
 cards are spent:
 
@@ -124,7 +124,7 @@ attached), `bury`, `capital`, `charge` (a Hotline charge), `leverage` (flat scor
 ## 7. Endless
 
 A winning `run_end` ending (stand-down or survival) sets `canContinue`. `continueRun`
-opens a shop and begins act 6 with the target ×2.8, cost scale +0.15 per act, intel −5
+opens a shop and begins act 6 with the target ×2, the escalation curve ×2 per endless act, cost scale +0.15 per act, intel −5
 per act, timers −5% per act, and the escalation curve ×(1 + 0.3 × endless acts). It ends
 only by losing. Score is total leverage; the best is kept locally (no names, no network).
 

@@ -127,6 +127,18 @@ export function isBoosterOrder(o: OrderDef): boolean {
  * any held piece with a leverage modifier that scales per escalation point or
  * switches on above an escalation threshold.
  */
+/** The band a brink build should hold: BRINK_BAND, lifted to start at the highest threshold a held piece is paid from. */
+export function brinkBand(held: readonly PieceDef[]): readonly [number, number] {
+  let lo = BRINK_BAND[0];
+  for (const p of held)
+    for (const m of p.modifiers) {
+      if (m.kind !== 'leverage') continue;
+      const min = m.when?.values?.escalation?.min;
+      if (min !== undefined && min > lo) lo = Math.min(min, 92);
+    }
+  return [lo, Math.max(BRINK_BAND[1], Math.min(96, lo + 4))];
+}
+
 export function isBrinkBuild(held: readonly PieceDef[]): boolean {
   for (const p of held)
     for (const m of p.modifiers) {
@@ -368,6 +380,8 @@ const CALM_TAGS: readonly string[] = ['deescalate', 'reassurance', 'back_channel
 
 export interface HeuristicContext {
   brink: boolean;
+  /** The escalation band a brink build wants to sit in (a piece paid from 90 moves it up). */
+  band: readonly [number, number];
   ante: AnteInfo;
   /** One unit of leverage credit, in leverage points (see LEVERAGE_WEIGHT_*). */
   unit: number;
@@ -384,7 +398,7 @@ export function heuristicContext(content: Content, state: RunState, view: CardVi
   const best = Math.max(view.left.leverage.total, view.right.leverage.total);
   const pace = ante.avg > 0 ? ante.avg : best;
   const unit = Math.max(1, ante.pressure ? Math.min(ante.perCardNeed, best) : pace);
-  return { brink: isBrinkBuild(held), ante, unit, accidentP, held };
+  return { brink: isBrinkBuild(held), band: brinkBand(held), ante, unit, accidentP, held };
 }
 
 export interface SideEvaluation {
@@ -449,11 +463,11 @@ export function evaluateSide(state: RunState, side: ChoiceView, hc: HeuristicCon
 
   if (hc.brink) {
     // (c) the build pays at the top of the curve: move toward 82..92 and never past it.
-    const d = bandDistance(esc, BRINK_BAND[0], BRINK_BAND[1]);
-    const d2 = bandDistance(esc2, BRINK_BAND[0], BRINK_BAND[1]);
+    const d = bandDistance(esc, hc.band[0], hc.band[1]);
+    const d2 = bandDistance(esc2, hc.band[0], hc.band[1]);
     score += (d - d2) * 1.0;
-    const over = Math.max(0, esc2 - BRINK_BAND[1]);
-    const overBefore = Math.max(0, esc - BRINK_BAND[1]);
+    const over = Math.max(0, esc2 - hc.band[1]);
+    const overBefore = Math.max(0, esc - hc.band[1]);
     score -= (over * over - overBefore * overBefore) / 4;
   } else {
     // (c) otherwise stay at or below 60: every point up costs more the hotter it is, and the

@@ -163,14 +163,14 @@
     Publish the assessments. Brief the press before the leak. You will know more and
     they will believe you when it matters; every gamble that pays makes the next one
     count. Every secret you do keep will cost double.
-  mechanics: Transparency and intel choices +0.5 mult; each successful roll grows +0.1 mult (max +2). Intel reliability +10; trust gains from transparency ×1.3; secrecy choices cost 4 public.
+  mechanics: Transparency and intel choices +0.5 mult; each successful roll grows +0.1 mult (max +4). Intel reliability +10; trust gains from transparency ×1.3; secrecy choices cost 4 public.
   accent: "#e6e0c8"
   art: doctrine_transparency
   tags: [intel, transparency]
   grants: [doctrine_transparency]
   modifiers:
     - { kind: leverage, tags: [transparency, intel, investigate], mult_add: 0.5 }
-    - { kind: scale, on: roll_success, mult_add: 0.1, max: 2 }
+    - { kind: scale, on: roll_success, mult_add: 0.1, max: 4 }
     - { kind: intel, add: 10 }
     - { kind: effect, key: trust, tags: [transparency], sign: pos, mult: 1.3 }
     - { kind: effect, key: public, tags: [secrecy], add: -4, always: true }

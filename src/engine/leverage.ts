@@ -26,6 +26,9 @@ export const ESC_CURVE: [number, number][] = [
   [100, 20],
 ];
 
+/** Per-endless-act multiplier on the escalation curve. */
+export const ENDLESS_CLIMB = 2;
+
 export function escalationMultiplier(escalation: number, endlessActs = 0): number {
   const e = Math.max(0, Math.min(100, escalation));
   let m = 1;
@@ -37,8 +40,8 @@ export function escalationMultiplier(escalation: number, endlessActs = 0): numbe
       break;
     }
   }
-  // Endless: the curve keeps climbing, +30% per act past the Endgame.
-  if (endlessActs > 0) m *= 1 + 0.3 * endlessActs;
+  // Endless: the curve keeps climbing, ×2 per act past the Endgame (scores are meant to explode).
+  if (endlessActs > 0) m *= Math.pow(ENDLESS_CLIMB, endlessActs);
   return Math.round(m * 100) / 100;
 }
 
@@ -225,7 +228,7 @@ export function accidentModifiers(pieces: readonly PieceDef[]): { pMult: number;
 
 // ------------------------------------------------------------------ shop
 
-export const RARITY_PRICE = { common: 3, uncommon: 5, rare: 8, legendary: 12 } as const;
+export const RARITY_PRICE = { common: 3, uncommon: 5, rare: 7, legendary: 9 } as const;
 export const RARITY_WEIGHT = { common: 10, uncommon: 6, rare: 2.5, legendary: 0.8 } as const;
 export const REROLL_BASE = 2;
 export const REMOVE_TAG_PRICE = 4;
@@ -249,7 +252,7 @@ export function endlessActDef(last: ActDef, act: number): ActDef {
     intel_shift: last.intel_shift - 5 * n,
     timer_scale: Math.max(0.35, Math.round((last.timer_scale - 0.05 * n) * 100) / 100),
     day_per_card: last.day_per_card,
-    target: Math.round(last.target * Math.pow(2.8, n)),
+    target: Math.round(last.target * Math.pow(ENDLESS_CLIMB, n)),
     cooling: last.cooling,
     recovery: last.recovery,
   };
