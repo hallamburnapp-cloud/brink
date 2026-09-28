@@ -180,3 +180,33 @@ Targets 250 / 500 / 1,600 / 4,500 / 12,000 → **250 / 450 / 1,200 / 3,200 / 7,0
 calm median run; Week Three by a calm run with two pieces or a warm one; Week Four by a build or a brink posture; the
 Endgame only by both (a brink build at 90 with ×2 from pieces banks ~5,000 in 10 cards, so 7,000 stays the wall that
 separates good builds from great ones). Final target 7,000 → the "broke the game" line is 700,000.
+
+Full-scale (`--seed iter5`, 20,000 × 3): **T4 PASS** (15.8 min, p10 8.9, p90 20.6). T1 2.38%. T2 6 of 15 (accident_farmer
+20%, alliance_engine 21%, peace_movement 14%, intel_machine 11%, red_lines_gambler 28%, sea_power 11% reach the
+Endgame; nine archetypes assembled in ≥ 20 runs). T3 dove_fm 57%, civil_defence 36%, allied_basing 35%. T5 0% (max 78,881).
+Antes met: 94% / 47% / 42% / 25% / 10% by act, which is the ladder we wanted. Deaths: 84% nuclear (bluff called ×2 17%,
+accidents 29%, story flashpoint endings 25%), 14% removed (mostly public 0). 45% of runs die in Week Four.
+
+### Iteration 6 — attrition
+
+Traces of Week Four deaths (`scratchpad/probe-run.ts`): escalation 70–80, but public 9–16, military 9–20, allies 5–35,
+economy 13–21. The runs were not climbing; they were bleeding. The deck is negative-sum on all four office meters and
+the act cost scaling (×1.35 in Week Four, ×1.5 in the Endgame) multiplied the bleed exactly when the meters were lowest,
+so the bot was cornered into whichever side did not kill it this card.
+
+Changes:
+- **Recovery** (new act knob, `recovery: 0.15`): each ordinary card drifts every office meter 0.15 expected toward 50.
+  Opinion regresses, markets recover, alliances persist. Endless acts inherit it.
+- **Act cost scaling** 1.00 / 1.10 / 1.20 / 1.35 / 1.50 → **1.00 / 1.08 / 1.16 / 1.28 / 1.40**.
+
+Probes (1,000 heuristic runs each) while choosing the pair:
+
+| Recovery | Scaling | Heuristic win | Median min |
+| --- | --- | --- | --- |
+| 0 | 1.05 / 1.12 / 1.20 / 1.30 | 12.1% | 18.3 |
+| 0.25 | 1.05 / 1.12 / 1.20 / 1.30 | 19.8% | 19.2 |
+| 0.15 | 1.10 / 1.20 / 1.35 / 1.50 (old) | 4.2% | 17.0 |
+| **0.15** | **1.08 / 1.16 / 1.28 / 1.40** | **9.6%** | **18.0** |
+
+The scaling is the bigger lever; recovery is the gentler one. The chosen pair sits in the middle of T1 with room for the
+full-scale run to land either side.

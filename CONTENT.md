@@ -246,9 +246,17 @@ Flashpoints: `fp_intercept` (The Intercept, acts 1–5, has false-alarm entry) �
 | | Act 1 | Act 2 | Act 3 | Act 4 | Act 5 |
 | --- | --- | --- | --- | --- | --- |
 | Cards before flashpoint | 14 | 14 | 16 | 16 | 10 |
-| Cost scale (engine) | ×1.0 | ×1.1 | ×1.2 | ×1.35 | ×1.5 |
+| Cost scale (engine) | ×1.0 | ×1.08 | ×1.16 | ×1.28 | ×1.4 |
 | Intel shift | 0 | −5 | −10 | −15 | −20 |
 | Timer scale | ×1.0 | ×0.9 | ×0.8 | ×0.7 | ×0.6 |
+| Leverage target (ante) | 250 | 450 | 1,200 | 3,200 | 7,000 |
+| Cooling / recovery per ordinary card | 0.5 / 0.15 | same | same | same | same |
+
+The deck as authored is negative-sum on every office meter (about −0.6 public, −0.3 military,
+−0.2 allies, −0.35 economy and +1.05 escalation per ordinary card at random play). That is
+intended: the engine's cooling and recovery drifts (ENGINE.md §10) are what keep a careful
+run alive, and BALANCE.md tunes them, not the cards. Do not "fix" a bleak card by making it
+free.
 
 Author base numbers for act 1 and let the engine scale costs:
 - Ordinary card: effects ±3..±8 on one or two meters, ±3..±10 on hidden values.

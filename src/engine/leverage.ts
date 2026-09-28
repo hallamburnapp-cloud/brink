@@ -251,5 +251,6 @@ export function endlessActDef(last: ActDef, act: number): ActDef {
     day_per_card: last.day_per_card,
     target: Math.round(last.target * Math.pow(2.8, n)),
     cooling: last.cooling,
+    recovery: last.recovery,
   };
 }

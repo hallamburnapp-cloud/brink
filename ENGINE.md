@@ -172,7 +172,15 @@ act.timer_scale × difficulty.timer_scale), 4, 30)`; expiry plays the card's tim
 (Pre-delegation: the military side). Drawing: due follow-ups first (in order, flashpoint
 cards only inside their flashpoint), then a weighted random draw over eligible cards
 (act, seat, mode, `once`, conditions, removed tags, ×0.25 for a third concurrent arc's
-entry, warning frequency); with nothing eligible, any act-appropriate card may repeat.
+entry, warning frequency for cards with a truth roll); with nothing eligible, any
+act-appropriate card may repeat.
+
+After every ordinary card (never a flashpoint or bluff card) the act's two drifts apply:
+**cooling** takes `act.cooling` expected points off escalation while it is above 25 (a crisis
+nobody feeds cools; the ladder is climbed on purpose), and **recovery** moves each office meter
+`act.recovery` expected points toward 50 (opinion regresses, markets recover, alliances
+persist). Fractions are rolled on the run's RNG, so replays match. Both are set per act in
+rules.yaml (0.5 and 0.15 at launch) and inherited by endless acts.
 
 ## 11. Endings and "the moment"
 

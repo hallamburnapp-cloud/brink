@@ -419,6 +419,12 @@ export interface ActDef {
    * rolled). Flashpoint and bluff cards never cool.
    */
   cooling?: number;
+  /**
+   * Expected points each office meter (public, military, allies, economy) drifts
+   * back toward 50 per ordinary card: opinion regresses, markets recover,
+   * alliances persist. Fractional parts are rolled.
+   */
+  recovery?: number;
   /** Leverage that must be accumulated during the act (the ante). */
   target: number;
 }

@@ -653,6 +653,8 @@ function setValue(content: Content, state: RunState, ctx: ModContext, k: EffectK
 
 /** Escalation never cools below this on its own (a crisis that has started stays warm). */
 export const COOLING_FLOOR = 25;
+/** Office meters recover toward this value (see ActDef.recovery). */
+export const RECOVERY_CENTRE = 50;
 
 function applyDrift(content: Content, state: RunState, rng: Rng, ctx: ModContext, ordinary = true): void {
   const cooling = ordinary ? (ctx.act.cooling ?? 0) : 0;
@@ -662,6 +664,20 @@ function applyDrift(content: Content, state: RunState, rng: Rng, ctx: ModContext
     let d = whole;
     if (frac !== 0 && rng.next() < frac) d += 1;
     if (d > 0) setValue(content, state, ctx, 'escalation', Math.max(COOLING_FLOOR, state.meters.escalation - d));
+  }
+  const recovery = ordinary ? (ctx.act.recovery ?? 0) : 0;
+  if (recovery > 0) {
+    for (const k of ['public', 'military', 'allies', 'economy'] as const) {
+      const v = state.meters[k];
+      if (v === RECOVERY_CENTRE) continue;
+      const whole = Math.trunc(recovery);
+      const frac = recovery - whole;
+      let d = whole;
+      if (frac !== 0 && rng.next() < frac) d += 1;
+      if (d <= 0) continue;
+      const next = v < RECOVERY_CENTRE ? Math.min(RECOVERY_CENTRE, v + d) : Math.max(RECOVERY_CENTRE, v - d);
+      setValue(content, state, ctx, k, next);
+    }
   }
   for (const p of ctx.pieces) {
     for (const m of p.modifiers) {

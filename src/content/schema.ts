@@ -358,6 +358,7 @@ export const actSchema = z
     day_per_card: z.number().min(0.1).max(2),
     target: z.number().int().min(50),
     cooling: z.number().min(0).max(3).optional(),
+    recovery: z.number().min(0).max(3).optional(),
   })
   .strict();
 

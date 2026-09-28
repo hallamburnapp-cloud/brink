@@ -2,15 +2,15 @@
 # less reliable intel, shorter timers. `target` is the act's leverage ante:
 # the leverage that must be accumulated before the flashpoint, or the bluff is called.
 acts:
-  - { index: 1, name: Week One,   cards: 14, effect_scale: 1.00, intel_shift: 0,   timer_scale: 1.00, day_per_card: 0.5, target: 250, cooling: 0.5 }
-  - { index: 2, name: Week Two,   cards: 14, effect_scale: 1.10, intel_shift: -5,  timer_scale: 0.90, day_per_card: 0.5, target: 450, cooling: 0.5 }
-  - { index: 3, name: Week Three, cards: 16, effect_scale: 1.20, intel_shift: -10, timer_scale: 0.80, day_per_card: 0.5, target: 1200, cooling: 0.5 }
-  - { index: 4, name: Week Four,  cards: 16, effect_scale: 1.35, intel_shift: -15, timer_scale: 0.70, day_per_card: 0.5, target: 3200, cooling: 0.5 }
-  - { index: 5, name: Endgame,    cards: 10, effect_scale: 1.50, intel_shift: -20, timer_scale: 0.60, day_per_card: 0.5, target: 7000, cooling: 0.5 }
+  - { index: 1, name: Week One,   cards: 14, effect_scale: 1.00, intel_shift: 0,   timer_scale: 1.00, day_per_card: 0.5, target: 250, cooling: 0.5, recovery: 0.15 }
+  - { index: 2, name: Week Two,   cards: 14, effect_scale: 1.08, intel_shift: -5,  timer_scale: 0.90, day_per_card: 0.5, target: 450, cooling: 0.5, recovery: 0.15 }
+  - { index: 3, name: Week Three, cards: 16, effect_scale: 1.16, intel_shift: -10, timer_scale: 0.80, day_per_card: 0.5, target: 1200, cooling: 0.5, recovery: 0.15 }
+  - { index: 4, name: Week Four,  cards: 16, effect_scale: 1.28, intel_shift: -15, timer_scale: 0.70, day_per_card: 0.5, target: 3200, cooling: 0.5, recovery: 0.15 }
+  - { index: 5, name: Endgame,    cards: 10, effect_scale: 1.40, intel_shift: -20, timer_scale: 0.60, day_per_card: 0.5, target: 7000, cooling: 0.5, recovery: 0.15 }
 
 difficulties:
   - { level: 5, name: DEFCON 5, effect_scale: 1.00, intel_shift: 0,   timer_scale: 1.00, start_escalation: 0,  target_scale: 1.00 }
-  - { level: 4, name: DEFCON 4, effect_scale: 1.10, intel_shift: -5,  timer_scale: 0.90, start_escalation: 5,  target_scale: 1.15, unlock: defcon_4 }
-  - { level: 3, name: DEFCON 3, effect_scale: 1.20, intel_shift: -10, timer_scale: 0.85, start_escalation: 10, target_scale: 1.30, unlock: defcon_3 }
-  - { level: 2, name: DEFCON 2, effect_scale: 1.35, intel_shift: -15, timer_scale: 0.75, start_escalation: 15, target_scale: 1.50, unlock: defcon_2 }
-  - { level: 1, name: DEFCON 1, effect_scale: 1.50, intel_shift: -20, timer_scale: 0.65, start_escalation: 20, target_scale: 1.75, unlock: defcon_1 }
+  - { level: 4, name: DEFCON 4, effect_scale: 1.08, intel_shift: -5,  timer_scale: 0.90, start_escalation: 5,  target_scale: 1.15, unlock: defcon_4 }
+  - { level: 3, name: DEFCON 3, effect_scale: 1.28, intel_shift: -10, timer_scale: 0.85, start_escalation: 10, target_scale: 1.30, unlock: defcon_3 }
+  - { level: 2, name: DEFCON 2, effect_scale: 1.28, intel_shift: -15, timer_scale: 0.75, start_escalation: 15, target_scale: 1.50, unlock: defcon_2 }
+  - { level: 1, name: DEFCON 1, effect_scale: 1.40, intel_shift: -20, timer_scale: 0.65, start_escalation: 20, target_scale: 1.75, unlock: defcon_1 }
