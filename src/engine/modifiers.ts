@@ -52,7 +52,7 @@ function tagsMatch(filter: string[] | undefined, tags: readonly string[]): boole
   return false;
 }
 
-function keyMatches(filter: ModifierDef extends { kind: 'effect'; key?: infer K } ? K : never, key: EffectKey): boolean {
+function keyMatches(filter: EffectKey | 'meters' | 'hidden' | 'trust' | undefined, key: EffectKey): boolean {
   if (filter === undefined) return true;
   if (filter === 'meters') return (METERS as readonly string[]).includes(key);
   if (filter === 'hidden') return (HIDDEN as readonly string[]).includes(key);

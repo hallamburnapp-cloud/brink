@@ -1,0 +1,25 @@
+{
+  "note": "TEST ONLY key pair for e2e; never use in production",
+  "privateJwk": {
+    "key_ops": [
+      "sign"
+    ],
+    "ext": true,
+    "kty": "EC",
+    "x": "J8GRYELPiVLexFN4IiAyTOSbgzfrugHxNy_6XeTUsao",
+    "y": "7wOo09qr-VgDKfJrXNNHg0Uu-YDSG1Bm_xxzMwk--7w",
+    "crv": "P-256",
+    "d": "mxIF4UH-iOJFzZgcWm2Pv-qxX30LXQIA74PyA6E7IzI"
+  },
+  "publicJwk": {
+    "key_ops": [
+      "verify"
+    ],
+    "ext": true,
+    "kty": "EC",
+    "x": "J8GRYELPiVLexFN4IiAyTOSbgzfrugHxNy_6XeTUsao",
+    "y": "7wOo09qr-VgDKfJrXNNHg0Uu-YDSG1Bm_xxzMwk--7w",
+    "crv": "P-256"
+  },
+  "publicJwkB64": "eyJrZXlfb3BzIjpbInZlcmlmeSJdLCJleHQiOnRydWUsImt0eSI6IkVDIiwieCI6Iko4R1JZRUxQaVZMZXhGTjRJaUF5VE9TYmd6ZnJ1Z0h4TnlfNlhlVFVzYW8iLCJ5IjoiN3dPbzA5cXItVmdES2ZKclhOTkhnMFV1LVlEU0cxQm1feHh6TXdrLS03dyIsImNydiI6IlAtMjU2In0"
+}

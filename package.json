@@ -23,11 +23,13 @@
     "size": "tsx tools/size-check.ts"
   },
   "dependencies": {
+    "@preact/signals": "^2.11.2",
     "preact": "^10.29.8"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "@preact/preset-vite": "^2.10.1",
+    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/vite": "^4.3.3",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.19.0",

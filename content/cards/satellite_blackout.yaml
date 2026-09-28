@@ -1,0 +1,739 @@
+# satellite_blackout — a reconnaissance satellite over the Sorrel Straits goes dark.
+# Forces: attribution ambiguity (a jammer, a laser, a power fault; the fast guess
+# costs intel, the slow investigation costs military and public; a wrong name burns
+# trust with the power you wrongly blamed) and entanglement (the commercial
+# constellation becomes a target, the early-warning birds are next, the Cyber Unit
+# tempts a reply nobody can prove). The truth is only ever known to the degree
+# the player pays for it.
+# Flags: blackout:started, blackout:attributed_rival, blackout:attributed_other,
+#        blackout:accident, blackout:retaliated, blackout:resolved
+# Piece hooks: cyber_director, early_warning, commercial_sat, cyber_unit
+
+# ---- entries (non-chained; each starts the arc once) --------------------------
+
+- id: blackout_01_dark_sky
+  arc: satellite_blackout
+  advisor: cyber_director
+  acts: [1, 2]
+  weight: 1.5
+  tags: [space, attribution]
+  conditions: { flags_none: [blackout:started] }
+  text: >-
+    At 02:14 our reconnaissance satellite over the Sorrel Straits stopped
+    answering. No debris, no flash, no warning. It is consistent with a jammer,
+    a laser, or a power fault. I can give you which one in two days or a guess
+    in two minutes.
+  left:
+    text: "Give me the guess"
+    effects: { intel: -6, escalation: 3 }
+    tags: [intel, stall]
+    set: [blackout:started]
+    follow: [{ card: blackout_04_the_guess, in: 1 }]
+  right:
+    text: "Take the two days"
+    effects: { military: -3, public: -2 }
+    tags: [investigate, intel]
+    set: [blackout:started]
+    follow: [{ card: blackout_05_the_report, in: 3 }]
+
+- id: blackout_02_during_the_exercise
+  arc: satellite_blackout
+  advisor: intel_director
+  acts: [2, 3]
+  weight: 1.2
+  timer: 10
+  timeout: left
+  tags: [space, attribution, intel]
+  conditions: { flags_none: [blackout:started] }
+  text: >-
+    Our reconnaissance satellite over the Sorrel Straits went dark at 02:14,
+    forty minutes into a {rival_adj} naval exercise. A single source puts a
+    jamming van on the headland at Caldor the day before. We assess a link at
+    moderate confidence, which is a phrase the General has already crossed out.
+    He wants the assessment in writing by 06:00.
+  left:
+    text: "Put it in writing"
+    effects: { military: 4, intel: -5, escalation: 4, commitment: 5 }
+    tags: [intel, military, commitment_trap]
+    set: [blackout:started]
+    follow: [{ card: blackout_04_the_guess, in: 1 }]
+  right:
+    text: "Not in writing. Not yet"
+    effects: { military: -4, intel: 4, public: -2 }
+    tags: [investigate, intel, stall]
+    set: [blackout:started]
+    follow: [{ card: blackout_05_the_report, in: 2 }]
+
+- id: blackout_03_eleven_hours
+  arc: satellite_blackout
+  advisor: press
+  acts: [3, 5]
+  weight: 1.2
+  timer: 12
+  timeout: right
+  tags: [space, domestic, attribution]
+  conditions: { flags_none: [blackout:started] }
+  text: >-
+    Your satellite over the Straits has been dark for eleven hours and two
+    people in your building have told me nobody knows why. I go live at six. I
+    can say 'technical fault' in your voice, or I can say 'every option is being
+    considered' in mine, and you know which one my editor prefers.
+  left:
+    text: "Say technical fault"
+    effects: { public: 3, intel: -4, trust_primary: 2, commitment: -3 }
+    tags: [domestic, secrecy, reassurance]
+    set: [blackout:started]
+    follow: [{ card: blackout_05_the_report, in: 2 }]
+  right:
+    text: "Say every option is being considered"
+    effects: { public: 2, escalation: 4, commitment: 6, trust_primary: -4 }
+    tags: [public_commitment, deterrence, domestic]
+    set: [blackout:started]
+    follow: [{ card: blackout_04_the_guess, in: 1 }]
+
+# ---- the guess and the report (chained developments) ------------------------
+
+- id: blackout_04_the_guess
+  arc: satellite_blackout
+  advisor: intel_director
+  acts: [1, 5]
+  tags: [attribution, intel, space]
+  text: >-
+    A single source and one satellite pass put a jamming van on the headland at
+    Caldor eleven hours before we lost the bird. We assess {rival} at low to
+    moderate confidence. The General has a statement drafted with the word
+    'deliberate' in the second sentence. He would like your name under it by
+    noon.
+  left:
+    text: "Release the statement"
+    effects: { escalation: 6, commitment: 8, public: 4 }
+    tags: [attribution, public_commitment, escalatory]
+    odds:
+      label: Attribution
+      base: 0.5
+      tags: [attribution, intel]
+      success:
+        text: The van was theirs. Their own exercise catalogue lists it.
+        set: [blackout:attributed_rival]
+        effects: { trust_primary: -8, military: 3 }
+        follow: [{ card: blackout_07_their_answer, in: 2 }]
+      failure:
+        text: The van belongs to a broadcaster. You have named a great power over a yacht race.
+        set: [blackout:attributed_rival]
+        effects: { trust_primary: -8, trust_secondary: -4, intel: -4 }
+        follow: [{ card: blackout_06_wrong_headland, in: 2 }]
+  right:
+    text: "Hold it. Widen the search"
+    effects: { military: -5, public: -3, intel: 5 }
+    tags: [investigate, intel, stall]
+    follow: [{ card: blackout_05_the_report, in: 2 }]
+
+- id: blackout_05_the_report
+  arc: satellite_blackout
+  advisor: cyber_director
+  acts: [1, 5]
+  tags: [attribution, intel, space]
+  text: >-
+    Two days, as promised. The last frames show the optics saturating from
+    below, which is consistent with a ground laser and not with a jammer, and I
+    would put a battery fault at one in five. Three sites had line of sight at
+    02:14: a {rival_adj} test range, a {other_adj} weather station, and a
+    commercial dish on Caldor leased by four flags. I can tell you which, if you
+    let me spend the access that would tell me.
+  left:
+    text: "Spend the access"
+    effects: { intel: -8, military: 2 }
+    tags: [investigate, attribution, intel]
+    odds:
+      label: Attribution
+      base: 0.6
+      tags: [attribution, intel]
+      success:
+        text: The range. Their firing log matches our loss to the second.
+        set: [blackout:attributed_rival]
+        effects: { trust_primary: -6, escalation: 3, public: 3 }
+        follow: [{ card: blackout_07_their_answer, in: 1 }]
+      failure:
+        text: The access burned before it answered. Three sites, still.
+        effects: { intel: -4, military: -3, public: -3 }
+        follow: [{ card: blackout_18_the_window, in: 1 }]
+  right:
+    text: "Keep the access. Call it unexplained"
+    effects: { public: -5, military: -4, intel: 3 }
+    tags: [stall, secrecy, intel]
+    follow: [{ card: blackout_18_the_window, in: 2 }]
+
+- id: blackout_06_wrong_headland
+  arc: satellite_blackout
+  advisor: ambassador
+  acts: [1, 5]
+  tags: [attribution, diplomacy, misperception, commitment_trap]
+  text: >-
+    The van on the headland at Caldor belongs to a {other_adj} broadcaster
+    covering the Straits regatta. Their ambassador brought me the invoice
+    himself, which is what a man does when he intends to be quoted. In
+    {rival_capital} they have noticed that we named them on the strength of a
+    yacht race. I once watched a foreign minister lose his post for less, and he
+    had been right.
+  left:
+    text: "Correct the record"
+    effects: { public: -8, commitment: -8, trust_primary: 5, trust_secondary: 4, escalation: -3 }
+    tags: [walk_back, diplomacy, transparency]
+    clear: [blackout:attributed_rival]
+  right:
+    text: "Stand by the statement"
+    effects: { commitment: 6, trust_primary: -10, trust_secondary: -6, escalation: 5, public: 2 }
+    tags: [public_commitment, secrecy, escalatory]
+
+- id: blackout_07_their_answer
+  arc: satellite_blackout
+  advisor: ambassador
+  acts: [1, 5]
+  tags: [diplomacy, space, entanglement]
+  text: >-
+    {rival_capital} answered at noon. Not a denial: a statement that {us} has
+    'mislaid a satellite in a crowded orbit' and 'will not be lectured on space
+    by a power that rents its eyes'. I have known their foreign minister for
+    thirty years. When he mentions our leases he is telling me what he intends
+    to hit next.
+  left:
+    text: "Answer through me, quietly"
+    effects: { trust_primary: 6, escalation: -4, public: -4, military: -3 }
+    tags: [back_channel, diplomacy, deescalate]
+    follow: [{ card: blackout_19_quiet_understanding, in: 3 }]
+  right:
+    text: "Answer in public"
+    effects: { public: 5, commitment: 7, escalation: 6, trust_primary: -6 }
+    tags: [public_commitment, deterrence]
+    follow: [{ card: blackout_18_the_window, in: 1 }]
+
+# ---- the third power (attributing the other way) ----------------------------
+
+- id: blackout_08_the_north_cape
+  arc: satellite_blackout
+  advisor: intel_director
+  acts: [1, 5]
+  tags: [attribution, intel, misperception]
+  conditions:
+    flags_all: [blackout:started]
+    flags_none: [blackout:attributed_rival, blackout:attributed_other, blackout:accident, blackout:resolved]
+  text: >-
+    A second reading. The {other_adj} weather station on Caldor's north cape ran
+    a lidar calibration at 02:13, and a misaligned lidar can saturate optics of
+    our type. We assess, low confidence, an accident, and theirs. {Other} has
+    been the quiet friend in this so far, which is worth saying before you
+    decide how to ask them.
+  left:
+    text: "Ask for the logs in public"
+    effects: { public: 3, commitment: 4 }
+    tags: [attribution, public_commitment, diplomacy]
+    set: [blackout:attributed_other]
+    odds:
+      label: Attribution
+      base: 0.45
+      tags: [attribution, intel]
+      success:
+        text: Their logs match. An accident, and theirs, and they have said so.
+        set: [blackout:accident]
+        effects: { trust_secondary: -5, escalation: -4, public: 4 }
+        follow: [{ card: blackout_22_nobody_did_this, in: 2 }]
+      failure:
+        text: The lidar was powered down at 02:13. Now they want to know why we asked in public.
+        effects: { trust_secondary: -10, allies: -3, intel: -3, escalation: 3 }
+        follow: [{ card: blackout_09_the_protest, in: 1 }]
+  right:
+    text: "Ask quietly, through the Ambassador"
+    effects: { intel: -3, trust_secondary: 3, public: -3, military: -2 }
+    tags: [back_channel, investigate, intel]
+
+- id: blackout_09_the_protest
+  arc: satellite_blackout
+  advisor: ambassador
+  acts: [1, 5]
+  tags: [diplomacy, attribution, commitment_trap]
+  text: >-
+    A formal protest, addressed to me by name, on the stationery they keep for
+    wars and weddings. The station on the north cape is civilian and we said
+    otherwise on television. Their ambassador reminded me, courteously, that his
+    country has been passing us tracking data for a week without being asked,
+    and the tense he used was the past.
+  left:
+    text: "Apologise, fully and in private"
+    effects: { trust_secondary: 8, public: -5, commitment: -5, allies: 2 }
+    tags: [walk_back, back_channel, diplomacy]
+    clear: [blackout:attributed_other]
+  right:
+    text: "Ask them to prove the lidar was off"
+    effects: { trust_secondary: -10, allies: -3, intel: 3, escalation: 3 }
+    tags: [investigate, attribution, escalatory]
+
+# ---- pieces: the Cyber & Space Director ---------------------------------------
+
+- id: blackout_10_consistent_with
+  arc: satellite_blackout
+  advisor: cyber_director
+  acts: [1, 5]
+  weight: 1.2
+  tags: [attribution, intel, space]
+  conditions:
+    pieces_any: [cyber_director]
+    flags_all: [blackout:started]
+    flags_none: [blackout:attributed_rival, blackout:attributed_other, blackout:accident, blackout:resolved]
+  text: >-
+    Everyone in this building has told you what it is consistent with. I can
+    tell you what it is. The cost is a source inside their space agency's
+    maintenance contractor who took four years to place and will survive
+    exactly one use.
+  left:
+    text: "Use the source"
+    effects: { intel: -10, military: 3 }
+    tags: [attribution, intel, investigate]
+    odds:
+      label: Attribution
+      base: 0.7
+      tags: [attribution, intel]
+      success:
+        text: A laser. Theirs. A test range they told the Assembly was mothballed.
+        set: [blackout:attributed_rival]
+        effects: { trust_primary: -6, public: 4 }
+        follow: [{ card: blackout_07_their_answer, in: 1 }]
+      failure:
+        text: Cell fourteen of the battery pack. Four years past its rating. Nobody did this.
+        set: [blackout:accident]
+        effects: { public: -4, escalation: -4, military: -3 }
+        follow: [{ card: blackout_22_nobody_did_this, in: 1 }]
+  right:
+    text: "Keep the source"
+    effects: { intel: 4, public: -4, escalation: 3, military: -2 }
+    tags: [stall, secrecy, intel]
+
+- id: blackout_11_the_hedge
+  arc: satellite_blackout
+  advisor: press
+  acts: [1, 5]
+  tags: [attribution, domestic, intel]
+  conditions:
+    pieces_any: [cyber_director]
+    flags_all: [blackout:started]
+    flags_none: [blackout:resolved]
+  text: >-
+    Your Cyber Director told the select committee the blackout is 'consistent
+    with' three things. Twenty minutes later your General told the same
+    committee it was one thing, and named the country. I have both transcripts
+    and one front page. Which of them speaks for you?
+  left:
+    text: "The Director does"
+    effects: { military: -6, intel: 5, public: -3, trust_primary: 3 }
+    tags: [transparency, intel, investigate]
+  right:
+    text: "The General does"
+    effects: { military: 4, escalation: 5, intel: -5, commitment: 6, trust_primary: -5 }
+    tags: [public_commitment, deterrence, escalatory]
+    set: [blackout:attributed_rival]
+
+# ---- pieces: the Early-Warning Constellation ----------------------------------
+
+- id: blackout_12_same_orbit
+  arc: satellite_blackout
+  advisor: scientist
+  acts: [1, 5]
+  tags: [space, warning, entanglement]
+  conditions:
+    pieces_any: [early_warning]
+    flags_all: [blackout:started]
+    flags_none: [blackout:resolved]
+  text: >-
+    If it was a laser, the early-warning birds share the optics and the orbit
+    family. Fifty kilometres of altitude is the difference between a
+    reconnaissance satellite and a strategic one, and a laser does not read
+    altitude. I can shutter them over the Straits, which gives us a blind spot
+    of eleven minutes per pass. Eleven minutes is not long, unless it is.
+  left:
+    text: "Shutter them"
+    effects: { intel: -6, military: -3, escalation: -2 }
+    tags: [space, stall, warning]
+  right:
+    text: "Keep them open and say so"
+    effects: { commitment: 7, escalation: 5, public: 3, trust_primary: -4 }
+    tags: [public_commitment, deterrence, space, warning]
+
+- id: blackout_13_the_inspector
+  arc: satellite_blackout
+  advisor: hawk_general
+  acts: [1, 5]
+  timer: 9
+  timeout: left
+  tags: [space, military, warning, entanglement]
+  conditions:
+    pieces_any: [early_warning]
+    flags_all: [blackout:started]
+    flags_none: [blackout:retaliated, blackout:resolved]
+  text: >-
+    They have moved an inspector satellite to within two kilometres of Bird
+    Four, which is the early-warning platform that watches their northern
+    silos. Inspectors carry cameras, and sometimes they carry a laser. We have
+    the same capability on the Isle of Caldor and a window at 04:10. After that
+    the window is theirs.
+  left:
+    text: "Burn the inspector"
+    effects: { military: 8, escalation: 9, trust_primary: -12, public: 3, intel: -3 }
+    tags: [strike, space, escalatory, military]
+    set: [blackout:retaliated]
+  right:
+    text: "Move Bird Four"
+    effects: { military: -5, intel: -4, escalation: -2 }
+    tags: [stall, deescalate, space]
+
+# ---- pieces: the Commercial Satellite Deal ------------------------------------
+
+- id: blackout_14_the_shareholders
+  arc: satellite_blackout
+  advisor: contractor
+  acts: [1, 5]
+  tags: [space, entanglement, economy]
+  conditions:
+    pieces_any: [commercial_sat]
+    flags_all: [blackout:started]
+    flags_none: [blackout:resolved]
+  text: >-
+    Halvard's constellation crossed the same box an hour after your bird went
+    dark, and two of ours are now showing degraded optics. Our imagery is on
+    your desk every morning; our share register is in every capital, including
+    the two you are considering. The board would like to know whether Halvard
+    is a supplier or a combatant. I told them that was your call, which they
+    took as a threat.
+  left:
+    text: "Halvard's birds are under our protection"
+    effects: { escalation: 6, commitment: 8, economy: -4, public: 3, trust_primary: -5 }
+    tags: [public_commitment, deterrence, entanglement, space]
+  right:
+    text: "Suspend the lease over the Straits"
+    effects: { intel: -8, economy: -5, escalation: -3, public: -3 }
+    tags: [concede, economy, entanglement, space]
+
+- id: blackout_15_nine_percent
+  arc: satellite_blackout
+  advisor: press
+  acts: [1, 5]
+  tags: [entanglement, economy, domestic]
+  conditions:
+    pieces_any: [commercial_sat]
+    flags_all: [blackout:started]
+    flags_any: [blackout:attributed_rival, blackout:attributed_other]
+    flags_none: [blackout:resolved]
+  text: >-
+    Halvard Systems opened nine percent down, and its largest holder is a
+    pension fund in the capital you named yesterday. So the country you accused
+    of blinding your satellite owns a fifth of the company that replaced it. My
+    question is whether you knew, and I am asking it on the record either way.
+  left:
+    text: "Take the lease into public hands"
+    effects: { economy: -8, public: 3, military: 3, trust_primary: -4, trust_secondary: -4 }
+    tags: [economy, entanglement, domestic]
+  right:
+    text: "Let the market decide"
+    effects: { economy: -4, intel: -5, allies: -3, public: -3 }
+    tags: [economy, stall, entanglement]
+
+# ---- pieces: the Cyber Unit ---------------------------------------------------
+
+- id: blackout_16_do_it_back
+  arc: satellite_blackout
+  advisor: cyber_director
+  acts: [1, 5]
+  tags: [cyber, space, attribution]
+  conditions:
+    pieces_any: [cyber_unit]
+    flags_all: [blackout:started]
+    flags_none: [blackout:retaliated, blackout:resolved, blackout:accident]
+  text: >-
+    The Unit has had a way into their ground station's control segment since
+    the spring. We can put their downlink over the Straits dark for a week.
+    Nobody would be able to prove it was us, which is exactly what they will say
+    about ours, and then we will have two unexplained events and a pattern.
+  left:
+    text: "Put their downlink dark"
+    effects: { escalation: 5, military: 3 }
+    tags: [cyber, escalatory, military]
+    set: [blackout:retaliated]
+    odds:
+      label: Cyber
+      base: 0.55
+      tags: [cyber]
+      success:
+        text: Dark at 03:00. Their foreign ministry has said nothing, which is how they say they know.
+        effects: { military: 6, public: 3, trust_primary: -10, escalation: 4 }
+      failure:
+        text: Traced in nine hours. Their statement names the building.
+        effects: { escalation: 10, public: -6, trust_primary: -12, trust_secondary: -5, intel: -4 }
+  right:
+    text: "Hold"
+    effects: { military: -6, commitment: -4, trust_primary: 3 }
+    tags: [stall, deescalate]
+
+- id: blackout_17_footprints
+  arc: satellite_blackout
+  advisor: intel_director
+  acts: [1, 5]
+  tags: [cyber, misperception, intel]
+  conditions:
+    pieces_any: [cyber_unit]
+    flags_all: [blackout:started]
+    flags_none: [blackout:resolved]
+  text: >-
+    Signals suggest they have found an implant in their ground segment. It is
+    ours, it predates the blackout by a year, and it did nothing. We assess,
+    moderate confidence, that they read it as reconnaissance for a strike on
+    their constellation, and that their space command has asked for authority
+    to pre-empt.
+  left:
+    text: "Tell them what it was for"
+    effects: { intel: -6, trust_primary: 7, military: -4, escalation: -4 }
+    tags: [transparency, back_channel, deescalate, cyber]
+  right:
+    text: "Deny it"
+    effects: { trust_primary: -9, escalation: 6, military: 3, intel: 2 }
+    tags: [secrecy, deterrence, cyber]
+
+# ---- the General's window (drawable and chained) ------------------------------
+
+- id: blackout_18_the_window
+  arc: satellite_blackout
+  advisor: hawk_general
+  acts: [1, 5]
+  chained: false
+  timer: 10
+  timeout: left
+  tags: [space, military, attribution]
+  conditions:
+    flags_all: [blackout:started]
+    flags_none: [blackout:retaliated, blackout:resolved, blackout:accident]
+  text: >-
+    Their reconnaissance bird crosses the Straits at 04:10 tomorrow. We have the
+    same capability on the Isle and a clear sky. Nobody would know for certain,
+    which is the point, and which is what they are counting on us to remember
+    about ours. The window is forty seconds.
+  left:
+    text: "Take the window"
+    effects: { escalation: 6, military: 3 }
+    tags: [strike, space, escalatory, military]
+    set: [blackout:retaliated]
+    odds:
+      label: Strike
+      base: 0.6
+      tags: [strike, military]
+      success:
+        text: Dark at 04:10:40. Their catalogue now has a blank where ours does.
+        effects: { military: 8, escalation: 6, trust_primary: -12, public: 3 }
+      failure:
+        text: Their bird is fine. Ours on the Isle is on their front page by lunch.
+        effects: { escalation: 10, trust_primary: -14, public: -5, military: -4 }
+  right:
+    text: "Hold the window"
+    effects: { military: -6, commitment: -3, trust_primary: 3 }
+    tags: [stall, deescalate]
+
+# ---- resolutions --------------------------------------------------------------
+
+- id: blackout_19_quiet_understanding
+  arc: satellite_blackout
+  advisor: ambassador
+  acts: [1, 5]
+  tags: [back_channel, diplomacy, space]
+  text: >-
+    Their foreign minister and I had breakfast in a hotel that appears on
+    neither of our schedules. He offers an understanding: neither side touches
+    the other's satellites over the Straits for the duration, unwritten,
+    unannounced, deniable. In my experience the unwritten ones hold longer,
+    because nobody has to be seen keeping them.
+  left:
+    text: "Accept it, unwritten"
+    effects: { trust_primary: 10, escalation: -8, military: -5, commitment: -4, public: -2 }
+    tags: [back_channel, reassurance, deescalate]
+    set: [blackout:resolved]
+  right:
+    text: "Only in writing"
+    effects: { commitment: 5 }
+    tags: [diplomacy, public_commitment]
+    odds:
+      label: They blink
+      base: 0.45
+      tags: [adversary, diplomacy]
+      success:
+        text: Signed, one page, no ceremony. He asked that it never be quoted.
+        set: [blackout:resolved]
+        effects: { public: 6, trust_primary: 4, escalation: -5, military: -3 }
+      failure:
+        text: He left before the coffee. The understanding is off the table and he wants it known that we asked.
+        effects: { trust_primary: -6, escalation: 4, public: -3 }
+
+- id: blackout_20_the_third_chair
+  arc: satellite_blackout
+  advisor: ambassador
+  acts: [1, 5]
+  tags: [diplomacy, intel, alliance]
+  conditions:
+    flags_all: [blackout:started]
+    flags_none: [blackout:attributed_other, blackout:resolved]
+  text: >-
+    {Other}'s ambassador has offered their space tracking data for the Straits,
+    in real time, for as long as this lasts. It is a generous offer and they are
+    not a generous people. Prime Minister Varga will hear of it within the day,
+    and she will ask why we are taking gifts from the third chair while her
+    radars sit idle.
+  left:
+    text: "Take the data"
+    effects: { intel: 8, trust_secondary: 5, allies: -5, trust_primary: -3 }
+    tags: [diplomacy, intel]
+  right:
+    text: "Decline, with thanks"
+    effects: { allies: 3, intel: -3, trust_secondary: -5 }
+    tags: [stall, alliance]
+
+- id: blackout_21_the_battery
+  arc: satellite_blackout
+  advisor: scientist
+  acts: [2, 5]
+  tags: [space, attribution, misperception]
+  conditions:
+    flags_all: [blackout:started]
+    flags_none: [blackout:accident, blackout:resolved]
+  text: >-
+    The telemetry team finished the reconstruction at four this morning. Cell
+    fourteen of the battery pack failed at 02:13:51 and took the bus down with
+    it, quietly, the way a battery does. It was four years past its rated
+    cycles because the replacement was cut from the estimate the year I took
+    this job. Nobody did this to us, and the General is downstairs.
+  left:
+    text: "Publish the finding"
+    effects: { public: -6, commitment: -8, trust_primary: 8, trust_secondary: 4, escalation: -6, military: -3 }
+    tags: [transparency, walk_back, deescalate]
+    set: [blackout:accident, blackout:resolved]
+  right:
+    text: "Classify it"
+    effects: { intel: -3, military: 3, public: 2, trust_primary: -3 }
+    tags: [secrecy, stall]
+    set: [blackout:accident]
+    follow: [{ card: blackout_24_the_leak, in: 3, chance: 0.75 }]
+
+- id: blackout_22_nobody_did_this
+  arc: satellite_blackout
+  advisor: hawk_general
+  acts: [1, 5]
+  chained: false
+  tags: [space, military, transparency]
+  conditions:
+    flags_all: [blackout:accident]
+    flags_none: [blackout:resolved]
+  text: >-
+    It was a battery. I have read the report and I believe it. I also have a
+    reconnaissance gap over the Straits and a rival who watched us go blind and
+    said nothing for a week. The replacement can fly on Thursday with a hardened
+    bus and a statement that does not contain the word 'battery'.
+  left:
+    text: "Fly it Thursday. Say nothing"
+    effects: { military: 8, economy: -6, public: 2, trust_primary: -4, escalation: 3 }
+    tags: [military, secrecy, space]
+    set: [blackout:resolved]
+  right:
+    text: "Fly it, and say it was a battery"
+    effects: { military: 4, economy: -6, public: -4, trust_primary: 6, escalation: -3 }
+    tags: [transparency, reassurance, space]
+    set: [blackout:resolved]
+
+- id: blackout_23_the_replacement
+  arc: satellite_blackout
+  advisor: contractor
+  acts: [2, 5]
+  tags: [space, economy, entanglement]
+  conditions:
+    flags_all: [blackout:started]
+    flags_none: [blackout:resolved]
+  text: >-
+    Halvard can have a replacement bird on the pad in nine days: hardened
+    optics, a shutter that closes in four milliseconds, and a bus that does not
+    care what is pointed at it. It costs what your last three did together. Or
+    you lease coverage from our constellation by the hour while you decide,
+    which is what everyone does while they decide.
+  left:
+    text: "Buy the hardened bird"
+    effects: { military: 7, economy: -9, trust_primary: -3, escalation: 2 }
+    tags: [military, economy, space, deterrence]
+  right:
+    text: "Lease by the hour"
+    effects: { economy: -4, intel: 3, allies: -2, trust_secondary: -2 }
+    tags: [economy, stall, entanglement]
+
+- id: blackout_24_the_leak
+  arc: satellite_blackout
+  advisor: press
+  acts: [1, 5]
+  timer: 8
+  timeout: right
+  tags: [domestic, attribution, commitment_trap]
+  text: >-
+    I have the battery report. Cell fourteen, four years past its rating, the
+    replacement cut from the estimate. I also have a week of your office
+    declining to rule out a hostile act. I am quoting one of them at six, and I
+    would rather it was you choosing which.
+  left:
+    text: "Quote the report"
+    effects: { public: -9, commitment: -10, trust_primary: 6, escalation: -4 }
+    tags: [walk_back, transparency, domestic]
+    set: [blackout:resolved]
+  right:
+    text: "No comment"
+    effects: { public: -8, trust_primary: -4, intel: -3, escalation: 2 }
+    tags: [secrecy, stall, domestic]
+    set: [blackout:resolved]
+
+# ---- cross-arc hooks ----------------------------------------------------------
+
+- id: blackout_25_a_pattern
+  arc: satellite_blackout
+  advisor: intel_director
+  acts: [2, 5]
+  tags: [intel, alliance, misperception]
+  conditions:
+    flags_all: [blackout:started]
+    flags_any: [cyber_ew:intrusion, undersea_cables:cut, debris:event]
+    flags_none: [blackout:resolved]
+  text: >-
+    A satellite, and now this. We assess, moderate confidence, that these are
+    not independent events, and if they are a campaign it has an author who is
+    choosing targets nobody has promised to die for. Prime Minister Varga has
+    asked for the assessment. So has the General, who has already decided what
+    it says.
+  left:
+    text: "Brief the Compact"
+    effects: { allies: 7, intel: -4, trust_primary: -5, escalation: 3 }
+    tags: [alliance, transparency, intel]
+  right:
+    text: "Keep the pattern in this room"
+    effects: { intel: 4, allies: -4, commitment: -2 }
+    tags: [secrecy, intel]
+
+- id: blackout_26_in_the_way
+  arc: satellite_blackout
+  advisor: scientist
+  acts: [2, 5]
+  weight: 0.8
+  tags: [space, attribution, misperception]
+  conditions:
+    flags_all: [blackout:started]
+    flags_any: [debris:event]
+    flags_none: [blackout:accident, blackout:attributed_rival, blackout:resolved]
+  text: >-
+    The leading edge of the debris cloud crossed our satellite's orbit at
+    02:11, three minutes before we lost it. A fragment the size of a coin at
+    seven kilometres a second leaves no flash we would see from here. It is
+    possible nobody blinded us. It is possible we were simply in the way.
+  left:
+    text: "Call it debris"
+    effects: { public: -3, escalation: -5, military: -4, trust_primary: 5 }
+    tags: [attribution, deescalate, space]
+    set: [blackout:accident]
+  right:
+    text: "Convenient. Keep looking"
+    effects: { intel: -4, military: 2, escalation: 2 }
+    tags: [investigate, intel]

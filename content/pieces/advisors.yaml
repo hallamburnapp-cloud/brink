@@ -155,6 +155,7 @@
   art: fixer
   tags: [domestic]
   grants: [has_fixer]
+  unlock: { id: five_endings, label: The Chief of Staff, hint: See five different endings. }
   modifiers:
     - { kind: rule, rule: remove_card_per_act, value: 1 }
 
@@ -188,6 +189,7 @@
   art: peace_leader
   tags: [domestic, deescalate]
   grants: [has_peace_leader]
+  unlock: { id: unloved_peacemaker, label: The Peace Movement Leader, hint: Reach Stand-Down with public support below 35. }
   modifiers:
     - { kind: effect, key: public, tags: [deescalate, concede], add: 4, always: true }
     - { kind: effect, key: public, tags: [deterrence, mobilise, strike, limited_strike], add: -4, always: true }

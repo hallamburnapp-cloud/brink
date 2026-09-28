@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests, validator, simulator smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run content:validate
+      - run: npm run sim:smoke
+
+  build:
+    name: Build, size budget, e2e
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+          VITE_APP_VERSION: ${{ github.sha }}
+      - run: npm run size
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+  worker-test:
+    name: Unlock Worker tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm test
+
+  deploy-pages:
+    name: Deploy to Cloudflare Pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: [build, worker-test]
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+          VITE_APP_VERSION: ${{ github.sha }}
+          VITE_PAYWALL: ${{ vars.PAYWALL }}
+          VITE_STRIPE_PAYMENT_LINK: ${{ vars.STRIPE_PAYMENT_LINK }}
+          VITE_UNLOCK_WORKER_URL: ${{ vars.UNLOCK_WORKER_URL }}
+          VITE_UNLOCK_PUBLIC_KEY: ${{ vars.UNLOCK_PUBLIC_KEY }}
+          VITE_ANALYTICS: ${{ vars.ANALYTICS }}
+          VITE_ANALYTICS_DOMAIN: ${{ vars.ANALYTICS_DOMAIN }}
+          VITE_SUPPORT_EMAIL: ${{ vars.SUPPORT_EMAIL }}
+      - name: Deploy
+        run: npx wrangler pages deploy dist --project-name "${{ vars.CF_PAGES_PROJECT || 'brink' }}" --branch main
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      # Custom domain: set CF_PAGES_PROJECT and attach the domain in the Pages dashboard (or via
+      # `wrangler pages project`), then set PUBLIC_URL to https://<your-domain>.
+
+  deploy-worker:
+    name: Deploy unlock Worker
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: worker-test
+    environment: production
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

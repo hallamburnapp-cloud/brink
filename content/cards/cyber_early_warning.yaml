@@ -1,0 +1,621 @@
+# CYBER EARLY WARNING — malware inside the early-warning network. Forces: entanglement of
+# dual-use systems (the correlator watches for missiles and routes civilian traffic),
+# attribution ambiguity (cyber_unit / cyber_director make it resolvable by odds), the logic
+# of touching someone's warning system, and transparency versus secrecy.
+# Flags: cyber_ew:intrusion, cyber_ew:attributed, cyber_ew:purged, cyber_ew:counterhacked,
+# cyber_ew:disclosed. Cross-hooks (flags_any): false_alarm:reported, blackout:started.
+
+# ---------------------------------------------------------------- entry 1 (acts 2–3)
+- id: cyberew_01_resident
+  arc: cyber_early_warning
+  advisor: cyber_director
+  acts: [2, 3]
+  weight: 1.6
+  tags: [cyber, entanglement, warning]
+  conditions: { flags_none: [cyber_ew:intrusion] }
+  note: Arc entry. The correlator cannot be half offline.
+  text: >-
+    At 02:40 a routine integrity sweep found a process on the early-warning
+    correlator that is not in any build we have ever shipped. It has been resident
+    since at least the spring and, so far as we can tell, it reads and does not
+    write. The same machine routes the emergency telephone traffic for the three
+    northern provinces, because eleven years ago that was cheaper. I can take it
+    offline in an hour; I cannot take only half of it offline.
+  left:
+    text: "Take it offline. All of it."
+    effects: { military: -5, public: -4, economy: -3, intel: -2 }
+    tags: [cyber, investigate, entanglement]
+    set: [cyber_ew:intrusion]
+    follow: [{ card: cyberew_04_dark_sector, in: 1 }]
+  right:
+    text: "Leave it. Watch what it reads."
+    effects: { intel: -4, escalation: 2, military: 2 }
+    tags: [cyber, stall, secrecy, intel]
+    set: [cyber_ew:intrusion]
+    follow: [{ card: cyberew_05_it_writes, in: 2 }]
+
+# ---------------------------------------------------------------- entry 2 (acts 3–4)
+- id: cyberew_02_liaison_sample
+  arc: cyber_early_warning
+  advisor: intel_director
+  acts: [3, 4]
+  weight: 1.3
+  tags: [cyber, alliance, intel]
+  conditions: { flags_none: [cyber_ew:intrusion] }
+  note: Arc entry. An ally found it first and kept it.
+  text: >-
+    A Northern Compact liaison service has passed us a code sample from their own
+    air-defence network. It matches a module on our early-warning correlator, byte
+    for byte; we found ours forty minutes after we knew what to look for. They
+    found theirs six weeks ago. We assess with high confidence that they decided
+    not to tell us, and with moderate confidence why.
+  left:
+    text: "Ask Varga why she waited"
+    effects: { allies: -5, intel: 4, commitment: 2 }
+    tags: [alliance, alliance_demand, intel]
+    set: [cyber_ew:intrusion]
+  right:
+    text: "Say nothing. Sweep everything."
+    effects: { military: -3, intel: 2, allies: 2, economy: -2 }
+    tags: [cyber, investigate, secrecy]
+    set: [cyber_ew:intrusion]
+
+# ---------------------------------------------------------------- entry 3 (acts 4–5)
+- id: cyberew_03_correlator_word
+  arc: cyber_early_warning
+  advisor: press
+  acts: [4, 5]
+  weight: 1.3
+  timer: 9
+  timeout: right
+  tags: [cyber, domestic, transparency]
+  conditions: { flags_none: [cyber_ew:intrusion] }
+  note: Arc entry, late. The press has the story first. Timeout is no comment, the worse side.
+  text: >-
+    Is it true the early-warning network has been compromised since the spring,
+    and were you told before or after the last alert? I ask because I have the
+    word correlator, and I have it from two people. Nobody outside your building
+    should have the word correlator. I go to print at six whether or not you have
+    a sentence for me.
+  left:
+    text: "Confirm it. Get ahead of it."
+    effects: { public: -6, allies: 3, trust_primary: 2, intel: -2 }
+    tags: [transparency, domestic, cyber]
+    set: [cyber_ew:intrusion, cyber_ew:disclosed]
+  right:
+    text: "No comment. Find her two people."
+    effects: { public: -3, intel: -3, military: 2, commitment: 3 }
+    tags: [secrecy, domestic, investigate]
+    set: [cyber_ew:intrusion]
+
+# ---------------------------------------------------------------- follow-ups of entry 1
+- id: cyberew_04_dark_sector
+  arc: cyber_early_warning
+  advisor: watch_officer
+  acts: [2, 5]
+  timer: 8
+  timeout: left
+  tags: [cyber, entanglement, warning]
+  note: Follows 01 left. Timeout brings the process back with the phones, the worse side.
+  text: >-
+    Northern sector dark since 03:50, expected back in twenty hours. The emergency
+    lines for three provinces are on the backup, a rented exchange in Amberline
+    with a nine-second delay, and the provincial governors are on the morning
+    bulletins saying so. On the other hand the board is clean. It is the first
+    time in six months I can say that and mean it.
+  left:
+    text: "Bring it back early, process and all"
+    effects: { public: 4, military: 3, intel: -6, escalation: 2 }
+    tags: [stall, entanglement, cyber]
+  right:
+    text: "Stay dark until Vance clears it"
+    effects: { public: -5, economy: -3, intel: 5, military: -2 }
+    tags: [investigate, cyber, entanglement]
+    set: [cyber_ew:purged]
+
+- id: cyberew_05_it_writes
+  arc: cyber_early_warning
+  advisor: cyber_director
+  acts: [2, 5]
+  timer: 9
+  timeout: left
+  tags: [cyber, warning, misperception]
+  note: Follows 01 right. Timeout purges tonight and burns what we learned, the worse side.
+  text: >-
+    It wrote. At 01:15 the correlator displayed a track for four seconds that none
+    of the sensors reported, and the process touched the display buffer two
+    hundred milliseconds before it appeared. I want to be precise: this is
+    consistent with a rehearsal, and it is consistent with a test of whether we
+    would notice. It is not consistent with a process that only reads.
+  left:
+    text: "Purge it tonight"
+    effects: { military: 3, intel: 3, escalation: 3, trust_primary: -3 }
+    tags: [cyber, military]
+    set: [cyber_ew:purged]
+  right:
+    text: "Take the correlator out of the release chain"
+    effects: { military: -6, intel: 4, escalation: -2 }
+    tags: [deescalate, cyber, nuclear, investigate]
+
+# ---------------------------------------------------------------- attribution
+- id: cyberew_06_consistent_with
+  arc: cyber_early_warning
+  advisor: cyber_director
+  acts: [2, 5]
+  weight: 1.2
+  tags: [cyber, attribution, misperception]
+  conditions:
+    flags_all: [cyber_ew:intrusion]
+    flags_none: [cyber_ew:attributed]
+    pieces_none: [cyber_unit, cyber_director]
+  note: Attribution without the pieces. A coin flip dressed as a decision.
+  text: >-
+    The tooling is consistent with {rival}'s service. It is also consistent with
+    two other services that copied {rival}'s tooling, and with anyone who bought it
+    from the people who copied it. Consistent with is not is, and I do not have the
+    people to get from one to the other. The General does not see the difference;
+    the General is not the one who will be quoted.
+  left:
+    text: "Name {rival}"
+    effects: { escalation: 6, trust_primary: -8, public: 4, commitment: 5 }
+    tags: [attribution, public_commitment, cyber]
+    set: [cyber_ew:attributed]
+    odds:
+      label: It sticks
+      base: 0.5
+      tags: [attribution]
+      success:
+        text: "Two allied services back the attribution within the day. Nobody asks how they know either."
+        effects: { public: 3, allies: 3 }
+      failure:
+        text: "A neutral forensics firm publishes a report pointing at {other}. It is wrong too, but it is loud, and now nobody is right."
+        effects: { public: -5, trust_secondary: -4, intel: -3 }
+  right:
+    text: "Say nothing until you can say is"
+    effects: { military: -3, public: -3, intel: 2 }
+    tags: [stall, attribution, intel]
+
+- id: cyberew_07_working_hours
+  arc: cyber_early_warning
+  advisor: cyber_director
+  acts: [2, 5]
+  weight: 1.4
+  tags: [cyber, attribution, intel]
+  conditions:
+    flags_all: [cyber_ew:intrusion]
+    flags_none: [cyber_ew:attributed]
+    pieces_any: [cyber_unit, cyber_director]
+  note: Attribution with the pieces. Resolvable by an attribution/cyber roll; failure points somewhere else.
+  text: >-
+    My analysts have pulled the operator's working hours out of the command
+    timestamps: weekdays, 09:00 to 17:40, one time zone, a two-week gap that
+    matches a public holiday in exactly one capital. It is a fingerprint. It is
+    also the kind of fingerprint a careful service leaves on purpose, and I can run
+    the rest of the chain in a day.
+  left:
+    text: "Run the chain"
+    effects: { intel: 3, military: -2 }
+    tags: [attribution, cyber, investigate]
+    odds:
+      label: Attribution
+      base: 0.5
+      tags: [attribution, cyber]
+      success:
+        text: "It is {rival}. Not consistent with; is. The chain runs through a contractor in {rival_capital} whose only client is their service."
+        effects: { intel: 6, trust_primary: -5, escalation: 3 }
+        set: [cyber_ew:attributed]
+      failure:
+        text: "The chain runs into {other}'s space and stops there, neatly. Everything pointing at one place is itself a finding, and not the one you wanted."
+        effects: { intel: -4, trust_secondary: -4, escalation: 2 }
+  right:
+    text: "Act on the fingerprint now"
+    effects: { escalation: 6, trust_primary: -7, public: 3, commitment: 4 }
+    tags: [attribution, public_commitment, cyber, escalatory]
+    set: [cyber_ew:attributed]
+
+# ---------------------------------------------------------------- the purge or the feed
+- id: cyberew_08_the_purge
+  arc: cyber_early_warning
+  advisor: cyber_director
+  acts: [2, 5]
+  weight: 1.3
+  tags: [cyber, intel, secrecy]
+  conditions: { flags_all: [cyber_ew:intrusion], flags_none: [cyber_ew:purged] }
+  text: >-
+    I can purge it in one pass. Within the hour they will know we found it, and
+    from what we touched they will know how; that is a capability we will not have
+    again. Or I leave it in place, feed the correlator a board that is slightly
+    wrong, and learn from what it asks for. It is a fair trade if you are
+    comfortable with your early-warning system lying to you for a while.
+  left:
+    text: "Purge it"
+    effects: { military: 3, intel: 2, trust_primary: -3, escalation: 2 }
+    tags: [cyber, military]
+    set: [cyber_ew:purged]
+  right:
+    text: "Feed it. Learn what they want."
+    effects: { military: -4, intel: -3, commitment: 2 }
+    tags: [cyber, secrecy, intel, stall]
+    follow: [{ card: cyberew_09_what_it_asked, in: 2 }]
+
+- id: cyberew_09_what_it_asked
+  arc: cyber_early_warning
+  advisor: intel_director
+  acts: [2, 5]
+  tags: [cyber, intel, misperception]
+  note: Follows 08 right. What they asked for tells you what they fear, or what they want you to fear.
+  text: >-
+    Three nights running the process asked the correlator for the southern sector,
+    and only the southern sector. There is nothing in the southern sector. We
+    assess with moderate confidence that they are deciding whether to put
+    something there, and with low confidence that they wanted us to see them
+    looking. The two readings recommend different things and I am aware of that.
+  left:
+    text: "Put something there first"
+    effects: { military: 6, escalation: 7, trust_primary: -6, economy: -3, intel: 4 }
+    tags: [military, mobilise, deterrence, escalatory]
+  right:
+    text: "Pull the plug. Leave the south empty."
+    effects: { intel: 5, military: -4, escalation: -2, trust_primary: 2 }
+    tags: [cyber, deescalate, reassurance]
+    set: [cyber_ew:purged]
+
+# ---------------------------------------------------------------- counterhack
+- id: cyberew_10_reciprocity
+  arc: cyber_early_warning
+  advisor: hawk_general
+  acts: [2, 5]
+  weight: 1.3
+  timer: 10
+  timeout: left
+  tags: [cyber, military, escalatory, nuclear]
+  conditions:
+    flags_all: [cyber_ew:intrusion]
+    flags_none: [cyber_ew:counterhacked]
+    pieces_any: [cyber_unit]
+  note: Cyber Unit moment. Timeout blinds them, the worse side. Either outcome leads to 11.
+  text: >-
+    We are inside their northern radar net, and have been since before this. It
+    has not been used. It can blind them for six hours tonight, which is what was
+    done to us in spirit and rather more in fact. They will read it the way anyone
+    reads a hand on their early warning, and I am told that is the point.
+  left:
+    text: "Blind them"
+    effects: { military: 7, escalation: 10, trust_primary: -10, public: 2 }
+    tags: [cyber, strike, military, escalatory]
+    set: [cyber_ew:counterhacked]
+    follow: [{ card: cyberew_11_their_reading, in: 1 }]
+    odds:
+      label: Cyber
+      base: 0.6
+      tags: [cyber, military]
+      success:
+        text: "Six hours of nothing on their northern screens. They know it was us; they do not know how, and it is the how that will keep them up."
+        effects: { intel: 4 }
+      failure:
+        text: "Forty minutes, not six hours, and their forensics team now has our tool. The Unit calls this burning the access. It sounds smaller than it is."
+        effects: { intel: -6, military: -4, escalation: 4 }
+  right:
+    text: "Hold. Keep the access."
+    effects: { military: -5, intel: 3, commitment: -2 }
+    tags: [stall, cyber, secrecy]
+
+- id: cyberew_11_their_reading
+  arc: cyber_early_warning
+  advisor: intel_director
+  acts: [2, 5]
+  tags: [cyber, misperception, nuclear, escalatory]
+  note: Follows 10 left. They read a hand on their early warning the only way anyone does.
+  text: >-
+    Six hours after their northern screens went dark, their bombers dispersed and
+    two of their nine missile fields went to a readiness we have not seen in
+    peacetime. We assess with high confidence that they read the outage as
+    preparation for something. That is how we would read it. That is, in fact,
+    how we did read it, a month ago.
+  left:
+    text: "Tell them it was us, and it is over"
+    effects: { escalation: -7, trust_primary: 5, public: -5, military: -6 }
+    tags: [transparency, deescalate, diplomacy, cyber]
+    spend_charge: deescalation
+  right:
+    text: "Let them sit in it"
+    effects: { escalation: 9, trust_primary: -7, military: 4, intel: -2 }
+    tags: [deterrence, escalatory, secrecy]
+
+# ---------------------------------------------------------------- disclosure
+- id: cyberew_12_day_twenty_nine
+  arc: cyber_early_warning
+  advisor: legal
+  acts: [2, 5]
+  weight: 1.2
+  tags: [cyber, transparency, alliance]
+  conditions:
+    flags_all: [cyber_ew:intrusion]
+    flags_none: [cyber_ew:disclosed]
+    pieces_none: [transparency]
+  note: Disclosure without the Transparency doctrine. Public cost to tell.
+  text: >-
+    The dual-use convention we signed obliges us to notify affected states of an
+    intrusion into shared infrastructure within thirty days of discovery. Today is
+    day twenty-nine. Notifying tells {rival} exactly what we know and when we knew
+    it; not notifying tells our allies, in due course, exactly what we are.
+    Neither is illegal today; one of them will be tomorrow.
+  left:
+    text: "Notify. Tonight."
+    effects: { public: -5, allies: 6, trust_primary: 3, intel: -3 }
+    tags: [transparency, alliance, cyber]
+    set: [cyber_ew:disclosed]
+  right:
+    text: "Let day thirty pass"
+    effects: { allies: -5, intel: 2, military: 2, commitment: 3 }
+    tags: [secrecy, stall, cyber]
+
+- id: cyberew_13_page_eleven
+  arc: cyber_early_warning
+  advisor: press
+  acts: [2, 5]
+  weight: 1.3
+  tags: [cyber, transparency, domestic]
+  conditions:
+    flags_all: [cyber_ew:intrusion]
+    flags_none: [cyber_ew:disclosed]
+    pieces_any: [transparency]
+  note: Transparency doctrine reverses the disclosure cost. You already told everyone.
+  text: >-
+    Your own weekly assessment, published under your own doctrine, lists the
+    intrusion on page eleven under infrastructure anomalies. I read page eleven.
+    So did the {rival_adj} embassy, whose press attaché has just asked me, off the
+    record, whether you meant to. The story is not that you were hacked; the story
+    is that you told everyone and nobody noticed for nine days.
+  left:
+    text: "Yes, we meant to. Brief it fully."
+    effects: { public: 4, trust_primary: 4, allies: 3, military: -4, intel: -2 }
+    tags: [transparency, domestic, cyber, reassurance]
+    set: [cyber_ew:disclosed]
+  right:
+    text: "Pull the page"
+    effects: { public: -6, trust_primary: -5, military: 2, commitment: 2 }
+    tags: [secrecy, domestic, walk_back]
+
+# ---------------------------------------------------------------- piece moments
+- id: cyberew_14_paper_and_phone
+  arc: cyber_early_warning
+  advisor: watch_officer
+  acts: [2, 5]
+  weight: 1.2
+  tags: [cyber, space, warning, entanglement]
+  conditions: { flags_all: [cyber_ew:intrusion], pieces_any: [early_warning] }
+  note: Early-Warning Constellation complication. The downlink runs through the same box.
+  text: >-
+    The constellation downlink runs through the same correlator. If the process
+    has been reading, it has been reading what the satellites see, which means it
+    knows what we can see and, more usefully, what we cannot. I can take the
+    constellation off the network and run it the old way, by voice, with a delay
+    of about four minutes. Four minutes is a long time on the geometry we bought
+    it for.
+  left:
+    text: "Run it by voice"
+    effects: { intel: 4, military: -5, public: -2 }
+    tags: [deescalate, space, warning, investigate]
+  right:
+    text: "Keep the link. Salt the feed."
+    effects: { intel: -3, escalation: 2, military: 2, commitment: 2 }
+    tags: [cyber, secrecy, space, warning]
+
+- id: cyberew_15_thirty_one_attempts
+  arc: cyber_early_warning
+  advisor: cyber_director
+  acts: [2, 5]
+  weight: 1.2
+  tags: [cyber, nuclear, intel]
+  conditions: { flags_all: [cyber_ew:intrusion], pieces_any: [hardened_nc3] }
+  note: Hardened NC3 moment and complication. The air gap held; the handoff is the door.
+  text: >-
+    Your hardened command links are air-gapped, which is why the process never
+    reached them. Its last logged action before we found it was to try. Thirty-one
+    attempts over four months, through the one automated handoff between the
+    correlator and the release chain, each a little better than the last. I can
+    close the handoff; the release chain then runs on a courier and a telephone.
+  left:
+    text: "Close the handoff"
+    effects: { military: -5, intel: 4, escalation: -2, commitment: -2 }
+    tags: [cyber, deescalate, nuclear, investigate]
+  right:
+    text: "Leave it open. Count the attempts."
+    effects: { intel: 5, escalation: 3, military: 2, trust_primary: -2 }
+    tags: [cyber, secrecy, intel, nuclear]
+
+- id: cyberew_16_our_own_tool
+  arc: cyber_early_warning
+  advisor: cyber_director
+  acts: [2, 5]
+  weight: 1.2
+  tags: [cyber, attribution, misperception]
+  conditions: { flags_all: [cyber_ew:intrusion], pieces_any: [cyber_unit] }
+  note: Cyber Unit complication. Our handwriting is on the weapon.
+  text: >-
+    One component of the module is ours. The Unit wrote it six years ago, before
+    my time, and it leaked in a way nobody has ever explained to me. Whoever put
+    it on our correlator either bought it, stole it, or wanted us to find our own
+    handwriting on the weapon. Any attribution we make in public will be answered
+    with that component, in public, within the hour.
+  left:
+    text: "Attribute anyway"
+    effects: { public: 3, trust_primary: -6, allies: -4, escalation: 4 }
+    tags: [attribution, public_commitment, cyber]
+    set: [cyber_ew:attributed]
+  right:
+    text: "Bury the provenance"
+    effects: { intel: -4, public: -2, commitment: 3, military: 2 }
+    tags: [secrecy, attribution, cyber]
+
+# ---------------------------------------------------------------- cross-arc hooks
+- id: cyberew_17_written_not_seen
+  arc: cyber_early_warning
+  advisor: intel_director
+  acts: [2, 5]
+  weight: 1.4
+  tags: [cyber, nuclear, misperception, warning]
+  conditions: { flags_all: [cyber_ew:intrusion], flags_any: [false_alarm:reported] }
+  note: Cross-arc hook with false_alarm. Clearing false_alarm_live here is deliberate.
+  text: >-
+    We have put Dr Vance's timeline beside the alerts that woke you this month, and
+    we now assess with moderate confidence that at least one track was not seen by
+    the array but written to it. Not a fault, a sentence. If they can make us see
+    one vehicle, they can make us see forty, and they now know how long it takes
+    you to decide.
+  left:
+    text: "Nothing launches on the board alone"
+    effects: { military: -7, intel: 5, escalation: -4, commitment: -3 }
+    tags: [deescalate, nuclear, investigate, cyber]
+    clear: [false_alarm_live]
+  right:
+    text: "Change the response times. Tell no one."
+    effects: { military: 4, escalation: 3, intel: -3, trust_primary: -3 }
+    tags: [military, secrecy, nuclear]
+
+- id: cyberew_18_the_tasking
+  arc: cyber_early_warning
+  advisor: cyber_director
+  acts: [2, 5]
+  weight: 1.4
+  tags: [cyber, space, attribution, misperception]
+  conditions:
+    flags_all: [cyber_ew:intrusion]
+    flags_any: [blackout:started, arc:satellite_blackout]
+  note: Cross-arc hook with satellite_blackout.
+  text: >-
+    The satellite that stopped answering over the Straits was tasked from this
+    correlator. If the process read the tasking, whoever runs it knew where that
+    satellite would be looking, and when, and for how long. I am no longer
+    comfortable calling the two events unrelated. I am not comfortable calling
+    them related either, and only one of those discomforts will make the morning
+    brief.
+  left:
+    text: "One campaign. Brief it that way."
+    effects: { escalation: 5, trust_primary: -6, military: 4, commitment: 4 }
+    tags: [attribution, escalatory, space, cyber]
+    set: [cyber_ew:attributed]
+  right:
+    text: "Two events until proven otherwise"
+    effects: { military: -3, public: -2, intel: 2 }
+    tags: [stall, attribution, intel]
+
+# ---------------------------------------------------------------- entanglement
+- id: cyberew_19_the_hospitals
+  arc: cyber_early_warning
+  advisor: watch_officer
+  acts: [3, 5]
+  weight: 1.1
+  tags: [cyber, entanglement, domestic]
+  conditions: { flags_all: [cyber_ew:intrusion], flags_none: [cyber_ew:purged] }
+  text: >-
+    Vance wants the correlator down for a full rebuild, thirty-six hours. For
+    thirty-six hours the emergency lines in the northern provinces route through
+    the rented exchange in Amberline, and the two hospitals up there have already
+    told the ministry what a nine-second delay does to a cardiac call. The
+    domestic backup is six weeks out. The process, as far as we know, is patient.
+  left:
+    text: "Rebuild now. Thirty-six hours."
+    effects: { public: -6, economy: -4, intel: 6, military: 2 }
+    tags: [cyber, investigate, entanglement, domestic]
+    set: [cyber_ew:purged]
+  right:
+    text: "Six weeks. Then rebuild."
+    effects: { intel: -4, escalation: 2, public: 2, military: -3 }
+    tags: [stall, entanglement, domestic]
+
+# ---------------------------------------------------------------- resolutions
+- id: cyberew_20_clean_build
+  arc: cyber_early_warning
+  advisor: cyber_director
+  acts: [3, 5]
+  weight: 1.4
+  tags: [cyber, intel, transparency]
+  conditions: { flags_all: [cyber_ew:purged] }
+  note: Resolution after a purge.
+  text: >-
+    The network is clean as of 06:00. I say that with the confidence of a person
+    who found the last one by accident, so I would like to keep the sweep team on
+    it for the rest of the year and publish what we found, so the next state this
+    happens to has our notes. The General would like the team back and the notes
+    in a safe. Both of us are right about something.
+  left:
+    text: "Keep the team. Publish the notes."
+    effects: { economy: -6, military: -6, intel: 10, trust_primary: 6, allies: 6, public: -3 }
+    tags: [transparency, cyber, investigate, reassurance]
+    set: [cyber_ew:disclosed]
+  right:
+    text: "Declare it clean. Move on."
+    effects: { military: 6, public: 5, intel: -8, escalation: 2 }
+    tags: [secrecy, military, cyber]
+
+- id: cyberew_21_the_motion
+  arc: cyber_early_warning
+  advisor: legal
+  acts: [4, 5]
+  weight: 1.4
+  tags: [cyber, diplomacy, alliance, commitment_trap]
+  conditions:
+    flags_all: [cyber_ew:intrusion]
+    flags_any: [cyber_ew:attributed, cyber_ew:disclosed, cyber_ew:counterhacked]
+  note: Resolution at the Assembly. Be bound by it or read by it.
+  text: >-
+    The Assembly has tabled a motion condemning intrusions into early-warning
+    infrastructure and, in the same clause, outages caused to it. It does not name
+    anyone. It does not need to; everyone in the chamber has read the same three
+    newspapers. We may vote for it and be bound by it, or against it and be read
+    by it, and I can tell you which we may do and not which we should.
+  left:
+    text: "Vote for it. Be bound."
+    effects: { allies: 8, escalation: -8, trust_primary: 6, military: -8, commitment: 8 }
+    tags: [diplomacy, public_commitment, deescalate, alliance]
+  right:
+    text: "Vote against. Keep our hands free."
+    effects: { military: 5, trust_primary: -5, public: -4 }
+    tags: [diplomacy, escalatory, secrecy]
+    odds:
+      label: Motion fails
+      base: 0.45
+      tags: [diplomacy, alliance]
+      success:
+        text: "It fails by four votes. Three of the four are ours to repay."
+        effects: { allies: -4, escalation: 2 }
+      failure:
+        text: "It passes without us. The first state to cite it against us is {other}, within the week."
+        effects: { allies: -9, escalation: 5, trust_secondary: -4 }
+
+- id: cyberew_22_their_bombers
+  arc: cyber_early_warning
+  advisor: hawk_general
+  acts: [3, 5]
+  weight: 1.4
+  timer: 8
+  timeout: left
+  tags: [cyber, nuclear, military, misperception]
+  conditions: { flags_all: [cyber_ew:counterhacked] }
+  note: Resolution after a counterhack. Timeout demonstrates, the worse side.
+  text: >-
+    Their radar is back. Their bombers are not; they are still dispersed, a week
+    on, at fields we did not know they had finished. Whatever they thought was
+    being prepared, they are now prepared for it, and preparedness has a way of
+    finding its own reason. A demonstration would remind them what the ladder
+    looks like.
+  left:
+    text: "Demonstrate"
+    effects: { military: 8, escalation: 10, trust_primary: -8, public: 3 }
+    tags: [military, deterrence, escalatory, nuclear]
+    odds:
+      label: They stand down
+      base: 0.4
+      tags: [adversary, military]
+      success:
+        text: "Their bombers go home over two nights. Nobody says anything about it, which is how these things end when they end well."
+        effects: { escalation: -8, military: 3 }
+      failure:
+        text: "Their bombers stay, and their fields go to the readiness we last saw in the month everything started. The ladder looks the same from both ends."
+        effects: { escalation: 12, trust_primary: -8, allies: -5 }
+  right:
+    text: "Notify our next exercise, in full"
+    effects: { military: -8, escalation: -9, trust_primary: 10, commitment: -4, public: -4 }
+    tags: [transparency, reassurance, deescalate, nuclear]

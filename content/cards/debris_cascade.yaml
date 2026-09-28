@@ -1,0 +1,611 @@
+# debris_cascade — a test or an intercept creates a debris cloud and a cascade
+# threatens everyone's satellites. Forces: entanglement and blame (was it our
+# Missile Defence intercept, their test, our leased tug?), the difference between
+# deterrence and reassurance (a moratorium costs military and gains trust;
+# refusing gains military and costs trust with both), commercial entanglement.
+# Flags: debris:event, debris:blamed_us, debris:blamed_rival, debris:moratorium,
+#        debris:cascade
+# Piece hooks: commercial_sat, missile_defence, cyber_director
+# Cross-hooks (flags_any): blackout:attributed_rival, cyber_ew:intrusion
+
+# ---- entries (non-chained; each starts the arc once) --------------------------
+
+- id: debris_01_the_cloud
+  arc: debris_cascade
+  advisor: scientist
+  acts: [2, 3]
+  weight: 1.5
+  tags: [space, attribution]
+  conditions: { flags_none: [debris:event] }
+  text: >-
+    At 05:40 something in low orbit over the northern approaches came apart
+    into roughly four thousand trackable pieces, and perhaps ten times that we
+    cannot see. The energy is consistent with a kinetic interceptor. {Rival}'s
+    launch notice for this morning said 'weather sounding'. The pieces do not
+    know whose they are, and by Thursday they will be everywhere.
+  left:
+    text: "Say what it was, in public"
+    effects: { public: 4, trust_primary: -7, escalation: 5, commitment: 5 }
+    tags: [attribution, public_commitment, space]
+    set: [debris:event, debris:blamed_rival]
+    follow: [{ card: debris_06_their_reply, in: 2 }]
+  right:
+    text: "Wait for the catalogue"
+    effects: { military: -3, public: -3, intel: 4 }
+    tags: [investigate, stall, intel, space]
+    set: [debris:event]
+    follow: [{ card: debris_05_the_catalogue, in: 2 }]
+
+- id: debris_02_the_intercept
+  arc: debris_cascade
+  advisor: hawk_general
+  acts: [2, 4]
+  weight: 1.3
+  timer: 10
+  timeout: right
+  tags: [space, missile_defence, attribution]
+  conditions:
+    pieces_any: [missile_defence]
+    flags_none: [debris:event]
+  text: >-
+    The Layer engaged a target over the northern approaches at 05:38 and hit
+    it, which is the good news. The target was not a missile. It was a dead
+    {rival_adj} weather satellite the tracking cell had logged as a decaying
+    rocket body, and it is now four thousand pieces at seven kilometres a
+    second. Their radar will have it by breakfast.
+  left:
+    text: "Say it was ours. Now"
+    effects: { public: -8, trust_primary: 6, military: -6, escalation: -2 }
+    tags: [transparency, space, missile_defence, reassurance]
+    set: [debris:event, debris:blamed_us]
+    follow: [{ card: debris_07_forty_one_delegations, in: 1 }]
+  right:
+    text: "Say nothing until they ask"
+    effects: { military: 3, trust_primary: -5, intel: 2 }
+    tags: [secrecy, stall, space, missile_defence]
+    set: [debris:event]
+    follow: [{ card: debris_05_the_catalogue, in: 1 }]
+
+- id: debris_03_six_birds
+  arc: debris_cascade
+  advisor: cyber_director
+  acts: [3, 5]
+  weight: 1.2
+  timer: 10
+  timeout: right
+  tags: [space, cyber, attribution]
+  conditions: { flags_none: [debris:event] }
+  text: >-
+    Six satellites in the same shell lost telemetry inside ninety seconds at
+    05:40. Two are ours, one is {other_adj}, three belong to Halvard. It is
+    consistent with the start of a collision cascade and with a coordinated
+    cyber event, and those two things call for opposite responses. I can tell
+    you which by tonight if nobody does anything before then.
+  left:
+    text: "Treat it as a collision"
+    effects: { intel: -3, military: -4, public: -2 }
+    tags: [space, investigate, stall]
+    set: [debris:event]
+    follow: [{ card: debris_05_the_catalogue, in: 1 }]
+  right:
+    text: "Treat it as an attack"
+    effects: { escalation: 6, military: 4, trust_primary: -6, intel: -3 }
+    tags: [cyber, attribution, escalatory]
+    set: [debris:event, debris:blamed_rival]
+    follow: [{ card: debris_06_their_reply, in: 1 }]
+
+- id: debris_04_the_premium
+  arc: debris_cascade
+  advisor: treasury
+  acts: [4, 5]
+  tags: [space, economy, entanglement]
+  conditions: { flags_none: [debris:event] }
+  text: >-
+    The space insurers pulled cover at 09:00 after a breakup over the northern
+    approaches. Forty percent of our clearing runs through satellites we lease,
+    and every one of them is now uninsured and in the path. I can underwrite the
+    constellation from Treasury, which costs money, or you can say whose fault
+    the cloud is, which costs something I do not have a column for.
+  left:
+    text: "Underwrite it"
+    effects: { economy: -8, public: 2, military: -2 }
+    tags: [economy, entanglement, space]
+    set: [debris:event]
+    follow: [{ card: debris_05_the_catalogue, in: 2 }]
+  right:
+    text: "Say whose fault it is"
+    effects: { economy: -4, trust_primary: -6, public: 3, escalation: 4 }
+    tags: [attribution, public_commitment, economy]
+    set: [debris:event, debris:blamed_rival]
+    follow: [{ card: debris_06_their_reply, in: 1 }]
+
+# ---- the catalogue and the blame (chained developments) ----------------------
+
+- id: debris_05_the_catalogue
+  arc: debris_cascade
+  advisor: scientist
+  acts: [1, 5]
+  tags: [space, attribution, intel]
+  text: >-
+    The catalogue is in: four thousand one hundred trackable pieces, breakup at
+    05:40:12, energy consistent with a kinetic hit. Two things went up that
+    morning. A {rival_adj} sounding rocket, announced as weather, and an object
+    the tracking cell logged as 'unknown, ascending, ours?' with the question
+    mark. Their catalogue will name the second one before we do, unless we name
+    the first.
+  left:
+    text: "Name the rocket"
+    effects: { public: 3, commitment: 5, escalation: 3 }
+    tags: [attribution, public_commitment, space]
+    set: [debris:blamed_rival]
+    odds:
+      label: Attribution
+      base: 0.55
+      tags: [attribution, intel]
+      success:
+        text: Their own catalogue confirms it. The weather rocket carried no instruments.
+        effects: { public: 4, trust_primary: -6, escalation: 2 }
+        follow: [{ card: debris_06_their_reply, in: 1 }]
+      failure:
+        text: The question mark was ours. Their catalogue says so, with a photograph.
+        set: [debris:blamed_us]
+        effects: { public: -8, trust_primary: -8, trust_secondary: -5, escalation: 4 }
+        follow: [{ card: debris_07_forty_one_delegations, in: 1 }]
+  right:
+    text: "Find out about the question mark first"
+    effects: { intel: 5, military: -4, public: -3 }
+    tags: [investigate, intel, stall]
+    follow:
+      - { card: debris_08_the_question_mark, in: 1 }
+      - { card: debris_09_the_tug, in: 1 }
+
+- id: debris_06_their_reply
+  arc: debris_cascade
+  advisor: envoy
+  acts: [1, 5]
+  tags: [diplomacy, space, entanglement]
+  text: >-
+    {Rival}'s delegate read a statement to the Assembly at ten. The breakup was
+    'a collision with an unregistered commercial object operated under a
+    {us_adj} lease'. He did not say Halvard, he held up a photograph of the
+    servicing tug, and forty delegations photographed the photograph. I have
+    the chair for eleven minutes this afternoon.
+  left:
+    text: "Table our tracking data"
+    effects: { intel: -6, trust_primary: 3, public: 3, allies: 3 }
+    tags: [transparency, diplomacy, intel]
+  right:
+    text: "Walk out"
+    effects: { escalation: 6, commitment: 6, allies: -4, trust_primary: -6, public: 2 }
+    tags: [public_commitment, escalatory]
+
+- id: debris_07_forty_one_delegations
+  arc: debris_cascade
+  advisor: envoy
+  acts: [1, 5]
+  tags: [diplomacy, alliance, space]
+  text: >-
+    Forty-one delegations signed a note this morning asking {us} to 'account
+    for the debris event'. Six are Compact members. {Other}'s delegate drafted
+    it, which is his way of offering to help, and the price of his help is in
+    the last paragraph, where the moratorium is.
+  left:
+    text: "Account for it, in the chamber"
+    effects: { public: -6, allies: 5, trust_primary: 5, trust_secondary: 6, military: -4 }
+    tags: [transparency, concede, diplomacy]
+    follow: [{ card: debris_10_the_proposal, in: 2 }]
+  right:
+    text: "Answer with a note of our own"
+    effects: { allies: -6, trust_secondary: -6, public: 2, military: 2, escalation: 3 }
+    tags: [stall, secrecy, public_commitment]
+
+- id: debris_08_the_question_mark
+  arc: debris_cascade
+  advisor: cyber_director
+  acts: [1, 5]
+  tags: [missile_defence, space, attribution]
+  conditions: { pieces_any: [missile_defence] }
+  text: >-
+    The question mark was an interceptor test. The Layer's contractor booked a
+    window nobody cleared with the tracking cell, the round flew, and it hit a
+    {rival_adj} object that has been dead for six years. Their press release
+    calls it 'a successful engagement' and it goes out at nine. So does their
+    catalogue, and the two will agree.
+  left:
+    text: "Stop the release. Tell {rival_capital} first"
+    effects: { trust_primary: 8, public: -4, military: -5, escalation: -4 }
+    tags: [back_channel, transparency, deescalate, missile_defence]
+    set: [debris:blamed_us]
+    follow: [{ card: debris_07_forty_one_delegations, in: 1 }]
+  right:
+    text: "Let it go out"
+    effects: { military: 7, public: 4, trust_primary: -12, trust_secondary: -6, escalation: 7 }
+    tags: [deterrence, public_commitment, military, missile_defence]
+    set: [debris:blamed_us]
+
+- id: debris_09_the_tug
+  arc: debris_cascade
+  advisor: contractor
+  acts: [1, 5]
+  tags: [entanglement, space, attribution]
+  conditions: { pieces_none: [missile_defence] }
+  text: >-
+    The question mark was our servicing tug, leased, three kilometres off the
+    breakup and manoeuvring. It touched nothing; I have the burn logs. I also
+    have {rival}'s photograph, which is excellent, and a board meeting at four
+    about whether Halvard keeps flying for a client who lets it be
+    photographed.
+  left:
+    text: "Publish the burn logs"
+    effects: { intel: -4, economy: -3 }
+    tags: [transparency, attribution, entanglement, space]
+    odds:
+      label: Attribution
+      base: 0.6
+      tags: [attribution, intel]
+      success:
+        text: Clean. The tug was coasting. The rocket was theirs, and now everyone can do the arithmetic.
+        set: [debris:blamed_rival]
+        effects: { public: 5, trust_primary: -4, escalation: 2 }
+        follow: [{ card: debris_06_their_reply, in: 1 }]
+      failure:
+        text: Page two shows a burn at 05:39. Nobody will read page three.
+        set: [debris:blamed_us]
+        effects: { public: -7, trust_primary: -6, economy: -4 }
+  right:
+    text: "Keep the logs. Keep Halvard flying"
+    effects: { economy: -2, intel: 3, public: -4, trust_primary: -4 }
+    tags: [secrecy, economy, entanglement]
+    set: [debris:blamed_us]
+
+# ---- deterrence versus reassurance: the moratorium ---------------------------
+
+- id: debris_10_the_proposal
+  arc: debris_cascade
+  advisor: envoy
+  acts: [2, 5]
+  weight: 1.2
+  chained: false
+  tags: [diplomacy, space, public_commitment]
+  conditions:
+    flags_all: [debris:event]
+    flags_none: [debris:moratorium]
+  text: >-
+    The Secretary-General's office has a text: no kinetic tests and no
+    intercepts above two hundred kilometres, for the duration, three
+    signatures. {Other} signs tonight. {Rival} signs if {us} signs first. Your
+    General says signing first is what a country does after it has lost, and he
+    said it in front of the delegates.
+  left:
+    text: "Sign first"
+    effects: { military: -10, trust_primary: 10, trust_secondary: 6, escalation: -8, public: -3 }
+    tags: [reassurance, deescalate, public_commitment, space]
+    set: [debris:moratorium]
+    follow: [{ card: debris_12_they_signed, in: 2 }]
+  right:
+    text: "Not first"
+    effects: { military: 6, trust_primary: -8, trust_secondary: -6, escalation: 4, allies: -3 }
+    tags: [deterrence, stall, space]
+
+- id: debris_11_calibrations
+  arc: debris_cascade
+  advisor: hawk_general
+  acts: [2, 5]
+  tags: [missile_defence, military, secrecy]
+  conditions:
+    pieces_any: [missile_defence]
+    flags_all: [debris:moratorium]
+  text: >-
+    The moratorium you signed covers the Layer's next three test windows.
+    Without the tests the interceptors are a promise, and they know what our
+    promises cost us. I can fly the tests as sensor calibrations with no live
+    round, and nobody outside this room would know the difference. Their radar
+    operators would, eventually.
+  left:
+    text: "Fly them as calibrations"
+    effects: { military: 4, intel: -2 }
+    tags: [secrecy, military, missile_defence, deterrence]
+    odds:
+      label: Unnoticed
+      base: 0.5
+      tags: [intel]
+      success:
+        text: Three windows, three tracks, no comment from anyone.
+        effects: { military: 5, escalation: 2, trust_primary: -3 }
+      failure:
+        text: They saw the third. Their delegate read the track numbers to the Assembly.
+        effects: { trust_primary: -14, trust_secondary: -6, public: -6, escalation: 8, allies: -5 }
+        clear: [debris:moratorium]
+  right:
+    text: "The interceptors stay a promise"
+    effects: { military: -8, trust_primary: 4, commitment: -3 }
+    tags: [reassurance, stall, missile_defence]
+
+- id: debris_12_they_signed
+  arc: debris_cascade
+  advisor: envoy
+  acts: [1, 5]
+  tags: [diplomacy, domestic, space]
+  text: >-
+    At 22:00 {rival_leader} signed, and at 22:20 he told his own television
+    that {us} signed first because its constellation is 'a glass house'. Words
+    for his audience. The signature is real, the pen is in a museum by morning,
+    and I would not give him the satisfaction of noticing the words.
+  left:
+    text: "Let him have the words"
+    effects: { public: -5, trust_primary: 6, escalation: -5, commitment: -2 }
+    tags: [reassurance, deescalate, diplomacy]
+  right:
+    text: "Answer the words"
+    effects: { public: 5, trust_primary: -6, escalation: 4, commitment: 5 }
+    tags: [public_commitment, deterrence, domestic]
+
+- id: debris_13_the_offer
+  arc: debris_cascade
+  advisor: other_leader
+  acts: [2, 5]
+  tags: [diplomacy, intel, alliance]
+  conditions:
+    flags_all: [debris:event]
+    flags_none: [debris:moratorium]
+  text: >-
+    Midnight, on the line, no translator: 'My tracking network sees the whole
+    shell, and I will give you every fragment's path in real time for as long
+    as this lasts. In return, when the moratorium reaches the Assembly, {us}
+    abstains on the intercept clause.' A gift, then, with a receipt.
+  left:
+    text: "Take the tracking"
+    effects: { intel: 8, trust_secondary: 7, allies: -5, trust_primary: -4, military: -3 }
+    tags: [diplomacy, intel, space]
+  right:
+    text: "Decline"
+    effects: { allies: 3, trust_secondary: -7, intel: -3 }
+    tags: [stall, alliance]
+
+# ---- the cascade --------------------------------------------------------------
+
+- id: debris_14_the_second_breakup
+  arc: debris_cascade
+  advisor: scientist
+  acts: [3, 5]
+  weight: 1.2
+  timer: 10
+  timeout: right
+  tags: [space, entanglement]
+  conditions:
+    flags_all: [debris:event]
+    flags_none: [debris:cascade]
+  text: >-
+    A fragment took a dead {other_adj} booster at 03:10. That is two clouds, and
+    the second is in the shell everyone uses. The model gives forty percent
+    odds of a third inside the week and it does not distinguish between flags.
+    Nobody shoots their way out of this; the interceptors only make more of it.
+  left:
+    text: "Ground every launch and say why"
+    effects: { military: -6, economy: -5, public: -4, trust_primary: 5, trust_secondary: 5, escalation: -4 }
+    tags: [transparency, space, deescalate]
+    set: [debris:cascade]
+  right:
+    text: "Keep launching. Ours are hardened"
+    effects: { military: 5, economy: -3, escalation: 5, trust_primary: -5, trust_secondary: -5 }
+    tags: [military, space, deterrence]
+    set: [debris:cascade]
+
+# ---- pieces: the Commercial Satellite Deal ------------------------------------
+
+- id: debris_15_the_glass_house
+  arc: debris_cascade
+  advisor: contractor
+  acts: [3, 5]
+  tags: [entanglement, economy, space]
+  conditions:
+    pieces_any: [commercial_sat]
+    flags_all: [debris:cascade]
+  text: >-
+    Halvard has lost eleven birds to fragments in four days, and the board has
+    voted to sell the constellation to a consortium in {other_capital}, which
+    would keep it flying and out of the line of fire. Your imagery would
+    continue under a different flag, at a different price, with a different
+    reader over your shoulder. I am obliged to tell you before the market does.
+  left:
+    text: "Buy it before they do"
+    effects: { economy: -12, military: 3, public: -3, trust_secondary: -4 }
+    tags: [economy, entanglement, space]
+  right:
+    text: "Let it go"
+    effects: { intel: -10, economy: 3, allies: -3, trust_secondary: 3 }
+    tags: [concede, economy, entanglement]
+
+- id: debris_16_supplier_or_combatant
+  arc: debris_cascade
+  advisor: contractor
+  acts: [2, 5]
+  tags: [entanglement, space, economy]
+  conditions:
+    pieces_any: [commercial_sat]
+    flags_all: [debris:event]
+    flags_none: [debris:cascade]
+  text: >-
+    Three of Halvard's birds are in the debris shell and our insurers want a
+    statement that {us} does not regard them as military assets. {Rival} wants
+    the same statement, for the opposite reason. I would prefer the statement
+    did not exist, but I am told that is not one of the options on your desk.
+  left:
+    text: "Call them civilian, in writing"
+    effects: { trust_primary: 6, military: -5, economy: 3, intel: -3 }
+    tags: [reassurance, public_commitment, entanglement, space]
+  right:
+    text: "Refuse the statement"
+    effects: { military: 4, economy: -6, trust_primary: -6, escalation: 3 }
+    tags: [deterrence, secrecy, entanglement, space]
+
+# ---- pieces: the Cyber & Space Director ---------------------------------------
+
+- id: debris_17_eleven_seconds
+  arc: debris_cascade
+  advisor: cyber_director
+  acts: [2, 5]
+  weight: 1.2
+  tags: [attribution, intel, space]
+  conditions:
+    pieces_any: [cyber_director]
+    flags_all: [debris:event]
+    flags_none: [debris:blamed_us, debris:blamed_rival]
+  text: >-
+    I can tell you who made the cloud. Their catalogue and ours disagree by
+    eleven seconds, and I have their raw radar feed, which I should not have.
+    Publishing the answer means publishing that I have the feed, and the feed
+    is the only reason I will ever be able to tell you anything again.
+  left:
+    text: "Publish the answer"
+    effects: { intel: -10 }
+    tags: [attribution, transparency, intel, space]
+    odds:
+      label: Attribution
+      base: 0.65
+      tags: [attribution, intel]
+      success:
+        text: Their rocket. To the second, on their own radar.
+        set: [debris:blamed_rival]
+        effects: { public: 6, trust_primary: -6, escalation: 3 }
+      failure:
+        text: Our object. The feed shows it, and now so does everyone.
+        set: [debris:blamed_us]
+        effects: { public: -8, trust_primary: -5, trust_secondary: -6 }
+  right:
+    text: "Keep the feed. Keep the argument"
+    effects: { intel: 5, public: -4, escalation: 2, trust_primary: -2 }
+    tags: [secrecy, intel, stall]
+
+- id: debris_18_without_consensus
+  arc: debris_cascade
+  advisor: envoy
+  acts: [2, 5]
+  tags: [diplomacy, attribution, space]
+  conditions:
+    pieces_any: [cyber_director]
+    flags_all: [debris:event]
+    flags_none: [debris:moratorium]
+  text: >-
+    Your Director told the working group the breakup was 'consistent with'
+    three explanations. {Rival}'s delegate thanked her for her candour and then
+    used it: if {us} cannot say, {us} cannot accuse. The moratorium text now
+    carries a clause, no attribution without consensus, and consensus includes
+    them.
+  left:
+    text: "Accept the clause"
+    effects: { commitment: -5, trust_primary: 5, public: -4, military: -3 }
+    tags: [concede, diplomacy, space]
+  right:
+    text: "Strike the clause. Name them anyway"
+    effects: { public: 3, trust_primary: -8, allies: -4, escalation: 5, commitment: 5 }
+    tags: [public_commitment, attribution, escalatory]
+    set: [debris:blamed_rival]
+
+# ---- the bill -----------------------------------------------------------------
+
+- id: debris_19_the_bill
+  arc: debris_cascade
+  advisor: treasury
+  acts: [3, 5]
+  tags: [economy, domestic, missile_defence]
+  conditions:
+    flags_all: [debris:event]
+  text: >-
+    Replacing what the cloud takes costs eleven percent of the defence
+    estimate, before the insurers finish suing us. I can find it by cancelling
+    the interceptor tranche or by pushing the pension uplift into next year.
+    One of those is a headline here. The other is a headline in
+    {rival_capital}, and they will frame it.
+  left:
+    text: "Cancel the interceptor tranche"
+    effects: { military: -7, economy: 4, trust_primary: 5, public: -2 }
+    tags: [economy, reassurance, missile_defence]
+  right:
+    text: "Push the pensions"
+    effects: { public: -8, economy: 4, military: 2 }
+    tags: [economy, domestic]
+
+# ---- resolutions --------------------------------------------------------------
+
+- id: debris_20_an_inch
+  arc: debris_cascade
+  advisor: envoy
+  acts: [3, 5]
+  tags: [diplomacy, space, domestic]
+  conditions:
+    flags_all: [debris:moratorium]
+  text: >-
+    Three signatures, one page, one photograph. {Rival}'s delegate wants the
+    photograph to show the three flags at the same height, which means ours
+    comes down an inch on the stand. It is an inch. It will be measured in
+    every newspaper in {capital} by Sunday.
+  left:
+    text: "Lower the flag an inch"
+    effects: { public: -4, trust_primary: 8, trust_secondary: 5, escalation: -8, commitment: -4 }
+    tags: [concede, reassurance, diplomacy]
+  right:
+    text: "Our flag stays"
+    effects: { public: 3, trust_primary: -5, escalation: 2, commitment: 4 }
+    tags: [public_commitment, stall]
+
+- id: debris_21_the_unwritten
+  arc: debris_cascade
+  advisor: other_leader
+  acts: [3, 5]
+  weight: 0.9
+  tags: [diplomacy, back_channel, space]
+  conditions:
+    flags_all: [debris:event]
+    flags_none: [debris:moratorium]
+  text: >-
+    By letter, hand-carried: 'None of us will test above two hundred kilometres
+    until the shell clears, and I have said so in public. In {rival_capital}
+    they have said so to me, and they will not say it to you. You may decide
+    whether that is enough.' It is signed, which he did not have to do.
+  left:
+    text: "It is enough"
+    effects: { military: -6, trust_primary: 8, trust_secondary: 6, escalation: -8, public: -3 }
+    tags: [reassurance, deescalate, back_channel, space]
+    set: [debris:moratorium]
+  right:
+    text: "It is not enough"
+    effects: { military: 5, trust_primary: -7, trust_secondary: -5, escalation: 4 }
+    tags: [deterrence, stall, space]
+
+# ---- cross-arc hook -----------------------------------------------------------
+
+- id: debris_22_two_events
+  arc: debris_cascade
+  advisor: hawk_general
+  acts: [2, 5]
+  timer: 9
+  timeout: left
+  tags: [military, space, misperception]
+  conditions:
+    flags_all: [debris:event]
+    flags_any: [blackout:attributed_rival, cyber_ew:intrusion]
+  text: >-
+    First the eye, now the sky. Two events in the same shell, and we have
+    already put one of them at their door. The staff assess the second as cover
+    for the first: blind the satellite, then fill the orbit so nobody can
+    replace it. I have a package for the tracking radar that did the filling,
+    and a window tonight.
+  left:
+    text: "Hit the radar"
+    effects: { escalation: 6, military: 3 }
+    tags: [strike, military, escalatory]
+    odds:
+      label: Strike
+      base: 0.55
+      tags: [strike, military]
+      success:
+        text: Radar dark at 01:20. They will need a week to see the shell they made.
+        effects: { military: 8, escalation: 8, trust_primary: -14, public: 4 }
+      failure:
+        text: Two of ours down on the approach. The radar is fine and so is their case.
+        effects: { escalation: 12, military: -6, public: -6, trust_primary: -12 }
+  right:
+    text: "Two events are not a pattern"
+    effects: { military: -6, intel: 3, escalation: -2, commitment: -3 }
+    tags: [stall, deescalate, intel]

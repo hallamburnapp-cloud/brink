@@ -1,0 +1,20 @@
+{
+  "name": "brink-unlock-worker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Cloudflare Worker that turns a paid Stripe Checkout session into a signed BRINK Endless unlock token.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "keygen": "node scripts/keygen.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260926.1",
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.2",
+    "wrangler": "^4.0.0"
+  }
+}

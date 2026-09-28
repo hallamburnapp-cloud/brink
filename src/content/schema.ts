@@ -26,7 +26,8 @@ const id = z.string().regex(/^[a-z][a-z0-9_]*$/, 'ids are snake_case: [a-z][a-z0
 const flag = z.string().regex(/^[a-z][a-z0-9_:]*$/, 'flags are snake_case, optionally namespaced with ":"');
 const tag = z.string().regex(/^[a-z][a-z0-9_]*$/);
 
-export const effectsSchema = z.record(effectKey, z.number().int().min(-60).max(60));
+// partialRecord: zod v4's record over an enum is exhaustive; effects name only the keys they touch.
+export const effectsSchema = z.partialRecord(effectKey, z.number().int().min(-60).max(60));
 
 const range = z.object({ min: z.number().optional(), max: z.number().optional() }).strict();
 
@@ -35,7 +36,7 @@ export const conditionSchema = z
     flags_all: z.array(flag).optional(),
     flags_any: z.array(flag).optional(),
     flags_none: z.array(flag).optional(),
-    values: z.record(effectKey, range).optional(),
+    values: z.partialRecord(effectKey, range).optional(),
     pieces_any: z.array(id).optional(),
     pieces_all: z.array(id).optional(),
     pieces_none: z.array(id).optional(),

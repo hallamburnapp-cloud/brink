@@ -1,0 +1,26 @@
+# BRINK unlock worker — see README.md for setup.
+name = "brink-unlock"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+# Purchase records and rate-limit counters.
+# Create the namespaces and paste the ids here:
+#   npx wrangler kv namespace create PURCHASES
+#   npx wrangler kv namespace create PURCHASES --preview
+[[kv_namespaces]]
+binding = "PURCHASES"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+preview_id = "REPLACE_WITH_PREVIEW_KV_NAMESPACE_ID"
+
+[vars]
+# Origin allowed to call this worker from the browser (the game's public URL, no trailing slash).
+# A comma-separated list is accepted for local development, e.g. "https://brink.example,http://localhost:5173".
+ALLOWED_ORIGIN = "https://brink.example"
+# Optional: when set, only Checkout Sessions containing this Price are accepted.
+# Leave empty to accept any paid session in the Stripe account.
+STRIPE_PRICE_ID = "price_REPLACE_ME"
+
+# Secrets (never put these in this file). Set each with `npx wrangler secret put <NAME>`:
+#   STRIPE_SECRET_KEY        sk_live_... (restricted key with read access to Checkout Sessions and Customers is enough)
+#   STRIPE_WEBHOOK_SECRET    whsec_... from the webhook endpoint you create in the Stripe dashboard
+#   SIGNING_PRIVATE_KEY_JWK  ECDSA P-256 private key as JWK JSON, from `npm run keygen`
