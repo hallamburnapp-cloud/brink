@@ -19,7 +19,8 @@ export function brinkContentPlugin(): Plugin {
     const { content, issues } = loadContent(root);
     const errors = issues.filter((i) => i.level === 'error');
     if (issues.length) console.log('\n[brink content]\n' + formatIssues(issues));
-    if (errors.length && !server) throw new Error(`Content validation failed with ${errors.length} error(s)`);
+    // Production builds refuse invalid content; BRINK_CONTENT_LENIENT=1 lets a preview build through.
+    if (errors.length && !server && !process.env.BRINK_CONTENT_LENIENT) throw new Error(`Content validation failed with ${errors.length} error(s)`);
     return { content, issues };
   };
 
