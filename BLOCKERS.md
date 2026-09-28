@@ -37,3 +37,18 @@ The content-authoring workflow was limited to two concurrent agents by the
 sandbox's CPU count, so the ten authoring jobs ran in five waves rather than one.
 Independent modules (audio, art, share, worker, simulator, meta, tooling, docs) were
 built by separately spawned agents in parallel so the night was not serialised on it.
+
+## B-004 Balance target T5 not met by the heuristic bot
+Four of the five simulator targets pass at iteration 8 (BALANCE.md). T5 ("≥ 3% of
+heuristic runs score 100× the final target") measured 0.03%: five runs broke the game
+and the best scored 1.45 million, so the compounding exists, but the survival
+heuristic does not farm the top of the curve for forty cards. Not a build blocker; the
+recommended fix is a fourth, aggressive "break it" policy so the target measures the
+build rather than the bot's temperament. Logged in BALANCE.md and RISKS.md.
+
+## B-005 Playwright e2e and content hot reload
+Editing a content or source file while the e2e suite runs against the dev server
+triggers a hot reload; the app resumes from its saved run, but the spec was mid-click
+and timed out twice during the night. The helper now presses "Resume the crisis in
+progress" when it lands on Home; the e2e is otherwise green. Do not edit `content/` or
+`src/` while `npx playwright test` is running.

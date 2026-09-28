@@ -30,7 +30,8 @@ npm run dev            # http://localhost:5173 — content in /content hot-reloa
 npm test               # engine, content pipeline, meta, share, sim unit tests (vitest)
 npm run typecheck
 npm run content:validate   # schema + semantic validation of /content (CI gate)
-npm run sim -- --runs 20000 --policy all      # headless balance simulator → sim-output/
+npm run sim -- --runs 20000 --policy all      # headless balance simulator → sim-output/ (BRINK_SIM_LENIENT=1 runs with content errors)
+npx tsx tools/playtest.ts --style hawk --seat federation --seed ABC --out playtest-output   # a real run in a mobile Chromium with a transcript
 npm run e2e            # Playwright, mobile viewport (Pixel 7), stubbed unlock Worker
 npx tsx tools/playtest.ts --style dove --seat republic --seed ABC   # play a real run headlessly, write transcript + screenshots
 ```
