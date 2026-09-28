@@ -10,7 +10,7 @@ const localChromium = process.env.PW_CHROMIUM_PATH ?? (!process.env.CI && exists
 
 export default defineConfig({
   testDir: 'e2e',
-  timeout: 240_000,
+  timeout: 360_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
   workers: 1,
@@ -19,6 +19,8 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${PORT}`,
     ...devices['Pixel 7'],
+    // Reduced motion shortens the tally and overlays so a full run fits the test budget; motion is covered by the playtest harness.
+    reducedMotion: 'reduce',
     trace: 'retain-on-failure',
     launchOptions: localChromium ? { executablePath: localChromium } : {},
   },

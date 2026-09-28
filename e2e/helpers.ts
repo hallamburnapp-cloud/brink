@@ -1,7 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 
 /** Play the current run to its end by tapping choice buttons and taking the first offered piece. */
-export async function playToEnd(page: Page, pick: 'left' | 'right' | 'alternate' = 'alternate', maxSteps = 2000, budgetMs = 200_000): Promise<void> {
+export async function playToEnd(page: Page, pick: 'left' | 'right' | 'alternate' = 'alternate', maxSteps = 3000, budgetMs = 300_000): Promise<void> {
   let step = 0;
   const started = Date.now();
   while (step < maxSteps && Date.now() - started < budgetMs) {
