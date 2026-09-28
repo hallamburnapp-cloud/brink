@@ -32,6 +32,9 @@ Open design decisions, chosen for fun and finishability, logged as they were mad
 - **D-068 Endless is opt-in after a win** and repeats flashpoints; the daily record is filed at the first ending, so continuing never changes a Daily result.
 - **D-069 Deadman Switch is once per run** and leaves escalation at 70 (or the floor if higher), so a Madman run keeps its multipliers but not its immunity.
 - **D-070 Rules that are levels merge by max, discounts by product, counts by sum** so duplicate rules from two pieces behave sensibly.
+- **D-071 The engine publishes outcome flags** (`accident:*`, `ante:*`, `peak:*`, `deadman:fired`, `endless`; CONTENT.md §4.6) instead of exposing run stats to conditions. Endings and cards condition on the same vocabulary, the validator can whitelist it, and the flag list is the whole contract.
+- **D-072 Accident endings outrank story endings.** When an accident took escalation to 100 (`accident:fatal`), the accident is the story, so the four accident wars sit at priority 45; story nuclear endings live at 20–40 and the generic fallback at 0.
+- **D-073 Endless never ends by run_end.** Every endless act reopens the shop; the run ends only by a meter hitting 0 or 100, and two endless-only removed endings (public and military at 100) say what happens to a leader who will not stop.
 
 ## Content
 - **D-030 Hidden values in prose.** `describeHidden()` gives four bands per value; card text and advisor language carry them. Only Signals Intercept reveals numbers.
