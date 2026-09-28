@@ -12,6 +12,7 @@ All notable changes to BRINK. Dates are UTC.
 - Deadman Switch, endless escalation after a win with rising targets and a climbing curve, total-leverage score with a local best.
 - Engine-set outcome flags (`accident:*`, `ante:*`, `peak:*`, `deadman:fired`, `endless`) that endings and cards can condition on; a called bluff is dealt even when no flashpoint is left for the act; One More Call charges spend without the Hotline.
 - Rule maps and active-flag sets are cached on the hot path (simulations ~25% faster, replay unchanged).
+- Balance knobs from the first eight iterations: act cooling, act stipend and consolation capital, softened accident escalation, flashpoint numbers ±8..±16, the ante ladder 250/450/1,200/3,200/7,000 (BALANCE.md).
 - Review fixes: commitment lock semantics, warning follow-ups inside flashpoints, once-semantics in queues, timeout side recording, mode checks in fallback draws, injected `always` multipliers, rule level merging.
 
 ### Content
