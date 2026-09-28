@@ -39,7 +39,7 @@ test.describe('Daily run', () => {
 
     // Share button falls back gracefully
     await page.getByRole('button', { name: 'Share', exact: true }).click();
-    await expect(page.getByText(/Shared|Copied|saved|not available/)).toBeVisible();
+    await expect(page.getByText(/Shared|Copied|saved|not available/).first()).toBeVisible();
 
     // Daily is one attempt: home shows the record and no Play for daily
     await page.getByRole('button', { name: 'Home' }).click();
