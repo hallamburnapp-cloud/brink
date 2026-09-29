@@ -173,8 +173,8 @@ export function buildOgSvg(daily: Daily, opts: OgOptions = {}): string {
 
   const meta =
     variant === 'daily'
-      ? `Daily #${daily.number} · ${seat.name} · ${formatDate(daily.date)}`
-      : 'A new crisis every day · The seat rotates with the date';
+      ? `Tonight #${daily.number} · ${seat.name} · ${formatDate(daily.date)}`
+      : 'The same night for everyone · The seat rotates with the date';
 
   const serif = `'Liberation Serif', 'DejaVu Serif', Georgia, 'Times New Roman', serif`;
   const mono = `'DejaVu Sans Mono', 'Liberation Mono', Menlo, Consolas, monospace`;
@@ -199,14 +199,14 @@ export function buildOgSvg(daily: Daily, opts: OgOptions = {}): string {
     `<line x1="${nbx.toFixed(2)}" y1="${nby.toFixed(2)}" x2="${nx.toFixed(2)}" y2="${ny.toFixed(2)}" stroke="${OFF_WHITE}" stroke-width="4" stroke-linecap="round"/>`,
     `<circle cx="${gx}" cy="${gy}" r="9" fill="${OFF_WHITE}"/>`,
     `<circle cx="${gx}" cy="${gy}" r="4" fill="${NAVY}"/>`,
-    `<text x="${gx}" y="${gy + 78}" font-family="${mono}" font-size="20" fill="${MUTED}" text-anchor="middle" letter-spacing="4">ESCALATION</text>`,
+    `<text x="${gx}" y="${gy + 78}" font-family="${mono}" font-size="20" fill="${MUTED}" text-anchor="middle" letter-spacing="4">DANGER</text>`,
     `<text x="${gx}" y="${gy + 118}" font-family="${mono}" font-size="34" font-weight="bold" fill="${accent}" text-anchor="middle">${pct}%</text>`,
     // Copy.
     `<text x="72" y="300" font-family="${serif}" font-size="210" font-weight="bold" fill="${OFF_WHITE}" letter-spacing="14">${esc(BRAND.name)}</text>`,
     `<rect x="76" y="330" width="120" height="3" fill="${accent}"/>`,
     `<text x="76" y="392" font-family="${mono}" font-size="34" fill="${MUTED}">It's 3am. The phone is ringing.</text>`,
     `<text x="76" y="452" font-family="${mono}" font-size="26" fill="${accent}" letter-spacing="1">${esc(meta)}</text>`,
-    `<text x="76" y="${HEIGHT - 44}" font-family="${mono}" font-size="18" fill="${MUTED}" fill-opacity="0.7" letter-spacing="3">A RUN-BASED CRISIS-STRATEGY GAME</text>`,
+    `<text x="76" y="${HEIGHT - 44}" font-family="${mono}" font-size="18" fill="${MUTED}" fill-opacity="0.7" letter-spacing="3">KEEP FIVE DIALS OFF THE EDGES · MAKE IT TO DAWN</text>`,
     `</svg>`,
   ].join('\n');
 }
