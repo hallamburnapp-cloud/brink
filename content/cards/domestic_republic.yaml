@@ -12,12 +12,11 @@
   acts: [1, 2]
   tags: [domestic]
   text: >-
-    The overnight tracker moved eleven points on a nine-second clip of you not
-    answering a question about Vestria. Not answering badly. Not answering. I
-    can have a line by seven that puts the eleven back, and you will have to
-    say it on camera and mean it for a month.
+    The poll fell eleven points overnight on a nine-second clip of you not
+    answering about Vestria. I have a line by seven that wins them back, if
+    you mean it for a month.
   left:
-    text: "Give me the line by seven"
+    text: "Say the line at seven"
     effects: { public: 4, commitment: 4, trust_primary: -1 }
     tags: [domestic, public_commitment]
   right:
@@ -31,17 +30,15 @@
   acts: [1, 2]
   tags: [alliance, alliance_demand]
   text: >-
-    Your ambassador briefed my staff on the readiness change eight minutes
-    after your press office briefed the newspapers. I checked the timestamps
-    myself. My parliament has a treaty that says 'consultation' and a
-    dictionary that says what it means. Tell me what you will do, and tell me
-    before you tell them.
+    Your ambassador told my staff about the alert eight minutes after your
+    press office told the newspapers. My treaty with you says 'consult', and
+    my parliament owns a dictionary.
   left:
-    text: "You get the call first. Always"
+    text: "Promise her the first call"
     effects: { allies: 5, commitment: 3, intel: -3, military: -2 }
     tags: [alliance, public_commitment]
   right:
-    text: "It was operational. It will happen again"
+    text: "Tell her some calls we make alone"
     effects: { allies: -6, military: 3, trust_primary: -1 }
     tags: [alliance, secrecy, military]
 
@@ -51,12 +48,11 @@
   acts: [1, 2]
   tags: [domestic, military]
   text: >-
-    Three colonels from the planning staff dined with a columnist at the Arden
-    Club on Tuesday, and the columnist paid. The Chief of Staff knows and has
-    done nothing, which is his way of telling you something. The column runs
-    on Sunday. The word they used, twice, was 'timid'.
+    Three colonels from the planning staff dined with a columnist on Tuesday,
+    and the columnist paid. His column runs on Sunday, and the word he uses
+    for you, twice, is 'timid'.
   left:
-    text: "Address the staff college myself"
+    text: "Address the officers myself"
     effects: { military: 4, public: -2, escalation: 1, commitment: 2 }
     tags: [military, domestic, public_commitment]
   right:
@@ -70,11 +66,9 @@
   acts: [1, 2]
   tags: [economy, domestic]
   text: >-
-    The Arden dockers voted last night to refuse {rival_adj} cargo from this
-    morning, and the port handles thirty per cent of what the country eats. It
-    is popular. It is also a sanction nobody in this building decided on. I can
-    back it and pay for it, or I can order the port open and pay for that
-    instead.
+    The {capital} dockers voted at midnight to refuse {rival_adj} cargo, and
+    their port lands a third of what the country eats. It is popular, and
+    nobody in this building chose it.
   left:
     text: "Back the boycott"
     effects: { public: 4, economy: -4, trust_primary: -4 }
@@ -92,24 +86,22 @@
   acts: [2, 3]
   tags: [domestic, alliance]
   text: >-
-    Under the war powers clause a deployment abroad lapses on day fourteen
-    without a vote of the Assembly, and this is day twelve. I can ask for the
-    vote, which you might lose. Or I can redefine the Caldor detachment as a
-    training mission, which is lawful, and which everyone in the chamber will
-    know is a redefinition.
+    Our troops on Caldor come home on day fourteen unless the Assembly votes,
+    and this is day twelve. Ask for the vote, or call them a training mission
+    and let the chamber notice.
   left:
     text: "Ask for the vote"
     effects: { commitment: 4, allies: 2 }
     tags: [domestic, transparency, public_commitment]
     odds:
-      label: The house votes yes
+      label: They vote yes
       base: 0.6
       tags: [diplomacy]
       success:
         effects: { military: 3, public: 3, commitment: 2 }
         capital: 1
       failure:
-        text: "It fails by six. The detachment comes home on television."
+        text: "It fails by six votes. The troops come home on live television."
         effects: { military: -8, allies: -6, public: -4 }
   right:
     text: "Call it training"
@@ -122,17 +114,15 @@
   acts: [2, 3]
   tags: [economy, alliance]
   text: >-
-    War-risk premiums on Arden-flagged hulls tripled overnight and two of the
-    big lines have paused sailings through the Straits. I can underwrite the
-    premiums from the exchequer, which is a subsidy to the shipping lines and
-    a signal to {rival_capital} that we intend to keep sailing. Or I let them
-    pause, and the shelves say so in nine days.
+    Insurance for ships in the Straits tripled overnight, and two big shipping
+    lines have stopped sailing. I can pay the insurers, or the shelves go thin
+    in nine days.
   left:
-    text: "Underwrite the premiums"
+    text: "Pay the insurers. Keep sailing"
     effects: { economy: -4, public: 3, allies: 2, commitment: 2 }
     tags: [economy, public_commitment]
   right:
-    text: "Let them pause"
+    text: "Let the ships wait"
     effects: { economy: -2, public: -4, trust_primary: 2 }
     tags: [economy, stall]
 
@@ -142,17 +132,15 @@
   acts: [2, 3]
   tags: [military, economy]
   text: >-
-    Halvard can have two hundred interceptor rounds on the quay at Arden in six
-    days. I need a letter of intent tonight, not a contract, and it needs your
-    signature because nobody else's moves the factory. I should mention that
-    {rival_capital} reads our shipping manifests. That is not a problem, that
-    is the capability working.
+    Two hundred interceptor missiles on the {capital} quay in six days, if you
+    sign tonight. {Rival_capital} will read the manifest, which is not a leak;
+    that is the product working.
   left:
     text: "Sign the letter"
     effects: { military: 5, economy: -4, trust_primary: -3, escalation: 2 }
     tags: [military, deterrence, economy]
   right:
-    text: "Not on a letter"
+    text: "Not tonight. Not on a letter"
     effects: { military: -4, public: -2, economy: 1 }
     tags: [stall, economy]
 
@@ -163,16 +151,15 @@
   conditions: { flags_any: [false_alarm:stood_down, false_alarm:investigated] }
   tags: [domestic, nuclear]
   text: >-
-    The papers say a radar saw something last week and you waited, and the
-    something was nothing. A million people in this country would sleep
-    tonight if you said that aloud. Your General will not sleep if you do, and
-    I am told he has not been sleeping anyway. You waited, so say so.
+    The papers say a radar saw something last week, you waited, and the
+    something was nothing. A million people would sleep tonight if you said
+    that aloud, and your General would not.
   left:
     text: "Tell the country what happened"
     effects: { public: 5, trust_primary: 4, military: -5, intel: -2 }
     tags: [transparency, nuclear, reassurance, domestic]
   right:
-    text: "It never reached my desk"
+    text: "Say it never reached my desk"
     effects: { public: -2, military: 3, commitment: 2, trust_primary: -1 }
     tags: [secrecy, nuclear, domestic]
 
@@ -186,10 +173,9 @@
   timeout: right
   tags: [domestic, nuclear]
   text: >-
-    Eight o'clock clip, forty seconds, and the focus group in Arden North wants
-    to hear 'we will not be the first to fire'. The General's office has sent
-    over 'all options remain on the table', with the word 'remain' underlined.
-    I can only write one of them. The van leaves in ten minutes.
+    Forty seconds on the eight o'clock news, and the focus group wants 'we will
+    not fire first'. The General has sent 'all options remain on the table',
+    with 'remain' underlined.
   left:
     text: "We will not be the first to fire"
     effects: { public: 5, commitment: 5, military: -4, trust_primary: 3 }
@@ -205,10 +191,9 @@
   acts: [3, 4]
   tags: [personal, domestic]
   text: >-
-    The families from the Caldor garrison are on the front steps. Forty of
-    them, with photographs, and it is cold, and the police have not moved them
-    because nobody has told the police anything. They asked for you by name.
-    One of them asked for me, which I did not expect.
+    Forty Caldor garrison families are on the front steps with photographs, in
+    the cold, and nobody has told the police anything. They asked for you by
+    name; one asked for me.
   left:
     text: "Go down to them"
     effects: { public: 4, military: 2, commitment: 3, intel: -1 }
@@ -224,11 +209,9 @@
   acts: [3, 4]
   tags: [domestic]
   text: >-
-    Twenty-two of your own back-benchers will vote with me tonight on the
-    amendment requiring consultation before any strike. I did not recruit
-    them. They came to me because your whips stopped returning calls in the
-    second week. Accept the amendment and it is a courtesy, fight it and it is
-    a defeat.
+    Twenty-two of your own members vote with me tonight to require a vote
+    before any strike, and I did not recruit them. Accept it and it is a
+    courtesy; fight it and it is a defeat.
   left:
     text: "Accept the amendment"
     effects: { military: -6, public: 3, allies: 4, commitment: 2 }
@@ -256,17 +239,15 @@
   conditions: { pieces_any: [allied_basing, alliance_first] }
   tags: [alliance, basing, alliance_demand]
   text: >-
-    Your squadrons on my runways are the most photographed aircraft in the
-    Compact, and my parliament votes Thursday on a motion to inspect what they
-    carry. I can defeat it if you agree in writing that nothing lands here
-    without my defence minister being told first. I am not asking to command
-    your aircraft. I am asking to know where they are.
+    Your jets sit on my runways, and my parliament votes Thursday on inspecting
+    what they carry. I can win that vote if you promise my defence minister is
+    told before anything lands.
   left:
     text: "Agreed. Nothing lands unannounced"
     effects: { allies: 6, commitment: 4, intel: -3, military: -3 }
     tags: [alliance, basing, public_commitment]
   right:
-    text: "Sovereign aircraft. No conditions"
+    text: "Our jets. No conditions"
     effects: { military: 3, commitment: 2 }
     tags: [alliance, basing, secrecy]
     odds:
@@ -289,11 +270,9 @@
   timeout: right
   tags: [domestic, intel, military]
   text: >-
-    I have a target list. Twelve locations in {rival}, grid references, with a
-    note in the margin that says 'when he stops hesitating'. It came from
-    someone in uniform who thinks you are too slow and thinks I am the way to
-    hurry you. I have not decided whether to print it, and I am telling you
-    because I would like to be the kind of person who told you.
+    Someone in uniform sent me a target list: twelve places in {rival}, with
+    'when he stops hesitating' written in the margin. I have not decided
+    whether to print it.
   left:
     text: "Don't print it. Give me the name"
     effects: { intel: 3, military: -4, public: -2, trust_primary: 1 }
@@ -311,18 +290,16 @@
   conditions: { values: { public: { max: 34 } } }
   tags: [domestic, nuclear]
   text: >-
-    Your approval is at thirty-one and I have never seen a leader come back
-    from thirty-one in a crisis. I am offering a truce: I stand beside you for
-    a fortnight and my people stop asking questions in the chamber. The price
-    is a sentence from you ruling out a first strike, in the chamber, tomorrow.
-    It is not a large price, it only feels large.
+    Your approval is at thirty-one and nobody comes back from thirty-one in a
+    crisis. I will stand beside you for a fortnight if you rule out striking
+    first, in the chamber, tomorrow.
   left:
     text: "Rule it out. Tomorrow"
     effects: { public: 9, military: -6, commitment: 6, trust_primary: 4 }
     capital: 1
     tags: [domestic, public_commitment, reassurance, nuclear]
   right:
-    text: "I don't buy truces"
+    text: "Refuse the truce"
     effects: { public: -4, military: 3 }
     capital: -1
     tags: [domestic, deterrence]
@@ -334,11 +311,9 @@
   conditions: { flags_any: [ultimatum:received, blockade:declared, proxy:clash] }
   tags: [alliance, alliance_demand]
   text: >-
-    Two of my members have opened their own channel to {rival_capital}. They
-    did not tell me and they certainly did not tell you, and they are doing it
-    because they think you decide things and then inform us. I can hold the
-    Compact together if you put them in your room tonight, not mine. Or you
-    can warn them off and see how many follow them.
+    Two of my members are talking to {rival_capital} on their own, because
+    they think you decide and inform us. Put them in your room tonight, or
+    warn them off and see who follows.
   left:
     text: "Bring them into the room tonight"
     effects: { allies: 6, commitment: 4, intel: -4, military: -2 }
@@ -354,12 +329,11 @@
   acts: [4, 5]
   tags: [domestic, military]
   text: >-
-    Eleven retired generals have signed an open letter in this morning's papers
-    calling for 'decision'. The serving Chief did not sign it. He also did not
-    stop it, and two of his staff drafted it. He has asked to see you alone at
-    nine, and the letter has asked to see you in public.
+    Eleven retired generals have an open letter in today's papers calling for
+    'decision'. The serving Chief did not sign it, did not stop it, and wants
+    to see you alone at nine.
   left:
-    text: "Nine o'clock. Alone"
+    text: "See the Chief at nine. Alone"
     effects: { military: 4, intel: 2, public: -2, escalation: 1 }
     tags: [military, domestic, secrecy]
   right:

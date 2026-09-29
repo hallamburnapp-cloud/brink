@@ -13,10 +13,9 @@
   acts: [1, 2]
   tags: [domestic]
   text: >-
-    The nine o'clock bulletin has two versions and both are cut. One has the
-    queue outside the Kaskad Savings Bank and a line blaming the sanctions.
-    One has a harvest. The queue is true and the harvest is also true, and the
-    ministry would like you to know that only one of them can be true at nine.
+    The nine o'clock news is cut two ways: the queue outside the Savings Bank,
+    blaming the sanctions, or the harvest. Both are true, and only one can lead
+    at nine.
   left:
     text: "Run the queue. Blame the sanctions"
     effects: { public: -5, economy: 2, trust_primary: -3, commitment: 2 }
@@ -32,11 +31,9 @@
   acts: [1, 2]
   tags: [economy, domestic]
   text: >-
-    The reserve covers sixty-one days of imports at the current burn. Fuel
-    rationing from Monday makes it ninety and puts a card in every wallet in
-    Kaskad with your signature on it. Not rationing keeps the wallets empty of
-    cards and, in about two months, of everything else. I have a dry joke
-    about this and I have decided against it.
+    The reserve covers sixty-one days of imports. Fuel rationing from Monday
+    makes it ninety, and puts a ration card in every wallet in {capital} with
+    your signature on it.
   left:
     text: "Ration from Monday"
     effects: { economy: 4, public: -6, military: -2 }
@@ -52,17 +49,15 @@
   acts: [1, 2]
   tags: [domestic, intel]
   text: >-
-    I am the last foreign correspondent in Kaskad with a working camera and
-    your ministry would like my accreditation pulled by Friday. I am asking for
-    an interview instead, twenty minutes, no topics excluded. If I go, the only
-    pictures of this city on {rival_adj} screens will be the ones your ministry
-    releases, and nobody there believes those. Neither, I suspect, do you.
+    I am the last foreign reporter in {capital}, and your ministry wants me gone
+    by Friday. After me, the only pictures of this city abroad are yours, and
+    nobody believes yours.
   left:
     text: "Twenty minutes. Nothing excluded"
     effects: { public: -3, trust_primary: 4, trust_secondary: 3, allies: 2, intel: 1 }
     tags: [transparency, domestic]
   right:
-    text: "Pull it"
+    text: "Put her on the plane"
     effects: { public: 3, trust_primary: -5, allies: -4, intel: -2, economy: -1 }
     tags: [secrecy, domestic]
 
@@ -74,17 +69,15 @@
   acts: [2, 3]
   tags: [domestic, economy]
   text: >-
-    The Kaskad Savings Bank opens at nine and the queue starts at five, and
-    tomorrow a {other_adj} camera crew will be there at four. I can have the
-    pavement resurfaced overnight, which moves the queue two streets and the
-    crew with it. Or the treasury opens the counters at six with cash in them,
-    which is a different kind of picture and costs actual money.
+    The bank opens at nine, the queue forms at five, and a {other_adj} crew
+    films at four. Dig up the pavement and the queue moves two streets; open at
+    six with cash and it is gone.
   left:
     text: "Open at six, with cash"
     effects: { economy: -4, public: 5, trust_secondary: 1 }
     tags: [economy, domestic, transparency]
   right:
-    text: "Resurface the pavement"
+    text: "Dig up the pavement"
     effects: { public: -3, trust_secondary: -3, intel: -2, economy: -1 }
     tags: [domestic, secrecy]
 
@@ -94,13 +87,11 @@
   acts: [2, 3]
   tags: [alliance, economy, diplomacy]
   text: >-
-    I can open a grain corridor through the Compact to Kaskad from Monday,
-    forty trains a week, and my parliament will let me if there is a Compact
-    observer at your rail yards to confirm what goes back the other way. I
-    know what your generals will say about an observer. I also know what your
-    bakers will say about the trains.
+    Forty grain trains a week from Monday, if one Compact observer stands in
+    your rail yards and watches what goes back the other way. Your generals will
+    hate it; ask your bakers.
   left:
-    text: "Take the trains. Take the observer"
+    text: "Take the trains and the observer"
     effects: { economy: 6, military: -3, intel: -2, trust_primary: 3 }
     tags: [alliance, economy, diplomacy]
     odds:
@@ -113,7 +104,7 @@
         text: "Her coalition partner vetoes it. The trains stop at the border with the grain aboard."
         effects: { economy: -2, allies: -2, public: -2 }
   right:
-    text: "We don't take observers"
+    text: "Refuse the observer"
     effects: { economy: -3, military: 2, allies: -3 }
     tags: [secrecy, economy]
 
@@ -124,17 +115,15 @@
   conditions: { flags_any: [proxy:clash, proxy:advisers_in, proxy:brigade_deployed] }
   tags: [domestic, military]
   text: >-
-    My party has eleven seats and is allowed to keep them, and this morning I
-    am using one of them to ask for the casualty figures from Vestria to be
-    read in the chamber. The ministry says they are classified. The mothers
-    outside the ministry say they are not. I would rather hear them from you
-    than count the buses.
+    My party is allowed eleven seats, and today I use one to ask for the Vestria
+    casualty figures to be read in the chamber. The mothers outside the ministry
+    are counting the buses.
   left:
     text: "Read them out"
     effects: { public: -5, military: -2, trust_primary: 2, intel: 3 }
     tags: [transparency, domestic]
   right:
-    text: "They stay classified"
+    text: "Keep them secret"
     effects: { public: 2, intel: -3, commitment: 2, military: 1 }
     tags: [secrecy, domestic]
 
@@ -145,17 +134,15 @@
   conditions: { flags_any: [blockade:declared, cables:cut, undersea_cables:cut] }
   tags: [economy, domestic]
   text: >-
-    With the Straits the way they are, diesel in Kaskad costs twice what it
-    did on Monday and the haulage firms are parking their lorries. I can cap
-    the price, which costs the treasury eleven million a day and keeps the
-    shelves full. Or I let the price find its level and the shelves find
-    theirs. Levels are honest, and shelves vote.
+    With the Straits shut, diesel in {capital} costs twice what it did on
+    Monday, and haulage firms are parking their lorries. A price cap costs
+    eleven million a day; shelves vote.
   left:
     text: "Cap the price"
     effects: { economy: -5, public: 4, commitment: 2 }
     tags: [economy, domestic, public_commitment]
   right:
-    text: "Let it find its level"
+    text: "Let the price rise"
     effects: { economy: -2, public: -6, military: -1 }
     tags: [economy, domestic]
 
@@ -169,17 +156,15 @@
   timeout: right
   tags: [domestic]
   text: >-
-    The tractor plant at Voskra has been idle for three weeks and four thousand
-    people are in the square in front of it, quietly, which the governor finds
-    worse than loudly. He has asked twice for troops. The ministry has asked
-    once for you to go there, tomorrow, without troops. The square has asked
-    for nothing yet.
+    The Voskra tractor plant has been idle three weeks, and four thousand people
+    stand in its square, quietly. The governor has asked twice for troops, the
+    ministry once for you.
   left:
-    text: "I'll go to Voskra tomorrow"
+    text: "Go to Voskra tomorrow"
     effects: { public: 5, military: -2, economy: -1, intel: 2 }
     tags: [domestic, reassurance]
   right:
-    text: "The governor gets his troops"
+    text: "Send the governor his troops"
     effects: { public: -6, military: 2, escalation: 1, trust_primary: -2 }
     tags: [domestic, military]
 
@@ -189,10 +174,9 @@
   acts: [3, 4]
   tags: [personal, domestic]
   text: >-
-    The wives of the Third Division have written to me. Not to you, to me, two
-    hundred letters, because they think I will read them and they are right.
-    They want to know when the Division comes home and they have noticed that
-    nobody has said. I have read forty, and I would like you to read one.
+    The wives of the Third Division have written to me, not you: two hundred
+    letters asking when the Division comes home. I have read forty, and I would
+    like you to read one.
   left:
     text: "Give me all of them"
     effects: { public: 3, military: -3, intel: 2 }
@@ -209,17 +193,15 @@
   conditions: { pieces_any: [strategic_reserve, fortress] }
   tags: [economy, domestic, alliance]
   text: >-
-    The stockpile works. Grain eighty-eight days, fuel seventy, and the
-    sanctions bounce off it the way it was designed. The Compact would sell us
-    grain at last year's price, which makes it a hundred and fifty days, but
-    only if the Amberline crossing opens to their lorries. Lorries, the General
-    notes, go both ways.
+    Grain for eighty-eight days, fuel for seventy; the sanctions bounce off. The
+    Compact sells cheap grain if the Amberline crossing opens to its lorries,
+    and lorries go both ways.
   left:
     text: "Open the Amberline crossing"
     effects: { economy: 5, allies: 3, military: -4, intel: -2 }
     tags: [economy, diplomacy, alliance]
   right:
-    text: "The border stays shut"
+    text: "Keep the border shut"
     effects: { economy: -2, allies: -3, public: 2, military: 1 }
     tags: [economy, secrecy, domestic]
 
@@ -229,11 +211,9 @@
   acts: [3, 4]
   tags: [domestic]
   text: >-
-    Three hundred students were taken from the vigil on Liberation Square at
-    two this morning and I have their names, all of them, because their
-    parents rang me and not the police. You can release them before the
-    {other_adj} channels have the list. You can charge them and have the list
-    read out abroad every night for a month.
+    Three hundred students were taken from Liberation Square at two, and their
+    parents rang me, not the police. I have every name, and by dawn so will
+    {other_adj} television.
   left:
     text: "Release them tonight"
     effects: { public: 4, military: -5, trust_primary: 3, trust_secondary: 2, escalation: -2 }
@@ -251,10 +231,9 @@
   acts: [4, 5]
   tags: [domestic, nuclear]
   text: >-
-    The ministry wants a national address tonight with the word 'existential'
-    in it. I have tested the word. It buys you six points and a half-life of
-    three days, after which every bulletin has to be more existential than the
-    last one or the room notices. 'Difficult' buys you nothing and lasts.
+    The ministry wants 'existential' in tonight's address. I tested it: six
+    points for three days, then every bulletin must top the last, while
+    'difficult' buys nothing and lasts.
   left:
     text: "Say existential"
     effects: { public: 6, commitment: 7, escalation: 4, trust_primary: -5 }
@@ -270,13 +249,11 @@
   acts: [4, 5]
   tags: [economy, domestic]
   text: >-
-    The decree seizes {rival_adj}-owned assets in Kaskad, fourteen billion at
-    yesterday's prices, and it is lawful under the emergency powers. Seizure is
-    permanent in effect whatever the decree says, because nobody buys back what
-    they were made to sell. A freeze is lawful, reversible, and worth nothing
-    to the treasury. I can draft either by noon.
+    Fourteen billion of {rival_adj} money sits in {capital}, and emergency
+    powers let you take it by noon. Seizure is forever, whatever the decree
+    says; a freeze is worth nothing.
   left:
-    text: "Seize them"
+    text: "Seize the assets"
     effects: { economy: 6, trust_primary: -7, allies: -3, escalation: 3 }
     tags: [sanction, escalatory, economy]
   right:
@@ -292,16 +269,15 @@
   timeout: right
   tags: [domestic, intel]
   text: >-
-    The square at Voskra is on every {other_adj} channel tonight and on none of
-    yours, and half of Kaskad has a cousin with a satellite dish. I am asking
-    how long you think that holds. Not as a threat. As the only person in this
-    building who has been in a country where it stopped holding.
+    The square at Voskra is on every {other_adj} channel tonight and none of
+    yours, and half of {capital} has a cousin with a satellite dish. How long
+    do you think that holds?
   left:
     text: "Show it tonight. All of it"
     effects: { public: -6, intel: 3, commitment: -2, trust_secondary: 2 }
     tags: [transparency, domestic]
   right:
-    text: "It holds long enough"
+    text: "Keep it off the air"
     effects: { commitment: 2 }
     tags: [secrecy, domestic]
     odds:
@@ -320,11 +296,9 @@
   acts: [4, 5]
   tags: [domestic, military]
   text: >-
-    The Chief of Staff is giving a dinner for the colonels of the Third
-    Division tonight at the Officers' House. The toast, I am told, is to 'the
-    Premier who does not hesitate'. There is a place set for you at the head
-    of the table. There is also a version of this evening in which it stays
-    empty and they toast it anyway.
+    The Chief of Staff dines with his colonels tonight; the toast is to
+    '{leader} who does not hesitate'. Your place is set at the head of the
+    table, and they will drink to it empty.
   left:
     text: "Take the seat"
     effects: { military: 5, escalation: 3, commitment: 3, public: 2 }
@@ -342,16 +316,14 @@
   conditions: { values: { economy: { max: 34 } } }
   tags: [economy, domestic]
   text: >-
-    Halvard would like to buy the Kaskad naval yards. All three docks, the
-    workforce, the order book, for cash, this week, and I am not going to
-    insult you by pretending the cash is mine. It is {other_adj} money and it
-    would like to own where your ships are built. Your treasury has told me
-    what it has, and I am offering four times that.
+    Halvard will buy the {capital} naval yards this week, for cash, and the cash
+    is {other_adj}. Your treasury told me what it has, and I am offering four
+    times that.
   left:
     text: "Sell the yards"
     effects: { economy: 10, military: -6, trust_secondary: 3, public: -3, allies: -2 }
     tags: [economy, domestic]
   right:
-    text: "Not for sale"
+    text: "Keep the yards"
     effects: { economy: -2, public: 2, military: 2 }
     tags: [economy, public_commitment, domestic]
