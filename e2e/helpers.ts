@@ -1,21 +1,24 @@
 import { expect, type Page } from '@playwright/test';
 
-/** Play the current run to its end by tapping choice buttons and taking the first offered piece. */
+/** Either ending screen: the night's dawn screen ("Copy result") or the Expert ending ("Replay this seed"). */
+const ENDED = /replay this seed|^Copy result$/i;
+
+/** Play the current run to its end by tapping choice buttons; in Expert, take the first affordable piece in each shop. */
 export async function playToEnd(page: Page, pick: 'left' | 'right' | 'alternate' = 'alternate', maxSteps = 3000, budgetMs = 300_000): Promise<void> {
   let step = 0;
   const started = Date.now();
   while (step < maxSteps && Date.now() - started < budgetMs) {
     step++;
     // Ending?
-    if (await page.getByRole('button', { name: /replay this seed/i }).isVisible().catch(() => false)) return;
+    if (await page.getByRole('button', { name: ENDED }).first().isVisible().catch(() => false)) return;
     // A reload (content HMR while a run is on) lands on Home with a resume button: take it.
-    const resume = page.getByRole('button', { name: /Resume the crisis/i });
+    const resume = page.getByRole('button', { name: /Resume the crisis|Pick the phone back up/i });
     if (await resume.isVisible().catch(() => false)) {
       await resume.click().catch(() => {});
       await page.waitForTimeout(300);
       continue;
     }
-    // Shop? Buy the first affordable piece, then leave.
+    // Shop (Expert only)? Buy the first affordable piece, then leave.
     const leave = page.getByRole('button', { name: /^Back to the desk$|^Begin |^Into the endless night$/ });
     if (await leave.isVisible().catch(() => false)) {
       const affordable = page.locator('button').filter({ hasText: /ADVISOR|DOCTRINE|ASSET/ }).filter({ hasNot: page.locator('text=BOUGHT') });
@@ -60,7 +63,19 @@ export async function playToEnd(page: Page, pick: 'left' | 'right' | 'alternate'
   throw new Error('Run did not end within the step budget');
 }
 
-export async function expectEndingScreen(page: Page): Promise<void> {
+/** The dawn screen (the night) or the Expert ending screen. */
+export async function expectEndingScreen(page: Page, game: 'night' | 'expert' = 'night'): Promise<void> {
+  if (game === 'night') {
+    await expect(page.getByRole('button', { name: 'Copy result' })).toBeVisible();
+    await expect(page.getByText(/DAWN|FELL AT/).first()).toBeVisible();
+    return;
+  }
   await expect(page.getByRole('button', { name: /replay this seed/i })).toBeVisible();
   await expect(page.getByText(/DAYS IN OFFICE/)).toBeVisible();
+}
+
+/** Dismiss the first-run intro if it is showing. */
+export async function dismissIntro(page: Page): Promise<void> {
+  const intro = page.getByRole('dialog', { name: 'How this works' });
+  if (await intro.isVisible({ timeout: 2000 }).catch(() => false)) await intro.getByRole('button').click();
 }

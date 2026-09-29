@@ -17,12 +17,12 @@ export function Unlocked() {
   return (
     <div class="flex flex-1 flex-col gap-4 rise pt-10">
       <div class="paper rounded-md p-5 text-ink">
-        <div class="mono text-[11px] tracking-[0.3em] text-ink-2/70">ENDLESS</div>
+        <div class="mono text-[11px] tracking-[0.3em] text-ink-2/70">NIGHT AFTER NIGHT</div>
         {status === 'working' && <h2 class="serif mt-1 text-2xl font-semibold">Confirming your purchase…</h2>}
         {(status === 'unlocked' || status === 'already') && (
           <>
-            <h2 class="serif mt-1 text-2xl font-semibold">Endless is yours.</h2>
-            <p class="serif mt-2 text-[15px]">Every seat, every seed, every DEFCON tier. The token is stored on this device; use Restore on another device with the same email.</p>
+            <h2 class="serif mt-1 text-2xl font-semibold">Night after night is yours.</h2>
+            <p class="serif mt-2 text-[15px]">Any night, any seat, any seed, and Expert mode. The token is stored on this device; use Restore on another device with the same email.</p>
           </>
         )}
         {status === 'invalid' && (

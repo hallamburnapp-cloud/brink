@@ -18,7 +18,7 @@ export function Privacy() {
         </p>
         <h3 class="serif text-lg font-semibold">What is stored on your device</h3>
         <p>
-          Your progress (unlocks, statistics, the endings you have seen, the run in progress, settings and, if you bought Endless, a purchase token)
+          Your progress (unlocks, statistics, the endings you have seen, the run in progress, settings and, if you bought Night after night, a purchase token)
           is stored in your browser's local storage. Nothing is sent to us. Clearing site data removes it.
         </p>
         <h3 class="serif text-lg font-semibold">Cookies</h3>
@@ -31,7 +31,7 @@ export function Privacy() {
         </p>
         <h3 class="serif text-lg font-semibold">Payments</h3>
         <p>
-          Purchases of Endless are handled entirely by Stripe on Stripe's pages. We never see your card details. To issue and restore your unlock, our
+          Purchases of Night after night are handled entirely by Stripe on Stripe's pages. We never see your card details. To issue and restore your unlock, our
           server sees the email address you used at checkout, in hashed form, and nothing else.
         </p>
         <h3 class="serif text-lg font-semibold">Location</h3>

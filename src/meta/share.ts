@@ -13,6 +13,8 @@
  */
 import { BRAND } from '../config';
 import type { EndingKind, Mode } from '../engine/types';
+import { METERS } from '../engine/types';
+import { DIAL_LABEL } from '../engine/night';
 
 export interface ShareCardData {
   brand: string; // 'BRINK' (from config; do not hardcode)
@@ -626,13 +628,14 @@ function paintStrip(ctx: Ctx, data: ShareCardData): void {
   const labelRight = CONTENT_L + 190;
   const gridLeft = labelRight + 22;
   const rows = emojiStrip(data.trail, DEFAULT_COLUMNS);
+  const night = typeof data.clock === 'string';
 
   ctx.textBaseline = 'alphabetic';
   rows.forEach((row, r) => {
     const y = top + r * pitch;
     ctx.fillStyle = INK_MUTED;
     ctx.font = `18px ${MONO}`;
-    drawSpaced(ctx, METER_LABELS[r], labelRight, y + cellH / 2 + 6, 2, 'right');
+    drawSpaced(ctx, night ? DIAL_LABEL[METERS[r]] : METER_LABELS[r], labelRight, y + cellH / 2 + 6, 2, 'right');
     Array.from(row).forEach((cell, c) => {
       const colour = (BAND_HEX as Record<string, string>)[cell] ?? EMPTY_HEX;
       ctx.fillStyle = colour;
@@ -646,6 +649,12 @@ function paintStrip(ctx: Ctx, data: ShareCardData): void {
   const gridRight = gridLeft + DEFAULT_COLUMNS * cellW + (DEFAULT_COLUMNS - 1) * gap;
   ctx.fillStyle = INK_MUTED;
   ctx.font = `16px ${MONO}`;
+  if (night) {
+    // The night runs 3:00 to 6:00; the right-hand hint says where it ended.
+    drawSpaced(ctx, '3:00', gridLeft, hintY, 2);
+    drawSpaced(ctx, data.dawn ? '6:00 · DAWN' : `FELL AT ${data.clock}`, gridRight, hintY, 2, 'right');
+    return;
+  }
   drawSpaced(ctx, 'DAY 1', gridLeft, hintY, 2);
   drawSpaced(ctx, `DAY ${Math.max(1, Math.floor(Number.isFinite(data.days) ? data.days : 1))}`, gridRight, hintY, 2, 'right');
 }

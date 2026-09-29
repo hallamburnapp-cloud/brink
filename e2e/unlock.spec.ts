@@ -16,12 +16,12 @@ async function signToken(payload: object): Promise<string> {
 }
 
 test.describe('Unlock flow with a stubbed Worker', () => {
-  test('Endless is locked, then unlocked after the Stripe redirect', async ({ page }) => {
+  test('Night after night is locked, then unlocked after the Stripe redirect', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('button', { name: 'Unlock' })).toBeVisible();
     await page.getByRole('button', { name: 'Unlock' }).click();
     await expect(page.getByText(/ONE-TIME PURCHASE/)).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Unlock Endless' })).toHaveAttribute('href', /stripe/);
+    await expect(page.getByRole('link', { name: 'Unlock for one payment' })).toHaveAttribute('href', /stripe/);
 
     const token = await signToken({ sub: 'a'.repeat(64), plan: 'endless', iat: Math.floor(Date.now() / 1000), v: 1 });
     await page.route('http://unlock.test/**', async (route) => {
@@ -32,20 +32,27 @@ test.describe('Unlock flow with a stubbed Worker', () => {
     });
 
     await page.goto('/unlocked?session_id=cs_test_123');
-    await expect(page.getByText(/Endless is yours/)).toBeVisible();
+    await expect(page.getByText(/Night after night is yours/)).toBeVisible();
     await page.getByRole('button', { name: 'Continue' }).click();
-    // Endless now playable
-    await expect(page.locator('section').filter({ hasText: 'ENDLESS' }).getByRole('button', { name: 'Play' })).toBeVisible();
-    await page.locator('section').filter({ hasText: 'ENDLESS' }).getByRole('button', { name: 'Play' }).click();
+    // Night after night now playable: Play starts another night at once, the seat picker offers Expert
+    const nightAfterNight = page.locator('section').filter({ hasText: 'NIGHT AFTER NIGHT' });
+    await expect(nightAfterNight.getByRole('button', { name: 'Play' })).toBeVisible();
+    await nightAfterNight.getByRole('button', { name: 'CHOOSE A SEAT OR SEED' }).click();
     await expect(page.getByText('Take a seat')).toBeVisible();
-    await page.getByRole('button', { name: /Pick up the phone/ }).click();
+    await page.getByRole('button', { name: /Start the night as/ }).click();
     const intro = page.getByRole('dialog', { name: 'How this works' });
     if (await intro.isVisible({ timeout: 2000 }).catch(() => false)) await intro.getByRole('button').click();
     await expect(page.getByRole('group', { name: /Card from/ })).toBeVisible();
+    await expect(page.getByText('THE NIGHT')).toBeVisible();
 
     // Token survives reload
     await page.goto('/');
-    await expect(page.locator('section').filter({ hasText: 'ENDLESS' }).getByRole('button', { name: 'Play' })).toBeVisible();
+    await expect(page.locator('section').filter({ hasText: 'NIGHT AFTER NIGHT' }).getByRole('button', { name: 'Play' })).toBeVisible();
+
+    // Expert is there for those who want the numbers
+    await page.getByRole('button', { name: 'EXPERT' }).click();
+    await page.getByRole('tab', { name: 'EXPERT' }).click();
+    await expect(page.getByRole('button', { name: /Pick up the phone as/ })).toBeVisible();
   });
 
   test('a tampered token is rejected', async ({ page }) => {

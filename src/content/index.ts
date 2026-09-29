@@ -15,7 +15,8 @@ export function onContentChange(fn: (c: Content) => void): () => void {
 
 if (import.meta.hot) {
   import.meta.hot.accept((mod) => {
-    if (!mod) return;
+    // A reload whose compile failed (a YAML file mid-edit) carries no content; keep the last good one.
+    if (!mod || !mod.default) return;
     content = mod.default as Content;
     contentIssues = mod.issues;
     for (const fn of listeners) fn(content);

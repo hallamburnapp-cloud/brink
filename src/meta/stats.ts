@@ -3,12 +3,18 @@
  * "favourite advisor" line on the stats screen and several meta unlocks.
  */
 import type { Content, RunState } from '../engine/types';
+import { isDawn } from '../engine/night';
 import { load, remove, save } from './storage';
 
 const KEY = 'brink.stats';
 
 export interface Stats {
   runs: number;
+  /** Nights played under the simple ruleset (tonight and night after night). */
+  nights: number;
+  /** Nights that reached 6:00. */
+  dawns: number;
+  /** Expert only: the longest game in days. */
   bestDays: number;
   totalDays: number;
   endingsSeen: Record<string, number>;
@@ -28,6 +34,8 @@ export interface Stats {
 export function emptyStats(): Stats {
   return {
     runs: 0,
+    nights: 0,
+    dawns: 0,
     bestDays: 0,
     totalDays: 0,
     endingsSeen: {},
@@ -64,6 +72,8 @@ function normalise(raw: unknown): Stats {
   if (!raw || typeof raw !== 'object') return s;
   const r = raw as Record<string, unknown>;
   s.runs = num(r.runs);
+  s.nights = num(r.nights);
+  s.dawns = num(r.dawns);
   s.bestDays = num(r.bestDays);
   s.totalDays = num(r.totalDays);
   s.endingsSeen = counts(r.endingsSeen);
@@ -106,8 +116,13 @@ export function recordRun(state: RunState, content: Content, offeredIds: string[
   const lost = kind === 'nuclear' || kind === 'removed';
 
   s.runs++;
-  s.totalDays += days;
-  s.bestDays = Math.max(s.bestDays, days);
+  if (state.ruleset === 'simple') {
+    s.nights++;
+    if (state.ending && isDawn(kind)) s.dawns++;
+  } else {
+    s.totalDays += days;
+    s.bestDays = Math.max(s.bestDays, days);
+  }
   if (state.ending) bump(s.endingsSeen, state.ending);
   bump(s.kinds, kind);
   for (const p of picked) bump(s.piecesPicked, p);

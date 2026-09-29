@@ -133,7 +133,7 @@ export function Dawn() {
       </section>
 
       {moment && speaker && (
-        <section class="paper-dark rounded-md p-4">
+        <section class="paper-dark rounded-md p-4" aria-label="The moment">
           <div class="mono text-[10px] tracking-[0.24em] text-mute">{(e?.moment_label ?? 'The moment').toUpperCase()}</div>
           <div class="mt-2">
             <Speaker art={speaker.art} accent={speaker.accent} name={template(c, s, speaker.role)} role={template(c, s, speaker.name)} />

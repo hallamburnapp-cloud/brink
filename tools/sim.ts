@@ -121,7 +121,7 @@ function parseArgs(argv: string[]): Args {
       }
       case '--mode': {
         const v = value();
-        if (!['endless', 'daily', 'challenge'].includes(v)) fail('--mode must be endless, daily or challenge');
+        if (!['endless', 'daily', 'night', 'challenge'].includes(v)) fail('--mode must be endless, daily, night or challenge');
         a.mode = v as Mode;
         break;
       }
@@ -211,7 +211,12 @@ function main(): void {
   const pass = report.targets.filter((t) => t.status === 'PASS').length;
   const failCount = report.targets.filter((t) => t.status === 'FAIL').length;
   const h = report.policies.heuristic;
-  const headline = h ? ` Heuristic: win ${h.winRate}%, median score ${h.score.median}, broke-game ${h.brokeGame.pct}%, median ${h.estMinutes.median} min.` : '';
+  const night = args.mode === 'daily' || args.mode === 'night';
+  const headline = h
+    ? night
+      ? ` Calm bot: dawn ${h.winRate}%, nuclear ${h.nuclearRate}%, ${h.avgCards} cards per night.`
+      : ` Heuristic: win ${h.winRate}%, median score ${h.score.median}, broke-game ${h.brokeGame.pct}%, median ${h.estMinutes.median} min.`
+    : '';
   if (args.json) console.log(json);
   else if (!args.quiet) console.log(md);
   console.error(

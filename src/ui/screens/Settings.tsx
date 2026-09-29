@@ -33,7 +33,7 @@ export function Settings() {
         </button>
       </Row>
       {FEATURES.paywall && (
-        <Row label="Purchase" desc="Restore Endless on this device.">
+        <Row label="Purchase" desc="Restore your unlock on this device.">
           <button class="btn" onClick={() => goto('paywall')}>
             Restore
           </button>

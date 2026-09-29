@@ -48,7 +48,7 @@ export function Dials({ state, preview, hiddenCosts, applied }: DialsProps) {
         const edge = k === 'escalation' ? 100 - v : Math.min(v, 100 - v);
         return (
           <div key={k} class="flex flex-col items-center gap-1" aria-label={`${DIAL_LABEL[k]} ${edge <= 12 ? 'at the edge' : edge <= 25 ? 'near the edge' : 'steady'}`}>
-            <div class="flex h-4 items-center justify-center" style={{ opacity: p !== undefined || hidden ? 1 : 0 }} aria-hidden="true">
+            <div class="dial-preview flex h-4 items-center justify-center" style={{ opacity: (p !== undefined && p !== 0) || hidden ? 1 : 0 }} aria-hidden="true">
               {hidden ? (
                 <span class="mono text-[13px] font-bold text-red">?</span>
               ) : p !== undefined && p !== 0 ? (

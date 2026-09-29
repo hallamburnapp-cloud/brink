@@ -721,6 +721,15 @@ export const ARCHETYPE_REACH_PCT = 10;
 export const ARCHETYPE_MIN_RUNS = 20;
 export const PIECE_SHARE_MAX = 35;
 export const PACE_BAND: readonly [number, number] = [15, 25];
+/** The night (simple ruleset): the calm bot should reach dawn about half the time, the random bot rarely. */
+export const NIGHT_DAWN_BAND: readonly [number, number] = [45, 65];
+export const NIGHT_RANDOM_DAWN_MAX = 10;
+/** A night is two to four minutes: ~7 s per two-sentence card, 4 s per roll. */
+export const NIGHT_PACE_BAND: readonly [number, number] = [2, 4];
+export const NIGHT_SECONDS_PER_CARD = 7;
+export const NIGHT_TOP_ENDING_MAX = 35;
+/** Share of the calm bot's falls that happen in the crisis (the last act): it must matter, but not be the whole game. */
+export const NIGHT_CRISIS_BAND: readonly [number, number] = [25, 65];
 export const BROKE_GAME_MULT = 100;
 export const BROKE_GAME_PCT = 3;
 
@@ -1307,7 +1316,63 @@ function buildArchetypes(content: Content, g: Group): ArchetypeStat[] {
   return out.sort((a, b) => b.runs - a.runs || byId(a, b));
 }
 
+/** The night's targets (N1–N5) for the simple ruleset; see BALANCE.md "The night". */
+function buildNightTargets(report: Omit<Report, 'targets'>): Target[] {
+  const h = report.policies.heuristic;
+  const r = report.policies.random;
+  const targets: Target[] = [];
+  const na = (id: string, label: string, detail = 'heuristic policy not run'): Target => ({ id, label, status: 'N/A', value: '—', detail });
+  const kindPct = (p: PolicyReport, kind: string) => p.kinds.find((k) => k.kind === kind)?.pct ?? 0;
+
+  const n1 = `N1 Calm (heuristic) bot reaches dawn ${NIGHT_DAWN_BAND[0]}–${NIGHT_DAWN_BAND[1]}% of nights`;
+  if (!h) targets.push(na('dawn_rate', n1));
+  else
+    targets.push({
+      id: 'dawn_rate',
+      label: n1,
+      status: h.winRate >= NIGHT_DAWN_BAND[0] && h.winRate <= NIGHT_DAWN_BAND[1] ? 'PASS' : 'FAIL',
+      value: `${h.winRate}%`,
+      detail: `${kindPct(h, 'standdown')}% stand-down, ${kindPct(h, 'survival')}% survival; fell: ${kindPct(h, 'removed')}% removed, ${kindPct(h, 'nuclear')}% nuclear`,
+    });
+
+  const n2 = `N2 Random bot reaches dawn in fewer than ${NIGHT_RANDOM_DAWN_MAX}% of nights`;
+  if (!r) targets.push(na('random_dawn', n2, 'random policy not run'));
+  else targets.push({ id: 'random_dawn', label: n2, status: r.winRate < NIGHT_RANDOM_DAWN_MAX ? 'PASS' : 'FAIL', value: `${r.winRate}%`, detail: `${kindPct(r, 'removed')}% removed, ${kindPct(r, 'nuclear')}% nuclear` });
+
+  const n3 = `N3 Calm bot's average night ${NIGHT_PACE_BAND[0]}–${NIGHT_PACE_BAND[1]} minutes (${NIGHT_SECONDS_PER_CARD} s per card, 4 s per roll)`;
+  if (!h) targets.push(na('night_pace', n3));
+  else {
+    const rollsPerNight = h.runs ? h.rolls / h.runs : 0;
+    const mins = (h.avgCards * NIGHT_SECONDS_PER_CARD + rollsPerNight * 4) / 60;
+    targets.push({ id: 'night_pace', label: n3, status: mins >= NIGHT_PACE_BAND[0] && mins <= NIGHT_PACE_BAND[1] ? 'PASS' : 'FAIL', value: `${mins.toFixed(1)} min`, detail: `${h.avgCards} cards and ${rollsPerNight.toFixed(1)} rolls per night` });
+  }
+
+  const n4 = `N4 No single ending in more than ${NIGHT_TOP_ENDING_MAX}% of the calm bot's nights`;
+  if (!h) targets.push(na('night_variety', n4));
+  else targets.push({ id: 'night_variety', label: n4, status: h.topEndingShare <= NIGHT_TOP_ENDING_MAX ? 'PASS' : 'FAIL', value: `${h.topEnding ?? '—'} ${h.topEndingShare}%`, detail: `${h.endings.length} distinct endings` });
+
+  const n5 = `N5 The crisis (last act) decides ${NIGHT_CRISIS_BAND[0]}–${NIGHT_CRISIS_BAND[1]}% of the calm bot's falls`;
+  if (!h) targets.push(na('crisis_share', n5));
+  else {
+    const lastAct = h.acts.reduce((m, a) => Math.max(m, a.act), 0);
+    const endedInLast = h.acts.find((a) => a.act === lastAct)?.count ?? 0;
+    const dawns = Math.round((h.winRate / 100) * h.runs);
+    const falls = Math.max(0, h.runs - dawns);
+    const crisisFalls = Math.max(0, endedInLast - dawns);
+    const share = falls ? Math.round((1000 * crisisFalls) / falls) / 10 : 0;
+    targets.push({
+      id: 'crisis_share',
+      label: n5,
+      status: falls === 0 ? 'N/A' : share >= NIGHT_CRISIS_BAND[0] && share <= NIGHT_CRISIS_BAND[1] ? 'PASS' : 'FAIL',
+      value: `${share}%`,
+      detail: `${crisisFalls} of ${falls} falls in act ${lastAct}; by act: ${h.acts.map((a) => `${a.act}: ${a.pct}%`).join(', ')}`,
+    });
+  }
+  return targets;
+}
+
 function buildTargets(report: Omit<Report, 'targets'>): Target[] {
+  if (report.meta.mode === 'daily' || report.meta.mode === 'night') return buildNightTargets(report);
   const h = report.policies.heuristic;
   const targets: Target[] = [];
   const na = (id: string, label: string, detail = 'heuristic policy not run'): Target => ({ id, label, status: 'N/A', value: '—', detail });

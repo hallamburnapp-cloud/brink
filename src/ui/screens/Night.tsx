@@ -91,7 +91,7 @@ export function Night() {
 
       <div class="mono text-center text-[10px] tracking-[0.16em] text-mute">← swipe →</div>
 
-      {rollOverlay.value && <RollOverlay result={rollOverlay.value.result} slow={rollOverlay.value.slow} />}
+      {rollOverlay.value && <RollOverlay result={rollOverlay.value.result} slow={rollOverlay.value.slow} simple />}
       <IntroSimple />
     </div>
   );

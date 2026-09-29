@@ -183,6 +183,9 @@ export function resolveEffects(effects: Effects, tags: readonly string[], ctx: M
   return out;
 }
 
+/** The night: the crisis rolls gain (50 − danger) / DANGER_ODDS_DIVISOR, so ±0.2 between an empty and a full dial. */
+export const DANGER_ODDS_DIVISOR = 250;
+
 /**
  * Resolve an odds roll probability.
  *   p = clamp((base + Σadd + situational) × Πmult, 0.03, 0.97)
@@ -190,12 +193,15 @@ export function resolveEffects(effects: Effects, tags: readonly string[], ctx: M
  *   - rolls tagged `adversary`  gain (trust_primary − 50) / 200   (±0.25 at extremes)
  *   - rolls tagged `intel`      gain (intel − 50) / 200
  *   - rolls tagged `alliance`   gain (commitment − 50) / 250
+ * `danger` (the night's crisis only): the visible danger dial moves every roll of the crisis,
+ * (50 − danger) / 250, so a calm night is rewarded where the player can see it.
  */
 export function resolveOdds(
   base: number,
   tags: readonly string[],
   ctx: ModContext,
   hidden: Record<HiddenKey, number>,
+  danger?: number,
 ): { p: number; add: number; mult: number; situational: number } {
   let add = 0;
   let mult = 1;
@@ -210,6 +216,7 @@ export function resolveOdds(
   if (tags.includes('secondary')) situational += (hidden.trust_secondary - 50) / 200;
   if (tags.includes('intel')) situational += (hidden.intel - 50) / 200;
   if (tags.includes('alliance')) situational += (hidden.commitment - 50) / 250;
+  if (typeof danger === 'number' && Number.isFinite(danger)) situational += (50 - clamp(danger, 0, 100)) / DANGER_ODDS_DIVISOR;
   const p = clamp((base + add + situational) * mult, ODDS_MIN, ODDS_MAX);
   return { p, add, mult, situational };
 }

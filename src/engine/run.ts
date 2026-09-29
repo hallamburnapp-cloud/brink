@@ -108,6 +108,11 @@ export function actsFor(content: Content, state: RunState): ActDef[] {
   return state.ruleset === 'simple' ? content.nightActs : content.acts;
 }
 
+/** The night's crisis: the danger dial moves the odds (undefined outside the simple ruleset's flashpoint). */
+function crisisDanger(state: RunState): number | undefined {
+  return isSimple(state) && state.flashpoint ? state.meters.escalation : undefined;
+}
+
 export function isSimple(state: RunState): boolean {
   return state.ruleset === 'simple';
 }
@@ -333,7 +338,7 @@ function choiceView(content: Content, state: RunState, card: CardDef, side: Side
   }
   let odds: ChoiceView['odds'];
   if (choice.odds) {
-    const r = resolveOdds(choice.odds.base, choice.odds.tags, ctx, state.hidden);
+    const r = resolveOdds(choice.odds.base, choice.odds.tags, ctx, state.hidden, crisisDanger(state));
     odds = { label: choice.odds.label, p: r.p };
   }
   return {
@@ -411,7 +416,7 @@ export function choose(content: Content, state: RunState, side: Side | 'timeout'
 
   // 2. Odds roll.
   if (choice.odds) {
-    const o = resolveOdds(choice.odds.base, choice.odds.tags, ctx, state.hidden);
+    const o = resolveOdds(choice.odds.base, choice.odds.tags, ctx, state.hidden, crisisDanger(state));
     const r = rng.roll(o.p);
     const margin = Math.abs(o.p - r.roll) * 100;
     const result: RollResult = { label: choice.odds.label, p: o.p, roll: r.roll, success: r.success, margin, nearMiss: margin < NEAR_MISS_MARGIN };

@@ -10,16 +10,19 @@ export function Stats() {
   const fatal = mostFatalDoctrine(st, c);
   const prog = unlockProgress();
   const history = dailyHistory(14);
+  const expertRuns = Math.max(0, st.runs - st.nights);
   const rows: [string, string | number][] = [
-    ['Runs', st.runs],
-    ['Best survival', st.bestDays ? `${st.bestDays} days` : '—'],
+    ['Nights played', st.nights],
+    ['Reached dawn', st.nights ? `${st.dawns} of ${st.nights}` : '—'],
+    ['Nights in a row', dailyStreak()],
     ['Endings seen', Object.keys(st.endingsSeen).length],
     ['Stand-downs', st.standdowns],
-    ['Favourite advisor', fav ?? '—'],
-    ['Most fatal doctrine', fatal ?? '—'],
     ['Timers expired', st.timeouts],
     ['Near misses', st.nearMisses],
-    ['Daily streak', dailyStreak()],
+    ['Expert games', expertRuns],
+    ['Longest Expert game', st.bestDays ? `${st.bestDays} days` : '—'],
+    ['Favourite advisor', fav ?? '—'],
+    ['Most fatal doctrine', fatal ?? '—'],
   ];
   return (
     <div class="flex flex-1 flex-col gap-4 rise">
@@ -63,7 +66,7 @@ export function Stats() {
       </section>
       {history.length > 0 && (
         <section>
-          <div class="mono mb-2 text-[10px] tracking-[0.24em] text-mute">DAILY HISTORY</div>
+          <div class="mono mb-2 text-[10px] tracking-[0.24em] text-mute">NIGHT BY NIGHT</div>
           <ul class="space-y-1">
             {history.map((r) => (
               <li key={r.dateKey} class="mono flex items-center justify-between text-[11px] text-paper/80">
@@ -71,7 +74,7 @@ export function Stats() {
                   #{r.number} · {c.seats[r.seat]?.name}
                 </span>
                 <span>
-                  {r.days}d · {c.endings[r.ending]?.name ?? r.ending}
+                  {r.dawn ? '🌅 Dawn' : r.clock ? `🌑 ${r.clock}` : `${r.days}d`} · {c.endings[r.ending]?.name ?? r.ending}
                 </span>
               </li>
             ))}

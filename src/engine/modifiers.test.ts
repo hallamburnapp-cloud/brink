@@ -78,6 +78,13 @@ describe('odds, intel, timer, weight', () => {
     expect(resolveOdds(0.5, ['adversary'], ctx([]), { ...hidden, trust_primary: 10 }).p).toBeCloseTo(0.3);
     expect(resolveOdds(0.5, ['intel'], ctx([]), { ...hidden, intel: 30 }).p).toBeCloseTo(0.4);
   });
+  it("the night's crisis: the danger dial moves the odds ±0.2, and only when passed", () => {
+    expect(resolveOdds(0.5, ['adversary'], ctx([]), hidden, 0).p).toBeCloseTo(0.7);
+    expect(resolveOdds(0.5, ['adversary'], ctx([]), hidden, 100).p).toBeCloseTo(0.3);
+    expect(resolveOdds(0.5, ['adversary'], ctx([]), hidden, 50).p).toBeCloseTo(0.5);
+    expect(resolveOdds(0.5, [], ctx([]), hidden, 25).p).toBeCloseTo(0.6);
+    expect(resolveOdds(0.5, [], ctx([]), hidden).p).toBeCloseTo(0.5);
+  });
   it('intel reliability includes act and difficulty shifts and clamps', () => {
     expect(resolveIntel(70, ctx([]))).toBe(70);
     expect(resolveIntel(70, ctx([], 5, 1))).toBe(30);

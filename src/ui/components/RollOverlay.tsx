@@ -2,8 +2,15 @@ import { useEffect, useState } from 'preact/hooks';
 import type { RollResult } from '../../engine/types';
 import { reducedMotion } from '../store';
 
-/** The odds roll: a needle sweeps to the roll; the threshold is the probability. */
-export function RollOverlay({ result, slow }: { result: RollResult; slow: boolean }) {
+/** Plain words for the odds and the margin, for the night (no numbers on screen). */
+function oddsWord(p: number): string {
+  if (p >= 0.7) return 'Likely';
+  if (p >= 0.5) return 'Even';
+  return 'Risky';
+}
+
+/** The odds roll: a needle sweeps to the roll; the threshold is the probability. `simple` hides every number. */
+export function RollOverlay({ result, slow, simple = false }: { result: RollResult; slow: boolean; simple?: boolean }) {
   const [phase, setPhase] = useState<'spin' | 'done'>('spin');
   const reduce = reducedMotion();
   const dur = reduce ? 0 : slow ? 2400 : 1300;
@@ -15,12 +22,18 @@ export function RollOverlay({ result, slow }: { result: RollResult; slow: boolea
   const rollPct = Math.round(result.roll * 100);
   const width = 300;
   return (
-    <div class={`fixed inset-0 z-[55] flex items-center justify-center bg-navy/85 px-6 fade-in ${slow ? 'pulse-red' : ''}`} role="dialog" aria-live="assertive" aria-label={`${result.label}: ${pct} percent`}>
+    <div class={`fixed inset-0 z-[55] flex items-center justify-center bg-navy/85 px-6 fade-in ${slow ? 'pulse-red' : ''}`} role="dialog" aria-live="assertive" aria-label={simple ? `${result.label}: ${oddsWord(result.p).toLowerCase()}` : `${result.label}: ${pct} percent`}>
       <div class="paper w-full max-w-[360px] rounded-md p-5 shadow-2xl">
-        <div class="mono text-[11px] tracking-[0.3em] text-ink-2/70">{slow ? 'FINAL ROLL' : 'ROLL'}</div>
+        <div class="mono text-[11px] tracking-[0.3em] text-ink-2/70">{simple ? (slow ? 'THE CRISIS' : 'THE ODDS') : slow ? 'FINAL ROLL' : 'ROLL'}</div>
         <div class="serif mt-1 text-2xl font-semibold text-ink">{result.label}</div>
         <div class="mono mt-1 text-sm text-ink-2">
-          Odds <span class="font-bold">{pct}%</span>
+          {simple ? (
+            <span class="font-bold">{oddsWord(result.p).toUpperCase()}</span>
+          ) : (
+            <>
+              Odds <span class="font-bold">{pct}%</span>
+            </>
+          )}
         </div>
         <div class="relative mt-5 h-8" style={{ width: '100%' }}>
           {/* success zone */}
@@ -32,21 +45,29 @@ export function RollOverlay({ result, slow }: { result: RollResult; slow: boolea
             style={{ left: 0, ['--needle-x' as any]: `calc(${rollPct}% * ${width} / 100 * (100% / ${width}px))`, transform: reduce ? `translateX(${rollPct}%)` : undefined, ['--needle-dur' as any]: `${dur}ms` }}
           />
           <NeedleExact rollPct={rollPct} dur={dur} reduce={reduce} />
-          <div class="mono absolute -bottom-5 left-0 text-[10px] text-ink-2/60">0</div>
-          <div class="mono absolute -bottom-5 right-0 text-[10px] text-ink-2/60">100</div>
+          {!simple && (
+            <>
+              <div class="mono absolute -bottom-5 left-0 text-[10px] text-ink-2/60">0</div>
+              <div class="mono absolute -bottom-5 right-0 text-[10px] text-ink-2/60">100</div>
+            </>
+          )}
         </div>
         <div class="mt-8 min-h-[3.2rem]">
           {phase === 'done' && (
             <div class="rise">
               <div class={`serif text-3xl font-bold ${result.success ? 'text-green' : 'text-red'}`}>{result.success ? 'HELD' : 'FAILED'}</div>
-              <div class="mono text-xs text-ink-2">
-                Rolled {rollPct} against {pct}
-                {result.nearMiss && (
-                  <span class="ml-2 font-bold text-red-2">
-                    · {result.success ? 'Held by' : 'Missed by'} {Math.max(1, Math.round(result.margin))}%
-                  </span>
-                )}
-              </div>
+              {simple ? (
+                <div class="mono text-xs text-ink-2">{result.nearMiss ? (result.success ? 'Held by a hair.' : 'Missed by a hair.') : result.success ? 'It went your way.' : 'It did not.'}</div>
+              ) : (
+                <div class="mono text-xs text-ink-2">
+                  Rolled {rollPct} against {pct}
+                  {result.nearMiss && (
+                    <span class="ml-2 font-bold text-red-2">
+                      · {result.success ? 'Held by' : 'Missed by'} {Math.max(1, Math.round(result.margin))}%
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

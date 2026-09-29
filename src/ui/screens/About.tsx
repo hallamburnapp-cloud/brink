@@ -11,18 +11,14 @@ export function About() {
         <div class="mono text-[11px] tracking-[0.2em] text-mute">ABOUT</div>
       </header>
       <article class="paper space-y-3 rounded-md p-5 text-[15px] leading-relaxed text-ink">
-        <h2 class="serif text-2xl font-semibold">How to hold it together</h2>
-        <p>You are the leader of a great power. Each card is a person at your door with a problem and two ways to make it worse. Drag the card, or tap a choice.</p>
+        <h2 class="serif text-2xl font-semibold">How the night works</h2>
+        <p>It is 3am and the phone is ringing. You lead a country in a crisis that will not wait for morning. Each card is someone at your door with a problem and two ways to answer it. Swipe, or tap a choice.</p>
         <p>
-          Five things matter: <span class="mono text-[13px]">PUBLIC · MILITARY · ALLIES · ECONOMY · ESCALATION</span>. If any of the first four hits the floor or the ceiling, you are removed
-          from office. If escalation reaches the top, nobody is.
+          Five dials: <span class="mono text-[13px]">PEOPLE · ARMY · ALLIES · MONEY · DANGER</span>. If any of the first four hits the edge, you are out. If danger fills, everyone is.
         </p>
-        <p>
-          The things that matter most you cannot see: what the other side believes about you, how good your warnings are, how boxed in you have made yourself. Your advisors will tell
-          you, in their own words and with their own agendas.
-        </p>
-        <p>Each week ends in a flashpoint. Between weeks, three people want a word. What you bring into the room is your posture; postures combine, and not always the way you meant.</p>
-        <p>Odds are shown before you choose. Near misses are shown after. A seed replays identically, so when the world ends you can find out exactly where.</p>
+        <p>Every card moves the clock seven minutes. Reach 6:00 and the night is yours. The last call of the night is the crisis, and it comes with odds.</p>
+        <p>Tonight is the same for everyone. One attempt. Your result is a strip you can paste anywhere without giving the night away.</p>
+        <p>Night after night unlocks any night on any seat, seeds you can share, and Expert mode, which puts the numbers back on.</p>
         <p class="mono text-[11px] text-ink-2/70">{BRAND.copyright} All persons, states and events are fictional.</p>
       </article>
     </div>
