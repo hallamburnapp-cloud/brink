@@ -1,6 +1,6 @@
 # Endings that belong to the scaling core: accidents that ended the world, the
-# Deadman Switch, bluffs called, antes smashed, escalation peaks and endless
-# escalation. They condition only on engine-set flags (CONTENT.md §4.6) so they
+# Deadman Switch, bluffs called, bets won too well, danger peaks and the endless
+# night. They condition only on engine-set flags (CONTENT.md §4.6) so they
 # are reachable whatever the decks do. Priorities sit above the story endings
 # (20–40) because when an accident ended the run, that is the story.
 
@@ -14,16 +14,13 @@
   priority: 45
   text: >-
     The order did not come from this room. It came from a bunker four hundred kilometres east, from a
-    colonel whose link to his own capital had been dark for nineteen minutes and who had been told, in
-    a doctrine written by people who never expected to need it, what to do about that.
+    colonel whose line to his own capital had been dead for nineteen minutes, and who had been told
+    years ago what to do about that.
 
-    Vasska has the board up before you ask. Two tracks, then six, then the rest of the map filling in
-    as {rival} answers a question nobody meant to put to them.
-
-    Mara Quell is still holding the phone she was about to hand you. There was a call on it. There was
-    going to be a call on it.
+    Your General has the map up before you ask. Two tracks, then six, then the rest. Your Private
+    Secretary is still holding the phone she was about to hand you.
   moment_label: The moment it left your hands
-  compendium: A commander at the end of a dead link did what the doctrine said. Escalation 100.
+  compendium: A colonel at the end of a dead line did what his orders said. Danger full.
   emoji: "☎️"
 
 - id: core_nuclear_false_alarm
@@ -33,16 +30,14 @@
   conditions: { flags_all: [accident:fatal, accident:last_false_alarm] }
   priority: 45
   text: >-
-    Rennick reads the board the way he was trained to, one track at a time, and the board is lying to
-    him. Sunlight on a cloud deck. A test tape left in a live console. An exercise nobody told the
-    night shift about. The inquiry will never sit, so the inquiry will never say.
+    The Duty Officer read the screen the way he was trained to, one track at a time, and the screen
+    was lying. Sunlight on a cloud bank. A test tape left in a live console. Nobody will ever know
+    which.
 
-    You had a minute. Everyone in the room had the same minute, and everyone spent it the same way,
-    which is why it was a minute.
-
-    The other side saw you move. They had a minute too.
+    You had a minute. Everyone in the room spent it the same way. The other side saw you move, and
+    they had a minute too.
   moment_label: The moment the screen lied
-  compendium: A warning that was never real became the war that was. Escalation 100.
+  compendium: A warning that was never real became the war that was. Danger full.
   emoji: "📡"
 
 - id: core_nuclear_misread
@@ -52,16 +47,14 @@
   conditions: { flags_all: [accident:fatal, accident:last_misread] }
   priority: 45
   text: >-
-    The message from {rival_capital} had four sentences. Lyle assessed the third one with moderate
-    confidence. Marrow read it twice and asked for the original. Vasska read it once and asked how
-    long they had.
+    The message from {rival_capital} had four sentences. Your Spy Chief was fairly sure about the
+    third. Your Foreign Minister asked for the original. Your General asked how long you had.
 
-    It was, it will turn out, a warning about their own hard-liners. It was meant as a courtesy. It
-    arrived in a room that had spent a week learning to hear threats.
-
-    The reply went out at 03:12. Their reading of the reply was no better than yours.
+    It was a warning about their own hard-liners, sent as a courtesy. It landed in a room that had
+    spent all night learning to hear threats. Your reply went out at 3:12. They read it no better
+    than you read theirs.
   moment_label: The moment the sentence turned
-  compendium: A message meant one thing and was heard as another, at the worst possible height. Escalation 100.
+  compendium: A message meant one thing and was heard as another, right at the top. Danger full.
   emoji: "📄"
 
 - id: core_nuclear_attribution
@@ -71,16 +64,15 @@
   conditions: { flags_all: [accident:fatal, accident:last_attribution_error] }
   priority: 45
   text: >-
-    Somebody hit the relay station. Vance said "consistent with" and the room heard "was". By dawn the
-    response was on its way to {rival}, who had nothing to do with it and every reason to think you
-    knew that.
+    Somebody hit the relay station. Your Cyber Chief said "looks like" and the room heard "was". By
+    dawn the answer was on its way to {rival}, who had nothing to do with it and every reason to think
+    you knew that.
 
-    A month from now a team in a third country would have found the tooling and the timestamps and a
-    contractor with a grudge. There will not be a month from now, or a team.
-
-    Marrow's last note to you is one line. It reads: we answered the wrong letter.
+    In a month, a team in a third country would have found the fingerprints and a contractor with a
+    grudge. There will not be a month. Your Foreign Minister's last note is one line: we answered the
+    wrong letter.
   moment_label: The moment the blame landed
-  compendium: You struck back at the wrong country, from the top of the ladder. Escalation 100.
+  compendium: You hit back at the wrong country, from the top of the ladder. Danger full.
   emoji: "🎯"
 
 - id: core_nuclear_deadman
@@ -90,15 +82,14 @@
   conditions: { flags_all: [deadman:fired] }
   priority: 42
   text: >-
-    The first time, the switch held. A machine you had installed for exactly this hour pulled the
-    world back to a number you could live with, and you lived with it, and you kept climbing.
+    The first time, the switch held. A machine you had bought for exactly this hour pulled the world
+    back to a number you could live with, and you kept climbing.
 
-    There is no second switch. There was never going to be. Ashby-Tal said as much when he sold you
-    the first one, in the smooth way he says everything, and you heard it as a feature.
-
-    Mara Quell turns the last page of the schedule over. There is nothing on the back.
+    There is no second switch. There never was. The Arms Dealer said so when he sold you the first
+    one, in the smooth way he says everything, and you heard it as a feature. Your Private Secretary
+    turns the last page of the schedule over. Nothing on the back.
   moment_label: The moment the switch was already spent
-  compendium: The Deadman Switch saved you once. You went back. Escalation 100.
+  compendium: The Deadman Switch saved you once. You went back up. Danger full.
   emoji: "🔁"
 
 - id: core_nuclear_endless
@@ -108,16 +99,14 @@
   conditions: { flags_all: [endless] }
   priority: 41
   text: >-
-    You had won. The file was closed, the flashpoint had passed, and the people who study these things
-    would have called the fortnight a success. You reopened it because the number was still climbing
-    and you wanted to see how far it went.
+    You had won. The file was closed, the crisis had passed, and the people who study these things
+    would have called it a success. You opened it again because the danger was still climbing and
+    you wanted to see how far it went.
 
-    This far.
-
-    Somewhere a historian who does not yet exist will try to explain why the crisis was allowed to
-    continue past its natural end. They will not find a reason. There was not one. There was a score.
+    This far. One day a historian will try to explain why the crisis was allowed to run past its end.
+    They will not find a reason. There was not one. There was a score.
   moment_label: The moment past the end
-  compendium: Endless escalation, ended. Escalation 100 after the win.
+  compendium: You kept going after the win, until there was nowhere left to go. Danger full.
   emoji: "♾️"
 
 - id: core_nuclear_called
@@ -127,56 +116,50 @@
   conditions: { flags_all: [ante:missed_x2] }
   priority: 38
   text: >-
-    Twice you set a line and twice they walked through it, because you had drawn the line and then
-    done nothing that made it a line. A commitment you cannot back is a request.
+    Twice you drew a line and twice they walked through it, because you drew it and then did nothing
+    to make it a line. A threat you cannot back is a request.
 
-    The third time, you backed it. {rival} had learned by then what your threats were worth, and read
-    the real one as another bluff, and answered it the way you answer a bluff.
-
-    Vasska says nothing. He does not need to. Everything he ever wanted to say is on the board.
+    The third time, you backed it. {rival} had learned by then what your threats were worth, read the
+    real one as another bluff, and answered it the way you answer a bluff. Your General says nothing.
+    Everything he ever wanted to say is on the map.
   moment_label: The moment the last bluff was believed
-  compendium: Two bluffs called, and then the one that was not a bluff. Escalation 100.
+  compendium: Two bluffs called, and then the one that was not a bluff. Danger full.
   emoji: "🃏"
 
 - id: core_nuclear_leverage
-  name: Too Much Leverage
+  name: You Never Lost a Hand
   kind: nuclear
   trigger: { type: meter, key: escalation, at: 100 }
   conditions: { flags_all: [ante:smashed_x3] }
   priority: 39
   text: >-
-    You never lost a hand. Every target was met and doubled; every week the other side folded a little
-    further, and every week the room grew a little quieter, because there was less and less to say to
-    a man who was always right.
+    You never lost a hand. Every bet was met and doubled; the other side folded a little further each
+    time, and the room grew quieter, because there is less to say to a man who is always right.
 
-    Leverage is a distance from the edge that you are willing to spend. You spent it. When there was
-    none left to spend, {rival} had none left to lose.
-
-    The last tally on the wall was the largest of the run. It will be the last number anyone in this
-    building ever writes down.
+    Each win was a step towards the edge. When there was nowhere left to stand, {rival} had nothing
+    left to lose. The last number on the wall was the biggest of the night. It will be the last anyone
+    in this building writes down.
   moment_label: The moment the winning stopped
-  compendium: Every ante smashed, and then the edge. Escalation 100.
+  compendium: Every bet won, and then the edge. Danger full.
   emoji: "📈"
 
 # --------------------------------------------------------------- standdown
 
 - id: core_standdown_minimal
-  name: Minimal Deterrence
+  name: Nobody Will Make a Film
   kind: standdown
   trigger: { type: run_end }
   conditions: { flags_none: [peak:50], values: { escalation: { max: 35 } } }
   priority: 45
   text: >-
-    Nobody will make a film about it. The crisis never had a night when the phones were carried to the
-    bedroom, and so the papers have already decided it was never a crisis at all.
+    Nobody will make a film about it. Nothing blew up, and by breakfast the papers had decided it was
+    never a crisis at all.
 
-    Marrow knows better. She sat through every card, and knows how many of them offered you a faster
-    way through, and how much it cost you at home each time you declined. The public is not grateful.
-    The public was never frightened enough to be grateful.
-
-    In {rival_capital}, someone very like you is being told the same thing by someone very like her.
+    Your Foreign Minister knows better. She knows how often you were offered a faster way through,
+    and what it cost you each time you said no. The public is not grateful; it was never frightened
+    enough to be. In {rival_capital}, someone very like you is hearing the same thing.
   moment_label: The moment nothing happened
-  compendium: Stand-down without escalation ever reaching 50. The quiet way through.
+  compendium: Dawn, and the danger never got past halfway. The quiet way through.
   emoji: "🌫️"
 
 - id: core_standdown_from_the_brink
@@ -186,17 +169,14 @@
   conditions: { flags_all: [peak:90], values: { escalation: { max: 35 } } }
   priority: 44
   text: >-
-    There was a night this fortnight when the watch officer stopped reading the board aloud, because
-    the numbers had passed the point where saying them helped. You were there. You were the one who
-    had put them there.
+    Tonight the Duty Officer stopped reading the screen aloud, because the numbers had passed the
+    point where saying them helped. You were there. You had put them there.
 
-    And then, card by card, you brought them down. Not to where they started; nothing goes back to
-    where it started. To a number a country can sleep at.
-
-    Lyle's final assessment is one paragraph. It says, with high confidence, that {rival} believes you
-    were prepared to go all the way. It says, with low confidence, that you were not.
+    And then, call by call, you brought them down. Not to where they started; nothing goes back to
+    where it started. To a number a country can sleep at. Your Spy Chief's last note: {rival} is sure
+    you would have gone all the way. He is not sure you would.
   moment_label: The moment it turned
-  compendium: Escalation past 90, then a stand-down. The whole ladder, both directions.
+  compendium: Danger nearly full, then all the way back down. The whole ladder, both directions.
   emoji: "🪜"
 
 - id: core_standdown_switch
@@ -206,14 +186,12 @@
   conditions: { flags_all: [deadman:fired], values: { escalation: { max: 35 } } }
   priority: 43
   text: >-
-    For eleven seconds, by the log, the crisis was over and so was everything else. Then a machine you
-    had bought against exactly that hour did what it was built to do, and the room came back to a
-    number that was merely terrible.
+    For eleven seconds, by the log, the crisis was over and so was everything else. Then a machine
+    you had bought for exactly that hour did its job, and the room came back to a number that was
+    merely terrible.
 
-    You did not climb again. That is the whole of the story and nobody outside this room will ever
-    know it.
-
-    Ashby-Tal has already asked for a meeting about the next generation. Mara Quell has not put it in
+    You did not climb again. That is the whole story, and nobody outside this room will ever know it.
+    The Arms Dealer wants a meeting about the next model. Your Private Secretary has not put it in
     the schedule.
   moment_label: The moment it came back
   compendium: The Deadman Switch fired, and you stood down afterwards.
@@ -226,16 +204,14 @@
   conditions: { flags_all: [ante:smashed_x3], values: { escalation: { max: 35 } } }
   priority: 41
   text: >-
-    The other side gave way at every turn, and at the end you let them off the last one. The
-    communiqué is generous. Your generals are not.
+    The other side gave way at every turn, and at the end you let them off the last one. The joint
+    statement is generous. Your generals are not.
 
-    Roke has the numbers on a single sheet: what the fortnight cost them, what it cost you, and how
-    long the difference will hold. He puts the sheet face down. He says the joke is on the next
-    government.
-
-    Somewhere in {rival_capital}, a man with your job has begun to write down what he owes you.
+    Your Chancellor has it on one sheet: what the night cost them, what it cost you, and how long the
+    difference will hold. He puts the sheet face down. He says the joke is on the next government.
+    In {rival_capital}, a man with your job has begun to write down what he owes you.
   moment_label: The moment you let them go
-  compendium: Three antes smashed and a stand-down at the end. Leverage, banked.
+  compendium: Every bet won, and then you let them go. A favour, banked.
   emoji: "🧾"
 
 # ---------------------------------------------------------------- survival
@@ -247,17 +223,14 @@
   conditions: { flags_all: [accident:fired], values: { escalation: { min: 80 } } }
   priority: 44
   text: >-
-    The fortnight ends with the phones still in the bedroom. Nobody has stood down. Nobody has fired.
-    The board is a wall of red that the night shift has stopped noticing, the way you stop hearing a
-    generator.
+    Dawn. Nobody has stood down. Nobody has fired. The board is a wall of red the night shift has
+    stopped noticing, the way you stop hearing a generator.
 
-    There was an accident, once. There was nearly a second. Rennick will not talk about the first,
-    which is how you know it was close.
-
-    This is the peace you built: a room where every light is on and nobody can leave. It works until
-    it does not. {rival} is in the same room. It is the only thing you have in common.
+    There was an accident, once, and nearly a second. The Duty Officer will not talk about the first,
+    which is how you know it was close. This is the peace you built: every light on, and nobody
+    allowed to leave. {rival} is in the same room. It is all you have in common.
   moment_label: The moment it stayed
-  compendium: Survived at escalation 80 or above after an accident fired. The wall of red.
+  compendium: Dawn with the danger dial nearly full and one accident behind you. The wall of red.
   emoji: "🟥"
 
 - id: core_survival_borrowed
@@ -267,17 +240,14 @@
   conditions: { flags_all: [deadman:fired], values: { escalation: { min: 36 } } }
   priority: 42
   text: >-
-    Officially the run ends here, with the meters where they are and the world where it is. The log
-    shows one entry that will never be declassified: a threshold crossed, and a machine that uncrossed
-    it.
+    It ends here, officially, with the world where it is. The log holds one entry that will never be
+    made public: a line crossed, and a machine that uncrossed it.
 
-    You went back to the same height afterwards and stayed there. Marrow asked you once, privately,
-    what you thought the second machine would do. You told her there was no second machine. She said
-    that was her point.
-
+    You went back to the same height and stayed there. Your Foreign Minister asked, privately, what
+    the second machine would do. You said there was no second machine. She said that was her point.
     The switch is still lit. It is the only thing in the room that is.
   moment_label: The moment you went back
-  compendium: The Deadman Switch fired and you finished the run high anyway.
+  compendium: The Deadman Switch fired and you finished the night high anyway.
   emoji: "⏳"
 
 - id: core_survival_called
@@ -287,16 +257,14 @@
   conditions: { flags_all: [ante:missed], values: { escalation: { min: 36 } } }
   priority: 36
   text: >-
-    You drew a line and could not hold it, and {rival} walked through it, and then the fortnight ended
-    before it could matter. That is the official version. Vasska's version is shorter.
+    You drew a line you could not hold, and {rival} walked through it, and the night ended before
+    it mattered. That is the official version. Your General's version is shorter.
 
-    Lyle assesses, with high confidence, that the other side has updated its model of you. Every line
-    you draw for the next decade will be tested. Some of those tests will be run by people not yet in
-    post, who know you only as the leader whose bluff was called.
-
-    The crisis is over. The reputation is not.
+    Your Spy Chief is sure they have changed their mind about you. Every line you draw for ten
+    years will be tested, some by people not yet in post, who know you only as the leader whose
+    bluff was called. The crisis is over. The reputation is not.
   moment_label: The moment they walked through it
-  compendium: Survived, with at least one bluff called. They will remember.
+  compendium: Dawn, with at least one bluff called. They will remember.
   emoji: "🚧"
 
 # ----------------------------------------------------------------- endless
@@ -308,17 +276,14 @@
   conditions: { flags_all: [endless] }
   priority: 41
   text: >-
-    The crisis was over weeks ago and you kept it going, and the country loved you for it. A people
-    that has been frightened long enough will trade anything for the person who tells them where to
-    stand.
+    The crisis was over long ago. You kept it going, and the country loved you for it. Frighten
+    people long enough and they will trade anything for the one who tells them where to stand.
 
-    This morning the Assembly voted, by acclamation, to suspend the parts of the constitution that
-    were slowing you down. You did not ask them to. You did not have to.
-
-    Mara Quell has resigned. Her note says she will not be needed. It is not clear if she means it as
-    a comfort.
+    This morning the Assembly voted to suspend the parts of the constitution slowing you down. You
+    did not have to ask. Your Private Secretary has resigned. Her note says she will not be
+    needed. It is not clear if that is a comfort.
   moment_label: The moment they stopped voting
-  compendium: Endless escalation, public support at 100. The constitution did not survive the ovation.
+  compendium: You kept the crisis going and the country adored you for it. The constitution did not survive.
   emoji: "👑"
 
 - id: core_removed_endless_military
@@ -329,13 +294,12 @@
   priority: 41
   text: >-
     You gave the generals everything they asked for, and then everything they had not thought to ask
-    for, and at some point the arithmetic of a room changes. Vasska did not take power. He simply
-    stopped needing to ask.
+    for, and at some point the arithmetic of a room changes. Your General did not take power. He
+    simply stopped needing to ask.
 
-    The last decision that was yours was the decision to continue. Everything after that was made
-    somewhere down the corridor, by people who found you a useful signature.
-
-    The signature is still needed. For now.
+    The last decision that was yours was the decision to keep going. Everything since has been made
+    down the corridor, by people who find you a useful signature. The signature is still needed. For
+    now.
   moment_label: The moment the room changed
-  compendium: Endless escalation, military at 100. The junta did not need a coup.
+  compendium: You kept the crisis going until the generals no longer needed you. No coup required.
   emoji: "🎖️"
