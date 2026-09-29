@@ -113,6 +113,23 @@ describe('stats', () => {
     expect(mostFatalDoctrine(emptyStats(), content)).toBeNull();
   });
 
+  it('counts nights and dawns for the simple ruleset, apart from Expert days', () => {
+    const night = (endingId: string) => ended(endingId, { ruleset: 'simple', day: 3.1 });
+    recordRun(night('survival_cold'), content);
+    recordRun(night('standdown_quiet'), content);
+    recordRun(night('nuclear_war'), content);
+    let s = getStats();
+    expect(s.runs).toBe(3);
+    expect(s.nights).toBe(3);
+    expect(s.dawns).toBe(2);
+    expect(s.bestDays).toBe(0);
+    expect(s.totalDays).toBe(0);
+    s = recordRun(ended('nuclear_war', { day: 12 }), content);
+    expect(s.runs).toBe(4);
+    expect(s.nights).toBe(3);
+    expect(s.bestDays).toBe(12);
+  });
+
   it('reset clears everything', () => {
     recordRun(ended('nuclear_war'), content);
     __resetStatsForTests();
