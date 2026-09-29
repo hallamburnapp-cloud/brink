@@ -32,4 +32,4 @@ export const FEATURES = {
   allUnlocked: bool(env.VITE_ALL_UNLOCKED, false),
 } as const;
 
-export const VERSION = (env.VITE_APP_VERSION as string) ?? '0.1.0';
+export const VERSION = (env.VITE_APP_VERSION as string) ?? '0.3.0';

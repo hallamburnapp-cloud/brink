@@ -65,3 +65,15 @@ triggers a hot reload; the app resumes from its saved run, but the spec was mid-
 and timed out twice during the night. The helper now presses "Resume the crisis in
 progress" when it lands on Home; the e2e is otherwise green. Do not edit `content/` or
 `src/` while `npx playwright test` is running.
+
+## B-006 Container restart mid-rewrite (resolved 2026-09-29)
+
+The twelve-group voice rewrite (Workflow `wf_d4f71264-3e4`, two agents at a time) was
+killed by a container restart after five groups had finished and two were mid-file. The
+content stayed parseable (agents write whole files; the validator showed 0 YAML errors and
+0 plain errors afterwards), so the run was resumed from its journal: the five finished
+groups returned their cached results and the seven remaining groups re-ran. The finished
+groups were committed as they landed from then on, so a second restart could lose at most
+two files' worth of work. Lesson kept in the workflow itself: every group validates and
+saves file by file, never in one write at the end.
+

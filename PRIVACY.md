@@ -9,7 +9,7 @@ player's data to another player, and nothing will be added that does.
 
 Progress is stored in the browser's local storage under keys prefixed `brink.`:
 unlocks, statistics, the endings compendium, the run in progress, settings, the
-daily record and (if Endless was purchased) a signed purchase token. Nothing is
+daily record and (if Night after night was purchased) a signed purchase token. Nothing is
 transmitted. Every storage access is wrapped in `try/catch`; when storage is
 unavailable (private mode, blocked) the game runs with in-memory state.
 
