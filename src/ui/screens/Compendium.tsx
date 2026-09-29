@@ -2,7 +2,7 @@ import { compendium } from '../../meta/compendium';
 import { isUnlocked } from '../../meta/unlocks';
 import { FEATURES } from '../../config';
 import { PieceCard } from '../components/PieceCard';
-import { content, goto } from '../store';
+import { content, endlessAvailable, goto } from '../store';
 
 const KIND_LABEL = { nuclear: 'NUCLEAR WAR', removed: 'REMOVED', standdown: 'STAND-DOWN', survival: 'SURVIVAL', special: 'SPECIAL' } as const;
 
@@ -47,8 +47,8 @@ export function Compendium() {
         );
       })}
 
-      <h2 class="serif mt-4 text-2xl font-semibold">Posture</h2>
-      {(['advisor', 'doctrine', 'asset'] as const).map((pool) => (
+      {endlessAvailable.value && <h2 class="serif mt-4 text-2xl font-semibold">Posture <span class="mono text-[10px] tracking-[0.24em] text-mute">EXPERT</span></h2>}
+      {endlessAvailable.value && (['advisor', 'doctrine', 'asset'] as const).map((pool) => (
         <section key={pool}>
           <div class="mono mb-2 text-[10px] tracking-[0.24em] text-mute">{pool.toUpperCase()}S</div>
           <div class="flex flex-col gap-2">

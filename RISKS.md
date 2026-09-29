@@ -45,6 +45,8 @@ stops being individual.
 | 9 | "Broke the game" runs (score ≥ 100× the final target) happen often enough to be talked about | Medium: the endless mode has no legend | Days 0–13 | Best-score events + a fourth "break it" simulator policy (BALANCE.md, T5 measured 0.03% with the survival heuristic; max 1.45M) |
 | 9 | Balance targets hold for humans as well as bots | Medium-high: too punishing or too easy | Days 0–13 | Events vs sim |
 | 10 | PWA install and offline matter | Low-medium: wasted engineering | Days 0–13 | Events |
+| 11 | A two-minute night with no numbers is legible to people who have never played a Reigns-like (the redesign's bet) | High: the wide audience it is for bounces on card one | Days 0–13 | Events: share of nights that end before 3:30 (four cards) and the paywall view rate; a first-card watch on the Day 0 seed |
+| 12 | Humans reach dawn near 40% (between the greedy and calm bots) and the crisis feels earned, not cruel | Medium-high: too easy is a toy, too cruel is a ☢️ feed | Days 0–13 | Events: dawn rate, fell-at histogram, ☢️ share; the danger-at-5:20 probe against the same for humans if `run_end` carries `danger_at_crisis` (integer, no privacy change) |
 
 ---
 

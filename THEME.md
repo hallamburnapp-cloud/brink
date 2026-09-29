@@ -70,6 +70,14 @@ Both are swappable per id for PNG/WebP via `{ kind: 'url' }`.
 
 ## Copy
 
-Tight and in-world. Buttons say what happens ("Pick up the phone as the President",
-"Bury this card"), labels are mono uppercase, and nothing on screen explains a
-mechanic that the preview dots already show.
+Tight and in-world. Buttons say what happens ("Start the night as the President", "Pick
+the phone back up", "Copy result"), labels are mono uppercase, and nothing on screen
+explains a mechanic that the preview dots already show.
+
+The night (REDESIGN.md "The voice") adds the hard limits the validator enforces: a card is
+two sentences and 180 characters, a choice 34, an ending two paragraphs; the five dials are
+PEOPLE · ARMY · ALLIES · MONEY · DANGER and nothing on the run screen is a number but the
+clock. Speakers are shown by role first ("Your General", "The Hotline", "Your Partner") and
+name second. Odds are words (LIKELY / EVEN / RISKY) except on the crisis cards, where the
+percentage joins the word. The result is always one of three: 🌅 Dawn, 🌑 Fell at 4:35,
+☢️ 5:34.

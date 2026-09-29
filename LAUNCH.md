@@ -1,6 +1,6 @@
 # LAUNCH.md — fourteen days, no audience
 
-Assumptions. Day 0 is a Tuesday; the Daily rolls at 00:00 UTC; the web build is on
+Assumptions. Day 0 is a Tuesday; Tonight rolls at 00:00 UTC; the web build is on
 Cloudflare Pages with `VITE_ANALYTICS=plausible` switched on from Day −1; the itch.io
 page is paid; the Steam page is a Coming Soon page whose desktop build follows later.
 Nobody is subscribed to anything of ours. Every channel below is somebody else's, so
@@ -18,19 +18,19 @@ image carry the real domain; the press kit uploaded to itch as a free download
 
 | Day | Channel | Action | Asset needed | Success signal |
 | --- | --- | --- | --- | --- |
-| −3 Sat | Build | Content freeze. `npm run content:validate`, `npm run sim -- --runs 20000 --policy all --strict`, `npm run e2e`, `npm run size`. Play Day 0's Daily seed end to end on a phone; if it opens on a dull card, pin a mined seed (§6) | Green CI; the Day 0 seed | All targets PASS; one human run of the Day 0 Daily finished under 25 min |
+| −3 Sat | Build | Content freeze. `npm run content:validate`, `npm run sim -- --runs 20000 --policy all --strict`, `npm run e2e`, `npm run size`. Play Day 0's night end to end on a phone; if it opens on a dull card, pin a mined seed (§6) | Green CI; the Day 0 seed | All targets PASS (`--mode night` N1–N5 and Expert T1–T5); one human play of the Day 0 night finished under 4 min |
 | −2 Sun | Video | Capture and cut the 30-second trailer and the six screenshots from the real build (STORE.md §4–5). Portrait cut for the itch page | Screen captures at 1920 × 1080 and 1080 × 1920 | Trailer under 30 s, audio from the build, no mock-ups |
 | −1 Mon | Web, streamers | Deploy to the real domain with analytics on; confirm `run_start` arrives in Plausible from a private window. Send the cold email (§4.1) to ten grand-strategy / geopolitics YouTubers with an unlock link and a seed | Unlock tokens via `/unlocked?token=`; the press-kit link | Events visible; ten emails out, zero bounces |
-| 0 Tue | Web, itch, HN, own accounts | 00:00 UTC Daily #N is live. 09:00 UTC itch page public. 13:30–14:30 UTC Show HN (§2). Bluesky and Mastodon posts with today's share card, one each. Stay in the HN thread all day; answer every technical question | Show HN body; a share card from your own Daily run | HN: front page for ≥ 1 h or ≥ 60 points; ≥ 1,500 `run_start` by midnight UTC |
-| 1 Wed | Reddit | r/WebGames post (free Daily link, one honest paragraph). itch devlog #1: "How the modifier resolver keeps builds legible" with the worked examples from ENGINE.md | Devlog text; one GIF of a piece changing a preview | Post stays up; ≥ 50 upvotes; devlog ≥ 100 views |
+| 0 Tue | Web, itch, HN, own accounts | 00:00 UTC Tonight #N is live. 09:00 UTC itch page public. 13:30–14:30 UTC Show HN (§2). Bluesky and Mastodon posts with tonight's result strip, one each. Stay in the HN thread all day; answer every technical question | Show HN body; the strip from your own night | HN: front page for ≥ 1 h or ≥ 60 points; ≥ 1,500 `run_start` by midnight UTC |
+| 1 Wed | Reddit | r/WebGames post (the free night, one honest paragraph). itch devlog #1: "How the modifier resolver keeps builds legible" with the worked examples from ENGINE.md | Devlog text; one GIF of a piece changing a preview | Post stays up; ≥ 50 upvotes; devlog ≥ 100 views |
 | 2 Thu | Reddit | r/roguelites post with the dev flair: what is roguelite about it (pieces, seeds, restart) and what is not (no deck). Reply to every comment within the hour | A 20-second GIF of the offer screen and a flashpoint roll | Not removed; comment ratio ≥ 0.3 per upvote (people arguing about the design is the signal) |
 | 3 Fri | Reddit, streamers | r/gamedev: a technical write-up on the balance simulator with real numbers (targets, pass/fail, one surprising pair), no store link in the body, link in a comment if asked. Send the seed challenge (§4.4) to ten more channels | `sim-output/report-latest.md` excerpts | ≥ 20 comments; two channels reply |
 | 4 Sat | Reddit | r/webdev "Showoff Saturday": a 250 KB PWA with a deterministic engine, offline, no accounts. Technical framing only | Lighthouse screenshot; size-check output | ≥ 30 upvotes; someone opens a bug on the PWA |
 | 5 Sun | Reddit | r/Games Indie Sunday post in the required format (§3). r/playmygame post the same day with the free Daily and a promise to play three others' games (then do it) | One-line description; the Steam link; the itch link | Indie Sunday: ≥ 40 upvotes; playmygame: three pieces of feedback given, two received |
-| 6 Mon | Metrics, build | First read of the numbers (§7): runs per session, Daily completion rate, share rate, paywall view rate. Ship 0.1.1 with the three most-reported bugs. Follow up (§4.3) with the twenty channels contacted | Plausible dashboard; CHANGELOG entry | 0.1.1 live before 18:00 UTC; ≥ 3 channel replies total |
+| 6 Mon | Metrics, build | First read of the numbers (§7): dawn rate and the fell-at histogram, share rate, paywall view rate. Ship 0.1.1 with the three most-reported bugs. Follow up (§4.3) with the twenty channels contacted | Plausible dashboard; CHANGELOG entry | 0.1.1 live before 18:00 UTC; ≥ 3 channel replies total |
 | 7 Tue | itch, own accounts | Devlog #2: "Week one by the numbers" — runs, completion, the most common ending, the most fatal doctrine, the pair that surprised us. Honest, with charts. Post the link on Bluesky/Mastodon and as a comment in the still-live HN thread if it is | Aggregates from Plausible and the sim | ≥ 300 devlog views; one external write-up or repost |
 | 8 Wed | Content | Content patch: the arc players complain about most gets six new cards; the weakest-card list from the sim gets rewrites. Hot-deploy; the Daily seed for Day 9 is re-verified because content changes the draw | New YAML, validator green | Weakest-card impact floor rises; no validator errors |
-| 9 Thu | Web, own accounts | First pinned Daily (§6): Dark Sky, on the Republic seat (the `satellite_blackout` arc exists; the Sorrel Cable waits for its arc). Post the seed and the OG image. Send the same seed to every channel contacted as a "play this one" nudge | `content/daily.yaml` entry; OG image for the day | `daily_played` on Day 9 ≥ 1.2 × the Day 2–8 average |
+| 9 Thu | Web, own accounts | First pinned night (§6): Dark Sky, on the Republic seat (the `satellite_blackout` arc exists; the Sorrel Cable waits for its arc). Post the seed and the OG image. Send the same seed to every channel contacted as a "play this one" nudge | `content/daily.yaml` entry; OG image for the day | `daily_played` on Day 9 ≥ 1.2 × the Day 2–8 average |
 | 10 Fri | Streamers, Reddit | Second outreach wave: ten new channels, cold email with any clip a streamer has already made. r/strategy and r/IndieGaming (one of them, whichever's rules fit the asset) | A clip or the trailer | One stream or video scheduled |
 | 11 Sat | Build | No posts. Fix what the week broke. Review accessibility: reduced motion, contrast, font size on small phones | — | Zero open P1 bugs |
 | 12 Sun | Reddit | Indie Sunday again only if the sticky's cadence rule allows and there is something new (a clip, the content patch). Otherwise r/indiegames with the trailer | Trailer or clip | Not removed; ≥ 30 upvotes |
@@ -52,27 +52,29 @@ browser, so it qualifies.
 
 ### Title options
 
-1. `Show HN: BRINK – a browser roguelite about a nuclear crisis, with a shared daily seed and no accounts`
-2. `Show HN: A crisis-strategy card game whose balance is tuned by a 20k-run headless simulator`
-3. `Show HN: BRINK – deterministic crisis-strategy runs in 250 KB of JS, no cookies, no backend for play`
+1. `Show HN: BRINK – a two-minute daily about surviving one night of a nuclear crisis, no accounts`
+2. `Show HN: A swipe-card game whose one rule is "keep five dials off the edges until 6am"`
+3. `Show HN: BRINK – a deterministic crisis game in 52 KB of JS, tuned by a 15k-night simulator`
 
-Use 1 unless the day's front page is already heavy on games, in which case 2.
+Use 1 unless the day's front page is already heavy on games, in which case 3.
 
 ### Body (post as the first comment; the URL field is the game)
 
-> I've been building BRINK for the last while, alone. It's a run-based strategy game in the browser: you lead one of three fictional great powers through five weeks of a crisis, one two-choice card at a time, with five visible meters and four hidden values (adversary trust, intel reliability, commitment) that only ever reach you as prose. Each week ends in a flashpoint where the odds are shown before you commit and the margin after ("Missed by 3%"). Runs are 10–25 minutes. The Daily is free: same seed and seat for everyone, one attempt. Endless is a one-time purchase.
+> I've been building BRINK alone. It's a swipe-card game about one night of an international crisis: it's 3am, you lead a fictional country, and every card is someone at your door with a problem and two ways to answer it. Five dials (People, Army, Allies, Money, Danger); keep them off the edges until 6:00 and you've made it to dawn. Every card is seven minutes of the clock. Nothing on screen is a number except the clock, and the one-line rule is the only thing the game explains. Everyone gets the same night each day, one attempt, two to four minutes, and a result strip you can paste anywhere without spoiling it. A one-time unlock opens any night, seeds to share, and an Expert mode with the numbers on.
 >
 > The parts I think are technically interesting:
 >
-> **Determinism.** The engine is pure TypeScript with no DOM access. The RNG (xoshiro128\*\*) is seeded from `"${seed}|${seat}|${difficulty}"` and its four state words live inside the serialisable run state, so a run resumes bit-identically mid-flashpoint and "Replay this seed" reproduces every draw, roll and warning truth-value. Warning cards decide whether they're true at draw time, not at choice time, so the UI cannot leak it and the seed alone fixes it. Tests assert identical replays.
+> **Determinism.** The engine is pure TypeScript with no DOM access. The RNG (xoshiro128\*\*) is seeded from `"${seed}|${seat}|${difficulty}"` and its four state words live inside the serialisable run state, so a night resumes bit-identically mid-crisis and a shared seed reproduces every draw, roll and warning truth-value. Warning cards decide whether they're true at draw time, not at choice time, so the UI cannot leak it. Tests assert identical replays.
 >
-> **The modifier resolver.** Every posture piece (advisor, doctrine, asset) is a list of small modifiers. For each effect the resolver applies them in one fixed order: filter → sum the additive terms → sign guard (an add can soften a cost to zero but never flip it into a gain) → multiply → scale costs only by act × difficulty → round half away from zero → clamp. Addition before multiplication means acquisition order never matters, so two pieces together are always the same thing and every "synergy" is arithmetic, not a special case. There's a worked example in ENGINE.md.
+> **One engine, two rulesets.** The same 451 cards run the two-minute night and the long Expert game (leverage, weekly targets, a shop of doctrines, endless escalation). The night is the Expert engine with most of it switched off: a per-mode act table, no shop, one flashpoint at the end, and one extra rule, that the visible Danger dial shifts every roll of the crisis by (50 − danger)/250, so a calm night is rewarded where a player can see it. Nothing else had to be explained.
 >
-> **Balance simulator.** Three bot policies (random, greedy on the visible previews, and a heuristic that reads the same view a player gets) play 20,000 headless runs in a few seconds. The report checks targets: median survival 28–45 days, no ending above 30%, every offered piece picked 15–60% of the time, at least 12 piece pairs whose stand-down rate differs by ≥ 10 points from baseline, and a "perfect run" rate above zero and under 8%. `--strict` fails CI when a target fails. It also lists the weakest cards by measured impact, which is how I find prose that does nothing.
+> **Balance by bots.** Three policies (random, greedy on the visible previews, and a "calm" heuristic that reads the same view a player gets) play 15,000 nights in 19 seconds. Targets: calm bot reaches dawn 45–65%, random under 10%, a night is 2–4 minutes, no ending above 35%, and the crisis ends 25–45% of the calm nights that reach it. The last one is how I found that the crisis was a lottery: the calm bot arrived with Danger at 67 and lost 44% of the time regardless of how the night had gone. Cooling and the Danger-to-odds link fixed it; the whole log is in BALANCE.md.
 >
-> Other bits: content is YAML compiled through a zod schema and a semantic validator (dangling flags, unreachable endings, flashpoint cycles, a blocklist of real-world names — the world is fictional on purpose); Preact + Vite, under 250 KB gzipped initial JS, installable PWA, offline; all audio is synthesised in Web Audio at runtime, no files; no accounts, no cookies, no analytics unless a flag is set, and then cookie-free; the paid unlock is a Stripe Payment Link → Cloudflare Worker → ECDSA-signed token verified offline in the browser.
+> **The voice as a lint rule.** Every card is at most two sentences and 180 characters, every choice at most 34, every ending two paragraphs; a banned-word list keeps the jargon out (no "attribution", no "deterrence by denial"). The validator enforces it, so 451 cards could be rewritten by twelve parallel passes without drift.
 >
-> What I'm not sure about: whether hidden values carried by prose alone are legible, and whether the bots' balance holds for humans. If you play the Daily, I'd like to know whether a failed 47% felt fair and what you thought the other side thought of you.
+> Other bits: content is YAML compiled through a zod schema and a semantic validator (dangling flags, unreachable endings, a blocklist of real-world names, because the world is fictional on purpose); Preact + Vite, 52 KB gzipped initial JS, installable PWA, offline; all audio synthesised in Web Audio at runtime, no files; no accounts, no cookies, no analytics unless a flag is set, and then cookie-free; the paid unlock is a Stripe Payment Link → Cloudflare Worker → ECDSA-signed token verified offline in the browser.
+>
+> What I'm not sure about: whether a two-minute night with no numbers is legible enough for people who have never played a Reigns-like, and whether the bots' 60% dawn rate lands near 40% for humans, which is where I want it. If you play tonight, I'd like to know when you fell and whether it felt like your fault.
 
 ---
 
@@ -95,7 +97,7 @@ Tactics, in order of expected return:
    (ranking is by recent activity, so devlog and comment on launch day); r/roguelikedev's
    Sharing Saturday only as a developer sharing the simulator and resolver, never the
    store link. Do not post in jam submission threads.
-4. **Price display.** Set "$5.99 or more"; itch shows the "or more" and a tip prompt.
+4. **Price display.** Set "$3.99 or more"; itch shows the "or more" and a tip prompt.
 5. **The embed.** 430 × 860, mobile friendly, fullscreen button, no autoplay. The first
    screenshot is the page hero; use #1 from STORE.md (the card mid-drag with the timer).
 6. **Comments on.** itch page comments are itch's feature, moderated by us; they are
