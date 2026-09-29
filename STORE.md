@@ -4,8 +4,7 @@ Everything a store page needs, in the game's register. One rule: nothing on a pa
 claims a thing the build cannot do. Brand constants: navy `#0b1220`, paper `#ece7d8`,
 red `#e03b3b`; seat accents Republic `#4f8fc9`, Federation `#c43a3a`, Coalition `#c98a3a`.
 Wordmark: bold serif, wide tracking. The mark: a paper ring with a red arc at one to
-three o'clock. Tagline everywhere: *It's 3am. The phone is ringing. Every choice might
-be the one that ends the world.*
+three o'clock. Tagline everywhere: *It's 3am. The phone is ringing. Make it to dawn.*
 
 Public URL is `VITE_PUBLIC_URL`; written below as `brink.example`. Replace before use.
 
@@ -16,91 +15,76 @@ Public URL is `VITE_PUBLIC_URL`; written below as `brink.example`. Replace befor
 **Title:** BRINK
 
 **Tagline (itch "short description", shown in embeds and search):**
-It's 3am. The phone is ringing. Every choice might be the one that ends the world.
+It's 3am. The phone is ringing. Make it to dawn.
 
 **Hook**
 
-Lead one of three great powers through five weeks on the edge of a war nobody wants,
-one card at a time. Everyone at your door has advice, and everyone has an agenda.
+A swipe-card game about one night of a crisis. Keep five dials off the edges until
+6:00am. Everyone in the world gets the same night. Share how far you got.
 
 **Body**
 
-You are the President of the Republic, the Premier of the Federation or the Chairman
-of the Coalition. At 02:14 a reconnaissance satellite over the Sorrel Straits stops
-answering. At 03:12 a single track appears on the polar radar. A tanker has not
-replied to a hail in six hours. Each card is a person with a problem and two ways to
-make it worse. Drag left, drag right, or let the timer decide for you.
+It is 3am and you lead a country. The phone is ringing. Your General wants a window.
+Your Spy Chief has one source, and he is frightened. The Hotline is a beat late and
+very polite. Your Partner asks whether you have eaten. Every card is someone at your
+door with a problem and two ways to answer it. Swipe left or right.
 
-Five things you can see: public, military, allies, economy, escalation. Four you can
-only hear about: how far the other side trusts you, how far the third power does,
-how much your intelligence is worth, and how boxed in you are by what you have said on
-camera. Nobody prints them. The Director says "moderate confidence" and you learn to
-hear the difference between that and "we assess".
+Five dials: **People, Army, Allies, Money, Danger.** If any of the first four hits the
+edge, you are out. If Danger fills, everyone is. That is the whole rulebook, and it is
+the only thing the game will ever explain to you.
 
-Each week ends in a flashpoint: The Intercept, The Line at Sea, Midnight, The Cascade,
-The Summit. When you gamble, the odds are on the table before you choose and the margin
-is on the table after. "They blink — 47%." "FAILED. Missed by 3%." You will remember
-the number.
+Every card moves the clock seven minutes. At 5:20am the crisis comes, a short run of
+cards with the odds written on them in plain words: Likely, Even, Risky. A calm night
+makes them kinder. Get through it and it is 6:00, and dawn.
 
-Between weeks, three people want a word. A Hawk General who hides the temperature from
-your briefing slides. A doctrine of Launch on Warning. A Commercial Satellite Deal whose
-shareholders are in every capital. Thirty-six posture pieces combine into builds the
-briefing did not cover: Missile Defence and Deterrence by Denial make The Intercept
-almost safe and make them trust you a little less every day. Find out what that does
-at Midnight.
+Tonight is the same for everyone: one night, one attempt, two to four minutes. When it
+ends you get a strip of coloured squares, one row per dial, and either 🌅 Dawn or the
+time you fell. Paste it anywhere. It gives nothing away and everyone who played tonight
+knows exactly what it means. Play every night and the streak counts.
 
-Forty-plus endings, each with the card where it went wrong, or held. A run is ten to
-twenty-five minutes. Restart is instant. A seed replays identically, so when the world
-ends you can find out exactly where. The share card is a picture of your five meters,
-day by day, in five rows of coloured squares.
-
-Every day there is one crisis, the same seed and seat for everyone, one attempt, and a
-streak. The Daily is free, forever, at brink.example. This itch.io build is the whole
-game, downloaded or played here, with the Daily included.
+Ninety-four endings, each short enough to read in ten seconds and each with the card
+that decided it. Twenty-three voices. Three seats (the Republic, the Federation, the
+Coalition) that rotate night by night. No accounts, no chat, no ads, nothing collected.
 
 **Features**
 
-- Three seats, three starting positions: the alliance-rich Republic, the sanctioned
-  Federation with the big army, the Coalition everyone's infrastructure runs through.
-- Two-choice cards, 23 speakers with their own voices, timers on the cards that deserve them.
-- Five visible meters. Four hidden values carried by prose, never numbers.
-- Five acts, five flashpoints with visible odds, near misses reported to the percentage point.
-- 36 posture pieces (12 advisors, 12 doctrines, 12 assets) offered between acts; they combine.
-- 40+ endings, a "moment it went wrong" card, a compendium, lifetime statistics.
-- The Daily: one shared seed, one attempt, a streak. Endless: any seat, any seed, five DEFCON tiers.
-- Shareable PNG with a five-row meter strip; seed replay; instant restart.
+- One rule: keep five dials off the edges until 6:00am. No numbers on screen but the clock.
+- Two-choice cards, swipe or tap; 451 of them across ten stories, 23 speakers with their own voices.
+- The crisis at 5:20am: visible odds in plain words, and a calm night improves them.
+- Tonight: the same night for everyone, one attempt, two to four minutes, a streak that counts nights played.
+- A result strip to paste anywhere: five rows of coloured squares and 🌅 Dawn or 🌑 Fell at 4:35.
+- 94 endings with the moment that decided them; a compendium; a record of your nights.
+- Night after night (one purchase): any night, any seat, seeds to share, and Expert mode, the long game with the numbers on.
 - No accounts, no chat, no comments, no leaderboards. Nothing leaves your device.
-- Synthesised audio, no downloads; installs as an app and plays offline.
-- Runs in a phone browser. 10–25 minutes a run.
+- Synthesised audio, no downloads; installs as an app and plays offline. Runs in a phone browser.
 
 **Content note**
 
-Text depictions of geopolitical crisis, nuclear alerts and nuclear war; coups, civil
-emergencies and the deaths of unnamed people at scale, described, never shown. No
-images of violence: the game is text, silhouettes and meters. Occasional mild
-language. Everything is fictional: no real state, leader, event or organisation is
-depicted, and the content validator rejects real-world names.
+Text depictions of an international crisis, nuclear alerts and nuclear war; civil
+emergencies and the deaths of unnamed people at scale, described, never shown. No images
+of violence: the game is text, silhouettes and dials. Occasional mild language.
+Everything is fictional: no real state, leader, event or organisation is depicted, and
+the content validator rejects real-world names.
 
 **What's free and what's paid**
 
-| | The Daily (free, forever, on the web) | Endless (this purchase, or the web unlock) |
+| | Tonight (free, forever, on the web) | Night after night (this purchase, or the web unlock) |
 | --- | --- | --- |
-| Crisis | Today's, the same seed for everyone | Any seed; type one, replay one, share one |
-| Seat | Today's, rotating Republic → Federation → Coalition | Any of the three |
-| Attempts | One per UTC day | Unlimited; instant restart |
-| Difficulty | DEFCON 5 | DEFCON 5 down to DEFCON 1 |
-| Pieces, endings, compendium | Everything you meet counts | Everything |
-| Streak and daily record | Yes | — |
-| Share card | Yes | Yes |
+| The night | Tonight's, the same for everyone | Any night: type a seed, replay one, share one |
+| Seat | Tonight's, rotating Republic → Federation → Coalition | Any of the three |
+| Attempts | One per night (UTC) | Unlimited; another night at once |
+| The result strip, endings, compendium, record | Yes | Yes |
+| Streak | Yes | — |
+| Expert mode (leverage, antes, the shop, endless escalation, DEFCON tiers) | — | Yes |
 | Accounts, cookies | None | None. A signed token on your device; restore by email |
 
-This itch.io build ships with Endless open. It also plays today's Daily, the same seed
-everyone else has.
+This itch.io build ships with Night after night open. It also plays tonight, the same
+night everyone else has.
 
-*Build note (for us, not the page):* `npm run build:itch` currently sets
-`VITE_ALL_UNLOCKED=1`, which also skips the unlock ladder (locked seats, DEFCON tiers,
-earned pieces). Recommend the itch build use `VITE_PAYWALL=0 VITE_ALL_UNLOCKED=0`
-so buyers keep the progression; the copy above assumes that.
+*Build note (for us, not the page):* `npm run build:itch` sets `VITE_ALL_UNLOCKED=1`,
+which also skips Expert's unlock ladder (locked seats, DEFCON tiers, earned pieces).
+Recommend the itch build use `VITE_PAYWALL=0 VITE_ALL_UNLOCKED=0` so buyers keep the
+progression; the copy above assumes that.
 
 ---
 
@@ -108,58 +92,55 @@ so buyers keep the progression; the copy above assumes that.
 
 **Short description (≤ 300 characters)**
 
-Lead one of three great powers through five weeks on the edge of world war, one card at
-a time. Five meters you can see, four you can only hear about. Advisors with agendas,
-flashpoints with visible odds, forty-plus endings. Twenty-minute runs, instant restart,
-a shared daily crisis.
+It's 3am and you lead a country in a crisis. Swipe through the night one card at a time,
+keep five dials off the edges, and make it to dawn. The same night for everyone, one
+attempt, a result you can paste anywhere. Night after night and Expert mode for the long
+game.
 
 **Long description** (enter as BBCode: `[h2]`, `[list]`, `[b]`)
 
 [h2]About this game[/h2]
 
-It's 3am. The phone is ringing. Every choice might be the one that ends the world.
+It's 3am. The phone is ringing. Make it to dawn.
 
-BRINK is a run-based crisis-strategy game. You lead the Republic, the Federation or the
-Coalition through five weeks on the slide towards a war that none of the three wants
-and each is preparing for. A satellite goes dark over the Sorrel Straits. A track
-appears on the polar radar and the second radar has not confirmed. Your Foreign Minister
-has a number for everyone and has used most of them tonight. Each card is one of them,
-with a problem and two ways to make it worse.
+BRINK is a swipe-card game about surviving one night of an international crisis. You lead
+the Republic, the Federation or the Coalition. A satellite has gone dark over the Straits.
+A track has appeared on the radar and the second radar has not confirmed. Your General
+wants a window, your Spy Chief has one frightened source, and your Partner is on the line
+asking whether you have eaten. Each card is one of them, with a problem and two ways to
+answer it.
 
-[b]Five meters, four hidden values.[/b] Public, military, allies, economy and
-escalation are on the wall. Whether the other side believes you, how good your
-intelligence is, and how boxed in you are by what you said on camera are not. They
-are carried by the people in the room: "single source", "moderate confidence",
-"they expect the worst". The odds at every flashpoint already include them.
+[b]One rule.[/b] Five dials: People, Army, Allies, Money, Danger. If any of the first
+four hits the edge, you are out. If Danger fills, everyone is. Nothing on screen is a
+number except the clock, and the game never explains anything else.
 
-[b]Odds you can see, misses you can measure.[/b] Every gamble shows its percentage
-before you commit. Every roll shows its margin after. "Held by 2%" and "Missed by 3%"
-are different sentences, and the game tells you which one you got.
+[b]The crisis.[/b] Every card moves the clock seven minutes. At 5:20am the crisis comes:
+a short run of cards with the odds written in plain words, Likely, Even, Risky. A calm
+night makes them kinder. Get through and it is 6:00.
 
-[b]Posture is the build.[/b] Between weeks, three people want a word: an advisor, a
-doctrine, an asset. Thirty-six pieces, each a small list of rules that stack in a fixed
-order, so two pieces together are always the sum of their parts and often more than
-you meant. Launch on Warning with a paranoid Director of Intelligence is a specific
-kind of mistake. The game will let you make it.
+[b]Tonight.[/b] The same night for everyone, one attempt, two to four minutes. The result
+is a strip of coloured squares, one row per dial, ending in 🌅 Dawn or the time you fell.
+Paste it anywhere; it gives nothing away. Play every night and the streak counts.
 
-[b]Forty-plus endings and the moment it went wrong.[/b] Nuclear midnight, a coup, a
-constitutional crisis, a communiqué that holds. Every ending names the card that
-decided it. Seeds replay identically. Restart is instant.
+[b]Ninety-four endings.[/b] Each short enough to read in ten seconds, each named after
+what the night did to you, each with the card that decided it. A Quiet Dawn is rare. A
+Red Dawn is not peace.
 
-[b]One crisis a day.[/b] The Daily gives everyone the same seed and the same seat, one
-attempt, and a streak. Endless gives you every seat, every seed and five DEFCON tiers.
+[b]Night after night, and Expert.[/b] Any night on any seat, seeds to share and replay,
+and Expert mode: the long game with the numbers on. Leverage on every choice, weekly
+targets, a shop of advisors and doctrines, accidents above the line, and endless
+escalation for a local best score.
 
 [h2]Features[/h2]
 [list]
-[*] Three seats with different starting positions, allies and weaknesses
-[*] Two-choice cards with drag or tap; timers on about one card in five
-[*] 23 speakers, from the Duty Officer reading the board to your partner asking if you have eaten
-[*] Five acts, five flashpoints, visible odds, near misses to the percentage point
-[*] 36 posture pieces that combine into builds; a compendium that tracks what you have seen
-[*] 40+ endings, each with the card where it went wrong or held
-[*] A shareable card with your five meters, day by day
-[*] Seed replay, instant restart, 10–25 minutes a run
-[*] Daily mode with a streak; Endless mode with five DEFCON tiers
+[*] One rule, five dials, no numbers on screen but the clock
+[*] 451 two-choice cards across ten stories, 23 speakers with their own voices, timers on the cards that deserve them
+[*] The crisis at 5:20am with odds in plain words; a calm night improves them
+[*] Tonight: the same night for everyone, one attempt, a streak
+[*] A result strip to paste anywhere: 🌅 Dawn or 🌑 Fell at 4:35
+[*] 94 endings with the moment that decided them; a compendium; a record of your nights
+[*] Night after night: any night, any seat, seeds to share
+[*] Expert mode: leverage, antes, the shop, 64 posture pieces, endless escalation
 [*] No accounts, no online features, nothing collected
 [*] All audio synthesised in real time; plays offline
 [/list]
@@ -167,8 +148,7 @@ attempt, and a streak. Endless gives you every seat, every seed and five DEFCON 
 [h2]This is fiction[/h2]
 
 The Republic, the Federation and the Coalition do not exist. No real state, leader,
-event or organisation is depicted or implied. The dynamics — misperception, commitment
-traps, the security dilemma, attribution — are real; the world is not.
+event or organisation is depicted or implied. The dynamics are real; the world is not.
 
 *Steamworks fields to fill alongside:* mature content survey (text depictions of war and
 nuclear war; no sexual content, no drug use, no graphic violence); system requirements
@@ -317,44 +297,42 @@ first in the media strip and H.264 at the highest bitrate available.
 
 | SKU | Price | Notes |
 | --- | --- | --- |
-| Web: Endless unlock (Stripe Payment Link, one-time) | **$5.99 · £4.99 · €5.99** | Set all three as explicit currency prices on the Stripe Price object (`currency_options`); let Stripe present other currencies by conversion. No regional discounting on the web: we do not know where anyone is (PRIVACY.md), the Checkout page does |
-| itch.io (HTML build, everything included) | **$5.99, "or more"** | Same as the web unlock so neither undercuts the other. itch is merchant of record and handles VAT. Revenue share: keep itch's default or set 15% |
-| Steam (Tauri desktop, Win/mac/Linux) | **$7.99 · £6.49 · €7.79** with a **10% launch discount** for the first week | Accept Valve's suggested regional prices (check current) for other currencies. The store page must be public before release for the period Valve requires (two weeks at last check — check current). A discount cannot follow a price change within Valve's cooling-off window (30 days at last check) so set the price before the Coming Soon page goes up and never touch it |
+| Web: Night after night (Stripe Payment Link, one-time) | **$3.99 · £2.99 · €3.99** | An impulse price for a purchase made on a phone, on the dawn screen, after a free night. Set all three as explicit currency prices on the Stripe Price object (`currency_options`); let Stripe present other currencies by conversion. No regional discounting on the web: we do not know where anyone is (PRIVACY.md), the Checkout page does |
+| itch.io (HTML build, everything included) | **$3.99, "or more"** | Same as the web unlock so neither undercuts the other. itch is merchant of record and handles VAT. Revenue share: keep itch's default or set 15% |
+| Steam (Tauri desktop, Win/mac/Linux) | **$5.99 · £4.99 · €5.79** with a **10% launch discount** for the first week | Accept Valve's suggested regional prices (check current) for other currencies. The store page must be public before release for the period Valve requires (two weeks at last check; check current). A discount cannot follow a price change within Valve's cooling-off window (30 days at last check) so set the price before the Coming Soon page goes up and never touch it |
 
 ### Rationale
 
 **Anchors, in qualitative terms.** Reigns is the interface's parent and sells for about
-the price of a coffee on mobile and Steam (around $2.99 — check current); it set the
-expectation that a two-choice card game is cheap. Balatro (Steam $14.99, mobile
-$9.99 — check current) and Slay the Spire (Steam $24.99, mobile $9.99 — check current)
-are the structure's parents and are priced as hundreds-of-hours games. Short-form
-roguelites without a large studio sit in a $5–$15 band on Steam and are mostly free or
-under $8 in the browser. A daily-seed game people are used to paying nothing for.
+the price of a coffee on mobile and Steam (around $2.99; check current); it set the
+expectation that a two-choice card game is cheap. The daily-puzzle games people play in a
+browser every morning are free with a paid tier under $5 a year or a one-time unlock
+under $5. Short-form roguelites without a large studio sit in a $5–$15 band on Steam and
+are mostly free or under $8 in the browser.
 
-BRINK's interface says Reigns; its structure says Balatro; its length per run
-(10–25 minutes) and content volume (about 300 cards, 36 pieces, 40+ endings at
-launch) sit between them. The web unlock is bought on a phone, on the ending screen,
-by someone who has just played one free run: it has to be an impulse. Under $6/£5 is
-where that impulse lives. Above $4, Stripe's fixed per-transaction fee stops being a
-large share of the sale (check the current fee schedule); below it, we would be paying
-Stripe to sell the game.
+BRINK's free game is a two-minute daily, and its purchase is bought on a phone, on the
+dawn screen, by someone who has just played one free night. That is an impulse and it
+has to be priced as one: under $4/£3. The earlier draft of this file priced the unlock at
+$5.99 for a twenty-minute roguelite; the game is now a daily first and the long game
+second, and the price follows the free game, not the paid one. Above $3, Stripe's fixed
+per-transaction fee is still a tolerable share of the sale (check the current fee
+schedule); below it we would be paying Stripe to sell the game.
 
 Steam is higher for three reasons: Valve takes 30%; Steam players expect an installed
-build with achievements and offline play and read a sub-$5 price as a warning; a
-visible gap gives the web unlock a reason to exist without anyone saying "cheaper on
-the web" on the Steam page (the web unlock is not a Steam key, so key-parity rules do
-not apply; we still do not advertise the difference there). The launch discount is a
-wishlist-conversion tool, not a price signal: 10% is enough to trigger the wishlist
-email and small enough that full-price buyers on day eight are not annoyed.
+build with achievements and offline play and read a sub-$5 price as a warning; a visible
+gap gives the web unlock a reason to exist without anyone saying "cheaper on the web" on
+the Steam page (the web unlock is not a Steam key, so key-parity rules do not apply; we
+still do not advertise the difference there). The launch discount is a wishlist-conversion
+tool, not a price signal.
 
-**How the Daily and Endless relate.** The Daily is the demo that never expires and the
-habit that brings people back; it is never gated and never nagged. The paywall appears
-in exactly two places, both natural: "Run again (Endless)" and "Replay this seed" on
-the ending screen after a Daily, and the Endless card on the home screen. Everything a
-Daily player earns — seats, DEFCON tiers, pieces, the compendium — is kept and is
-theirs the moment Endless is unlocked. Endless is a one-time price for the life of the
-game; there is no subscription, no season, no currency. If we ever discount the web
-unlock it will be for a Steam-parity reason, not before day 90.
+**How Tonight and Night after night relate.** Tonight is the demo that never expires
+and the habit that brings people back; it is never gated and never nagged. The offer
+appears in exactly two places, both natural: "Night after night · unlock" on the dawn
+screen after tonight, and the Night after night card on the home screen. Everything a
+free player earns (endings, the compendium, the record, the streak) is kept. Night after
+night is a one-time price for the life of the game; there is no subscription, no season,
+no currency. Expert mode is part of the same unlock, not a second one: one purchase, one
+sentence.
 
 **Tax (not advice; confirm with an accountant).** itch.io and Steam are merchants of
 record and remit VAT. Stripe is not: web sales to EU consumers owe VAT from the first
@@ -363,6 +341,6 @@ Stripe Tax on the Payment Link and register before launch, or restrict the web u
 Checkout to the jurisdictions we are ready for and point everyone else at itch.io.
 
 **What we will not do.** No "pay what you want" on the web (it converts worse at the
-ending-screen moment and complicates tax). No price per seat or per DLC: the three
-seats are the game. No launch sale on itch: itch buyers on day one are the people who
-would have paid full price.
+dawn-screen moment and complicates tax). No price per seat, per mode or per DLC: the three
+seats and both games are the purchase. No launch sale on itch: itch buyers on day one are
+the people who would have paid full price. No ads, ever: the free game is the marketing.

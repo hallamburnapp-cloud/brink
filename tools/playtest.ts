@@ -6,6 +6,7 @@
  *
  *   tsx tools/playtest.ts --style dove|hawk|balanced|gambler --seat republic --seed ABC --out playtest-output
  *   tsx tools/playtest.ts --game night --style balanced --seat republic --seed ABC   (the night: five dials, the clock, no numbers)
+ *   … --static   serves dist/ with `vite preview` (run `npm run build` first) so content edits cannot reload the page mid-run
  */
 import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
@@ -13,7 +14,14 @@ import { join } from 'node:path';
 import { chromium, devices, type Page } from '@playwright/test';
 
 const args = new Map<string, string>();
-for (let i = 2; i < process.argv.length; i += 2) args.set(process.argv[i].replace(/^--/, ''), process.argv[i + 1] ?? '');
+for (let i = 2; i < process.argv.length; i++) {
+  const key = process.argv[i].replace(/^--/, '');
+  const next = process.argv[i + 1];
+  if (next !== undefined && !next.startsWith('--')) {
+    args.set(key, next);
+    i++;
+  } else args.set(key, '');
+}
 const style = (args.get('style') ?? 'balanced') as 'dove' | 'hawk' | 'balanced' | 'gambler';
 const seat = args.get('seat') ?? 'republic';
 const seed = args.get('seed') ?? `PT-${style.toUpperCase()}-${Math.floor(Math.random() * 9000 + 1000)}`;
@@ -22,6 +30,8 @@ const port = Number(args.get('port') ?? 4175);
 const difficulty = args.get('defcon') ?? '5';
 /** 'night' drives the simple ruleset (the redesign); 'expert' the long game with the numbers on. */
 const game = (args.get('game') ?? 'expert') as 'night' | 'expert';
+/** --static serves the built dist/ (vite preview) instead of the dev server: no content hot reload can interrupt the run. */
+const isStatic = args.has('static');
 
 const DOVE_WORDS = /talk|wait|call|pause|stand down|offer|hotline|ask|listen|withdraw|open|share|apolog|invite|delay|hold off|de-?escalat|quiet|back.?channel|accept|agree|restrain|reassur|publish|disclose|second radar/i;
 /** Either ending screen: the dawn screen ("Copy result") or the Expert ending ("Replay this seed"). */
@@ -31,7 +41,8 @@ const HAWK_WORDS = /strike|mobilis|board|deploy|send|refuse|reject|escalat|launc
 function startVite(): Promise<ChildProcess> {
   return new Promise((resolve, reject) => {
     // Its own process group, so the whole npx → vite tree can be killed at the end and the port freed for the next run.
-    const child = spawn('npx', ['vite', '--port', String(port), '--strictPort'], { cwd: process.cwd(), env: { ...process.env, VITE_ANALYTICS: 'off', VITE_PAYWALL: 'false' }, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
+    const viteArgs = isStatic ? ['vite', 'preview', '--port', String(port), '--strictPort'] : ['vite', '--port', String(port), '--strictPort'];
+    const child = spawn('npx', viteArgs, { cwd: process.cwd(), env: { ...process.env, VITE_ANALYTICS: 'off', VITE_PAYWALL: 'false' }, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
     let ready = false;
     const onData = (b: Buffer) => {
       const s = b.toString();
