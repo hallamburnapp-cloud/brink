@@ -53,7 +53,7 @@ export function Night() {
 
       {menu && (
         <div class="paper-dark rise rounded-md p-3">
-          <div class="serif text-sm text-paper/80">Keep the five dials off the edges until 6:00. Danger full ends everything.</div>
+          <div class="serif text-sm text-paper/80">Keep the five dials off the edges until 6:00. Danger full ends everything, and a calm night makes the crisis kinder.</div>
           <div class="mt-3 flex gap-2">
             <button class="btn flex-1" onClick={() => setMenu(false)}>
               Back to the phone

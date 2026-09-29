@@ -1478,6 +1478,41 @@
   compendium: "Survived. They blinked at midnight, and everyone saw it, which is the problem."
   emoji: "👁️"
 
+- id: survival_quiet_dawn
+  name: "A Quiet Dawn"
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { values: { public: { min: 35, max: 65 }, military: { min: 35, max: 65 }, allies: { min: 35, max: 65 }, economy: { min: 35, max: 65 }, escalation: { max: 39 } } }
+  priority: 29
+  text: >-
+    At 6:00 the phone stops. Nobody has resigned, nobody has fired, and the markets
+    open at the price they closed. The General says it could have gone worse, which
+    from him is a kindness.
+
+
+    You go home. The street is being swept. Nobody out there knows how close it was,
+    and the whole point of tonight was that they never will.
+  moment_label: "The call that kept it quiet"
+  compendium: "Reached 6:00 with every dial in the middle and the danger dial low. The rarest kind of night."
+  emoji: "🌅"
+
+- id: survival_red_dawn
+  name: "A Red Dawn"
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { values: { escalation: { min: 75 } } }
+  priority: 30
+  text: >-
+    The sun comes up on two armies that have not stood down, a hotline that is still
+    open, and a country that slept through it. It is dawn. It is not peace.
+
+
+    Your aide brings coffee and the morning papers, which lead with the weather. The
+    General has not left the building. Neither have you.
+  moment_label: "The card that ran hottest"
+  compendium: "Reached 6:00 with the danger dial in the red. Over for tonight, and only for tonight."
+  emoji: "🌄"
+
 - id: survival_empty_chair
   name: "The Empty Chair at Vellmar"
   kind: survival

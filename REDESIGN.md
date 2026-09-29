@@ -20,10 +20,14 @@ only thing the game explains.
 
 ## The night
 
-- A night is **24 cards** from 3:00am to 6:00am. Every card is seven and a half
+- A night is **21 cards and then the crisis**, 3:00am to 6:00am. Every card is seven
   minutes of the clock; the clock is the only number on screen.
 - The last stretch (from about 5:20am) is the **crisis**: a short, escalating
   sequence with visible odds. Making it through is dawn.
+- The danger dial is the crisis's luck. Arrive at 5:20am with it half full and the
+  odds are as written; empty, and every roll of the crisis is a fifth more likely to
+  go your way; full, a fifth less. The odds words on the choices already say so, so
+  a calm night is rewarded where the player can see it and nothing has to be explained.
 - Reaching 6:00am is a win. The dials at dawn pick which dawn you get (a quiet one,
   a wary one, a hollow one). Losing gives a named ending too. Every ending is
   short enough to read in ten seconds and good enough to screenshot.
@@ -100,11 +104,14 @@ unlock as an in-app purchase later; the web build ships first.
 
 ## Difficulty
 
-One difficulty. A night is calibrated so that a careful first-time player makes
-dawn about a third of the time and a careless one falls around 4:30am: the
-simulator's calm bot should reach dawn 30–45% of the time and the random bot under
-10%. Tuned with the existing knobs (cooling, recovery, cost scale, card numbers),
-never by explaining more.
+One difficulty. A night is calibrated so that a careful player makes dawn about
+half the time and a careless one falls around 4:30am: the simulator's calm bot
+should reach dawn 45–65% of the time and the random bot under 10% (the first draft
+of this file said 30–45% for the calm bot; a daily that people come back to is one
+they win about half the time when they play carefully, and the bot reads the dials
+better than a person will, so its band sits above a person's; BALANCE.md "The
+night"). Tuned with the existing knobs (cooling, cost scale, escalation scale, the
+danger-to-odds link, card numbers), never by explaining more.
 
 ## Fiction
 
@@ -119,4 +126,5 @@ person telling you what is happening at 3am, briefly, because there is no time.
 - The result strip is something a person would post.
 - Nothing on the run screen is a number except the clock.
 - All 451 cards and 92 endings pass the voice contract.
-- The simulator's calm bot reaches dawn 30–45% of the time.
+- The simulator's calm bot reaches dawn 45–65% of the time, the random bot under 10%,
+  and the crisis ends 25–45% of the calm nights that reach it (BALANCE.md N1–N5).

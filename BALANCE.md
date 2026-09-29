@@ -13,6 +13,10 @@ Each iteration runs 20,000 runs per policy (60,000 total) across all three seats
 DEFCON 5 with a fixed seed base, so two iterations differ only by the content and
 rules changed between them.
 
+The night (the simple ruleset behind Tonight and Night after night) has its own targets and
+its own log at the end of this file: **"The night"**. Everything between here and there is
+the Expert game.
+
 ## Targets (brinkmanship scaling)
 
 | # | Target | Why |
@@ -352,3 +356,113 @@ Ranked by the lowest combined rank of buy rate and |Δ win| (pieces nobody wants
   "The General's War"), and the shop still sells him at 3% because he pays leverage.
 - **Timer expiry** 5% of timed cards (heuristic), 30% (random). Near-miss rate 9.9% of rolls, as designed.
 - **Deck coverage**: 449 of 450 cards seen; 1 never (adv_01).
+
+---
+
+## The night
+
+The redesign (REDESIGN.md) plays the same cards under the simple ruleset: five acts of
+5/5/5/5/1 ordinary cards from 3:00am to 5:20am, then one flashpoint, **the crisis**. No
+accidents, antes, shop or pieces; nothing on screen is a number but the clock. The bots
+are unchanged (D-077), which is the point: a "calm" bot that reads the preview dots and
+avoids the edges is a careful player who cannot see the hidden values, and the random
+bot is a thumb.
+
+`npm run sim -- --mode night --policy all --runs 5000 --seed NIGHTBAL` (18 s for 15,000 nights).
+
+### Targets (the night)
+
+| # | Target | Why |
+| --- | --- | --- |
+| N1 | Calm (heuristic) bot reaches dawn 45–65% of nights | A daily people come back to is one a careful player wins about half the time; the bot reads dials better than a person, so its band sits above a person's |
+| N2 | Random bot reaches dawn in fewer than 10% of nights | It has to be a game |
+| N3 | Calm bot's average night 2–4 minutes (7 s per two-sentence card, 4 s per roll) | The two-minute promise on the home screen |
+| N4 | No single ending in more than 35% of the calm bot's nights | Dawn has to be worth reading more than once |
+| N5 | The crisis ends 25–45% of the calm nights that reach it | The climax is a real test, not a coin flip and not a formality |
+
+REDESIGN.md first said 30–45% for N1; it was revised before anything was tuned to it (D-085).
+N5 was first written as "share of the calm bot's falls that happen in the crisis"; for a bot
+that never falls on a dial that is ~95% by construction and says nothing about the design,
+so it now measures the crisis's own kill rate.
+
+### Iteration N-1 — the night as a shorter Expert run
+
+The first night used the Expert act table cut to 21 cards with the Expert drifts on
+(cooling 0.5, recovery 0.15) and costs ×1.0. The calm bot reached dawn nearly every night
+and the random bot most nights: 21 cards is not long enough for a deck authored for 70 to
+bite. Both drifts were removed for the night, office costs were scaled ×1.6 → ×2.6 across
+the five acts and escalation ×1.0 → ×1.3 through a new per-act `escalation_scale`
+(separate from `effect_scale`, because scaling danger with the office costs made every
+night end in the red). Result: calm dawn 57%, random 6.7%, greedy ~14%.
+
+### Iteration N-2 — measuring the crisis (5,000 × 3, `NIGHTBAL`)
+
+With the N1–N5 targets in the simulator: calm dawn 55.6%, nuclear 37.4%, removed 7.0%;
+random dawn 6.1% (removed 82%); N1–N4 PASS, N5 (old definition) 92%. The read: the calm
+bot never falls on a dial, so every calm fall is the crisis, and 37% of careful nights
+ending in nuclear war is a lottery, not a climax. `tools/probes/night-danger.ts` (danger
+at the start of the crisis, 1,500 nights per policy):
+
+| Policy | Reached the crisis | Danger at 5:20 (median, p25–p75) | Dawn of those | Nuclear of those |
+| --- | --- | --- | --- | --- |
+| calm | 93% | 67 (58–76) | 53.5% | 42.4% |
+| greedy | 28% | 38 (26–50) | 46.8% | 8.3% |
+| random | 26% | 64 (53–79) | 21.6% | 18.3% |
+
+The calm bot arrives hot because the deck is escalation-positive (+1.05 per card at random
+play, CONTENT.md §5) and the night had no cooling; the greedy bot arrives calm because it
+protects whichever dial is nearest an edge, danger included, and dies of the other four.
+Act-5 `escalation_scale` alone (1.30 → 0.70) only traded nuclear for dawn (37% → 25%
+nuclear, 56% → 66% dawn) and left the crisis a lottery.
+
+### Iteration N-3 — the danger dial moves the crisis odds
+
+Engine change (D-083): during the night's flashpoint every roll gains `(50 − danger) / 250`.
+Measured with the ramp still on: calm dawn fell to 49% (the bot arrives at 67, so the link
+costs it), which is the link working. The centre was tried at 50/60/70 (dawn 54/56/58%);
+50 was kept because "half full is neutral" is the rule a player can hold. Then the night's
+own knobs: cooling 0.3 per ordinary card (danger only; office dials still do not heal) and a
+flat escalation scale of ×1.0. The matrix (3,000 × 3):
+
+| cooling | escalation ×(acts 2–4 / 5) | calm dawn | calm nuclear | calm peak danger | crisis kills | random dawn |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0 | ramp / 1.00 | 53.6 | 38.0 | 84 | 44% | 6.2 |
+| 0 | 1.00 / 1.00 | 57.7 | 35.2 | 82 | 41% | 6.8 |
+| 0.3 | ramp / 1.00 | 56.4 | 36.3 | 82 | 42% | 7.6 |
+| **0.3** | **1.00 / 1.00** | **60.5** | **32.9** | **79** | **38%** | **8.0** |
+| 0.3 | 0.90 / 0.90 | 62.5 | 31.3 | 77 | 37% | 8.5 |
+| 0.5 | 1.00 / 1.00 | 62.4 | 31.2 | 77 | 37% | 8.4 |
+| 0.5 | 0.90 / 0.90 | 64.3 | 28.6 | 75 | 35% | 8.8 |
+
+Chosen: cooling 0.3, escalation ×1.0 throughout. The probe after the change: the calm bot
+arrives at a median of 59 (50–69); arriving at 30–49 gives 72% dawn and 25% nuclear,
+50–69 gives 65% / 31%, 70–84 gives 55% / 39%, 85+ gives 20% / 73%. The greedy bot,
+which arrives at 32, now reaches the crisis 40% of the time and comes out of it 52%.
+That is the trade the night is about: protect the danger dial and the crisis is kind,
+protect the other four and gamble at 5:20.
+
+### Iteration N-4 — dawn named by the dials (5,000 × 3, `NIGHTBAL`)
+
+N4 failed at 36.5%: The Empty Chair at Vellmar (the summit's collapsed-but-nobody-fell
+dawn) was the calm bot's ending in over a third of nights. Two run-end endings above the
+flashpoint dawns (D-082): **A Red Dawn** (danger ≥ 75 at 6:00) and **A Quiet Dawn** (every
+office dial 35–65 and danger < 40). Final report, all five targets PASS:
+
+| Target | Result |
+| --- | --- |
+| N1 calm dawn 45–65% | **PASS** 61.3% (60.7% survival, 0.6% stand-down; fell: 6.5% removed, 32.2% nuclear) |
+| N2 random dawn < 10% | **PASS** 7.6% (85.7% removed, 5.7% nuclear) |
+| N3 average night 2–4 min | **PASS** 3.7 min (28.9 cards incl. the crisis, 5.0 rolls) |
+| N4 no ending > 35% | **PASS** The Empty Chair 26.1%, A Red Dawn 17.3%, Midnight 11.9%, The Intercept Exchange 10.1%, 25 distinct endings |
+| N5 crisis kills 25–45% of arrivals | **PASS** 37.7% (98.4% of calm nights reach the crisis) |
+
+Greedy: dawn 20.0%, nuclear 3.8%. By seat (calm): Coalition 64%, Republic 63%, Federation
+57%. A Quiet Dawn is rare by design (the calm bot ends the crisis at danger 60+ most
+nights); it is the night a careful player brags about.
+
+What is left for the night: the calm bot's nuclear share (32%) is the crisis's failure
+branches turning danger 60–80 into 100; the cards' own numbers (CONTENT.md §5 says a
+flashpoint's firm path adds ~50 escalation with average luck) are the next lever if human
+playtests find the crisis too cruel, not the scales. Human numbers will sit between the
+greedy and calm bots; the LAUNCH.md events (dawn rate, fell-at histogram) are the check.
+

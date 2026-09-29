@@ -12,11 +12,11 @@ acts:
 # the crisis (a flashpoint) at the end. Targets are unused in the simple ruleset.
 night:
   acts:
-    - { index: 1, name: "3:00am", cards: 5, effect_scale: 1.60, escalation_scale: 1.00, intel_shift: 0,   timer_scale: 1.00, day_per_card: 0.1, target: 50, cooling: 0, recovery: 0, flashpoint: false }
-    - { index: 2, name: "3:35am", cards: 5, effect_scale: 1.85, escalation_scale: 1.08, intel_shift: -3,  timer_scale: 0.95, day_per_card: 0.1, target: 50, cooling: 0, recovery: 0, flashpoint: false }
-    - { index: 3, name: "4:10am", cards: 5, effect_scale: 2.10, escalation_scale: 1.16, intel_shift: -6,  timer_scale: 0.90, day_per_card: 0.1, target: 50, cooling: 0, recovery: 0, flashpoint: false }
-    - { index: 4, name: "4:45am", cards: 5, effect_scale: 2.35, escalation_scale: 1.24, intel_shift: -9,  timer_scale: 0.85, day_per_card: 0.1, target: 50, cooling: 0, recovery: 0, flashpoint: false }
-    - { index: 5, name: "5:20am", cards: 1, effect_scale: 2.60, escalation_scale: 1.30, intel_shift: -12, timer_scale: 0.80, day_per_card: 0.1, target: 50, cooling: 0, recovery: 0, flashpoint: true }
+    - { index: 1, name: "3:00am", cards: 5, effect_scale: 1.60, escalation_scale: 1.00, intel_shift: 0,   timer_scale: 1.00, day_per_card: 0.1, target: 50, cooling: 0.3, recovery: 0, flashpoint: false }
+    - { index: 2, name: "3:35am", cards: 5, effect_scale: 1.85, escalation_scale: 1.00, intel_shift: -3,  timer_scale: 0.95, day_per_card: 0.1, target: 50, cooling: 0.3, recovery: 0, flashpoint: false }
+    - { index: 3, name: "4:10am", cards: 5, effect_scale: 2.10, escalation_scale: 1.00, intel_shift: -6,  timer_scale: 0.90, day_per_card: 0.1, target: 50, cooling: 0.3, recovery: 0, flashpoint: false }
+    - { index: 4, name: "4:45am", cards: 5, effect_scale: 2.35, escalation_scale: 1.00, intel_shift: -9,  timer_scale: 0.85, day_per_card: 0.1, target: 50, cooling: 0.3, recovery: 0, flashpoint: false }
+    - { index: 5, name: "5:20am", cards: 1, effect_scale: 2.60, escalation_scale: 1.00, intel_shift: -12, timer_scale: 0.80, day_per_card: 0.1, target: 50, cooling: 0.3, recovery: 0, flashpoint: true }
 
 difficulties:
   - { level: 5, name: DEFCON 5, effect_scale: 1.00, intel_shift: 0,   timer_scale: 1.00, start_escalation: 0,  target_scale: 1.00 }

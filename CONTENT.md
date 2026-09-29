@@ -252,6 +252,15 @@ Flashpoints: `fp_intercept` (The Intercept, acts 1–5, has false-alarm entry) �
 | Leverage target (ante) | 250 | 450 | 1,200 | 3,200 | 7,000 |
 | Cooling / recovery per ordinary card | 0.5 / 0.15 | same | same | same | same |
 
+**The night (the simple ruleset, `rules.yaml` `night.acts`)** uses the same cards with its
+own table: five acts of 5/5/5/5/1 ordinary cards named by the clock (3:00am, 3:35am,
+4:10am, 4:45am, 5:20am), office cost scale ×1.60 / ×1.85 / ×2.10 / ×2.35 / ×2.60, escalation
+scale ×1.0 throughout (`escalation_scale`, separate from `effect_scale`), intel shift 0 →
+−12, timer scale ×1.0 → ×0.8, cooling 0.3 per ordinary card, no recovery, no accidents, no
+antes, no shop, and a flashpoint only after the last act (the crisis). During the crisis
+every odds roll gains `(50 − danger) / 250`. Author for act 1 of the Expert table as below;
+the night's scaling is tuned in BALANCE.md ("The night"), never in the cards.
+
 The deck as authored is negative-sum on every office meter (about −0.6 public, −0.3 military,
 −0.2 allies, −0.35 economy and +1.05 escalation per ordinary card at random play). That is
 intended: the engine's cooling and recovery drifts (ENGINE.md §10) are what keep a careful

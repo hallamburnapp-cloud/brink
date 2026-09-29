@@ -728,8 +728,8 @@ export const NIGHT_RANDOM_DAWN_MAX = 10;
 export const NIGHT_PACE_BAND: readonly [number, number] = [2, 4];
 export const NIGHT_SECONDS_PER_CARD = 7;
 export const NIGHT_TOP_ENDING_MAX = 35;
-/** Share of the calm bot's falls that happen in the crisis (the last act): it must matter, but not be the whole game. */
-export const NIGHT_CRISIS_BAND: readonly [number, number] = [25, 65];
+/** Share of the calm bot's nights that reach the crisis and do not come out: a real test, not a coin flip. */
+export const NIGHT_CRISIS_BAND: readonly [number, number] = [25, 45];
 export const BROKE_GAME_MULT = 100;
 export const BROKE_GAME_PCT = 3;
 
@@ -1351,21 +1351,21 @@ function buildNightTargets(report: Omit<Report, 'targets'>): Target[] {
   if (!h) targets.push(na('night_variety', n4));
   else targets.push({ id: 'night_variety', label: n4, status: h.topEndingShare <= NIGHT_TOP_ENDING_MAX ? 'PASS' : 'FAIL', value: `${h.topEnding ?? '—'} ${h.topEndingShare}%`, detail: `${h.endings.length} distinct endings` });
 
-  const n5 = `N5 The crisis (last act) decides ${NIGHT_CRISIS_BAND[0]}–${NIGHT_CRISIS_BAND[1]}% of the calm bot's falls`;
+  const n5 = `N5 The crisis ends ${NIGHT_CRISIS_BAND[0]}–${NIGHT_CRISIS_BAND[1]}% of the calm bot's nights that reach it`;
   if (!h) targets.push(na('crisis_share', n5));
   else {
     const lastAct = h.acts.reduce((m, a) => Math.max(m, a.act), 0);
-    const endedInLast = h.acts.find((a) => a.act === lastAct)?.count ?? 0;
+    const reached = h.acts.find((a) => a.act === lastAct)?.count ?? 0;
     const dawns = Math.round((h.winRate / 100) * h.runs);
-    const falls = Math.max(0, h.runs - dawns);
-    const crisisFalls = Math.max(0, endedInLast - dawns);
-    const share = falls ? Math.round((1000 * crisisFalls) / falls) / 10 : 0;
+    const crisisFalls = Math.max(0, reached - dawns);
+    const share = reached ? Math.round((1000 * crisisFalls) / reached) / 10 : 0;
+    const fellBefore = Math.max(0, h.runs - reached);
     targets.push({
       id: 'crisis_share',
       label: n5,
-      status: falls === 0 ? 'N/A' : share >= NIGHT_CRISIS_BAND[0] && share <= NIGHT_CRISIS_BAND[1] ? 'PASS' : 'FAIL',
+      status: reached === 0 ? 'N/A' : share >= NIGHT_CRISIS_BAND[0] && share <= NIGHT_CRISIS_BAND[1] ? 'PASS' : 'FAIL',
       value: `${share}%`,
-      detail: `${crisisFalls} of ${falls} falls in act ${lastAct}; by act: ${h.acts.map((a) => `${a.act}: ${a.pct}%`).join(', ')}`,
+      detail: `${reached} of ${h.runs} nights reached the crisis (act ${lastAct}); ${crisisFalls} fell there, ${fellBefore} fell earlier; ended by act: ${h.acts.map((a) => `${a.act}: ${a.pct}%`).join(', ')}`,
     });
   }
   return targets;

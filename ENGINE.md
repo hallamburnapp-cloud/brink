@@ -6,7 +6,7 @@ audio and simulator. Because the RNG state travels inside `RunState`, a serialis
 resumes identically and a seed replays identically.
 
 ```
-createRun(content, {seed, seat, mode, difficulty, unlocked}) → RunState
+createRun(content, {seed, seat, mode, difficulty, unlocked}) → RunState   (mode daily|night → the simple ruleset, §12)
 view(content, state)                     → CardView (text, previews, odds %, timer, LEVERAGE breakdown, accident)
 choose(content, state, side|'timeout')   → {state, events}
 buryCard / useOrder(content, state, i)   → {state, events}      during a card
@@ -190,7 +190,36 @@ at the end of the Endgame flashpoint. The moment card: the card that pushed hard
 toward the fatal edge in the last ten (meter endings), the biggest escalation cut of the
 run (stand-down), the single biggest score (survival), else the last card.
 
-## 12. Determinism
+## 12. The night (the simple ruleset)
+
+`Mode` `daily` and `night` run the **simple ruleset** (`RunState.ruleset === 'simple'`,
+`rulesetFor(mode)`); `endless` and `challenge` run `expert`, the game described above.
+The simple ruleset is the same engine with most of it switched off:
+
+- Acts come from `rules.yaml` `night.acts` (`Content.nightActs`): five acts of 5/5/5/5/1
+  cards named by the clock (3:00am … 5:20am), each with its own `effect_scale`
+  (office costs ×1.6 → ×2.6 across the night) and `escalation_scale` (a separate
+  scale for danger), no cooling or recovery drift, `flashpoint: false` on every act but
+  the last. Only the last act ends in a flashpoint: **the crisis**.
+- No accidents, no antes (`anteSettled` is marked without a target), no bluff cards, no
+  shop between or inside acts, no pieces, no orders, no continuation into endless.
+  Leverage is still computed (the moment card and Expert need it) and never shown.
+- Odds: `resolveOdds` takes the visible danger dial during the crisis
+  (`crisisDanger(state)`), adding `(50 − danger) / 250` to every roll of the flashpoint,
+  so arriving at 5:20am with the danger dial half full is neutral, empty is +0.2 and
+  full is −0.2. Outside the crisis, and in Expert, the term is absent.
+- The end: the last act's flashpoint resolves into `run_end` endings (dawn: `standdown`
+  or `survival`) or a meter ending on the way (the fall). `night.ts` turns the state into
+  what the player sees: the clock (`3:00 + 7 min × cards played`, `6:00` at dawn),
+  `resultLine` ("DAWN" / "FELL AT 4:35"), `resultEmoji` (🌅 / 🌑 / ☢️), `DIAL_LABEL`
+  (PEOPLE · ARMY · ALLIES · MONEY · DANGER) and `fallenDial`.
+- The daily record and the share text/image carry `clock` and `dawn`; the emoji strip is
+  the same five rows, one column per slice of the night.
+
+Everything else (drawing, follow-ups, timers, warnings, hidden values, endings, the
+moment, determinism) is unchanged, so a night replays from its seed like any run.
+
+## 13. Determinism
 
 `RunState` is plain JSON. The RNG (xoshiro128**) is seeded from `"${seed}|${seat}|${difficulty}"`
 and its state lives in the run. Nothing in the engine reads the clock or `Math.random`.
