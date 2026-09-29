@@ -72,11 +72,16 @@ green.
 2. **The crisis's own numbers.** 32% of careful nights end in nuclear war at the crisis; if
    humans find it cruel, the flashpoint cards' escalation values (CONTENT.md §5) are the
    next lever, not the scales.
-3. **Expert's T5** (BALANCE.md iteration 10): the endless ramp measured against the breaker
+3. **Clock times inside the cards.** The rewrite kept the fiction's own timestamps
+   ("at 04:10 the rebels crossed the river", "the deadline is at midnight") from the
+   five-week timeline; on a 3:00–6:00 clock a few read oddly. The endings say "the
+   deadline" with no hour; a pass over the ultimatum and Midnight decks to do the same, or
+   to say times as people do ("an hour ago"), is the next content job (CONTENT.md §5).
+4. **Expert's T5** (BALANCE.md iteration 10): the endless ramp measured against the breaker
    policy.
-4. **Store assets.** Capsule, screenshots and the 30-second trailer from the real night build
+5. **Store assets.** Capsule, screenshots and the 30-second trailer from the real night build
    (STORE.md §4–5); the OG image already renders tonight's seat.
-5. **Pinned nights** (LAUNCH.md §6) once the first fortnight's numbers say which arcs land.
+6. **Pinned nights** (LAUNCH.md §6) once the first fortnight's numbers say which arcs land.
 
 ## How to run it
 
