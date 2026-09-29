@@ -353,6 +353,7 @@ export const actSchema = z
     name: z.string(),
     cards: z.number().int().min(1).max(30),
     effect_scale: z.number().min(0.5).max(3),
+    escalation_scale: z.number().min(0.5).max(3).optional(),
     intel_shift: z.number().min(-50).max(50),
     timer_scale: z.number().min(0.3).max(2),
     day_per_card: z.number().min(0.1).max(2),

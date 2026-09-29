@@ -141,7 +141,8 @@ export function resolveEffect(key: EffectKey, base: number, tags: readonly strin
   // Sign guard: additive modifiers never flip the sign.
   if ((base > 0 && v < 0) || (base < 0 && v > 0)) v = 0;
   v *= mult;
-  const scale = (METERS as readonly string[]).includes(key) ? ctx.act.effect_scale * ctx.difficulty.effect_scale : 1;
+  const actScale = key === 'escalation' ? (ctx.act.escalation_scale ?? ctx.act.effect_scale) : ctx.act.effect_scale;
+  const scale = (METERS as readonly string[]).includes(key) ? actScale * ctx.difficulty.effect_scale : 1;
   // Scaling amplifies pressure: it applies to costs on all meters and to gains on escalation,
   // but does not inflate benefits (otherwise pieces that heal meters get stronger late).
   const isCost = key === 'escalation' ? base > 0 : base < 0;

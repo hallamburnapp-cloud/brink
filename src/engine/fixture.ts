@@ -211,11 +211,11 @@ export function fixture(): Content {
       { index: 5, name: 'Endgame', cards: 3, effect_scale: 1.5, intel_shift: -20, timer_scale: 0.6, day_per_card: 0.5, target: 100 },
     ],
     nightActs: [
-      { index: 1, name: '3:00am', cards: 2, effect_scale: 1, intel_shift: 0, timer_scale: 1, day_per_card: 0.05, target: 50, flashpoint: false },
-      { index: 2, name: '3:35am', cards: 2, effect_scale: 1, intel_shift: 0, timer_scale: 1, day_per_card: 0.05, target: 50, flashpoint: false },
-      { index: 3, name: '4:10am', cards: 2, effect_scale: 1.05, intel_shift: -5, timer_scale: 0.9, day_per_card: 0.05, target: 50, flashpoint: false },
-      { index: 4, name: '4:45am', cards: 2, effect_scale: 1.1, intel_shift: -5, timer_scale: 0.9, day_per_card: 0.05, target: 50, flashpoint: false },
-      { index: 5, name: '5:20am', cards: 1, effect_scale: 1.15, intel_shift: -10, timer_scale: 0.8, day_per_card: 0.05, target: 50, flashpoint: true },
+      { index: 1, name: '3:00am', cards: 2, effect_scale: 1, intel_shift: 0, timer_scale: 1, day_per_card: 0.1, target: 50, flashpoint: false },
+      { index: 2, name: '3:35am', cards: 2, effect_scale: 1, intel_shift: 0, timer_scale: 1, day_per_card: 0.1, target: 50, flashpoint: false },
+      { index: 3, name: '4:10am', cards: 2, effect_scale: 1.05, intel_shift: -5, timer_scale: 0.9, day_per_card: 0.1, target: 50, flashpoint: false },
+      { index: 4, name: '4:45am', cards: 2, effect_scale: 1.1, intel_shift: -5, timer_scale: 0.9, day_per_card: 0.1, target: 50, flashpoint: false },
+      { index: 5, name: '5:20am', cards: 1, effect_scale: 1.15, intel_shift: -10, timer_scale: 0.8, day_per_card: 0.1, target: 50, flashpoint: true },
     ],
     difficulties: [
       { level: 5, name: 'DEFCON 5', effect_scale: 1, intel_shift: 0, timer_scale: 1, start_escalation: 0 },

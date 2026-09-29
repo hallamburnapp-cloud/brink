@@ -418,6 +418,8 @@ export interface ActDef {
   cards: number;
   /** Effect scale for meter deltas. */
   effect_scale: number;
+  /** Optional separate scale for escalation gains (defaults to effect_scale). The night bleeds the dials faster than it heats. */
+  escalation_scale?: number;
   /** Intel reliability adjustment. */
   intel_shift: number;
   /** Timer length multiplier. */
