@@ -1,9 +1,9 @@
 # PLAYTEST.md — real runs in a mobile browser
 
 The harness (`tools/playtest.ts`) drives the shipped game in a Pixel-7-sized Chromium
-through the DOM only, using what a player sees: the card text, the two choice
-lines with their printed leverage, the odds percentage, the preview dots, the meter
-bars and the HUD. It plays with a named decision style, buys in the shop, and writes
+through the DOM only, using what a player sees: the card text, the two choice lines, the
+odds (a word in the night, a percentage in Expert), the preview dots, the dial fills or
+meter bars and the clock or HUD. It plays with a named decision style, buys in the shop, and writes
 a transcript and screenshots to `playtest-output/` (git-ignored; the transcripts
 quoted below are kept under `docs/playtests/`). Motion and sound are on; the e2e
 suite is the one that emulates reduced motion.
@@ -11,6 +11,68 @@ suite is the one that emulates reduced motion.
 Styles: **dove** takes the calmer line and buys de-escalation; **hawk** takes the
 firmer line and buys leverage; **balanced** reads the preview dots and protects the
 lowest meter; **gambler** takes every roll it can and the higher leverage.
+
+## The night
+
+`npx tsx tools/playtest.ts --game night --style <dove|hawk|balanced|gambler> --seat <seat> --seed <seed> --static`
+drives the redesigned game the way a person sees it: five dial fills, the preview dots, the
+odds as words (Likely / Even / Risky), the clock. The four styles are the Expert ones with
+their shop logic idle: the dove takes the calmer line, the hawk the firmer, the balanced
+style protects the lowest dial, the gambler takes every roll. They are cruder than the
+simulator's calm bot (BALANCE.md "The night"), which reads the same dots but weighs them,
+so their results sit between the simulator's greedy bot (20% dawn) and its calm bot (61%).
+Transcripts, share cards and three screenshots are under `docs/playtests/night/`.
+
+| Run | Seat | Style | Result | Ending | Cards | Rolls | Danger at 5:20 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| NIGHT-DOVE-FINAL | Republic | dove | 🌑 Fell at 5:48 | 🏛️ Impeached (people at the edge in the crisis) | 28 | 3 | 51 |
+| NIGHT-HAWK-FINAL | Federation | hawk | ☢️ 5:55 | 🕛 Midnight (two failed rolls at full alert) | 54 | 5 | 63 |
+| NIGHT-BALANCED-FINAL | Coalition | balanced | ☢️ 5:59 | 📝 The Paper at Vellmar (the summit walked out at danger 99) | 42 | 6 | 58 |
+| NIGHT-GAMBLER-FINAL | Republic | gambler | ☢️ 5:06 | 🌊 Forty Miles of Water (before the crisis) | 31 | 4 | — |
+
+Earlier runs on the same build with the pre-final rules: NIGHT-DOVE-2 (Republic) and
+NIGHT-HAWK-3 (Federation) both reached 🌅 Dawn through The Empty Chair at Vellmar.
+
+### What the four nights say
+
+**The voice works on a phone.** Every card in the four transcripts is two sentences a tired
+person can read in five seconds, the choices read as two different actions ("Halt trading.
+Call it maintenance" / "Open the markets on time"), and the speakers sound like people:
+the Chancellor's "a very well organised anchor", the Partner's "a bed, which I mention
+because you seem to have forgotten where it is", the Hotline's "courtesies are remembered".
+Nothing on any screen was a number except the clock (`08-crisis.png`).
+
+**The crisis is where careful nights end, as the simulator said.** The dove kept every
+dial mid until 5:20 and then lost the people dial in the crisis (an Impeached, not a
+nuclear war); the balanced run arrived at danger 58, the calm bot's median, and the
+summit's five cards took it 73 → 99 with one roll lost. Those are the "crisis kills 38%
+of arrivals" nights in person. What a human will see that the bots do not: the danger
+dial going red card by card through the crisis with the odds words turning to RISKY.
+
+**The hawk's 54 cards is the longest night the harness has produced** (the sim's average
+is 29): a firm line keeps opening follow-ups, so the clock sat at 5:59 for the whole
+crisis. The clock capping at 5:59 is by design; a hawk's night lasting six minutes rather
+than four is the pace target's edge (N3 measures the average, not the tail).
+
+**The gambler fell at 5:06 on a blockade it had fed all night**: every roll taken, danger
+at 97 by 4:45, and Forty Miles of Water before the crisis came. A careless night ends on a
+dial, as the random bot's 86% says.
+
+### What to do with this
+
+1. Nothing in the rules before humans play. Four bot nights are four; the simulator's
+   15,000 pass all five targets, and the harness styles are meant to be crude.
+2. If human dawn rates come in under 30% (LAUNCH.md §7), the first lever is the crisis's
+   own escalation values on the flashpoint cards (a +15 per card through the summit is what
+   turned 58 into 99), not the act scales.
+3. The e2e suite (tonight end to end on a phone, the dawn screen's unlock offer, the unlock
+   flow, a tampered token, restore by email) is green on the final content.
+
+---
+
+## Expert
+
+Everything below is the Expert game, which the harness plays without `--game night`.
 
 ## Runs
 
