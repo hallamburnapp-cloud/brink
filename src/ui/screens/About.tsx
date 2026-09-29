@@ -10,7 +10,7 @@ export function About() {
         </button>
         <div class="mono text-[11px] tracking-[0.2em] text-mute">ABOUT</div>
       </header>
-      <article class="paper space-y-3 rounded-md p-5 text-[15px] leading-relaxed text-ink">
+      <article class="paper serif space-y-3 rounded-md p-5 text-[16px] leading-relaxed text-ink">
         <h2 class="serif text-2xl font-semibold">How the night works</h2>
         <p>It is 3am and the phone is ringing. You lead a country in a crisis that will not wait for morning. Each card is someone at your door with a problem and two ways to answer it. Swipe, or tap a choice.</p>
         <p>

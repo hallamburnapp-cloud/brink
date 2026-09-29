@@ -11,7 +11,8 @@ export function SeatSelect() {
   const [seed, setSeed] = useState('');
   const [expert, setExpert] = useState(false);
   const chosen = c.seats[seat];
-  const ok = seatUnlocked(seat) && (!expert || difficultyUnlocked(level));
+  // The night is "any night, any seat"; the seat ladder belongs to Expert.
+  const ok = !expert || (seatUnlocked(seat) && difficultyUnlocked(level));
   return (
     <div class="flex flex-1 flex-col gap-4 rise">
       <header class="flex items-center justify-between pt-2">
@@ -32,7 +33,7 @@ export function SeatSelect() {
       <div class="flex flex-col gap-2">
         {SEATS.map((id) => {
           const s = c.seats[id];
-          const unlocked = seatUnlocked(id);
+          const unlocked = !expert || seatUnlocked(id);
           return (
             <button
               key={id}

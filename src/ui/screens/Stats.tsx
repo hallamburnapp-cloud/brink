@@ -1,7 +1,7 @@
 import { favouriteAdvisor, getStats, mostFatalDoctrine } from '../../meta/stats';
 import { dailyHistory, dailyStreak } from '../../meta/daily';
 import { unlockProgress, UNLOCKS, isUnlocked } from '../../meta/unlocks';
-import { content, goto } from '../store';
+import { content, endlessAvailable, goto } from '../store';
 
 export function Stats() {
   const c = content.value;
@@ -45,9 +45,10 @@ export function Stats() {
           </>
         ))}
       </dl>
+      {endlessAvailable.value && (
       <section>
         <div class="mono mb-2 text-[10px] tracking-[0.24em] text-mute">
-          UNLOCKS · {prog.unlocked}/{prog.total}
+          EXPERT UNLOCKS · {prog.unlocked}/{prog.total}
         </div>
         <ul class="space-y-1">
           {UNLOCKS.map((u) => {
@@ -64,6 +65,7 @@ export function Stats() {
           })}
         </ul>
       </section>
+      )}
       {history.length > 0 && (
         <section>
           <div class="mono mb-2 text-[10px] tracking-[0.24em] text-mute">NIGHT BY NIGHT</div>
