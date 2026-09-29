@@ -17,6 +17,7 @@
     "content:compile": "tsx tools/compile.ts",
     "sim": "tsx tools/sim.ts",
     "sim:smoke": "tsx tools/sim.ts --runs 300 --quiet",
+    "sim:smoke:night": "tsx tools/sim.ts --mode night --runs 1000 --policy heuristic,random --quiet --strict",
     "og": "tsx tools/og-image.ts",
     "e2e": "playwright test",
     "build:itch": "tsx tools/build-itch.ts",
