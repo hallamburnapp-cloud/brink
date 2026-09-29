@@ -20,6 +20,8 @@ concurrency:
 
 jobs:
   build:
+    # Opt in once Pages is enabled: Settings → Variables → GH_PAGES = true
+    if: vars.GH_PAGES == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

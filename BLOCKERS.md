@@ -2,7 +2,7 @@
 
 Things that blocked the build, with the workaround taken.
 
-## B-001 No empty repository; repository creation refused
+## B-001 No empty repository; repository creation refused (resolved 2026-09-29)
 The brief says BRINK is a new standalone project in "this empty repo", but the
 session was attached to four existing repositories (none empty) and
 `create_repository` was refused by the GitHub integration (403).
@@ -29,6 +29,11 @@ personal account). The shortest path: the owner creates an empty repository name
 `brink` (no README, no licence) and attaches it to a session with push access; the
 session then pushes the split branch. Nothing else in the project depends on where it
 lives: `BRINK_BASE` handles a sub-path and the two deploy workflows are ready.
+
+**Resolved.** The owner created `hallamburnapp-cloud/brink`; the full local history (48
+commits) was pushed as its `main`, and PR #6 on `flashpoint-2027` was closed unmerged.
+The deploy jobs are gated on repository variables (`CF_DEPLOY`, `GH_PAGES`) so CI stays
+green until a deploy target is configured.
 
 ## B-002 Sandbox permission classifier
 Several ordinary operations (adding a git remote to a scratch repo, moving the
