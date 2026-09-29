@@ -25,18 +25,16 @@
   tags: [personal, domestic]
   note: Hawk and Dove. He briefed against her; she has read it twice. Which of them you keep is decided by breakfast.
   text: >-
-    Tomorrow's front page quotes 'a senior defence source' saying the Foreign
-    Minister is 'negotiating with herself'. The General's office has not denied
-    it, and the Foreign Minister has read it twice in my presence. She has asked
-    for five minutes before the morning meeting. He has asked whether the
-    morning meeting is still at eight.
+    Tomorrow's front page quotes 'a senior defence source': the Foreign
+    Minister is 'negotiating with herself'. The General has not denied it, and
+    she wants five minutes before eight.
   left:
-    text: "The General apologises. Publicly"
+    text: "Make the General apologise"
     effects: { military: -5, allies: 3, trust_primary: 3, public: -2 }
     tags: [personal, transparency, diplomacy]
     set: [advisors:general_rebuked]
   right:
-    text: "Sources are weather"
+    text: "Ignore it. Sources are weather"
     effects: { military: 3, allies: -3, trust_primary: -3, commitment: 3 }
     tags: [personal, secrecy, deterrence]
     set: [advisors:general_backed]
@@ -50,17 +48,15 @@
   tags: [personal, intel, domestic]
   note: Paranoid Director and Spin Doctor. A week on the front page against a source who is a person.
   text: >-
-    Lyle's overnight assessment says they moved warheads to the Sallow crossing,
-    moderate confidence, single source. If it is on the front page by six we own
-    the week and they spend it denying. Lyle says publishing burns the source
-    and the source is a person. I asked him what a person is worth against a
-    week, and he did not answer, which is an answer.
+    Our spies have one frightened source saying they moved warheads to the
+    Sallow crossing. Front page by six and we own the week, but it burns the
+    source, and the source is a person.
   left:
-    text: "Give it to Ferrante"
+    text: "Give it to the press"
     effects: { public: 6, intel: -9, trust_primary: -5, commitment: 4 }
     tags: [personal, domestic, public_commitment]
   right:
-    text: "The source stays a person"
+    text: "Sit on it. Protect the source"
     effects: { public: -3, intel: 4, military: 2 }
     tags: [personal, intel, secrecy]
 
@@ -71,11 +67,9 @@
   tags: [personal, economy, military]
   note: Treasury Hawk and Contractor. The capability is the reserve, twice, and forty seats.
   text: >-
-    Ashby-Tal's 'layered coastal capability' is on your desk for signature at
-    1.4 billion over three years, which is the strategic reserve, twice. I have
-    also been sent, by someone who wanted me to have it, the forty members of
-    the House whose constituencies build it. Sign and the numbers stop
-    balancing in March. Refuse and forty people find out who told you to.
+    The arms dealer's coastal deal is on your desk: 1.4 billion over three
+    years, our emergency reserve twice over. Someone also sent me a list:
+    forty lawmakers whose towns build it.
   left:
     text: "Sign it"
     effects: { economy: -6, military: 6, public: 2, trust_primary: -3 }
@@ -97,18 +91,15 @@
   tags: [personal, naval, military]
   note: Admiral and General. His staff moved her frigates while she slept. Who gives the next order.
   text: >-
-    At 02:00 the General's staff signalled my two frigates in the Straits to
-    close to visual range of the {rival_adj} picket, and my captains did it,
-    because the signal carried your authority and I was asleep. It is the right
-    move if we want them to see us; it is my move to give, not his. I will
-    follow the order you give tonight. I would like to know who gives the next
-    one.
+    At 02:00 the General's staff sent my two frigates toward the {rival_adj}
+    picket line, and my captains obeyed because the order carried your name.
+    Tell me who gives the next one.
   left:
-    text: "The sea is the Admiral's"
+    text: "Tell him the sea is hers"
     effects: { military: -3, escalation: -2, intel: 2, allies: 2 }
     tags: [personal, naval, deescalate]
   right:
-    text: "The General had my authority"
+    text: "Back the General"
     effects: { military: 4, escalation: 3, allies: -2, intel: -2 }
     tags: [personal, military, escalatory]
     set: [advisors:admiral_overruled]
@@ -120,17 +111,15 @@
   tags: [personal, domestic, reassurance]
   note: Peace Leader and Spin Doctor. Karrick wants her on the steps. She wants a sentence he says you cannot say.
   text: >-
-    Mr Karrick would like me beside you on the steps on Saturday, in front of
-    the square, because the square is mine and the steps are yours. I will stand
-    there if you say one sentence, that {us} will not be the first to fire. Not
-    'seeks', not 'hopes'. He tells me you cannot say it; I am asking you, not
-    him.
+    Your spin doctor wants me beside you on the steps Saturday, because the
+    crowd is mine and the steps are yours. I will stand there if you say one
+    thing: {us} will not fire first.
   left:
     text: "Say the sentence"
     effects: { public: 6, military: -6, trust_primary: 5, commitment: 5 }
     tags: [personal, public_commitment, reassurance]
   right:
-    text: "The steps are mine"
+    text: "Stand on the steps alone"
     effects: { public: -5, military: 3, trust_primary: -2, escalation: 1 }
     tags: [personal, deterrence, domestic]
 
@@ -141,17 +130,15 @@
   tags: [personal, domestic]
   note: Fixer and the Attorney General. A subpoena went away with a committee chair's health. She can find out how.
   text: >-
-    On Tuesday the Straits Committee was going to subpoena your Chief of Staff's
-    telephone records. On Wednesday the committee chair recused himself, citing
-    his health, and the subpoena went with him. Mr Nkemelu says he sent flowers.
-    I can find out what else he sent, and once I know I am obliged to act on it,
-    so you may prefer that I do not know.
+    A committee wanted your Chief of Staff's phone records; then its chairman
+    fell ill and the request died. He says he sent flowers, and once I know
+    what else he sent, I must act.
   left:
     text: "Find out"
     effects: { public: -4, intel: 3, economy: -1 }
     tags: [personal, investigate, transparency]
   right:
-    text: "I would prefer you did not"
+    text: "Tell her not to look"
     effects: { public: 2, commitment: 3, intel: -2 }
     tags: [personal, secrecy]
     follow: [{ card: adv_28_the_florist, in: 4, chance: 0.5 }]
@@ -167,17 +154,15 @@
   tags: [personal, military]
   note: The General's letter is with a journalist, timed for six. The timeout keeps the readiness level.
   text: >-
-    If the readiness level is lowered tonight I will not be the officer who
-    tells the army why. My letter is drafted and a copy is with a journalist I
-    trust, timed for six. Raise it to where it was, or accept the letter, and
-    understand that the second is also read in {rival_capital}, as a government
-    that has mislaid its soldiers.
+    Lower the army's alert tonight and I will not be the officer who explains
+    it to them. My resignation is written and a copy is with a journalist,
+    timed for six.
   left:
-    text: "Keep the readiness level"
+    text: "Keep the army on alert"
     effects: { military: 5, escalation: 4, trust_primary: -4, public: 1 }
     tags: [personal, military, deterrence, mobilise]
   right:
-    text: "Lower it. He will stay"
+    text: "Lower it. Call his bluff"
     effects: { military: -6, escalation: -4, trust_primary: 4, public: -2 }
     tags: [personal, deescalate, domestic]
     odds:
@@ -198,18 +183,16 @@
   tags: [personal, diplomacy, back_channel]
   note: The Dove has been calling their Foreign Minister on her own. The only line without a translator.
   text: >-
-    I should tell you that I have spoken to the {rival_adj} Foreign Minister
-    three times this week, on a number that is not on any list, and that nobody
-    at this table knew. We have agreed nothing; we have agreed what each of us
-    would need in order to agree to something. You may stop me. If you do, we
-    lose the only line that does not have a translator on it.
+    Three times this week I called the {rival_adj} foreign minister on a
+    number on no list, and nobody knew. We have agreed nothing yet, and it is
+    our only line with no translator.
   left:
     text: "Keep talking. Tell no one"
     effects: { trust_primary: 6, military: -3, allies: -3, commitment: -2 }
     tags: [personal, back_channel, secrecy, diplomacy]
     set: [advisors:fm_freelancing]
   right:
-    text: "Every call goes through me"
+    text: "Route every call through me"
     effects: { trust_primary: -4, military: 2, intel: 2, public: 1 }
     tags: [personal, diplomacy, stall]
 
@@ -220,12 +203,9 @@
   tags: [personal, intel]
   note: The unsleeping Director wants the cabinet's mail for fourteen days. The roll is whether he finds anyone.
   text: >-
-    We assess, with moderate confidence, that the contents of Monday's
-    principals meeting were known in {rival_capital} by Tuesday. Nine people
-    were in the room; I was one and you were another. I would like authority to
-    review the communications of the other seven, including the Foreign
-    Minister and the General, for fourteen days, and I would like them not to be
-    told.
+    Monday's cabinet meeting was in {rival_capital} by Tuesday, if one good
+    source is right. Nine people were in the room; I want the other seven's
+    mail for two weeks, quietly.
   left:
     text: "Fourteen days. Nobody is told"
     effects: { intel: 6, military: -4, allies: -3 }
@@ -236,13 +216,13 @@
       base: 0.5
       tags: [intel]
       success:
-        text: "A deputy in the Treasury, a friend in the trade mission. Handled, quietly, by Thursday."
+        text: "A deputy at the Treasury with a friend in their trade mission. Handled quietly by Thursday."
         effects: { intel: 4, public: 2 }
       failure:
         text: "Fourteen days, seven ministers, nothing. On day fifteen the General finds the tap."
         effects: { military: -5, public: -3, allies: -2 }
   right:
-    text: "Not my cabinet"
+    text: "Refuse. Not my cabinet"
     effects: { intel: -5, military: 2, public: 2 }
     tags: [personal, transparency, stall]
 
@@ -253,17 +233,15 @@
   tags: [personal, intel]
   note: The measured Director held a report for three days. He was right. The General has said otherwise to the gallery.
   text: >-
-    The report on the rocket brigade at the Sallow crossing reached your desk
-    this morning; it reached mine on Friday. I held it for three days because
-    the imagery was single-source and the source has been wrong twice this
-    year. It is now corroborated and I stand by the delay. The General does
-    not, and has said so to the press gallery in language I would not repeat.
+    The rocket report reached you this morning and me on Friday. I held it
+    three days to check a source who was wrong twice before, and the General
+    has told the press what he thinks.
   left:
-    text: "Three days was right"
+    text: "Back the three days"
     effects: { intel: 5, military: -5, public: -2 }
     tags: [personal, intel, investigate]
   right:
-    text: "Next time I hear it on Friday"
+    text: "Tell him: next time, Friday"
     effects: { intel: -4, military: 3, escalation: 2 }
     tags: [personal, intel, military]
 
@@ -272,14 +250,11 @@
   acts: [2, 5]
   conditions: { pieces_all: [cautious_intel, ambassador] }
   tags: [personal, back_channel, intel]
-  note: Ambassador and measured Director. An assessment given away as a courtesy tells them what we can see.
+  note: Ambassador and measured Director. A report given away as a courtesy tells them what we can see.
   text: >-
-    Lyle has an assessment saying their build-up at the Sallow crossing is
-    defensive, and he is, for once, confident. I would like to give it to their
-    ambassador over dinner, as a courtesy, so that they know we know. Lyle says
-    an assessment given away tells them what we can see, and that the last time
-    an ambassador did this it was three months before anyone told us it had
-    been read aloud in their war council.
+    Our spies say their build-up at the Sallow crossing is defensive, and for
+    once they are sure. Let me tell their ambassador at dinner, though it also
+    shows them what we can see.
   left:
     text: "Let him have the dinner"
     effects: { trust_primary: 6, intel: -5, military: -2 }
@@ -289,13 +264,13 @@
       base: 0.6
       tags: [back_channel, diplomacy]
       success:
-        text: "Their ambassador reads it twice and orders a second bottle. Their picket at the crossing stands down by morning."
+        text: "Their ambassador reads it twice and orders a second bottle. Their sentries at the crossing stand down by morning."
         effects: { escalation: -4, trust_primary: 3 }
       failure:
-        text: "Their ambassador thanks him warmly. Two days later the assessment is quoted, inaccurately, in their state bulletin."
+        text: "Their ambassador thanks him warmly. Two days later our report is quoted, wrongly, on their state news."
         effects: { intel: -4, public: -3 }
   right:
-    text: "Lyle's paper stays here"
+    text: "Keep the paper in the building"
     effects: { trust_primary: -3, intel: 3, escalation: 1 }
     tags: [personal, intel, secrecy]
 
@@ -306,11 +281,9 @@
   tags: [personal, back_channel, diplomacy]
   note: The Ambassador has a visa, a hotel near the opera and a lunch. Nobody has sent him. That is the point.
   text: >-
-    I have a tourist visa for {rival_capital} valid from Thursday, a hotel near
-    the opera and a lunch with a man I have known for thirty years who now sits
-    two doors from {rival_leader}. Nobody has sent me; that is the point. If I
-    am seen you will say I am on holiday, and I am seventy-one, so people will
-    believe you. If I am not seen we may learn what they actually want.
+    I have a tourist visa for {rival_capital} and lunch there with an old
+    friend two doors from {rival_leader}. Nobody sent me, and at seventy-one
+    'on holiday' will be believed.
   left:
     text: "Go. You are on holiday"
     effects: { trust_primary: 4, intel: 3, public: -2, military: -2 }
@@ -326,7 +299,7 @@
         text: "He is photographed at the airport by their press. The holiday story lasts a day."
         effects: { public: -5, trust_primary: -3, allies: -2 }
   right:
-    text: "Ambassadors do not take holidays"
+    text: "Cancel the holiday"
     effects: { trust_primary: -2, intel: -2, military: 1 }
     tags: [personal, stall, diplomacy]
 
@@ -339,17 +312,15 @@
   tags: [personal, attribution, cyber]
   note: Vance's 'consistent with' has been briefed as 'ninety percent'. She wants her sentence back before it becomes a war.
   text: >-
-    Someone in this building briefed the gallery that my attribution of the grid
-    intrusion is 'ninety percent', when my assessment says 'consistent with
-    {rival_adj} tooling, moderate confidence', which is a different sentence. I
-    want to correct the record before it becomes a casus belli with my name on
-    it. Mr Karrick says correcting it makes us look divided. We are divided.
+    Someone here told reporters I am 'ninety percent sure' {rival_capital} cut
+    the power. I wrote 'looks like their tools', and I want that back before
+    it starts a war in my name.
   left:
     text: "Correct the record"
     effects: { public: -4, intel: 4, trust_primary: 4, military: -2 }
     tags: [personal, transparency, attribution]
   right:
-    text: "Ninety is close enough"
+    text: "Let ninety stand"
     effects: { public: 3, intel: -5, trust_primary: -4, commitment: 4 }
     tags: [personal, attribution, public_commitment, secrecy]
 
@@ -360,17 +331,15 @@
   tags: [personal, attribution, intel]
   note: Cyber Director and unsleeping Director. He rewrote her paragraph. He is right about the cost of nothing, wrong about the words.
   text: >-
-    Director Lyle has rewritten my paragraph: where I wrote 'consistent with' he
-    has written 'is', and where I wrote 'moderate' he has deleted the word. He
-    says a leader who is handed 'consistent with' at 3am does nothing, and that
-    doing nothing has a cost too. He is right about that. He is not right about
-    the paragraph.
+    The Spy Chief rewrote me: 'looks like their tools' is now 'was them', and
+    'probably' is gone. He says nobody acts on 'probably' at 3am, which is
+    true, and beside the point.
   left:
-    text: "Her paragraph goes to the meeting"
+    text: "Send her version to cabinet"
     effects: { intel: 4, military: -3, escalation: -2, public: -1 }
     tags: [personal, attribution, intel, stall]
   right:
-    text: "His paragraph"
+    text: "Send his version"
     effects: { intel: -4, military: 3, escalation: 3, commitment: 3 }
     tags: [personal, attribution, escalatory]
 
@@ -381,17 +350,15 @@
   tags: [personal, economy, domestic]
   note: The Chancellor has a number and a letter. One word in public keeps the letter in the drawer.
   text: >-
-    Here is the number: we borrow at 1.9 percent this morning, on Monday after
-    the General's press conference it will be 3.1, and a chancellor who lets it
-    reach four is not a chancellor. I have written my letter. I would rather not
-    send it, and I will not, if you say the word 'ceiling' in public today about
-    the defence estimates. The General will hear the word too.
+    We borrow at 1.9 percent today, 3.1 after the General's press conference,
+    and at four I am no longer a chancellor. Say 'ceiling' about defence
+    today, or accept my resignation.
   left:
     text: "Say 'ceiling'"
     effects: { economy: 5, military: -6, public: -2, commitment: 3 }
     tags: [personal, economy, public_commitment, domestic]
   right:
-    text: "No ceilings this month"
+    text: "Refuse. No ceilings this month"
     effects: { economy: -4, military: 4, public: 2 }
     tags: [personal, military, economy]
     set: [advisors:chancellor_letter]
@@ -403,12 +370,9 @@
   tags: [personal, domestic, secrecy]
   note: The Fixer made a story go away. The foundation that paid for it would like a word about tariffs.
   text: >-
-    The story about your brother's import licences is no longer running. The
-    journalist has taken a fellowship abroad, quite suddenly, with a stipend
-    from a foundation I am told is very respectable. You did not ask and I did
-    not tell. There is one loose end, which is that the foundation would like a
-    word about the Amberline tariff schedule, and I have said you are a
-    listener.
+    The story about your brother's import licences has stopped; the reporter
+    took a sudden fellowship abroad. The foundation that paid for it wants a
+    word about the Amberline tariffs.
   left:
     text: "Listen to the foundation"
     effects: { public: 3, economy: -3, allies: -2, trust_secondary: -2 }
@@ -425,19 +389,16 @@
   tags: [personal, naval]
   note: The Admiral's captain could not reach you for forty minutes with a submarine at four thousand yards.
   text: >-
-    Captain Dray of the Tern could not reach you last night for forty minutes
-    because the switchboard was holding for the General. He had a {rival_adj}
-    submarine at four thousand yards and an order that said 'hold and report',
-    so he held. Next time he may not have forty minutes. I would like to give him
-    a standing order for when he cannot reach you, or a promise that he always
-    can.
+    Last night the Tern's captain had a {rival_adj} submarine four thousand
+    yards off and could not reach you for forty minutes. Next time he may not
+    have forty minutes.
   left:
-    text: "Give him the standing order"
+    text: "Give him standing orders"
     effects: { military: 4, escalation: 3, commitment: 3, intel: -2 }
     tags: [personal, naval, military]
     set: [advisors:standing_orders]
   right:
-    text: "He can always reach me"
+    text: "Promise he can always reach you"
     effects: { military: -3, intel: 3, escalation: -2, public: -1 }
     tags: [personal, naval, stall]
 
@@ -448,18 +409,16 @@
   tags: [personal, nuclear, domestic]
   note: 3am. Not the movement, a person. Whether you would give the order. Either answer costs the square or the army.
   text: >-
-    It is three in the morning and I am not here as the movement. I am here to
-    ask you, as a person, whether you would give the order, because I have sat
-    in your cabinet for a month and I still do not know. If the answer is yes I
-    will leave in the morning and take the square with me. If the answer is no,
-    say it to me now, and I will hold you to it later.
+    It is three in the morning and I am not here for the movement. A month in
+    your cabinet and I still do not know if you would give the order, so tell
+    me as a person: would you?
   left:
-    text: "No. I would not"
+    text: "Tell her no"
     effects: { public: 4, military: -6, trust_primary: 3, commitment: 5 }
     tags: [personal, nuclear, reassurance]
     set: [advisors:promised_no]
   right:
-    text: "You do not get to ask that"
+    text: "Refuse to answer"
     effects: { public: -6, military: 3, trust_primary: -2 }
     tags: [personal, deterrence, domestic]
     set: [advisors:square_leaves]
@@ -471,11 +430,9 @@
   tags: [personal, economy, military]
   note: The Contractor has a radar contract with Amberline. It can see into us as easily as out. Tuesdays.
   text: >-
-    You will hear tomorrow that Halvard Systems has a radar contract with
-    Amberline, and that Amberline's radar can see into {us} as easily as out of
-    it. It is a defensive capability and it was signed before I joined you. I
-    can cancel it and eat the penalty, or you can let it stand and I can tell
-    you, every Tuesday, what the Amberline radar is looking at.
+    Tomorrow you will hear my firm sold Amberline a radar that sees into {us}
+    as well as out. I can cancel and pay the penalty, or leave it and tell you
+    each Tuesday what it sees.
   left:
     text: "Let it stand. Tuesdays"
     effects: { intel: 6, allies: -4, public: -3, trust_primary: -2 }
@@ -492,11 +449,9 @@
   tags: [personal, domestic, intel]
   note: Ferrante has the minutes, not a summary. Five copies. You still sit with all five on Monday.
   text: >-
-    Ferrante has Tuesday's minutes. Not a summary: the minutes, with three lines
-    you would not want read aloud and one of yours about the Foreign Minister.
-    Five people had copies. Director Lyle can tell you which one by Friday, if
-    you want to know which one; you will still have to sit with all five on
-    Monday.
+    A reporter has Tuesday's cabinet minutes: three lines you would not want
+    read aloud, one of them yours. Five people had copies, and you sit with
+    all five on Monday.
   left:
     text: "Find the leak"
     effects: { intel: 4, military: -3, public: -3 }
@@ -513,7 +468,7 @@
         text: "Five people, five alibis. On Monday they all know they were suspected, and the meeting is very short."
         effects: { military: -3, allies: -2, economy: -1 }
   right:
-    text: "Leaks are weather"
+    text: "Let it go. Leaks are weather"
     effects: { public: -5, commitment: 3, trust_primary: -2 }
     tags: [personal, stall, domestic]
 
@@ -527,11 +482,9 @@
   tags: [personal, domestic]
   note: Rare. Public below 30. The cabinet has left a letter. Signing forces ending special_resigned (endings job).
   text: >-
-    It is 02:40. The Chancellor, the Attorney General and two others were in
-    the anteroom together for an hour and have left a letter. It is short; it
-    says the country needs a leader it can hear, and that they will serve
-    whoever the party chooses by noon. There is a line at the bottom for your
-    signature, and I have not read past that line, and I will not.
+    At 02:40 the Chancellor, the Attorney General and two others left the
+    anteroom, and a letter. The country needs a leader it can hear, it says,
+    and there is a line for your name.
   left:
     text: "Sign it"
     tags: [personal, concede, domestic]
@@ -551,18 +504,15 @@
   tags: [personal, nuclear, intel]
   note: Launch on Warning, questioned by the man who reads the board. He wants a second radar and a second voice.
   text: >-
-    Your doctrine says that if the board lights, you fire before you know. I
-    would like it recorded that the board is right roughly seven times in ten,
-    that the other three are mostly software and weather, and that I have never
-    once been asked for a confidence level in the ninety seconds the doctrine
-    allows. I am asking for a second radar and a second voice before release.
-    The General will call it a delay.
+    Your rule says if the radar lights up, we fire before we know. It is right
+    seven times in ten, the rest is software and weather; I want a second
+    radar and a second voice first.
   left:
-    text: "Two voices before release"
+    text: "Two voices before anyone fires"
     effects: { military: -6, intel: 5, escalation: -3, trust_primary: 3 }
     tags: [personal, nuclear, intel, investigate]
   right:
-    text: "The doctrine stands"
+    text: "Keep the rule"
     effects: { military: 4, commitment: 4, intel: -3, escalation: 2 }
     tags: [personal, nuclear, deterrence, escalatory]
 
@@ -573,18 +523,16 @@
   tags: [personal, nuclear, military]
   note: No First Use, questioned by the General. Every plan on his desk begins on the second day of a war.
   text: >-
-    You said it out loud, and their planners took you at your word. So did
-    mine, which is the problem; every plan on my desk now begins on the second
-    day of a war. I would like authority to plan as though you had not said it,
-    quietly, for the days before the second day. Nobody would know, which is the
-    point of planning.
+    You said out loud we would never fire first, and their planners took you
+    at your word. So did mine, so every plan on my desk starts on day two of a
+    war; let me plan day one.
   left:
     text: "Plan as if I had not said it"
     effects: { military: 5, trust_primary: -5, commitment: -3, intel: 2 }
     tags: [personal, nuclear, military, secrecy]
     set: [advisors:nfu_hollow]
     odds:
-      label: It stays in the safe
+      label: Stays secret
       base: 0.6
       tags: [intel]
       success:
@@ -605,28 +553,25 @@
   tags: [personal, commitment_trap, diplomacy]
   note: Red Lines, questioned by the Foreign Minister. Forty engineers are on our side of the river you named.
   text: >-
-    You said, on camera, that a {rival_adj} unit crossing the Aum would be a red
-    line. There are now forty {rival_adj} engineers on our side of the river at
-    Kestrel Bridge, repairing a span the flood took, at the request of the
-    Vestrian council, under an agreement that predates your sentence. Their
-    general staff have asked, through me, whether engineers count. I have not
-    answered, because whatever I say is your line now.
+    You said on camera that {rival_adj} troops crossing the Aum would be a red
+    line. Forty of their engineers are on our bank mending a bridge, and their
+    generals ask if that counts.
   left:
-    text: "The line is where I said"
+    text: "Hold the line where you drew it"
     effects: { commitment: 8, escalation: 5, public: 3, trust_primary: -6, military: 3 }
     tags: [personal, public_commitment, deterrence, commitment_trap]
     odds:
-      label: They pull the engineers
+      label: They pull back
       base: 0.5
       tags: [adversary]
       success:
-        text: "The engineers leave at dusk with the span half-built. The council in Sennet is furious with everyone."
+        text: "The engineers leave at dusk with the span half-built. The town council in Vestria is furious with everyone."
         effects: { escalation: -3, public: 3 }
       failure:
         text: "They stay. Forty engineers, one red line, and a camera crew on the bridge by morning."
         effects: { escalation: 7, public: -4, commitment: 4 }
   right:
-    text: "Engineers do not count"
+    text: "Say engineers do not count"
     effects: { public: -6, commitment: -7, trust_primary: 5, allies: -3, escalation: -3 }
     tags: [personal, walk_back, diplomacy, deescalate]
 
@@ -639,14 +584,11 @@
   tags: [personal, military, domestic]
   note: Pre-delegation, questioned by the Attorney General. A commander acted without waking you. The drone was a balloon.
   text: >-
-    Your standing orders say commanders may act without waking you, and at
-    03:15 the commander at Hollin did: two aircraft, a {rival_adj} drone, a
-    lawful engagement under the orders as written. You may do this. Whether you
-    can later be seen to have done it, when the drone turns out to be a weather
-    balloon carrying a news agency's camera, is a different question, and it is
-    being asked in the gallery now.
+    Your standing orders let commanders shoot without waking you, and at 03:15
+    one did: two jets, one {rival_adj} drone. The drone was a news crew's
+    weather balloon; the press know.
   left:
-    text: "The orders stand"
+    text: "Keep the standing orders"
     effects: { military: 4, escalation: 4, public: -3, commitment: 3 }
     tags: [personal, military, deterrence]
   right:
@@ -663,18 +605,15 @@
   tags: [personal, diplomacy, domestic]
   note: Dove and Peace Leader. Every time the square fills, her calls get shorter. She needs Tuesday.
   text: >-
-    Every time the square fills, {rival_capital} reads it as a government that
-    cannot say no, and my calls get shorter. Ms Delacroix-Amin has a hundred
-    thousand people booked for Sunday. I am asking you to ask her to make it
-    Tuesday, after I have finished a conversation I cannot describe to her. She
-    will say the square does not keep a diary, and she will be right, and I
-    still need Tuesday.
+    Every time the square fills, {rival_capital} decides we cannot say no, and
+    my calls get shorter. A hundred thousand are booked for Sunday's march,
+    and I need it to be Tuesday.
   left:
     text: "Ask her for Tuesday"
     effects: { trust_primary: 5, public: -5, military: 1 }
     tags: [personal, diplomacy, stall, back_channel]
   right:
-    text: "Sunday is Sunday"
+    text: "Leave Sunday alone"
     effects: { public: 5, trust_primary: -4, commitment: 2, military: -2 }
     tags: [personal, domestic]
 
@@ -687,13 +626,11 @@
   tags: [personal, economy, domestic]
   note: Chained from adv_03 right. The Contractor briefs whoever asks. The Opposition asked.
   text: >-
-    I understand entirely, and I want you to know there are no hard feelings at
-    Halvard. Mr Ahlgren has asked for a briefing on the coastal capability and I
-    have said yes, because it is my job to brief whoever asks. He asks very good
-    questions about what a government that refused it would say to the families
-    on the coast. I can still bring the price down, by eleven percent.
+    No hard feelings on the coastal deal; we brief whoever asks, and the
+    Opposition asked. He wonders what you tell families on the coast, and I
+    can still take eleven percent off.
   left:
-    text: "Eleven percent. Sign"
+    text: "Sign at eleven percent off"
     effects: { economy: -4, military: 5, public: 2, trust_primary: -2 }
     tags: [personal, military, economy]
     set: [advisors:contract_signed]
@@ -709,11 +646,9 @@
   tags: [personal, domestic]
   note: Chained from adv_06 right. Ferrante has the florist's receipts. The Fixer can make eleven o'clock go away too.
   text: >-
-    Ferrante has the florist's receipt from the committee chair's illness, and
-    the florist's other receipts, and a question for you at eleven about
-    whether the Chief of Staff acts on your instruction. Mr Nkemelu says he can
-    make the eleven o'clock go away as well. The Attorney General has asked me
-    to note the time she was not told.
+    A reporter has the florist's receipts from a committee chairman's sudden
+    illness, and a question at eleven: does your Chief of Staff act for you?
+    He can make eleven go away too.
   left:
     text: "Let him make it go away"
     effects: { public: 3, allies: -3, commitment: 4 }

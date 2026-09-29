@@ -24,10 +24,9 @@
   tags: [alliance, public_commitment]
   note: Varga at 03:10. The first promise of the run, or the first hedge; either is heard in two capitals.
   text: >-
-    Two {rival_adj} battalions moved up to the Vestrian line overnight and my
-    parliament sits at nine. I am going to be asked whether {us} would fight for
-    Sennet, and I can say yes, or I can say that I do not know, or I can say
-    what you tell me to say. Do not tell me how you feel about it.
+    Two {rival_adj} battalions reached the Vestrian border overnight; my
+    parliament sits at nine. They will ask if {us} would fight for Vestria, and
+    I want an answer, not a feeling.
   left:
     text: "Tell them yes"
     effects: { allies: 7, commitment: 8, trust_primary: -6, escalation: 3 }
@@ -45,18 +44,15 @@
   tags: [alliance, diplomacy]
   note: A co-sponsor is a party. An empty chair is also a message.
   text: >-
-    The Assembly votes on Thursday on a resolution calling the {rival_adj}
-    exercises in the Sorrel Straits 'a threat to navigation', and the Compact
-    wants your name on it as a co-sponsor. {Rival_capital} has told me, through
-    the usual three people, that a co-sponsor is a party. Abstain and eleven
-    delegations will notice which chair was empty. I have drafted both speeches,
-    because that is the job.
+    Thursday the Assembly votes to call {rival_adj} war games in the Straits 'a
+    threat to shipping', and your allies want your name on it. {Rival_capital}
+    says signing picks a side.
   left:
-    text: "Co-sponsor it"
+    text: "Put our name on it"
     effects: { allies: 6, trust_primary: -7, trust_secondary: -2, commitment: 4 }
     tags: [alliance, diplomacy, public_commitment]
   right:
-    text: "Abstain"
+    text: "Leave the chair empty"
     effects: { allies: -6, trust_primary: 4, public: -2 }
     tags: [alliance, stall, diplomacy]
 
@@ -68,10 +64,9 @@
   tags: [alliance, military]
   note: Consultation versus speed, in a lift. The timeout starts the call without him.
   text: >-
-    The General's call with theatre command starts in four minutes. The Compact
-    liaison, Colonel Ostrander, is in the lift; the consultation clause says he
-    sits in on anything that moves aircraft out of Hollin. The General says the
-    lift is slow tonight.
+    The General's call to his commanders starts in four minutes, and by treaty
+    our allies' colonel sits in when aircraft move. He is in the lift, which
+    the General says is slow.
   left:
     text: "Hold the call for the Colonel"
     effects: { military: -4, allies: 5, intel: 2 }
@@ -87,13 +82,11 @@
   tags: [alliance, military, deterrence]
   note: The exercise the allies were promised is the mobilisation the rival was warned about.
   text: >-
-    Northern Anvil begins Monday: nine thousand troops, four Compact brigades,
-    forty kilometres from the Vestrian line, eighteen months in the planning.
-    Varga's defence minister called it 'the reassurance we were promised'. Their
-    general staff have moved a rocket brigade to the Sallow crossing to watch
-    it. A cancellation would be noticed by both audiences.
+    Northern Anvil starts Monday: nine thousand troops on exercise, forty
+    kilometres from the Vestrian border. Their rockets have moved up to watch,
+    and everyone notices if we cancel.
   left:
-    text: "Anvil goes ahead"
+    text: "Go ahead on Monday"
     effects: { military: 6, allies: 6, trust_primary: -8, escalation: 5 }
     tags: [military, alliance, deterrence, mobilise]
   right:
@@ -107,19 +100,16 @@
   tags: [alliance, entanglement, misperception]
   note: A yes is a ring closing; a no is a door closing. He remembers the last time.
   text: >-
-    Vestria has formally applied to join the Compact, and the letter reached
-    Varga's office and mine within the same hour, which tells you who drafted
-    it. Thirty years ago a small country asked a larger one for the same thing;
-    the larger one said yes in a warm speech and there was a war within the year
-    that neither of them started. {Rival_capital} will read a yes as a ring
-    closing. Sennet will read a no as a door.
+    Vestria has asked to join our alliance, in a letter our ally's prime
+    minister clearly helped write. Thirty years ago a small country asked the
+    same, got a warm yes, then a war.
   left:
     text: "Back the application"
     effects: { allies: 7, trust_primary: -9, escalation: 4, commitment: 6 }
     tags: [alliance, public_commitment, entanglement]
     set: [alliance:vestria_backed]
   right:
-    text: "Not this year"
+    text: "Say not this year"
     effects: { allies: -6, trust_primary: 5, public: -3, commitment: -2 }
     tags: [alliance, stall]
 
@@ -129,17 +119,15 @@
   tags: [alliance, domestic, commitment_trap]
   note: A leaked cable says you would not fight for Caldor. Whatever you say next is the policy.
   text: >-
-    A Compact cable, copied to eleven capitals, says your Foreign Ministry told
-    them privately that {us} 'would not go to war over the Isle of Caldor'. I
-    have it; so does Premier Holt, who is on the six o'clock news in forty
-    minutes. I am not asking whether it is genuine. I am asking what you will
-    say when she has finished.
+    A leaked cable says your Foreign Ministry told our allies that {us} 'would
+    not go to war over Caldor'. Caldor's premier reads it on the six o'clock
+    news, and then it is your turn.
   left:
-    text: "We would fight for every rock"
+    text: "Say we would fight for every rock"
     effects: { public: 4, allies: 6, commitment: 9, trust_primary: -5 }
     tags: [public_commitment, alliance, deterrence]
   right:
-    text: "We do not comment on stolen paper"
+    text: "Refuse to discuss stolen paper"
     effects: { allies: -7, public: -4, commitment: -2, intel: 2 }
     tags: [stall, alliance, secrecy]
 
@@ -149,17 +137,15 @@
   tags: [alliance, economy]
   note: Solidarity has a unit price. Allies remember accounting.
   text: >-
-    The Compact's runway extension at Hollin is forty percent over budget, and
-    Varga's parliament has voted, generously, that the overrun is ours. Two
-    hundred and eighty million, payable before the tarmac cures. We can pay it
-    and call it solidarity, or decline and call it accounting. Historically,
-    allies remember accounting.
+    Our allies' runway at Hollin is forty percent over budget, and their
+    parliament has generously voted the overrun ours. Two hundred and eighty
+    million, due before the tarmac sets.
   left:
-    text: "Pay it"
+    text: "Pay it and call it solidarity"
     effects: { economy: -5, allies: 6, military: 2 }
     tags: [alliance, economy]
   right:
-    text: "Runways are not solidarity"
+    text: "Decline and call it accounting"
     effects: { allies: -6, economy: 3, public: 2, commitment: -2 }
     tags: [alliance, economy, stall]
 
@@ -171,13 +157,11 @@
   tags: [alliance, naval, entanglement]
   note: An allied ship under our command is hailed. Whose rules of engagement is whose war.
   text: >-
-    The Compact corvette Halvorsen sails under my tactical command in the
-    Straits and has just been told by a {rival_adj} destroyer to alter course.
-    Her captain is asking whether he is under your rules or his own; his say
-    turn away, yours say hold. He is forty minutes from the destroyer's guns and
-    eleven hours from his own Prime Minister.
+    A {rival_adj} destroyer has told an allied corvette under my command to
+    turn away. His country's rules say turn, ours say hold, and the captain is
+    forty minutes from the guns.
   left:
-    text: "Our rules. He holds"
+    text: "Tell him to hold"
     effects: { allies: 5, military: 3, escalation: 5, commitment: 5, trust_primary: -4 }
     tags: [naval, alliance, entanglement, deterrence]
     odds:
@@ -185,13 +169,13 @@
       base: 0.55
       tags: [naval, adversary]
       success:
-        text: "The destroyer turns at two miles. Varga's parliament applauds a ship that is not hers."
+        text: "The destroyer turns away at two miles. Our ally's parliament stands to applaud a ship it lent us."
         effects: { public: 4, allies: 3 }
       failure:
-        text: "The destroyer closes to a mile and holds there for six hours. Nobody fires. Everybody films."
+        text: "The destroyer closes to a mile and sits there for six hours. Nobody fires. Everybody films."
         effects: { escalation: 7, allies: -3, public: -2 }
   right:
-    text: "His ship, his rules"
+    text: "His rules. Let him turn away"
     effects: { allies: -6, military: -3, escalation: -3, trust_primary: 2 }
     tags: [naval, alliance, deescalate]
 
@@ -201,17 +185,15 @@
   tags: [alliance, diplomacy, misperception]
   note: Help that helps the helper. Two signatures, and observers nobody asked the Compact about.
   text: >-
-    '{Other} is prepared to join {us} in guaranteeing Amberline's neutrality,
-    jointly, in writing, next week. Two signatures are harder to argue with than
-    one. You will appreciate that it also means {other_adj} observers on
-    Amberline's border with the Compact, which I am told the Compact would find
-    reassuring, though nobody has asked them.'
+    '{Other} will sign beside {us} to guarantee Amberline's neutrality; two
+    names beat one. It puts {other_adj} observers on your allies' border, and
+    nobody asked them.'
   left:
     text: "Sign jointly"
     effects: { trust_secondary: 7, allies: -6, trust_primary: -2, escalation: -2 }
     tags: [diplomacy, alliance, deescalate]
   right:
-    text: "Amberline is a Compact matter"
+    text: "Decline. Our allies handle it"
     effects: { trust_secondary: -6, allies: 5, commitment: 3 }
     tags: [alliance, deterrence, stall]
 
@@ -221,11 +203,9 @@
   tags: [alliance, domestic]
   note: A reasonable motion with lethal timing. Whip for eleven capitals, or let the House decide for them.
   text: >-
-    My members will table a motion on Tuesday requiring a vote of the House
-    before any Compact obligation is honoured with force. It is reasonable, it
-    is popular, and I have counted: it passes unless you whip against it. If
-    you whip, I will ask on the floor which of the eleven capitals you are
-    whipping for.
+    Tuesday we table a motion: no war for an ally without a vote of the House.
+    It passes unless you whip against it, and then I ask which of the eleven
+    allies you are whipping for.
   left:
     text: "Whip against it"
     effects: { public: -6, allies: 6, commitment: 4 }
@@ -241,17 +221,15 @@
   tags: [alliance, cyber, commitment_trap]
   note: The treaty says an attack on one is an attack on all. Nobody has ever said what an attack is.
   text: >-
-    Vestria's grid went down for six hours last night, and the Compact treaty
-    says an armed attack on one is an attack on all. Whether a power cut is
-    'armed' is a question three of my predecessors declined to answer, which is
-    why we are all still here. Varga wants your reading by noon. Whatever you
-    say becomes the definition, for them and for you.
+    Vestria lost power for six hours last night, and our treaty says an attack
+    on one ally is an attack on all. Our allies want a ruling by noon, and it
+    will bind you too.
   left:
-    text: "A grid is an armed attack"
+    text: "Say a power cut is an attack"
     effects: { allies: 7, commitment: 8, trust_primary: -5, escalation: 4 }
     tags: [public_commitment, alliance, cyber, deterrence]
   right:
-    text: "Not this grid. Not this time"
+    text: "Say not this time"
     effects: { allies: -6, commitment: -3, trust_primary: 3, public: -2 }
     tags: [alliance, stall, misperception]
 
@@ -261,27 +239,25 @@
   tags: [alliance, diplomacy]
   note: The Compact wants our officers on the line as a promise; the rival will accept no great-power uniform.
   text: >-
-    The Assembly will put forty unarmed observers on the Vestrian line from the
-    first, if the votes hold. The Compact wants {us_adj} officers among them, as
-    a promise. {Rival_capital} says it will accept the mission only if no great
-    power wears its uniform on the line, and it has said so in writing, which
-    it rarely does. I can deliver either version and be hated for either.
+    The Assembly can put forty unarmed observers on the Vestrian border. Your
+    allies want {us_adj} officers among them, and {rival_capital} says in
+    writing: no great power's uniform.
   left:
-    text: "Our officers go"
+    text: "Send our officers"
     effects: { allies: 6, trust_primary: -5, escalation: 2, intel: 3 }
     tags: [alliance, public_commitment, military]
     odds:
-      label: They accept the mission
+      label: They accept
       base: 0.45
       tags: [adversary, diplomacy]
       success:
-        text: "They accept, with a note about uniforms that nobody reads aloud. Forty observers, six of them ours, on the line by the first."
+        text: "They accept, with a note about uniforms that nobody reads aloud. Forty observers, six of them ours, on the border by the first."
         effects: { trust_primary: 4, escalation: -3 }
       failure:
-        text: "They withdraw consent for the mission entirely. Forty observers stay in Vellmar, and the line has no witnesses."
+        text: "They pull their consent for the whole mission. Forty observers sit in a hotel, and the border has no witnesses."
         effects: { escalation: 5, allies: -3, intel: -3 }
   right:
-    text: "No uniforms. Fund it instead"
+    text: "Send money, not uniforms"
     effects: { allies: -5, trust_primary: 5, economy: -3, escalation: -3 }
     tags: [alliance, diplomacy, deescalate]
 
@@ -295,24 +271,22 @@
   tags: [alliance, diplomacy]
   note: Cross-hook. After the month so far, two members want their own talks. The roll is the Compact itself.
   text: >-
-    Two of my eleven have asked {rival_capital} for bilateral talks, quietly,
-    and {rival_capital} has said yes, loudly. If I call an emergency council for
-    tomorrow I can hold the line, provided I can tell them you will be in the
-    room and that the room decides something. Or I can let them go, and you and
-    I can stop pretending the Compact is eleven.
+    Two of my eleven quietly asked {rival_capital} for their own talks, and it
+    said yes, loudly. I can hold the alliance together tomorrow if I promise
+    them you will be in the room.
   left:
-    text: "Call the council. I'll be there"
+    text: "Call it. I will be in the room"
     effects: { military: -3, commitment: 5, allies: 2 }
     tags: [alliance, diplomacy, public_commitment]
     odds:
-      label: The Compact holds
+      label: It holds
       base: 0.55
       tags: [alliance, diplomacy]
       success:
-        text: "Nine to two, then eleven to nothing once the two saw the count. The bilateral talks are 'postponed'."
+        text: "Nine to two, then eleven to none once the two see the count. Their private talks are 'postponed'."
         effects: { allies: 8, trust_primary: -4 }
       failure:
-        text: "Seven to four. The four walk out before the count is read, and {rival_capital} issues its invitation in writing."
+        text: "Seven to four. The four walk out before the count is read, and {rival_capital} sends its invitation in writing."
         effects: { allies: -8, public: -3, trust_primary: -2 }
         set: [alliance:compact_split]
   right:
@@ -329,14 +303,11 @@
   tags: [alliance_demand, alliance, commitment_trap]
   note: Alliance First. Nothing without consultation, so the consultation happened while you slept.
   text: >-
-    The council voted at 01:00, nine to two, to close Vestrian airspace to
-    {rival_adj} military flights from Friday, and under the consultation
-    protocol your representative voted with the nine. I did not wake you; you
-    told us nothing without consultation, and this was consultation. The first
-    {rival_adj} transport is due over Sennet at 06:40 on Friday. Somebody's
-    aircraft will have to meet it.
+    At 01:00 the alliance voted to close Vestria's skies to {rival_adj}
+    military flights, and your envoy voted yes while you slept. Their first
+    transport is due at 06:40 on Friday.
   left:
-    text: "The Compact has spoken. Enforce it"
+    text: "Enforce the vote"
     effects: { military: 5, allies: 7, escalation: 8, trust_primary: -8, commitment: 8 }
     tags: [alliance_demand, alliance, military, public_commitment]
     set: [alliance:council_obeyed]
@@ -355,17 +326,15 @@
   tags: [alliance_demand, alliance, naval]
   note: Alliance First cuts both ways. The smallest member holds your fleet for seventy-two hours.
   text: >-
-    Premier Holt of Caldor has invoked the consultation clause against your
-    fleet's transit of Caldor Roads at dawn. Under the protocol one member's
-    objection holds for seventy-two hours. The Admiral says seventy-two hours is
-    where a fleet stops being a message and starts being a target. Holt says her
-    island is the target.
+    Caldor's premier has vetoed our fleet passing her island at dawn, and one
+    ally's objection holds for three days. The Admiral says that is when a
+    fleet becomes a target.
   left:
     text: "Honour the objection"
     effects: { military: -6, allies: 5, escalation: -3, public: -3 }
     tags: [alliance_demand, alliance, stall, deescalate]
   right:
-    text: "Transit at dawn"
+    text: "Sail at dawn anyway"
     effects: { military: 4, allies: -9, escalation: 3, commitment: 3 }
     tags: [alliance_demand, naval, military, escalatory]
 
@@ -377,12 +346,9 @@
   tags: [basing, alliance, military]
   note: Allied Basing. The runways that lift the alliance are now inside their rocket ring.
   text: >-
-    Their rocket brigade at the Sallow crossing rotated its launchers overnight
-    and Hollin is now inside the ring. Varga's defence minister has asked,
-    publicly, for two air-defence batteries on the field by the weekend.
-    Batteries at Hollin read in {rival_capital} as the first thing you put in
-    before you put in the second. No batteries reads in Varga's parliament as
-    the runways being ours and the risk being theirs.
+    Their rockets turned overnight and our allies' airfield at Hollin is in
+    range. The allies want two missile batteries by Saturday; {rival_capital}
+    will call that our first move.
   left:
     text: "Send the batteries"
     effects: { military: 5, allies: 7, trust_primary: -6, escalation: 4, economy: -2 }
@@ -393,10 +359,10 @@
       base: 0.5
       tags: [adversary]
       success:
-        text: "Their attaché calls the batteries 'defensive' on the record, once, and is not corrected."
+        text: "Their attaché calls the batteries 'defensive' on the record, once, and nobody corrects him."
         effects: { trust_primary: 3 }
       failure:
-        text: "Their evening bulletin shows the batteries arriving under the single word 'first'."
+        text: "Their evening news shows the batteries arriving under a single word: 'First'."
         effects: { escalation: 6, trust_primary: -4 }
   right:
     text: "Thin the field out quietly"
@@ -411,17 +377,15 @@
   tags: [alliance, economy]
   note: Fortress. Your friends notice you have stopped picking up. She has a flight booked.
   text: >-
-    This is my fourth call this week and the first you have taken. Your borders
-    close on a schedule, your reserve is ninety days and your ministers have
-    stopped returning mine; the Compact has noticed that {us} is becoming a
-    country with walls. I am flying to {other_capital} on Monday unless I have
-    a reason not to. Give me one I can say out loud.
+    My fourth call this week, the first you have taken. Your borders are
+    closing, your ministers ignore mine, and I fly to {other_capital} Monday
+    unless you give me a reason not to.
   left:
-    text: "Open the reserve to the Compact"
+    text: "Share our reserves with the allies"
     effects: { economy: -6, allies: 9, public: -3 }
     tags: [alliance, economy]
   right:
-    text: "Fly to {other_capital}, then"
+    text: "Wish her a good flight"
     effects: { allies: -9, trust_secondary: -3, economy: 2, public: 2 }
     tags: [alliance, stall, secrecy]
     set: [alliance:varga_snubbed]
@@ -434,19 +398,16 @@
   tags: [alliance, misperception, diplomacy]
   note: The Dove. The paper that reassures Sennet is the last gap in the fence from where they sit.
   text: >-
-    Varga wants a written guarantee for Vestria by Friday, and from where I sit
-    it is the right thing to want. From {rival_capital} the same piece of paper
-    is the last gap in a fence, and I have spent three weeks persuading them
-    the fence was not being built. I can find a form of words that reassures
-    Sennet without alarming {rival_capital}. It will reassure nobody very much,
-    and that is the point.
+    Our ally wants a written guarantee for Vestria by Friday. From
+    {rival_capital} that paper is the last gap closing in a fence I have spent
+    three weeks swearing we are not building.
   left:
     text: "Give them the guarantee"
     effects: { allies: 7, commitment: 7, trust_primary: -8, escalation: 4 }
     tags: [alliance, public_commitment]
     set: [alliance:guarantee_given]
   right:
-    text: "Her form of words"
+    text: "Let her find softer words"
     effects: { allies: -6, trust_primary: 5, commitment: -3, public: -3 }
     tags: [alliance, reassurance, diplomacy]
     set: [alliance:guarantee_withheld]
