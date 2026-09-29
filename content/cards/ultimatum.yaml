@@ -22,11 +22,9 @@
   conditions: { flags_none: [ultimatum:received, ultimatum:issued] }
   note: Entry, early. Their deadline. Left commits on camera; right buys information with face.
   text: >-
-    '{Rival} requires the withdrawal of the {us_adj} battalion from Hollin Ridge
-    within seventy-two hours, that is by 06:00 on the fourth day, failing which
-    {rival} will take the measures necessary to protect its citizens in
-    Vestria.' The translator asks whether you would like the sentence read
-    again. Nobody in the room says yes.
+    '{Rival} requires the {us_adj} battalion off Hollin Ridge within three
+    days, or it will act to protect its citizens.' The translator offers to
+    read it again; nobody says yes.
   left:
     text: "Reject it. On camera, tonight"
     effects: { commitment: 8, public: 4, escalation: 5, trust_primary: -5 }
@@ -34,7 +32,7 @@
     set: [ultimatum:received]
     follow: [{ card: ultimatum_05_on_the_record, in: 1 }]
   right:
-    text: "Acknowledge receipt. Nothing more"
+    text: "Confirm it arrived. Nothing more"
     effects: { public: -4, military: -3, intel: 4, commitment: -2 }
     tags: [stall, diplomacy]
     set: [ultimatum:received]
@@ -49,18 +47,17 @@
   conditions: { flags_none: [ultimatum:received, ultimatum:issued] }
   note: Entry, mid. Our deadline. The passive voice is where the cost lives.
   text: >-
-    Their column has sat at the Sallow crossing for nine days, forty tanks and
-    the bridging kit to use them, and each day it sits it becomes furniture. A
-    deadline would move it: out by Friday noon, or it is treated as an
-    incursion. The wording would be yours. The consequences would be arranged.
+    Their forty tanks have sat at the Sallow crossing for nine days, and every
+    day they sit they become furniture. Give them until Friday noon, and the
+    consequences would be arranged.
   left:
-    text: "Friday noon. Say it publicly"
+    text: "Friday noon. Say it on camera"
     effects: { commitment: 10, escalation: 6, military: 4, public: 3, trust_primary: -6 }
     tags: [public_commitment, deterrence, military]
     set: [ultimatum:issued]
     follow: [{ card: ultimatum_09_the_wording, in: 1 }]
   right:
-    text: "Tell them privately. No cameras"
+    text: "Friday noon. Tell them privately"
     effects: { commitment: 4, escalation: 3, military: -3, public: -2, trust_primary: -2 }
     tags: [deterrence, secrecy]
     set: [ultimatum:issued]
@@ -75,11 +72,9 @@
   conditions: { flags_none: [ultimatum:received, ultimatum:issued] }
   note: Entry, late. A man with a domestic audience, speaking to it first.
   text: >-
-    'I did not ask for this crisis and I will not be lectured about it by
-    people who put a battalion on Hollin Ridge. If it has not begun to withdraw
-    by midnight on the fourth day, {rival} will consider itself free to act. I
-    say this to my own people first.' He looks at the camera once, at the end,
-    and then the anthem.
+    'If the battalion on Hollin Ridge has not started leaving by midnight on
+    day four, {rival} is free to act.' He says it on live television to his
+    own people, then the anthem plays.
   left:
     text: "Answer him tonight, on camera"
     effects: { commitment: 8, public: 5, escalation: 5, trust_primary: -5 }
@@ -104,11 +99,9 @@
     flags_none: [ultimatum:received, ultimatum:issued]
   note: Cross-hook entry. The month so far has become a pattern, and the pattern has a deadline.
   text: >-
-    '{Rival} notes the pattern of {us_adj} actions this month and no longer
-    regards them as separate. Unless the battalion at Hollin Ridge is withdrawn
-    within seventy-two hours, {rival} will restore the balance by other means.'
-    A pause of nineteen seconds. 'This message has also been given to
-    {other_capital}.'
+    '{Rival} sees a pattern in {us_adj} actions; unless the battalion leaves
+    Hollin Ridge by Friday, it will restore balance by other means.' Then:
+    '{Other_capital} has been told.'
   left:
     text: "Restore it yourselves. We stay"
     effects: { commitment: 8, escalation: 6, public: 3, trust_primary: -6, allies: 2 }
@@ -132,17 +125,15 @@
   note: The word is out. Live in it or start thinning it.
   text: >-
     You said 'never' at 21:14 and by 21:20 it was the headline in three
-    countries, which is the good news. The bad news is the same news. A word
-    like that has a half-life of about nine days and we are inside their
-    deadline, so we either live in it or start thinning it now, one briefing
-    at a time, while nobody is looking.
+    countries. We either live in that word or start thinning it tonight, one
+    quiet briefing at a time.
   left:
-    text: "We live in it"
+    text: "Live in it. Every word"
     effects: { commitment: 6, public: 3, escalation: 3, trust_primary: -3 }
     tags: [public_commitment, domestic]
     follow: [{ card: ultimatum_06_the_call, in: 1 }]
   right:
-    text: "Start thinning it. Quietly"
+    text: "Thin it out. Quietly"
     effects: { commitment: -4, public: -3, military: -2, trust_primary: 2 }
     tags: [walk_back, secrecy, domestic]
     follow: [{ card: ultimatum_06_the_call, in: 1 }]
@@ -154,10 +145,9 @@
   tags: [diplomacy, commitment_trap]
   note: The offer. A pause is not a withdrawal, and everyone in both rooms knows the difference.
   text: >-
-    '{Rival_leader} is prepared to extend the deadline by seventy-two hours if
-    {us} announces a pause in the deployments to Hollin Ridge.' A pause. Not a
-    withdrawal. The translator repeats the word twice, and the second time it
-    sounds like a question.
+    '{Rival_leader} will extend the deadline three days if {us} announces a
+    pause on the ridge.' A pause, not a withdrawal; the translator says it
+    twice, the second time a question.
   left:
     text: "Announce the pause"
     effects: { escalation: -8, military: -5, commitment: -10, public: -4, trust_primary: 5 }
@@ -165,7 +155,7 @@
     set: [ultimatum:backed_down]
     follow: [{ card: ultimatum_26_the_ledger, in: 3 }]
   right:
-    text: "Call the bluff"
+    text: "Call the bluff. Hold"
     effects: { commitment: 8, escalation: 3 }
     tags: [deterrence, public_commitment]
     odds:
@@ -173,12 +163,12 @@
       base: 0.45
       tags: [adversary]
       success:
-        text: "At 05:40 their liaison rang to say the deadline had been 'clarified'. Nothing at Hollin Ridge has moved, including theirs."
+        text: "At 05:40 their embassy rings to say the deadline has been 'clarified'. Nothing at Hollin Ridge has moved, theirs included."
         effects: { escalation: -6, public: 8, trust_primary: -4 }
         set: [ultimatum:called_bluff]
         follow: [{ card: ultimatum_25_the_formula, in: 3 }]
       failure:
-        text: "06:00 came and went. At 06:12 their guns began registering on the ridge, one round every four minutes, so that nobody could mistake it for anything else."
+        text: "06:00 comes and goes. At 06:12 their guns start firing on the ridge, one round every four minutes, so nobody can mistake it for anything else."
         effects: { escalation: 14, allies: -6, military: 2 }
         set: [ultimatum:deadline_passed]
         follow: [{ card: ultimatum_07_the_hour_after, in: 0 }]
@@ -192,13 +182,11 @@
   tags: [commitment_trap, military, domestic]
   note: The deadline has passed and the guns are talking. Timeout raises the alert, the worse side.
   text: >-
-    The deadline passed forty minutes ago. Their guns are registering on the
-    ridge, one round every four minutes, nothing hit yet, and the battalion
-    has asked for permission to answer. The General wants the alert level
-    raised across the board. The Foreign Minister wants one sentence sent
-    before we do anything else, and has written it.
+    Forty minutes past the deadline, their guns fire on the ridge, a round
+    every four minutes. The General wants a full alert; the Foreign Minister
+    wants one sentence sent first.
   left:
-    text: "Raise the alert. Let them answer"
+    text: "Raise the alert. Fire back"
     effects: { military: 6, escalation: 10, public: 3, trust_primary: -8 }
     tags: [military, mobilise, escalatory]
     follow: [{ card: ultimatum_08_indicative, in: 1 }]
@@ -215,11 +203,9 @@
   tags: [commitment_trap, diplomacy, domestic]
   note: Resolution for their passed deadline. Somebody in his room fought for a word, and won.
   text: >-
-    'The hour named was indicative. {Rival} has demonstrated its capacity and
-    its restraint, and will now conduct exercises at the Sallow crossing for as
-    long as the situation requires.' It is 09:00 in {rival_capital} and he is
-    standing in front of the veterans again. The word 'indicative' was not in
-    the first draft, and someone in that room fought for it.
+    'The hour was indicative; {rival} has shown strength and restraint, and
+    will hold exercises at the crossing as needed.' Someone in his room
+    fought for the word 'indicative'.
   left:
     text: "Let him have the word"
     effects: { escalation: -7, trust_primary: 6, public: -6, military: -4, commitment: -4 }
@@ -240,12 +226,9 @@
   tags: [commitment_trap, diplomacy]
   note: Name the consequence and it can be weighed. Leave it vague and they assume the worst and the mildest at once.
   text: >-
-    'Consequences' is a word that promises nothing and therefore cannot be
-    broken, which is why every ultimatum in the archive uses it. If you name
-    the consequence, a strike on the depot at Tessel, say, they can weigh it,
-    and so can you, on Friday at noon. If you do not name it, they will assume
-    the worst one and the mildest one at the same time, and so will your
-    generals.
+    'Consequences' promises nothing, so every ultimatum uses it. Name the
+    depot at Tessel and they can weigh it; stay vague and they assume the
+    worst and the mildest at once.
   left:
     text: "Name it. Tessel, Friday noon"
     effects: { commitment: 8, escalation: 5, military: 3, trust_primary: -5, public: 2 }
@@ -264,13 +247,11 @@
   tags: [misperception, diplomacy, commitment_trap]
   note: A private ultimatum is the most dangerous kind, the kind they can decide to have misunderstood.
   text: >-
-    Your private deadline has been told to four people in {rival_capital}, so
-    it is no longer private, and it has not been said to the cameras, so it is
-    not yet believed. It sits in a drawer between the two, where it is the most
-    dangerous kind of message, the kind they can decide to have misunderstood.
-    We can take it out of the drawer in either direction.
+    Four people in {rival_capital} know your private deadline, and nobody has
+    heard it on camera. Half-secret is the dangerous kind, the kind they can
+    choose to have misunderstood.
   left:
-    text: "Say it publicly"
+    text: "Say it on camera"
     effects: { commitment: 8, public: 3, escalation: 5, trust_primary: -4 }
     tags: [public_commitment, deterrence]
     follow: [{ card: ultimatum_11_friday_noon, in: 1 }]
@@ -290,11 +271,9 @@
   tags: [commitment_trap, military]
   note: Our deadline arrives. Left holds to it and rolls; right extends, which is a calendar.
   text: >-
-    It is 11:52. The column at the Sallow crossing has not moved, except that
-    at 11:20 two of the forty tanks reversed onto their transporters, which the
-    General says is theatre and the Foreign Minister says is a beginning. The
-    strike package is airborne and holding. You have eight minutes, and then
-    you have a different problem.
+    It is 11:52 and two of forty tanks have backed onto transporters; the
+    General calls it theatre, the Foreign Minister a start. Your aircraft are
+    circling, eight minutes to noon.
   left:
     text: "Noon is noon. Hold to it"
     effects: { military: 3, escalation: 5, commitment: 4 }
@@ -304,17 +283,17 @@
       base: 0.5
       tags: [adversary, military]
       success:
-        text: "At 11:58 the column began to move, slowly, in the right direction, filmed from both sides. The package was recalled at 12:03."
+        text: "At 11:58 the column begins to move, slowly, in the right direction, filmed from both sides. The aircraft turn for home at 12:03."
         effects: { public: 9, military: 4, trust_primary: -5, escalation: -5 }
         set: [ultimatum:met]
         follow: [{ card: ultimatum_25_the_formula, in: 3 }]
       failure:
-        text: "Noon. Two more tanks reversed onto transporters. Thirty-eight did not, and the package is still holding at the edge of their radar."
+        text: "Noon. Two more tanks back onto transporters; thirty-eight do not, and your aircraft are still circling at the edge of their radar."
         effects: { escalation: 6, military: -2, public: -3 }
         set: [ultimatum:deadline_passed]
         follow: [{ card: ultimatum_12_the_consequence, in: 0 }]
   right:
-    text: "Extend to Saturday. Recall it"
+    text: "Extend to Saturday. Recall them"
     effects: { commitment: -8, public: -6, military: -6, escalation: -4, trust_primary: 2 }
     tags: [walk_back, stall]
     follow: [{ card: ultimatum_13_the_second_deadline, in: 1 }]
@@ -328,19 +307,16 @@
   tags: [commitment_trap, military, strike]
   note: The trap, in person. Forty minutes of fuel. Timeout delivers the strike, the worse side.
   text: >-
-    The package has fuel for forty more minutes on station and then it comes
-    home whether or not it has done anything. Tessel is the target the planners
-    chose, whether or not it was ever said aloud, and it has been empty of
-    people since 10:00 because they can read a map as well as a statement.
-    Deliver it and the column moves, or it does not. Bring it home and the
-    next deadline will be read as the same kind of paper.
+    Forty minutes of fuel, and the Tessel depot emptied at ten because they
+    can read a map. Strike and their column may move; bring the aircraft home
+    and your next deadline is paper.
   left:
-    text: "Deliver it"
+    text: "Strike the depot"
     effects: { escalation: 14, military: 8, public: 4, trust_primary: -12, allies: -4 }
     tags: [limited_strike, military, escalatory, commitment_trap]
     follow: [{ card: ultimatum_14_the_answer, in: 1 }]
   right:
-    text: "Bring it home"
+    text: "Bring the aircraft home"
     effects: { public: -9, commitment: -10, military: -7, allies: -5, trust_primary: 3, escalation: -4 }
     tags: [walk_back, concede]
     set: [ultimatum:backed_down]
@@ -353,11 +329,9 @@
   tags: [commitment_trap, domestic]
   note: A deadline that moves is a calendar. He will back Saturday if Saturday is real.
   text: >-
-    I supported Friday noon, on the record, and I would like to know what I am
-    supporting now, because a deadline that moves is a calendar. I can go on at
-    six and say the extension was wise, and I will, if you tell me Saturday
-    noon is real. If you cannot tell me that, I would rather say nothing, and
-    you know what my silence costs you.
+    I backed Friday noon on camera, and a deadline that moves is a calendar.
+    Tell me Saturday is real and I defend it on air at six; if not, I stay
+    silent, and you know the price.
   left:
     text: "Saturday is real. Say so"
     effects: { commitment: 10, public: 4, escalation: 5, trust_primary: -4 }
@@ -377,18 +351,16 @@
   tags: [diplomacy, commitment_trap, escalatory]
   note: Resolution for the delivered strike. The column moves and the word 'rotation' does a great deal of work.
   text: >-
-    '{Rival} regards the attack on Tessel as an act of war against its
-    territory and will respond at a time and place of its choosing.' Then,
-    after a silence long enough for someone to check the line was still open:
-    'The column at the Sallow crossing will complete its scheduled rotation on
-    Monday.' Rotation. The word is doing a great deal of work.
+    '{Rival} regards the attack on Tessel as an act of war and will respond at
+    a time of its choosing.' Silence, then: 'The column will complete its
+    scheduled rotation on Monday.'
   left:
     text: "Take Monday. Offer talks"
     effects: { escalation: -8, trust_primary: 5, public: -4, military: -4 }
     tags: [deescalate, diplomacy]
     set: [ultimatum:met]
   right:
-    text: "Time and place. Warn them off"
+    text: "Warn them off. Publicly"
     effects: { escalation: 6, commitment: 6, public: 4, trust_primary: -7, military: 3 }
     tags: [deterrence, public_commitment]
     set: [ultimatum:met]
@@ -397,10 +369,10 @@
       base: 0.4
       tags: [adversary]
       success:
-        text: "Monday came and the column went. Nothing else did."
+        text: "Monday comes and the column goes. Nothing else does."
         effects: { public: 5, escalation: -4, trust_primary: -3 }
       failure:
-        text: "At 03:10 on Monday a fuel farm outside {capital} burned for six hours. Nobody claimed it, and nobody needed to."
+        text: "At 03:10 on Monday a fuel depot outside {capital} burns for six hours. Nobody claims it, and nobody needs to."
         effects: { escalation: 12, public: -6, economy: -4 }
 
 # ---------------------------------------------------------------- developments (pieces)
@@ -416,11 +388,9 @@
     pieces_any: [strategic_ambiguity]
   note: Strategic Ambiguity, the gift. They are acting on both readings at once.
   text: >-
-    {Rival_capital} has two readings of your silence and I have both from
-    people who should know. The first is that you are preparing to strike and
-    do not want to say so. The second is that you are preparing to fold and do
-    not want to say so. They are acting on both at once, which is why their
-    reserves are mobilising and their trade delegation is still in {capital}.
+    {Rival_capital} reads your silence two ways: about to strike, or about to
+    fold. They act on both, so their reserves mobilise while their trade
+    delegation stays in {capital}.
   left:
     text: "Tell them which. Privately"
     effects: { trust_primary: 6, commitment: 4, intel: 3, military: -3, public: -2 }
@@ -441,12 +411,9 @@
     pieces_any: [strategic_ambiguity]
   note: Strategic Ambiguity, the bill. A routine exercise has been read as the answer.
   text: >-
-    The Fourth Brigade moved to its exercise area at 05:00, as it has every
-    spring for twenty years. At 07:00 their liaison asked whether that was our
-    answer to the deadline. It has been useful that they do not know what we
-    will do; it is less useful that they now think they do. The brigade can be
-    stood down, visibly, or it can finish its exercise, and either one will be
-    read as a sentence.
+    A brigade left for its spring exercise at 05:00, as every year, and at
+    07:00 their embassy asked if that was our answer. Stand it down visibly
+    or finish it; either is an answer.
   left:
     text: "Stand it down. Visibly"
     effects: { military: -6, public: -3, trust_primary: 5, escalation: -4, commitment: -3 }
@@ -456,14 +423,14 @@
     effects: { military: 4, escalation: 5, commitment: 3 }
     tags: [military, deterrence, misperception]
     odds:
-      label: They read it right
+      label: They understand
       base: 0.5
       tags: [adversary, intel]
       success:
-        text: "Their liaison rang back at noon. Someone had found the exercise in last year's notification."
+        text: "Their embassy rings back at noon. Someone has found the exercise in last year's notice."
         effects: { trust_primary: 2, escalation: -3 }
       failure:
-        text: "Two of their regiments left barracks at 14:00. Their liaison did not ring back."
+        text: "Two of their regiments leave barracks at 14:00. Their embassy does not ring back."
         effects: { escalation: 8, trust_primary: -6, intel: -2 }
 
 - id: ultimatum_17_any_means_any
@@ -479,12 +446,9 @@
     pieces_any: [red_lines]
   note: Red Lines, the gift and the bill in one. Two hundred metres for eleven minutes. Timeout answers, the worse side.
   text: >-
-    You said 'any crossing' on camera, and at 03:10 a {rival_adj} patrol of six
-    men crossed two hundred metres into Vestria at Hollin Ridge, stayed eleven
-    minutes and went home. That is either a crossing or a map-reading error,
-    and you may decide which, but you may not decide it slowly, because the
-    battalion commander has read the same statement you made. He is asking
-    what 'any' means. So, this morning, is the General.
+    You said 'any crossing' on camera; at 03:10 six {rival_adj} soldiers
+    stepped into Vestria for eleven minutes. Your battalion commander heard
+    you too, and asks what 'any' means.
   left:
     text: "Any means any. Answer it"
     effects: { military: 5, escalation: 9, commitment: 6, trust_primary: -7, public: 3 }
@@ -494,10 +458,10 @@
       base: 0.55
       tags: [adversary, military]
       success:
-        text: "The patrol's parent unit pulled back four kilometres by dusk, with an apology about the map."
+        text: "Their unit pulls back four kilometres by dusk, with an apology about the map."
         effects: { public: 5, trust_primary: -3, escalation: -3 }
       failure:
-        text: "The battalion fired on the next patrol at 19:40. One of theirs is dead on our side of a line nobody has drawn."
+        text: "The battalion fires on the next patrol at 19:40. One of theirs is dead on our side of a line nobody has drawn."
         effects: { escalation: 10, trust_primary: -8, allies: -3 }
   right:
     text: "That was not a crossing"
@@ -515,17 +479,15 @@
     pieces_any: [red_lines]
   note: Red Lines, the bill. The promise was 'within the hour' and the hour was 13:00.
   text: >-
-    On the fourth you said that any deadline from {rival_capital} would be
-    answered within the hour, and I applauded, which is on film. It is now
-    14:00 and the hour was 13:00. I am not asking you to keep the promise. I am
-    telling you that at four o'clock somebody will ask me whether you did, and
-    I would like to know what I am going to say.
+    You promised to answer any deadline from {rival_capital} within the hour,
+    and I applauded on film. It is 14:00, the hour was 13:00, and at four
+    someone will ask me if you did.
   left:
     text: "Answer it now. Whatever it takes"
     effects: { commitment: 8, escalation: 6, public: 4, trust_primary: -5, military: 3 }
     tags: [public_commitment, deterrence, domestic, commitment_trap]
   right:
-    text: "Tell him it was a figure of speech"
+    text: "Say it was a figure of speech"
     effects: { public: -8, commitment: -5, allies: -2, trust_primary: 2 }
     tags: [walk_back, domestic]
 
@@ -540,11 +502,9 @@
     pieces_any: [spin_doctor]
   note: Spin Doctor, the gift. Nobody says 'climbdown' if we do not.
   text: >-
-    Nobody says 'climbdown' if we do not, so we do not. It is a 'pause pending
-    review', it was always planned, and the review will report after the
-    by-election, which is the only date that matters this month. The other side
-    will know it is a lie, and a lie they can see through is a courtesy they
-    will remember. That is the price and I think it is cheap.
+    Nobody says 'climbdown' unless we do, so it is a 'pause pending review',
+    reporting after the by-election. They will know it is a lie, and a lie
+    they see through is a courtesy.
   left:
     text: "Pause pending review"
     effects: { public: 6, trust_primary: -5, commitment: 2, intel: -2 }
@@ -565,13 +525,11 @@
     pieces_any: [spin_doctor]
   note: Spin Doctor, the bill. He sold the word too well and now it polls at seventy-one.
   text: >-
-    I sold 'never' to every front page in the country and I did it well, which
-    is the problem, because it polled at seventy-one this morning and you
-    cannot quietly buy a word back from seventy-one. If you want out of it,
-    you need me to start breaking it now, in pieces, in briefings nobody
-    reads. If you want to keep it, you need to mean it by Friday.
+    I sold 'never' to every front page and it polls at seventy-one; nobody
+    quietly buys a word back from there. I break it now, in briefings nobody
+    reads, or you mean it by Friday.
   left:
-    text: "Start breaking it"
+    text: "Start breaking it. Quietly"
     effects: { commitment: -6, public: -5, military: -3, trust_primary: 3 }
     tags: [walk_back, secrecy, domestic]
   right:
@@ -591,10 +549,9 @@
     pieces_any: [hotline_protocol]
   note: Hotline Protocol, the gift. The call costs nothing at home; the freeze still costs.
   text: >-
-    '{Rival_leader} will take a call at 22:00 tonight, with no agenda and no
-    readout.' Fourteen seconds. 'He asks that the call be private on both
-    sides.' The line stays open after the message ends, which it has never
-    done before, and you can hear a clock in the room in {rival_capital}.
+    '{Rival_leader} will take a call at 22:00, no agenda, private on both
+    sides.' The line stays open afterwards, which it never has, and you can
+    hear a clock in {rival_capital}.
   left:
     text: "Take the call. Offer a freeze"
     effects: { escalation: -9, trust_primary: 8, military: -5, public: -4, commitment: -5 }
@@ -618,13 +575,11 @@
     pieces_any: [hotline_protocol]
   note: Hotline Protocol, the bill. The line is free at home and is being counted abroad. Timeout closes it, the worse side.
   text: >-
-    '{Rival} notes that {us} has used the direct line three times this week
-    and asks whether {leader} has something to say that has not yet been
-    said.' The translator's voice does not change. Somewhere behind it a
-    second voice says something short, and it is not translated. The line is
-    still open.
+    '{Rival} notes {us} has called three times this week and asks if {leader}
+    has anything new to say.' Behind the translator, a second voice says
+    something short, untranslated.
   left:
-    text: "Say it. Propose a mutual pause"
+    text: "Propose a pause on both sides"
     effects: { escalation: -6, trust_primary: 4, public: -5, military: -4, commitment: -6 }
     tags: [deescalate, diplomacy, walk_back]
     odds:
@@ -632,10 +587,10 @@
       base: 0.55
       tags: [adversary, diplomacy]
       success:
-        text: "'Noted.' Then, four minutes later: 'Agreed in principle.' Nobody in either room said what the principle was."
+        text: "'Noted.' Then, four minutes later: 'Agreed in principle.' Nobody in either room says what the principle is."
         effects: { escalation: -6, trust_primary: 5 }
       failure:
-        text: "'Noted.' The line closed. On the ridge their guns registered twice more before dark."
+        text: "'Noted.' The line closes. On the ridge their guns fire twice more before dark."
         effects: { escalation: 5, trust_primary: -4, public: -3 }
   right:
     text: "Nothing to add. Close the line"
@@ -655,12 +610,9 @@
     flags_none: [ultimatum:deadline_passed, ultimatum:backed_down]
   note: Cross-hook. Our deadline about a column is being read as a deadline about them.
   text: >-
-    Put the deadline beside everything else this month and read it from
-    {rival_capital}. There it is not a deadline about one column, it is the
-    last step before the thing they have been told for a year we are planning,
-    and men who believe that do not withdraw a column, they reinforce it. I am
-    not saying they are right. I am saying the deadline we wrote about a
-    crossing is being read as a deadline about them.
+    From {rival_capital}, our deadline is not about a column; it is the last
+    step before the attack they think we are planning. Men who believe that
+    reinforce; they do not withdraw.
   left:
     text: "Widen it. Offer a package"
     effects: { escalation: -6, trust_primary: 6, commitment: -5, public: -4, military: -4 }
@@ -680,17 +632,15 @@
     flags_none: [ultimatum:deadline_passed, ultimatum:backed_down]
   note: Where you are at midnight is a signal, and two people have read it differently.
   text: >-
-    The deadline is at 03:00 our time. The General has asked that you be in the
-    operations room from midnight, and the Foreign Minister has asked that you
-    not be, because the cameras outside know what the lights mean and so does
-    their embassy across the square. I have put both requests in the diary. One
-    of them has to come out.
+    The deadline is 03:00 and the General wants you in the war room from
+    midnight. The Foreign Minister wants you seen at home; their embassy
+    opposite knows what the lights mean.
   left:
-    text: "Operations room from midnight"
+    text: "War room from midnight"
     effects: { military: 4, escalation: 3, trust_primary: -4, commitment: 3, public: 2 }
     tags: [military, deterrence, misperception]
   right:
-    text: "The residence. Be seen there"
+    text: "Stay home. Be seen there"
     effects: { military: -4, trust_primary: 4, escalation: -2, public: -2 }
     tags: [reassurance, stall, misperception]
 
@@ -708,14 +658,11 @@
     flags_none: [ultimatum:backed_down]
   note: Resolution after they blink. Two announcements six hours apart, and a door.
   text: >-
-    They have lost and they know it, and the only question left is whether
-    they are allowed to leave the room by a door. The formula on the table is
-    two unrelated announcements six hours apart: their column home for
-    'seasonal maintenance', our battalion off the ridge for 'rotation'. Nobody
-    will believe either. Everybody will accept both, which is the most a
-    formula can do.
+    They have lost and know it; the question is whether they get a door. Two
+    statements six hours apart: their column home for 'maintenance', ours off
+    the ridge for 'rotation'.
   left:
-    text: "Two announcements. Six hours"
+    text: "Two statements. Six hours apart"
     effects: { escalation: -14, trust_primary: 10, public: -7, military: -6, commitment: -6, allies: -2 }
     tags: [deescalate, diplomacy, reassurance, walk_back]
   right:
@@ -734,17 +681,14 @@
     flags_all: [ultimatum:backed_down]
   note: Resolution after we back down. He has both statements and a price for mislaying one.
   text: >-
-    I have the statement from the fourth and the statement from this morning,
-    and I have read them side by side, which is what I am for. I can read them
-    together on the floor at three, and I will win the afternoon and you will
-    lose it, and by Friday {rival_capital} will have learned that your word
-    lasts nine days. Or you can give me a seat in the room where the next one
-    is written, and I can find that I have mislaid one of the statements.
+    I have your statement from the fourth and this morning's, side by side,
+    which is what I am for. I read both aloud at three, or you give me a seat
+    in the room and I mislay one.
   left:
     text: "Read them. Do your worst"
     effects: { public: -10, commitment: 2, allies: -2, trust_primary: -2 }
     tags: [domestic, transparency]
   right:
-    text: "A seat in the room"
+    text: "Give him a seat in the room"
     effects: { public: 4, military: -4, intel: -3, commitment: -3 }
     tags: [domestic, concede]

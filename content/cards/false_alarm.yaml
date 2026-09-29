@@ -18,12 +18,10 @@
   warning: { true_follow: falarm_02_real_launch, false_follow: falarm_03_ghost_track, in: 1 }
   note: Arc entry. Timeout raises the alert state, the worse side.
   text: >-
-    03:12, one track out of the polar sector, ballistic, apogee consistent with an
-    intercontinental profile. The over-the-horizon radar has not confirmed and will
-    not for another two minutes. In ninety seconds I have to wake the release
-    authority. Sir or ma'am, that is you.
+    One missile track over the pole at 03:12, high enough to reach us. The second
+    radar needs two more minutes to confirm it, and the rules give you ninety seconds.
   left:
-    text: "Raise the alert state"
+    text: "Raise the alert"
     effects: { escalation: 6, military: 3, public: -2 }
     tags: [military, nuclear, escalatory]
     set: [false_alarm:reported, false_alarm:acted]
@@ -40,17 +38,16 @@
   tags: [nuclear, military, warning]
   note: True branch of 01. Escalates for real; the hotline is a Hotline Protocol charge.
   text: >-
-    Second radar confirms. Single vehicle, polar sector, trajectory terminates in
-    open sea four hundred miles north of Caldor, splash in nine minutes. No
-    notification was filed with us or with the Assembly. Whatever this is, it was
-    not meant to be quiet; it was meant to be seen.
+    Second radar confirms: one missile, coming down in open sea four hundred miles
+    north of Caldor, nine minutes out. Nobody warned us, which means it is meant to
+    be seen.
   left:
-    text: "Disperse the bombers"
+    text: "Scramble the bombers"
     effects: { escalation: 8, military: 6, trust_primary: -6, public: 3 }
     tags: [military, mobilise, nuclear, escalatory]
     set: [false_alarm:acted]
   right:
-    text: "Hotline, now"
+    text: "Call the hotline"
     effects: { military: -4, escalation: 3, public: -2 }
     tags: [diplomacy, deescalate, nuclear]
     spend_charge: deescalation
@@ -59,7 +56,7 @@
       base: 0.55
       tags: [adversary, diplomacy]
       success:
-        text: "A test, unannounced, of a vehicle they say we already knew about. {Rival_leader}'s office regrets the hour."
+        text: "An unannounced test of a missile they say we already knew about. {Rival_leader}'s office regrets the hour."
         effects: { trust_primary: 5, escalation: -4, intel: 4 }
         set: [false_alarm:stood_down]
       failure:
@@ -74,10 +71,9 @@
   tags: [nuclear, intel, misperception]
   note: False branch of 01. Uninvestigated, the ghost goes live.
   text: >-
-    The second radar saw nothing. The first is logging a software exception at
-    03:11:58, four seconds before it saw the vehicle. We assess, with low
-    confidence, that there was no vehicle. Low confidence is the honest number, and
-    the General's staff have already asked me for a higher one.
+    The second radar saw nothing, and the first logged a fault four seconds before
+    it saw a missile. Probably there was nothing, and the General wants a firmer
+    word than probably.
   left:
     text: "Stand down. Pull the logs."
     effects: { military: -3, intel: 5, escalation: -2 }
@@ -97,17 +93,15 @@
   acts: [1, 5]
   tags: [intel, warning, misperception]
   text: >-
-    The array saw the moon. At 03:12 it rose on precisely the bearing the polar
-    sector watches, and the filter that knows what the moon looks like was reset by
-    a maintenance patch last Tuesday. This is not exotic; it is the oldest ghost
-    there is. The next moonrise on that bearing is in twenty-seven days, and I would
-    like the patch gone before then.
+    The radar saw the moon rise at 03:12, on the exact line it watches for missiles.
+    Tuesday's patch wiped the filter that knows the moon, which rises there again in
+    twenty-seven days.
   left:
-    text: "Roll back the patch. Array down a day."
+    text: "Undo the patch. Radar down a day."
     effects: { military: -5, intel: 7, escalation: -2 }
     tags: [investigate, intel, deescalate]
   right:
-    text: "Keep the array up. Brief the crews."
+    text: "Keep the radar up. Warn the crews."
     effects: { military: 2, intel: -4, escalation: 1 }
     tags: [stall, military, warning]
 
@@ -124,17 +118,16 @@
   warning: { true_follow: falarm_06_boat_confirmed, false_follow: falarm_07_sounding_rocket, in: 1 }
   note: Arc entry. Timeout raises the alert state, the worse side.
   text: >-
-    Launch detection in the Sorrel Straits, depressed trajectory, sea-based
-    profile. Flight time to {capital} on that arc is seven minutes if it is what it
-    looks like. The constellation has a plume; the coastal radar has weather. I need
-    a decision on the alert state before the coastal radar clears.
+    Launch flash in the Straits, the kind a submarine makes, seven minutes from
+    {capital}. The satellite sees a plume, the coastal radar sees weather, and
+    you have until it clears.
   left:
-    text: "Hold the state. Give me the radar."
+    text: "Hold. Wait for the coastal radar."
     effects: { military: -4, intel: 3, public: -1 }
     tags: [stall, intel, nuclear]
     set: [false_alarm:reported]
   right:
-    text: "Alert state up. Wake the cabinet."
+    text: "Raise the alert. Wake the cabinet."
     effects: { escalation: 7, military: 3, public: -3 }
     tags: [military, nuclear, escalatory]
     set: [false_alarm:reported, false_alarm:acted]
@@ -146,10 +139,9 @@
   tags: [nuclear, naval, military]
   note: True branch of 05.
   text: >-
-    Confirmed. One of their boats, sixty miles inside the Straits, one vehicle,
-    inert warhead, into the sea off Caldor. They have a boat in our water that can
-    do that and they have shown us. There is a frigate within an hour of her and a
-    package that can be airborne in twenty minutes.
+    Confirmed: one of their submarines, sixty miles inside the Straits, has fired a
+    dummy warhead into the sea off Caldor. A frigate is an hour from her, and I
+    want the order now.
   left:
     text: "Put the frigate on her"
     effects: { military: 6, escalation: 9, trust_primary: -7, allies: 2 }
@@ -163,7 +155,7 @@
         text: "She surfaces and turns for home with our frigate a mile off her beam. The photographs are very good."
         effects: { public: 6, trust_primary: -3 }
       failure:
-        text: "She goes deep. The frigate loses her in the thermal layer, and her captain now knows exactly how long that took us."
+        text: "She goes deep and the frigate loses her. Her captain now knows exactly how long that took us."
         effects: { military: -4, escalation: 5, intel: -3 }
   right:
     text: "Log it. Protest it. Nothing else."
@@ -178,11 +170,9 @@
   tags: [nuclear, intel, misperception]
   note: False branch of 05.
   text: >-
-    It was a research rocket out of Amberline, a meteorological sounding, notified
-    to the Assembly nine days ago. The notice reached our foreign ministry, where
-    it is in a tray. We assess with high confidence that nobody in this building
-    had read it at 04:00. That is the whole finding, and the General points out
-    that a real launch would have looked exactly like this.
+    A weather rocket from Amberline, announced nine days ago in a notice still
+    unread in a tray at our foreign ministry. The General says a real one would
+    look exactly like this.
   left:
     text: "Stand down. Fix the tray."
     effects: { military: -3, allies: 2, intel: 5, escalation: -3 }
@@ -190,7 +180,7 @@
     set: [false_alarm:investigated, false_alarm:stood_down]
     clear: [false_alarm_live]
   right:
-    text: "Stay up. Rockets look alike."
+    text: "Stay on alert. Rockets look alike."
     effects: { military: 3, escalation: 3, allies: -3, intel: -2 }
     tags: [military, nuclear, stall]
     set: [false_alarm_live]
@@ -208,10 +198,9 @@
   warning: { true_follow: falarm_09_outside_the_box, false_follow: falarm_10_training_tape, in: 1 }
   note: Arc entry, late. Timeout treats the ninth track as real, the worse side.
   text: >-
-    {Rival} notified a live-fire exercise for this window, eight vehicles, all
-    inside a box we agreed. I am counting nine. The ninth is on a bearing that
-    leaves the box and does not come back. Ninety seconds ago I would have called
-    it a tracking error; I no longer have ninety seconds.
+    {Rival} announced eight missiles for tonight's exercise, all inside a box we
+    agreed. I am counting nine, and the ninth is heading out of the box and not
+    coming back.
   left:
     text: "Treat the ninth as real"
     effects: { escalation: 8, military: 4, public: -2 }
@@ -232,13 +221,11 @@
   tags: [nuclear, military, warning]
   note: True branch of 08. Timeout goes to full alert, the worse side.
   text: >-
-    The ninth is real, and it is not theirs to explain. Impact predicted in the
-    Vestrian highlands, eleven minutes, warhead unknown. Either it is a failure
-    they are as frightened of as we are, or it is a test of what we do when a test
-    goes wrong. I can have interceptors on it in four minutes and I would like the
-    order now.
+    The ninth is real: down in the Vestrian highlands in eleven minutes, warhead
+    unknown. Their mistake or their test of us, either way I can have interceptors
+    on it in four minutes.
   left:
-    text: "Full alert. Ready the response."
+    text: "Full alert. Ready our missiles."
     effects: { escalation: 12, military: 8, trust_primary: -8, public: 3 }
     tags: [military, mobilise, nuclear, escalatory]
     set: [false_alarm:acted]
@@ -248,14 +235,14 @@
     tags: [missile_defence, military, nuclear]
     set: [false_alarm:acted]
     odds:
-      label: Intercept
+      label: Shot down
       base: 0.45
       tags: [intercept]
       success:
         text: "Two interceptors, one hit, debris over empty hills. Vestria's ministers are on the phone in that order."
         effects: { public: 6, allies: 4, trust_primary: -3, escalation: -3 }
       failure:
-        text: "Both interceptors miss. The vehicle breaks up on its own over the highlands, inert, and the world watches us fail to stop a dud."
+        text: "Both miss. The missile breaks up on its own over the highlands, harmless, and the whole world watches us fail to stop a dud."
         effects: { public: -7, military: -5, escalation: 4 }
 
 - id: falarm_10_training_tape
@@ -265,11 +252,9 @@
   tags: [nuclear, intel, misperception]
   note: False branch of 08.
   text: >-
-    There was no ninth vehicle. A training scenario, nine tracks, was loaded on the
-    live correlator at 22:00 for a crew drill and was not unloaded. The eight real
-    launches happened to line up with eight of the nine simulated ones, and the
-    board did what it was built to do. We assess this as a procedural failure; the
-    duty crew assess it as the end of their careers.
+    No ninth missile, only a training drill left running on the live board since
+    22:00. Eight real launches lined up with eight fake tracks, and the duty crew
+    think they are finished.
   left:
     text: "Stand down. Keep the crew."
     effects: { military: -3, intel: 4, escalation: -3, public: -2 }
@@ -277,7 +262,7 @@
     set: [false_alarm:investigated, false_alarm:stood_down]
     clear: [false_alarm_live]
   right:
-    text: "Stay up. Nobody drills tonight."
+    text: "Stay on alert. No drills tonight."
     effects: { military: 4, escalation: 3, intel: -3 }
     tags: [military, nuclear, stall]
     set: [false_alarm_live]
@@ -295,16 +280,15 @@
   warning: { true_follow: falarm_12_range_hot, false_follow: falarm_13_sun_glint, in: 1 }
   note: The constellation sees more, including ghosts. Timeout raises the state, the worse side.
   text: >-
-    The constellation has a hot plume over their northern test range, a single
-    bright source, rising. Nothing on the ground radars yet, but nothing would be
-    for another six minutes on that geometry. The satellites see further than
-    anything else we own. They also see things nothing else can check.
+    The satellites have a bright plume rising over their northern test range. Our
+    ground radars cannot see it for six more minutes, and satellites see things
+    nothing else can check.
   left:
     text: "Wait for the ground radars"
     effects: { military: -3, intel: 3 }
     tags: [stall, intel, nuclear]
   right:
-    text: "Go to the higher state"
+    text: "Raise the alert"
     effects: { escalation: 6, military: 3, public: -2 }
     tags: [military, nuclear, escalatory]
     set: [false_alarm:acted]
@@ -316,10 +300,9 @@
   tags: [nuclear, intel, warning]
   note: True branch of 11.
   text: >-
-    The range is hot. A single vehicle on a lofted trajectory, landing inside their
-    own territory, consistent with a new design they have been hiding for a year.
-    It was not notified because notifying it would have told us it exists. We now
-    assess, moderate confidence, that it exists.
+    Real: one missile on a high arc into their own territory, a new design hidden
+    for a year. They kept it quiet because announcing it would tell us it exists,
+    and now we know.
   left:
     text: "Say we saw it"
     effects: { public: 4, trust_primary: -6, escalation: 4, intel: -4 }
@@ -337,19 +320,17 @@
   tags: [nuclear, intel, misperception, space]
   note: False branch of 11. The constellation was not wrong, only bright.
   text: >-
-    Sunlight. At that hour the sun sits low behind their range, and a sheet of high
-    cloud at forty thousand feet caught it at the one angle the infrared sensor
-    cannot tell from a launch. The constellation was not wrong; it saw exactly what
-    was there. The difficulty is that it cannot tell you what a thing is, only that
-    it is bright.
+    Sunlight. The sun sits low behind their range at that hour, and a sheet of
+    cloud at forty thousand feet caught it at the one angle our heat sensor cannot
+    tell from a launch.
   left:
-    text: "Stand down. Recalibrate the sensor."
+    text: "Stand down. Retune the sensor."
     effects: { military: -3, intel: 5, escalation: -2, economy: -1 }
     tags: [investigate, deescalate, space]
     set: [false_alarm:investigated, false_alarm:stood_down]
     clear: [false_alarm_live]
   right:
-    text: "Stay up until the range cools"
+    text: "Stay on alert till the range cools"
     effects: { military: 3, escalation: 3, intel: -3 }
     tags: [military, nuclear, stall]
     set: [false_alarm_live]
@@ -367,17 +348,16 @@
   warning: { true_follow: falarm_15_salvo_notified, false_follow: falarm_16_reflection, in: 1 }
   note: Late development. Timeout executes the response posture, the worse side.
   text: >-
-    Six tracks. Not one, six, polar sector, spread like a salvo. Both radars have
-    them, the constellation has them, and every confirmation rule we wrote after
-    the last time has been met. I am telling you this at 04:40 because the rules
-    say I tell you, and the rules also say what comes next.
+    Six missile tracks over the pole, not one, and both radars and the satellites
+    agree. Every rule we wrote after the last false alarm has been met, and the
+    rules say what comes next.
   left:
-    text: "Execute the response posture"
+    text: "Go to launch-ready"
     effects: { escalation: 12, military: 8, public: -3, trust_primary: -8 }
     tags: [military, nuclear, mobilise, escalatory]
     set: [false_alarm:acted]
   right:
-    text: "Ninety seconds. Get me the hotline."
+    text: "Ninety seconds. Get the hotline."
     effects: { military: -5, escalation: 4, intel: 2 }
     tags: [stall, diplomacy, nuclear]
 
@@ -388,30 +368,28 @@
   tags: [nuclear, diplomacy, warning]
   note: True branch of 14. A real salvo test with twenty-one minutes' notice.
   text: >-
-    "{Rival} confirms a scheduled salvo test of six vehicles into the polar sea,
-    notified to the Assembly Secretariat at 04:19 {rival_capital} time." A pause,
-    then: "The Secretariat may not have forwarded the notification in the time
-    available." Twenty-one minutes' notice, filed with an office that closes at
-    night. The translator does not editorialise, and does not need to.
+    "{Rival} confirms a test of six missiles into the polar sea, filed at 04:19
+    {rival_capital} time." A pause, then: "The Assembly may not
+    have forwarded it in time."
   left:
     text: "Accept it. Demand the calendar."
     effects: { escalation: -5, trust_primary: 3, military: -4, public: -3 }
     tags: [diplomacy, deescalate, nuclear]
     set: [false_alarm:stood_down]
   right:
-    text: "Answer their salvo with ours"
+    text: "Answer with six of our own"
     effects: { escalation: 10, military: 7, trust_primary: -8, public: 4, economy: -2 }
     tags: [military, nuclear, deterrence, escalatory]
     set: [false_alarm:acted]
     odds:
-      label: They read it as a test
+      label: They shrug
       base: 0.5
       tags: [adversary]
       success:
         text: "Their statement calls ours a scheduled test. Nobody scheduled it, and everyone agrees to pretend."
         effects: { escalation: -3, trust_primary: -2 }
       failure:
-        text: "Their statement calls ours a provocation timed to an exercise, which is what it was. Two more of their boats leave port."
+        text: "Their statement calls ours a provocation timed to their exercise, which it was. Two more of their submarines leave port."
         effects: { escalation: 6, trust_primary: -6, allies: -3 }
 
 - id: falarm_16_reflection
@@ -421,19 +399,17 @@
   tags: [nuclear, intel, misperception]
   note: False branch of 14. The last fix caused this ghost.
   text: >-
-    One object, not six. A single decommissioned satellite re-entering over the
-    pole, and its return echoed off the ionosphere five times before it reached us.
-    The declutter that would have caught this was turned down after the last ghost,
-    so the array would stop missing things. It is now very good at not missing
-    things.
+    One object, not six: a dead satellite falling over the pole, echoing five times
+    off the upper air. We turned the filter down after the last false alarm, and now
+    it misses nothing.
   left:
-    text: "Stand down. Turn the declutter back up."
+    text: "Stand down. Restore the filter."
     effects: { military: -4, intel: 5, escalation: -3 }
     tags: [investigate, deescalate, intel]
     set: [false_alarm:investigated, false_alarm:stood_down]
     clear: [false_alarm_live]
   right:
-    text: "Keep the posture until dawn"
+    text: "Stay on alert until dawn"
     effects: { military: 4, escalation: 4, intel: -4, public: -2 }
     tags: [military, nuclear, stall]
     set: [false_alarm_live]
@@ -448,11 +424,9 @@
   conditions: { flags_all: [false_alarm:reported], pieces_any: [hardened_nc3] }
   note: Hardened NC3 moment and complication. The three-person rule catches a ghost; the two who were wrong want the third moved.
   text: >-
-    At 04:10 the board lit and two of the three said yes. The third, a lieutenant
-    in her second week, said the elevation angle was wrong for the range and would
-    not turn her key. She was right; it was a calibration echo. The other two have
-    asked, in writing, that she be moved to a watch where being right is less
-    expensive.
+    At 04:10 the board lit and two of three keys turned. The third, a lieutenant
+    two weeks in, said the angle was wrong and held hers; she was right, and the
+    other two want her moved.
   left:
     text: "She stays. Say so in writing."
     effects: { military: -5, intel: 6, escalation: -2, public: 2 }
@@ -473,12 +447,11 @@
   conditions: { flags_all: [false_alarm:reported], pieces_any: [launch_on_warning] }
   note: Launch on Warning moment. Waiting feels like betrayal of the posture.
   text: >-
-    The posture says that when the board lights, we go. This month it lit and we
-    waited, and they watched us wait. Now they have their answer. Either the
-    posture is true or the waiting is, and the crews sleeping under the wings
-    would like to know which.
+    Our standing order says when the board lights, we fire. This month it lit and we
+    waited, they watched us wait, and the crews sleeping under the wings want to
+    know which is true.
   left:
-    text: "The posture is true. Say it publicly."
+    text: "The order stands. Say so publicly."
     effects: { commitment: 9, trust_primary: -7, escalation: 5, military: 5 }
     tags: [public_commitment, deterrence, nuclear]
     set: [false_alarm:acted]
@@ -497,27 +470,25 @@
   conditions: { flags_all: [false_alarm:reported], pieces_any: [paranoid_intel] }
   note: Paranoid Lyle reads the same board as falarm_20_measured and cannot rule anything out.
   text: >-
-    Overnight imagery of their northern missile fields shows vehicle movement at two
-    of nine sites. It is consistent with maintenance rotation. It is also
-    consistent with fuelling, and with fuelling arranged to look like maintenance
-    rotation. I have not slept, so I want to be careful about how I say this: I
-    would not rule out anything.
+    Overnight photos show trucks moving at two of their nine northern missile
+    fields. It looks like maintenance, or like fuelling dressed as maintenance, and
+    I cannot rule either out.
   left:
-    text: "Raise readiness at our fields"
+    text: "Ready our own missile fields"
     effects: { military: 5, escalation: 6, trust_primary: -6, economy: -1 }
     tags: [military, nuclear, mobilise]
     set: [false_alarm:acted]
   right:
-    text: "Task the satellite again. Then sleep."
+    text: "Look again from orbit. Then sleep."
     effects: { intel: 3, military: -3, commitment: -2 }
     tags: [investigate, intel, stall]
     set: [false_alarm:investigated]
     odds:
-      label: Second pass
+      label: Second look
       base: 0.6
       tags: [intel]
       success:
-        text: "The second pass shows tarpaulins, a crane and a tea urn. Maintenance."
+        text: "The second look shows tarpaulins, a crane and a tea urn. Maintenance."
         effects: { intel: 4, escalation: -2 }
       failure:
         text: "Cloud over both sites for the next fourteen hours. He does not sleep either."
@@ -532,17 +503,15 @@
   conditions: { flags_all: [false_alarm:reported], pieces_any: [cautious_intel] }
   note: Cautious Lyle read the same board as falarm_19_unsleeping and decided not to wake you.
   text: >-
-    Overnight imagery of their northern missile fields shows vehicle movement at two
-    of nine sites, consistent with maintenance rotation. The crews' families were
-    not moved, and the fuel trains did not run. I did not wake you for it. I am
-    telling you now because the General's staff have it, and they are telling you
-    something else.
+    Trucks moved at two of their nine missile fields overnight and I let you sleep:
+    no fuel trains ran, no families moved. The General's staff have the same photos
+    and another story.
   left:
     text: "Next time, wake me"
     effects: { intel: -5, military: 3, commitment: 2 }
     tags: [intel, military, personal]
   right:
-    text: "Back him. Tell the General to stand down."
+    text: "Back him. Stand the General down."
     effects: { military: -6, intel: 5, escalation: -3, trust_primary: 2 }
     tags: [deescalate, intel, personal]
     set: [false_alarm:stood_down]
@@ -556,11 +525,9 @@
   conditions: { flags_all: [false_alarm:reported], pieces_any: [civil_defence] }
   note: Civil Defence moment and complication. The programme made the ghost public.
   text: >-
-    The alert state tripped the automatic siren feed at 04:22 in fourteen cities.
-    It was a test pattern, but at 04:22 nobody hears the pattern. The switchboard
-    has eleven thousand calls, two motorway pile-ups, and one hospital that moved
-    its intensive care ward into the basement. The morning bulletins want a
-    sentence, and they want it from you.
+    The alert set off sirens in fourteen cities at 04:22. Eleven thousand calls,
+    two motorway pile-ups, one hospital in its basement, and the morning news wants
+    a sentence from you.
   left:
     text: "Call it a scheduled test"
     effects: { public: 4, intel: -3, trust_secondary: -2, commitment: 4 }
@@ -577,12 +544,10 @@
   tags: [personal, domestic, nuclear]
   conditions: { flags_all: [false_alarm:reported] }
   text: >-
-    You have not been home in four days. Jonah calls on the line he hates, at
-    06:10, and asks whether the thing in the night was the real thing. The
-    neighbours have packed their car. He wants to know whether to pack yours, and
-    whether you have eaten.
+    Four days since you were home, and the neighbours have just packed their car.
+    Was that the real thing tonight, do I pack ours, and have you eaten?
   left:
-    text: "Tell him to unpack. It was nothing."
+    text: "Tell him it was nothing"
     effects: { public: 3, intel: -3, escalation: -1 }
     tags: [personal, reassurance, domestic]
   right:
@@ -603,12 +568,11 @@
     unseen: [cyberew_17_written_not_seen]
   note: Cross-arc hook. The ghosts may have been written to the board, not seen by it.
   text: >-
-    We have put the ghosts beside the outages and the assessment has changed.
-    Moderate confidence: at least one track that woke you this month was not seen
-    by the array but written to it. Someone wanted to know what you do at 03:00
-    when the board lights. We should assume they now know.
+    At least one track that woke you this month was never seen by the radar;
+    someone typed it onto the board. They wanted to know what you do at 03:00, and
+    now they know.
   left:
-    text: "Take the array out of the release chain"
+    text: "Never launch on the board alone"
     effects: { military: -7, intel: 5, escalation: -3, commitment: -3 }
     tags: [deescalate, investigate, nuclear, cyber]
     set: [false_alarm:investigated]
@@ -629,10 +593,9 @@
   conditions: { flags_all: [false_alarm:reported] }
   note: Branch card. Leads to the two resolutions.
   text: >-
-    The number of ghosts this month is outside anything in our records. We assess
-    two hypotheses with roughly equal weight: a system that is failing, or a system
-    that is being taught to be ignored. The first is embarrassing and the second is
-    a preparation. I cannot tell you which, and I would rather say that than pick.
+    More false alarms this month than in all our records. Either the system is
+    failing or someone is teaching us to ignore it, and I would rather say I cannot
+    tell than pick.
   left:
     text: "It is failing. Audit everything."
     effects: { military: -6, intel: 6, escalation: -3, economy: -2 }
@@ -641,7 +604,7 @@
     clear: [false_alarm_live]
     follow: [{ card: falarm_25_post_mortem, in: 2 }]
   right:
-    text: "It is a preparation. Harden the posture."
+    text: "They are preparing. High alert."
     effects: { military: 6, escalation: 7, trust_primary: -8, public: 2 }
     tags: [military, deterrence, nuclear, escalatory]
     set: [false_alarm:acted]
@@ -654,11 +617,9 @@
   tags: [intel, nuclear, transparency]
   note: Resolution, stood down. The fault was ours.
   text: >-
-    The audit is done and the fault was ours: three fixes, each applied to cure
-    the last ghost, each the cause of the next. Nobody sabotaged anything; we did
-    this to ourselves with good intentions and a maintenance schedule. I have
-    written it up in eleven pages that anyone could follow. Whether anyone outside
-    this building gets to follow them is your decision, not mine.
+    The fault was ours: three fixes, each one curing a false alarm and causing the
+    next. Eleven pages anyone could follow, and whether anyone outside this building
+    does is your call.
   left:
     text: "Publish the eleven pages"
     effects: { public: -8, allies: 6, trust_primary: 10, intel: 6, military: -4 }
@@ -676,24 +637,21 @@
   tags: [nuclear, diplomacy, misperception]
   note: Resolution, acted. The rival has noticed the bombers.
   text: >-
-    "{Rival_leader} wishes to understand why {us} has twice this month moved
-    bombers to the runway without notice, and whether {leader} is aware of it."
-    The pause after aware is long enough to count in. "He asks this as a courtesy,
-    before other people ask it in other ways." The translator's voice does not
-    change; his breathing does.
+    "{Rival_leader} asks why {us} twice put bombers on the runway unannounced, and whether {leader} knows." A pause, then: "He asks as a
+    courtesy, before others ask another way."
   left:
-    text: "Tell him about the ghosts"
+    text: "Tell him about the false alarms"
     effects: { trust_primary: 12, escalation: -8, public: -5, military: -6, intel: -3 }
     tags: [transparency, deescalate, diplomacy, nuclear]
     spend_charge: deescalation
     set: [false_alarm:stood_down]
   right:
-    text: "Readiness is not his business"
+    text: "Our bombers are not his business"
     effects: { trust_primary: -10, escalation: 8, commitment: 6, military: 4 }
     tags: [secrecy, deterrence, nuclear]
     set: [false_alarm:acted]
     odds:
-      label: He lets it go
+      label: He drops it
       base: 0.4
       tags: [adversary, diplomacy]
       success:

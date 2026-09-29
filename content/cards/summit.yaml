@@ -24,13 +24,11 @@
   conditions: { flags_none: [summit:proposed] }
   note: Entry, early. The sentence is the whole message. Asking first costs face at home; waiting costs trust.
   text: >-
-    I had lunch yesterday in Amberline with a man who taught {rival_leader} his
-    second language and still corrects it. Over the fish he said, to nobody in
-    particular, that his former pupil would not refuse a meeting if one were
-    asked for. He did not say by whom. In my experience that sentence is the
-    whole message, and the fish was very good.
+    The man who taught {rival_leader} his second language lunched with me
+    yesterday and said, over the fish, that his pupil would not refuse a
+    meeting. He did not say who should ask.
   left:
-    text: "Ask. Publicly, tonight"
+    text: "Ask for it. Publicly, tonight"
     effects: { trust_primary: 7, escalation: -4, public: -5, military: -4, commitment: -3 }
     tags: [diplomacy, reassurance, public_commitment]
     set: [summit:proposed]
@@ -51,21 +49,17 @@
   conditions: { flags_none: [summit:proposed] }
   note: Entry, mid. The Assembly's house, with the Assembly's paragraph attached.
   text: >-
-    The Assembly can offer the house at Vellmar, on the lake, from the
-    fourteenth, and I have already been told by {rival_capital} that they would
-    not object to the lake. The house comes with a condition, because
-    everything I have comes with a condition: the first paragraph of whatever
-    is signed there reaffirms the Convention, including the inspections your
-    General has spent two years declining. I am the person you will blame for
-    that. I am used to it.
+    The Assembly offers its lake house at Vellmar from the fourteenth;
+    {rival_capital} has quietly said yes. The price is the inspections your
+    General has refused for two years.
   left:
-    text: "Take the house. Take the paragraph"
+    text: "Take the house. Accept inspections"
     effects: { trust_primary: 5, trust_secondary: 4, military: -6, allies: 3, commitment: 3 }
     tags: [diplomacy, alliance, transparency]
     set: [summit:proposed]
     follow: [{ card: summit_05_preconditions, in: 2 }]
   right:
-    text: "A venue of our choosing"
+    text: "Pick our own venue"
     effects: { trust_secondary: -4, allies: -3, commitment: 3, public: 3 }
     tags: [deterrence, stall, diplomacy]
     set: [summit:proposed]
@@ -80,11 +74,9 @@
   conditions: { flags_none: [summit:proposed] }
   note: Entry, late. Help that helps the helper. Nobody has to be the one who asked, and he is at the table.
   text: >-
-    '{Other} has spoken to both {capital} and {rival_capital} this week, and
-    both have said the same thing about the other, which is a kind of
-    agreement. I am prepared to host you both at {other_capital} on the
-    twentieth, and to sit at the table, so that nobody has to be the one who
-    asked. You will understand that I would then be at the table.'
+    '{Capital} and {rival_capital} say the same of each other, which is a
+    kind of agreement. Come to {other_capital} on the twentieth; I take a
+    chair, so nobody has to have asked.'
   left:
     text: "Accept the twentieth"
     effects: { trust_secondary: 6, trust_primary: 3, allies: -5, commitment: -2, public: -2 }
@@ -109,12 +101,9 @@
     flags_none: [summit:proposed]
   note: Cross-hook entry. After the month so far, two things left to try, and the other one is the General's.
   text: >-
-    After the month we have had there are two things left to try, and the
-    other one is the General's. I can have a proposal in {rival_capital} by
-    midnight: two leaders, one room, no agenda, no flags, somewhere neither of
-    you has to be seen arriving first. They will say yes slowly or no quickly.
-    Either answer tells us what we are dealing with, which we do not, at
-    present, know.
+    Two things are left to try, and the other is the General's. I can have an
+    offer in {rival_capital} by midnight, two leaders, no flags, and they
+    will say yes slowly or no fast.
   left:
     text: "Send it by midnight"
     effects: { trust_primary: 6, escalation: -5, public: -4, military: -5, allies: -2 }
@@ -122,7 +111,7 @@
     set: [summit:proposed]
     follow: [{ card: summit_07_the_venue, in: 2 }]
   right:
-    text: "Not from where we are standing"
+    text: "Not from where we stand"
     effects: { military: 4, trust_primary: -5, escalation: 3, public: 2, commitment: 3 }
     tags: [deterrence, stall]
     set: [summit:proposed]
@@ -137,19 +126,16 @@
   tags: [diplomacy, military, deterrence]
   note: Their yes has a price and the price is the thing the meeting was for.
   text: >-
-    Their answer arrived at 04:00 and it is yes, provided the spring exercises
-    are cancelled before anyone boards a plane. Cancel them and you arrive
-    having already given the thing the meeting was for, and they will know what
-    the next thing costs. Refuse and there may be no meeting. The exercises
-    could be postponed a week without anyone noticing, except them, who would
-    notice, and read it correctly.
+    Their answer at 04:00 is yes, if we cancel the spring exercises before
+    anyone flies. Cancel and you arrive having already paid; they will know
+    what the next thing costs.
   left:
     text: "Cancel them. Board the plane"
     effects: { military: -7, public: -4, trust_primary: 8, escalation: -5, commitment: -4 }
     tags: [concede, deescalate, reassurance]
     follow: [{ card: summit_07_the_venue, in: 1 }]
   right:
-    text: "No preconditions. Meet or don't"
+    text: "No conditions. Meet or don't"
     effects: { military: 3, trust_primary: -4, commitment: 5, escalation: 3, public: 2 }
     tags: [deterrence, public_commitment]
     follow: [{ card: summit_08_no_plans_to_travel, in: 2 }]
@@ -161,19 +147,16 @@
   tags: [misperception, diplomacy, back_channel]
   note: Nine days of silence, read two ways in their capital. The colleague wrote a very good memoir.
   text: >-
-    Nine days and no invitation, but they have let it be known through
-    {other_capital} that one would be considered, which is how a proud man
-    asks. In their reading you are waiting because you want the meeting more,
-    which is true, and because you mean to strike and want the meeting as
-    cover, which is not. I had a colleague in the last crisis who let a
-    silence like this run one week too long. He wrote a very good memoir.
+    Nine days, no invitation, but they told {other_capital} one would be
+    considered, which is how a proud man asks. A colleague let one run a
+    week too long and wrote a fine memoir.
   left:
     text: "Send the invitation. Today"
     effects: { trust_primary: 6, public: -4, commitment: -3, military: -3, escalation: -3 }
     tags: [diplomacy, reassurance]
     follow: [{ card: summit_07_the_venue, in: 1 }]
   right:
-    text: "One more week"
+    text: "Wait one more week"
     effects: { trust_primary: -5, escalation: 5, intel: 2, military: 2 }
     tags: [stall, deterrence, misperception]
     follow: [{ card: summit_08_no_plans_to_travel, in: 2 }]
@@ -185,11 +168,9 @@
   tags: [diplomacy, alliance]
   note: Whoever travels is the one who wanted it. She can tell each side the other asked first.
   text: >-
-    Both sides have agreed to meet and neither will say where, because whoever
-    travels is the one who wanted it. {Rival} proposes {rival_capital} and your
-    General proposes {capital}, for the same reason. I have the house at
-    Vellmar, a lake, and a flag that belongs to nobody, and I can have both
-    delegations told tonight that the other one asked for it first.
+    Both sides will meet and neither will say where, as whoever travels
+    wanted it more. I have a house at Vellmar, a neutral flag, and can tell
+    each side the other asked first.
   left:
     text: "Vellmar. Tell them we asked"
     effects: { trust_primary: 7, trust_secondary: 3, public: -5, military: -3, commitment: -3 }
@@ -205,12 +186,12 @@
       base: 0.4
       tags: [adversary, diplomacy]
       success:
-        text: "They accepted, on condition that it be described as a working visit and that their plane not be filmed landing."
+        text: "They accept, on condition it is called a working visit and their plane is not filmed landing."
         effects: { public: 6, trust_primary: -2, allies: 2 }
         set: [summit:agreed]
         follow: [{ card: summit_10_the_night_before, in: 3 }]
       failure:
-        text: "Their answer was a photograph of their delegation at the airport, not boarding."
+        text: "Their answer is a photograph of their delegation at the airport, not boarding."
         effects: { trust_primary: -5, escalation: 4, public: -3 }
         follow: [{ card: summit_08_no_plans_to_travel, in: 1 }]
 
@@ -223,11 +204,9 @@
   tags: [diplomacy, domestic, misperception]
   note: Who blinks first about attending. Timeout is neither of us going, the worse side.
   text: >-
-    {Rival_capital} is briefing that {rival_leader} 'has no plans to travel this
-    month', sourced to his own office, twelve hours after your office let it be
-    known that a date was being discussed. I go on air at nine. Either you are
-    going to a meeting the other man is not attending, or you are not going,
-    and one of those is my headline. Which?
+    {Rival_capital} says {rival_leader} 'has no plans to travel', twelve
+    hours after your office leaked a date. I am on at nine: are you flying
+    to a meeting he skips, or not at all?
   left:
     text: "We are going. He will come"
     effects: { commitment: 6, public: -3, trust_primary: 4, military: -3 }
@@ -237,12 +216,12 @@
       base: 0.5
       tags: [adversary, diplomacy]
       success:
-        text: "His plane left {rival_capital} at 05:10, unannounced, and his office issued a correction about the word 'month'."
+        text: "His plane leaves {rival_capital} at 05:10, unannounced, and his office issues a correction about the word 'plans'."
         effects: { public: 6, trust_primary: 4, escalation: -4 }
         set: [summit:agreed]
         follow: [{ card: summit_10_the_night_before, in: 2 }]
       failure:
-        text: "You landed at Vellmar at 08:00. He did not."
+        text: "You land at Vellmar at 08:00. He does not."
         effects: { public: -8, trust_primary: -5, allies: -3, escalation: 3 }
         set: [summit:collapsed]
         follow: [{ card: summit_14_the_empty_chair, in: 0 }]
@@ -260,17 +239,16 @@
   tags: [personal, domestic]
   note: Wheels up at six. Only one of them sleeps.
   text: >-
-    Wheels up at six, they said. There is soup and you have not eaten it. I am
-    not asking what you will say to him. I am asking whether you are going as
+    Wheels up at six, and the soup has gone cold. Tell me if you are going as
     the office or as yourself, because I have met both, and only one of them
     sleeps.
   left:
-    text: "As myself. For an hour"
+    text: "Go as yourself. For an hour"
     effects: { trust_primary: 6, commitment: -4, military: -3, public: -2 }
     tags: [personal, reassurance]
     follow: [{ card: summit_11_the_room, in: 1 }]
   right:
-    text: "As the office"
+    text: "Go as the office"
     effects: { trust_primary: -3, commitment: 4, military: 2, public: 2 }
     tags: [personal, deterrence]
     follow: [{ card: summit_11_the_room, in: 1 }]
@@ -284,11 +262,9 @@
   tags: [diplomacy, personal, misperception]
   note: The summit itself. He asks in your language, badly, and waits. Timeout says none, the worse side.
   text: >-
-    'I have forty generals who think this room is a mistake and a mother who
-    thinks it is not. I will tell you what I have told neither of them: I do
-    not know what your battalion on the ridge is for, and I have stopped
-    pretending to my staff that I do.' He says it in your language, badly, and
-    waits. 'How many generals do you have?'
+    'My forty generals call this a mistake, and I tell none of them this: I
+    do not know what your battalion on the ridge is for.' He asks in your
+    language, badly, how many you have.
   left:
     text: "Tell him the truth. All of it"
     effects: { trust_primary: 10, commitment: -5, military: -5, intel: -3 }
@@ -309,19 +285,16 @@
   tags: [diplomacy, reassurance, alliance]
   note: Resolution. The communique is agreed except for the last sentence, which is theirs and about Vestria.
   text: >-
-    It is four in the morning and the communiqué is agreed except for the last
-    sentence, which is theirs, and says that the future of Vestria will be
-    decided 'by the parties directly concerned'. Varga's people will read that
-    as us handing them the borderland; they read it as us not handing it to
-    Varga. Sign it and we fly home with a paper. Strike it and we fly home with
-    a handshake.
+    All agreed but their last line, leaving Vestria to 'the parties
+    concerned', which our ally will call a sell-out. Sign and we fly home
+    with a paper; strike it and with a handshake.
   left:
     text: "Sign it, sentence and all"
     effects: { escalation: -14, trust_primary: 10, allies: -8, public: -4, commitment: -5 }
     tags: [diplomacy, concede, deescalate]
     set: [summit:communique]
   right:
-    text: "Strike it. The handshake will do"
+    text: "Strike the line. Shake hands"
     effects: { escalation: -6, trust_primary: -3, allies: 4, public: 2, military: -2, commitment: 2 }
     tags: [diplomacy, alliance, stall]
 
@@ -334,25 +307,23 @@
   tags: [diplomacy, misperception, personal]
   note: The General's note is on his desk and on the front page. He is standing; his delegation is watching him. Timeout lets him go.
   text: >-
-    'Your General's briefing note is on my desk this morning and it is also on
-    the front page in {rival_capital}, and it says that the purpose of this
-    meeting is to buy six weeks for the battalion on the ridge. I did not come
-    here to be six weeks.' He is standing. His delegation is not, yet, and is
-    watching him to see whether they should be.
+    'Your General's note is on my desk and on my front pages: this meeting
+    buys you six weeks, and I did not come to be six weeks.' He stands; his
+    people watch to see if they should.
   left:
     text: "Sit down. I will explain the note"
     effects: { public: -3, military: -6, trust_primary: 4, commitment: -3 }
     tags: [transparency, reassurance, diplomacy]
     odds:
-      label: He returns
+      label: He sits
       base: 0.55
       tags: [adversary, diplomacy]
       success:
-        text: "He sat. It took eleven minutes, and the delegation sat after him, one by one, like a jury."
+        text: "He sits. It takes eleven minutes, and the delegation sits after him, one by one, like a jury."
         effects: { trust_primary: 6, escalation: -4 }
         follow: [{ card: summit_12_the_last_sentence, in: 1 }]
       failure:
-        text: "He left by the lake door so the cameras at the front would not have it. They had it by noon anyway."
+        text: "He leaves by the lake door so the cameras at the front will miss it. They have it by noon anyway."
         effects: { trust_primary: -6, escalation: 6, public: -5 }
         set: [summit:collapsed]
         follow: [{ card: summit_14_the_empty_chair, in: 1 }]
@@ -370,17 +341,15 @@
   tags: [domestic, diplomacy, misperception]
   note: Resolution for collapse. Two chairs, a lake, and two minutes of airtime.
   text: >-
-    Two chairs, a lake, a hundred and forty journalists who flew in for a
-    handshake and are filing about the weather. In {rival_capital} it is your
-    fault, in {capital} it is his, and in Amberline it is the Assembly's for
-    lending the house. I have eight minutes of airtime at nine and I am giving
-    you two. Say something that is not 'regret'.
+    Two chairs, a lake, a hundred and forty journalists who came for a
+    handshake and are filing about the weather. You have two minutes at
+    nine; say something that is not 'regret'.
   left:
-    text: "The door stays open"
+    text: "Say the door stays open"
     effects: { public: -6, trust_primary: 4, escalation: -3, military: -3 }
     tags: [reassurance, diplomacy, deescalate]
   right:
-    text: "We were never going to beg"
+    text: "Say we were never going to beg"
     effects: { public: 6, trust_primary: -8, escalation: 6, allies: -3 }
     tags: [deterrence, public_commitment, domestic]
 
@@ -397,12 +366,9 @@
     pieces_any: [hawk_general]
   note: The General hates the optics. Nothing is being advised against; things are being noted.
   text: >-
-    The photograph will be you and him, hands together, under two flags, in
-    the same week their column sat at the Sallow crossing with its engines
-    running. It will be on the wall of every mess on their side by evening, and
-    on ours. The handshake is not being advised against. The timing is being
-    noted, and so is the fact that nobody asked the officers who will have to
-    look at it.
+    The photograph is you shaking his hand under two flags, the same week
+    their tanks sat at the crossing. Nobody advises against it; the timing is
+    noted, as is who was not asked.
   left:
     text: "No photograph. Keep the table"
     effects: { trust_primary: -5, military: 3, public: 2, allies: -2, commitment: 2 }
@@ -423,11 +389,9 @@
     pieces_any: [ambassador]
   note: The Ambassador's gift. A wedding in Amberline, and a pocket to carry a date home in.
   text: >-
-    Their Deputy Foreign Minister and I were young together in a posting
-    neither of us mentions, and he has agreed to lunch in Amberline on Thursday
-    if it is understood that he is there for a wedding. He can carry a date and
-    a room back to {rival_capital} in his pocket. He can also carry back
-    whatever I am not authorised to say, so I would like to know what that is.
+    Their deputy minister and I go back to a posting neither mentions, and
+    Thursday he is in Amberline for a wedding. Over lunch he could carry a
+    date and a room home in his pocket.
   left:
     text: "Give him a date and a room"
     effects: { trust_primary: 5, commitment: 3, public: -2, military: -2 }
@@ -437,12 +401,12 @@
       base: 0.55
       tags: [back_channel, diplomacy]
       success:
-        text: "He carried it. Their answer came back the same way, with a date one week later than ours and the same room."
+        text: "He carries it. Their answer comes back the same way, with a date one week later than ours and the same room."
         effects: { trust_primary: 6, escalation: -5 }
         set: [summit:agreed]
         follow: [{ card: summit_10_the_night_before, in: 3 }]
       failure:
-        text: "He went to the wedding. Nothing came back, and on Friday their press mentioned the Ambassador's 'private travel'."
+        text: "He goes to the wedding. Nothing comes back, and on Friday their press mentions the Ambassador's 'private travel'."
         effects: { trust_primary: -3, intel: 2, public: -3 }
   right:
     text: "Lunch only. Listen"
@@ -460,30 +424,27 @@
     pieces_any: [back_channel]
   note: The Back-Channel's gift. A promise about a document that does not exist, made to people who will remember it.
   text: >-
-    Our man in the neutral capital had his lunch, and the other side's man had
-    the same lunch, and what came out of it is this: they will come if the word
-    'withdrawal' does not appear in anything that is signed, and if nobody ever
-    says that this lunch happened. I can promise the second. The first is a
-    promise about a document that does not yet exist, made to people who will
-    remember it.
+    Our man and theirs lunched abroad: they come if 'withdrawal' is in
+    nothing we sign, and nobody admits the lunch. I can promise the second;
+    the first is a paper not yet written.
   left:
     text: "Promise both. Deniably"
     effects: { trust_primary: 8, commitment: -4, allies: -3, public: -2 }
     tags: [back_channel, secrecy, diplomacy]
     odds:
-      label: The word holds
+      label: It holds
       base: 0.6
       tags: [back_channel]
       success:
-        text: "It held. Their delegation list arrived three days later, through the same lunch."
+        text: "It holds. Their delegation list arrives three days later, through the same lunch."
         effects: { trust_primary: 4, escalation: -4 }
         set: [summit:agreed]
         follow: [{ card: summit_10_the_night_before, in: 3 }]
       failure:
-        text: "Someone on their side used the word in a speech, to a domestic audience, on purpose. The lunch is off and so, for now, is the table."
+        text: "Someone on their side uses the word in a speech, to a home crowd, on purpose. The lunch is off and so, for now, is the table."
         effects: { trust_primary: -5, escalation: 4, intel: -2 }
   right:
-    text: "Nothing off the record"
+    text: "Refuse. Nothing off the record"
     effects: { trust_primary: -5, public: 3, allies: 2, commitment: 3 }
     tags: [transparency, deterrence]
 
@@ -497,17 +458,15 @@
     pieces_any: [ambassador, back_channel]
   note: The channel's bill. Same restaurant, same table by the window, consecutive days.
   text: >-
-    A professor of something in a neutral capital has been photographed at
-    lunch with their Deputy Foreign Minister on Tuesday and with your Ambassador
-    on Wednesday, same restaurant, same table by the window. I have the
-    photographs. I also have a call in to their press office, which has not
-    rung back, and yours, which has, to ask what I want. Is there a channel?
+    A professor lunched with their deputy minister on Tuesday and your
+    Ambassador on Wednesday, same restaurant, same window table, and I have
+    the photographs. Is there a channel?
   left:
-    text: "There is no channel"
+    text: "Deny it. There is no channel"
     effects: { public: 3, trust_primary: -7, intel: -3, commitment: 2 }
     tags: [secrecy, domestic]
   right:
-    text: "There is. Print it"
+    text: "Confirm it. Let her print it"
     effects: { public: -5, allies: -4, trust_primary: 3, military: -2 }
     tags: [transparency, domestic, back_channel]
 
@@ -522,14 +481,11 @@
     pieces_any: [dove_fm]
   note: The Dove's gift. One sentence before the plane; they hear weakness first and the other thing later.
   text: >-
-    I would like to say one sentence in public before we fly: that for the
-    duration of the talks, {us} will not be the first to fire. It costs us
-    nothing we intend to do. It costs us a great deal of what the General
-    intends to be seen to be able to do, and he is right that they will hear
-    weakness first. I think they will hear the second thing later, and I think
-    later is when we will need it.
+    One sentence in public before we fly: while the talks last, {us} will
+    not fire first. They will hear weakness, the General is right; the rest
+    they hear later, when we need it.
   left:
-    text: "Say it"
+    text: "Say it. On camera"
     effects: { trust_primary: 9, military: -6, public: -4, escalation: -4, commitment: 4 }
     tags: [reassurance, public_commitment, nuclear]
   right:
@@ -547,12 +503,9 @@
     pieces_any: [dove_fm]
   note: The Dove's bill. Their side has started answering military notifications through her office.
   text: >-
-    The Foreign Minister has spoken to her opposite number eleven times in nine
-    days, at hours when the staff are asleep, and their side has begun to
-    answer our military notifications through her office instead of ours. The
-    officers have noticed who is running the policy. Nothing is being alleged.
-    A question is being asked, on their behalf, about whose signal they should
-    be reading.
+    Eleven calls in nine days between the Foreign Minister and theirs, and
+    their army now answers ours through her office. Nothing is alleged; the
+    officers ask who runs the policy.
   left:
     text: "She is. Say so, in the building"
     effects: { military: -7, trust_primary: 5, allies: -2, escalation: -3 }
@@ -573,16 +526,15 @@
     pieces_any: [no_first_use]
   note: No First Use, the gift. Half of his generals believe it, and he does not know which half he is.
   text: >-
-    'My generals have read your declaration, the one about never firing first.
-    Half of them believe it, and half believe that a man who says such a thing
-    has arranged not to need to. I do not know which half I am. Tell me what
-    you would show the second half, if I asked, and I am asking.'
+    'Half my generals believe you will not fire first; half think a man who
+    says that has arranged not to need to. I do not know which half I am;
+    show me what you would show them.'
   left:
     text: "Inspectors at the silos. Theirs"
     effects: { trust_primary: 10, military: -8, intel: 3, public: -3, allies: -3 }
     tags: [transparency, nuclear, reassurance]
   right:
-    text: "Half is enough"
+    text: "Tell him half is enough"
     effects: { trust_primary: -3, military: 2, escalation: 2, commitment: 2 }
     tags: [deterrence, stall, nuclear]
 
@@ -598,14 +550,11 @@
     pieces_any: [no_first_use]
   note: No First Use, the bill. A man who is sure you will not fire first has no reason to hurry. Timeout sends the regiment.
   text: >-
-    They believe you will not fire first. That is the good news, and the rest
-    is that two of their regiments crossed to the near bank at the Sallow
-    crossing at 06:00, in daylight, unhurried, because a man who is sure you
-    will not fire first has no reason to hurry. A regiment of ours can be at
-    the ridge by dusk. It would not change what you have said, only what they
-    think it means.
+    They believe you will not fire first, so two of their regiments crossed
+    the river at Sallow in daylight; a man sure of that need not hurry. A
+    regiment can reach the ridge by dusk.
   left:
-    text: "A regiment to the ridge by dusk"
+    text: "Send a regiment. Ridge by dusk"
     effects: { military: 6, escalation: 7, trust_primary: -6, public: 3 }
     tags: [military, mobilise, deterrence]
     odds:
@@ -613,10 +562,10 @@
       base: 0.45
       tags: [adversary, military]
       success:
-        text: "Their regiments recrossed at dawn. Their notification called it the end of an exercise."
+        text: "Their regiments recross at dawn. Their notice calls it the end of an exercise."
         effects: { trust_primary: -3, escalation: -4, public: 3 }
       failure:
-        text: "They stayed, and now two regiments face one across a river forty metres wide."
+        text: "They stay, and now two regiments face one across a river forty metres wide."
         effects: { escalation: 8, trust_primary: -5, military: 2 }
   right:
     text: "Hold. Let them come closer"
@@ -634,14 +583,11 @@
     pieces_any: [peace_leader]
   note: The Peace Movement loves it. A banner with your face on it, which is new.
   text: >-
-    Delacroix-Amin has the square again, three hundred thousand by the police
-    count and a million by hers, and they are staying until you fly. They have
-    candles, and they have a banner with your face on it, which is not
-    something I have written about you before. She says the crowd is there to
-    make sure you go. Your General's office says the crowd is why they think
-    you have to.
+    The peace crowd has the square again, three hundred thousand by the
+    police count, a million by theirs, until you fly. Candles, and a banner
+    with your face on it, which is new.
   left:
-    text: "Speak to them before I fly"
+    text: "Speak to the square first"
     effects: { public: 7, military: -5, trust_primary: 3, allies: -2, commitment: 3 }
     tags: [domestic, deescalate, reassurance, public_commitment]
   right:
@@ -661,18 +607,15 @@
     flags_none: [summit:held, summit:collapsed]
   note: The Assembly's price comes due. The flag comes with the paragraph and the paragraph is inspections.
   text: >-
-    Whoever's roof it is on the day, the Assembly's flag will be on the table,
-    because each of you asked for it so that neither of you would be the host.
-    The flag comes with the first paragraph, and the first paragraph is the
-    Convention, and the Convention is inspections. Your General has declined
-    them for two years. I am told he has a speech about it, and I am asking you
-    whether he gives it before or after the fourteenth.
+    The Assembly's flag is on the table because you both asked, so neither
+    is host. The flag comes with a first paragraph: the inspections your
+    General has refused for two years.
   left:
-    text: "Before. Take the paragraph"
+    text: "Accept the inspections"
     effects: { military: -6, trust_primary: 5, trust_secondary: 5, allies: 4, public: -2 }
     tags: [diplomacy, alliance, transparency, concede]
   right:
-    text: "After. No paragraph"
+    text: "Refuse the inspections"
     effects: { trust_secondary: -6, allies: -5, military: 3, trust_primary: -2, public: 2 }
     tags: [deterrence, stall, alliance]
 
@@ -691,11 +634,9 @@
     flags_none: [summit:collapsed]
   note: Resolution after the handshake. Run the Friday story and it is your win or your Friday. Timeout runs it, the worse side.
   text: >-
-    You shook his hand on Tuesday and this morning two of his regiments are
-    still on the near bank at the Sallow crossing, which his office calls
-    'scheduled' and yours calls 'under discussion'. I have a source in
-    {rival_capital} who says they move on Friday. If I run that, and they move,
-    it is your win. If I run it and they do not, it is your Friday.
+    You shook his hand Tuesday; two of his regiments still sit on our side of
+    the river. My source says they go Friday; print it and they go, your win;
+    if they stay, your Friday.
   left:
     text: "Give it time. Do not run it"
     effects: { public: -5, trust_primary: 5, escalation: -3, military: -2 }

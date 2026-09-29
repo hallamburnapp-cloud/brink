@@ -21,13 +21,11 @@
   conditions: { flags_none: [proxy:clash] }
   note: Arc entry. Advisers now, or a look first.
   text: >-
-    At 04:10 the Halder Front crossed the Aum at Kestrel Bridge and took the
-    customs post on the Sennet side, fourteen Vestrian guardsmen dead. The Front's
-    radios are {rival_adj} and so, we assess with moderate confidence, are two of
-    the voices on them. Sennet has asked for advisers by name, tonight. A single
-    source says the Front expected us to say no.
+    Rebels with {rival_adj} radios took Kestrel Bridge in Vestria at 04:10,
+    fourteen guardsmen dead. Vestria wants advisers tonight; one source says
+    the rebels are betting we say no.
   left:
-    text: "Advisers to Sennet tonight"
+    text: "Advisers to Vestria tonight"
     effects: { military: 5, escalation: 4, trust_primary: -6, allies: 3 }
     tags: [military, proxy]
     set: [proxy:clash, proxy:advisers_in]
@@ -51,18 +49,17 @@
   conditions: { flags_none: [proxy:clash] }
   note: Arc entry. Varga on the line; the timeout leaves her with nothing to tell her parliament.
   text: >-
-    Selene Varga, 06:20, not through the switchboard. Two Compact observers were at
-    Kestrel Bridge when the Halder Front came across it, and one of them is in a
-    hospital in Sennet with a {rival_adj} bullet in him. "I have a parliament at
-    nine and they will ask me what you will do, not what you feel."
+    One of my observers lies in a Vestrian hospital with a {rival_adj} bullet in
+    him. My parliament sits at nine, and they will ask what you will do, not what
+    you feel.
   left:
-    text: "We stand with Sennet. Say so."
+    text: "Say we stand with Vestria"
     effects: { allies: 6, commitment: 8, trust_primary: -4, escalation: 3 }
     tags: [public_commitment, alliance]
     set: [proxy:clash]
     follow: [{ card: proxy_04_the_team, in: 1 }]
   right:
-    text: "Tell them we are assessing"
+    text: "Say we are still looking"
     effects: { allies: -6, military: -2, commitment: -2, intel: 2 }
     tags: [stall, alliance]
     set: [proxy:clash]
@@ -78,19 +75,17 @@
   conditions: { flags_none: [proxy:clash] }
   note: Late entry. The clash has been running for eleven days without you.
   text: >-
-    Fourth question, on the record. The Halder Front has held Kestrel Bridge for
-    eleven days, Sennet has lost two hundred guardsmen, and your office's only
-    statement on Vestria still calls it a customs dispute. I have a photograph of
-    a {rival_adj} field kitchen on the north bank. Is there a war in Vestria, and
-    are we in it?
+    Eleven days, two hundred guardsmen dead at Kestrel Bridge, and you still call
+    Vestria a customs dispute. I have a photo of a {rival_adj} field kitchen
+    there; are we in a war?
   left:
-    text: "It is a customs dispute"
+    text: "Call it a customs dispute"
     effects: { public: -5, trust_primary: 2, military: -3 }
     tags: [stall, domestic, secrecy]
     set: [proxy:clash]
     follow: [{ card: proxy_04_the_team, in: 2 }]
   right:
-    text: "There is, and we are sending advisers"
+    text: "Admit the war. Send advisers."
     effects: { public: 4, commitment: 8, escalation: 5, trust_primary: -6, military: 4 }
     tags: [public_commitment, military, proxy]
     set: [proxy:clash, proxy:advisers_in]
@@ -105,12 +100,9 @@
   conditions: { flags_none: [proxy:advisers_in, proxy:withdrawn] }
   note: Chained from the entries. The team's report; the first echelon problem.
   text: >-
-    The team is back from Sennet. The Front holds the north bank with about two
-    thousand men, half of them in boots issued in {rival_capital} last spring, and
-    a mortar line that fires at 17:00 daily as if it were a shift. We assess with
-    moderate confidence that their volunteers are already there, and that they
-    will read anything we send as the first of many. Sennet's guard commander
-    asked the team leader, twice, whether we were staying.
+    Two thousand rebels hold the far bank in Vestria, half in {rival_adj} boots,
+    with mortars that fire at 17:00 like a shift. Whatever we send, they will read
+    as the first of many.
   left:
     text: "Forty advisers. No insignia."
     effects: { military: 4, escalation: 4, trust_primary: -6, allies: 3 }
@@ -130,10 +122,9 @@
   conditions: { flags_all: [proxy:advisers_in] }
   note: Chained. The photograph; the first lie is offered to you politely.
   text: >-
-    There is a photograph. A man on the Sennet ring road with no insignia, a
-    {us_adj} rifle, and a {us_adj} accent that a Vestrian stringer recorded for
-    forty seconds. It runs at six. "I would rather write that they are advisers
-    than write that you said they were not there."
+    Forty seconds of tape from Vestria: a man with no insignia, a {us_adj} rifle
+    and a {us_adj} accent. It runs at six; I would rather write 'advisers' than
+    write that you denied them.
   left:
     text: "Confirm them. Forty, advising."
     effects: { public: -4, commitment: 6, allies: 3, trust_primary: -2, escalation: 2 }
@@ -155,18 +146,15 @@
     flags_none: [proxy:ceasefire, proxy:withdrawn, proxy:escalated]
   note: The other side's reinforcement, and what ours looked like from there.
   text: >-
-    Six hundred men came into the Halder Valley on the night train from the north,
-    in civilian coats, in step. {Rival} calls them volunteers on leave. We assess,
-    moderate confidence, that they were ordered in the day after our advisers
-    landed, and that their staff have marked the school in Sennet where ours sleep
-    as a forward headquarters. From where they sit we did not send help; we sent
-    the first echelon.
+    Six hundred men came into Vestria by night train, in civilian coats, in step;
+    {rival} calls them volunteers. Their maps mark the school where our advisers
+    sleep as a headquarters.
   left:
     text: "Match them. Two hundred more."
     effects: { military: 5, escalation: 6, trust_primary: -7, public: 2 }
     tags: [military, proxy, escalatory]
   right:
-    text: "Tell {rival_capital} what the school is for"
+    text: "Tell them what the school is for"
     effects: { trust_primary: 5, military: -4, public: -3, intel: -2 }
     tags: [reassurance, diplomacy, transparency]
 
@@ -180,9 +168,9 @@
     flags_none: [proxy:brigade_deployed, proxy:ceasefire, proxy:withdrawn]
   note: The ladder's next rung. Casualties are expected to be light, passively.
   text: >-
-    Advisers advise. A brigade closes the valley. Nine days from the order the
-    Front is back across the Aum and the bridge is ours, and their volunteers can
-    watch it from the north bank or go home. Casualties are expected to be light.
+    Advisers advise; a brigade closes the valley in Vestria. Nine days, and the
+    rebels are back across the river, the bridge is ours, and casualties are
+    expected to be light.
   left:
     text: "Send the brigade"
     effects: { military: 7, escalation: 8, trust_primary: -8, allies: 3, economy: -2 }
@@ -193,10 +181,10 @@
       base: 0.5
       tags: [proxy, military]
       success:
-        text: "Nine days becomes twelve, but the bridge is ours and the Front is north of the river, filming."
+        text: "Nine days becomes twelve, but the bridge is ours and the rebels are north of the river, filming."
         effects: { public: 6, commitment: 5 }
       failure:
-        text: "The Front does not go home. On day nine the brigade holds the south bank, the bridge is nobody's, and their mortar line still fires at 17:00."
+        text: "The rebels do not go home. On day nine the brigade holds our bank, the bridge is nobody's, and their mortars still fire at 17:00."
         effects: { military: -5, escalation: 5, public: -4 }
   right:
     text: "Advisers only. Find me a line."
@@ -216,23 +204,23 @@
     pieces_any: [rapid_response]
   note: Rapid-Response Brigade's moment. Cheap to send; the timeout sends it.
   text: >-
-    The Rapid-Response Brigade is on the ramp at Hollin with engines running. Six
-    hours to Sennet, on the Aum by first light, no allied airspace to ask about.
-    This is what it is for. Every hour on the ramp is an hour the Front uses.
+    The fast brigade is on the runway with engines running: six hours to Vestria,
+    on the river by first light. Every hour it sits there is an hour the rebels
+    use.
   left:
     text: "Wheels up"
     effects: { military: 6, escalation: 7, trust_primary: -8, public: 3 }
     tags: [military, mobilise, proxy]
     set: [proxy:brigade_deployed]
     odds:
-      label: On the Aum by dawn
+      label: River by dawn
       base: 0.6
       tags: [proxy, military]
       success:
-        text: "They are on the river at 05:50 and the Front's mortar line falls silent for the first time in a fortnight. Their volunteers move up to look."
+        text: "They are on the river at 05:50 and the rebel mortars fall silent for the first time in a fortnight. Their volunteers move up to look."
         effects: { public: 4, allies: 3, trust_primary: -3 }
       failure:
-        text: "The second wave lands under mortar fire. Two aircraft are holed on the runway at Sennet and the brigade is on the Aum with half its ammunition."
+        text: "The second wave lands under mortar fire. Two aircraft are holed on the Sennet runway and the brigade is on the river with half its ammunition."
         effects: { military: -5, escalation: 5, public: -4 }
   right:
     text: "Keep them on the ramp"
@@ -252,11 +240,9 @@
     pieces_any: [rapid_response]
   note: Complicates rapid_response. Light is fast; light is also losable. Timeout sends the armour.
   text: >-
-    The brigade is light. That is what makes it fast. Their volunteers brought
-    forty tanks into the Halder Valley overnight, and a light brigade on a river
-    bank in front of forty tanks is a brigade that can be lost in an afternoon. I
-    can have heavy armour there in six days, or I can pull them back to the
-    airfield tonight.
+    Forty tanks came into the valley overnight, across the river from our light
+    brigade in Vestria. Light is fast; light in front of forty tanks is lost in
+    an afternoon.
   left:
     text: "Heavy armour. Six days."
     effects: { military: 6, escalation: 9, trust_primary: -8, economy: -3 }
@@ -277,10 +263,9 @@
     pieces_any: [hawk_general]
   note: Hawk General's moment. The map is kind.
   text: >-
-    This one is winnable. The Front is two thousand men with a river behind them
-    and a patron who will not cross it for them; their volunteers are a tripwire,
-    not an army. Three weeks, one brigade, and the Aum is a border again. It is
-    not often the map is this kind to us.
+    Two thousand rebels in Vestria with a river at their backs and a patron who
+    will not cross it. One brigade, three weeks, and the river is a border again;
+    the map is rarely so kind.
   left:
     text: "Take the three weeks"
     effects: { military: 5, commitment: 8, escalation: 6, trust_primary: -6 }
@@ -300,11 +285,9 @@
     pieces_any: [hawk_general]
   note: Complicates hawk_general. The slides stopped showing the column.
   text: >-
-    The General's slides put the Front at two thousand. We count five thousand in
-    the valley this morning, and the difference is not the Front; it is their
-    volunteers, who are no longer volunteering. The slides also stopped showing
-    the brigade's casualty column in week two. I am telling you because the
-    General is not, and I would like that on the record somewhere quiet.
+    The General's slides say two thousand rebels in Vestria; today we count five
+    thousand. His slides also dropped our casualty column in week two, and I want
+    that noted, quietly.
   left:
     text: "Reinforce. Then we talk."
     effects: { military: 5, escalation: 7, trust_primary: -6, economy: -2 }
@@ -325,10 +308,9 @@
     pieces_any: [allied_basing]
   note: Allied Basing's moment. Consultation is a thing that has to be seen.
   text: >-
-    Your transports have used Hollin eleven times this week and my parliament
-    learned it from a plane spotter. The basing agreement says consultation. I am
-    not asking you to stop; I am asking you to let me be seen to have been asked.
-    Otherwise the next vote on the runways is a vote about you.
+    Your transports used my airfield at Hollin eleven times this week; my
+    parliament learned it from a plane spotter. I am not asking you to stop, only
+    to be seen to be asked.
   left:
     text: "Ask her parliament. Publicly."
     effects: { allies: 6, military: -4, commitment: 5 }
@@ -348,11 +330,9 @@
     pieces_any: [allied_basing]
   note: Complicates allied_basing. Your runways are on their target list now.
   text: >-
-    Four rockets landed on the road between Hollin and the border at 22:00, seven
-    kilometres inside Compact territory. The Front says the road is a military
-    target because the brigade drives on it. We assess they are right about what
-    the road is, and that the rockets were aimed to miss. Prime Minister Varga's
-    office has asked, in writing, what the alliance is for.
+    Four rockets hit the road from Hollin airfield, seven kilometres inside our
+    ally's soil, aimed to miss. Our ally's prime minister asks in writing what the
+    alliance is for.
   left:
     text: "Air defence to Hollin"
     effects: { military: 4, allies: 6, escalation: 6, trust_primary: -6, economy: -1 }
@@ -373,9 +353,9 @@
     pieces_any: [alliance_first]
   note: Alliance First's moment. Two promises, one of them to her.
   text: >-
-    You said nothing without consultation, and I held you to it in front of
-    eleven governments. The Compact council can meet in thirty-six hours. Sennet
-    may not have thirty-six hours. Tell me which promise you are keeping.
+    You promised nothing without consulting us, and I said so before eleven
+    governments. The alliance council can meet in thirty-six hours; Vestria may
+    not have thirty-six hours.
   left:
     text: "The council meets first"
     effects: { allies: 6, military: -5, commitment: 4, public: -2 }
@@ -396,10 +376,9 @@
     pieces_any: [alliance_first]
   note: Complicates alliance_first. The keel decides where the ship goes.
   text: >-
-    The council voted at midnight. A Compact battalion goes to Sennet on Thursday,
-    under your command, because that is what the alliance is for and because my
-    parliament would not vote to send it under mine. If they are shelled, eleven
-    governments are at war. I need to know you understand that before I sign.
+    An allied battalion goes to Vestria on Thursday under your command, because my
+    parliament would not send it under mine. If it is shelled, eleven governments
+    are at war.
   left:
     text: "Sign it with her"
     effects: { allies: 8, commitment: 10, escalation: 5, trust_primary: -5, military: 3 }
@@ -419,10 +398,9 @@
     flags_none: [proxy:ceasefire, proxy:withdrawn]
   note: Marrow sits in the other chair.
   text: >-
-    Sit in {rival_capital} for a moment. A school full of our officers, a runway
-    being lengthened, a brigade on the ramp. Nobody there believes we sent it to
-    be polite. We have not told them where we stop, and until we do they will plan
-    for the place they think we are going.
+    Seen from {rival_capital}: a school in Vestria full of our officers, a longer
+    runway, a brigade waiting. Nobody there thinks we came to be polite, and we
+    never said where we stop.
   left:
     text: "Tell them where we stop"
     effects: { trust_primary: 7, escalation: -4, military: -4, commitment: 4 }
@@ -442,13 +420,11 @@
     flags_none: [proxy:ceasefire, proxy:withdrawn, proxy:escalated]
   note: The ceasefire path. Lindqvist is there to be blamed for the ten kilometres.
   text: >-
-    The Assembly can have two hundred monitors on the Aum in a week if both
-    clients pull back ten kilometres and both patrons stop pretending they are
-    not patrons. The Front's people have said yes in a corridor, which is where
-    they say things. Sennet will say yes if you tell them to. I will be blamed
-    for the ten kilometres, which is my job.
+    Two hundred monitors on Vestria's river if both sides pull back ten kilometres
+    and both patrons stop pretending. The rebels said yes in a corridor; Vestria
+    will if you say so.
   left:
-    text: "Table it. Sennet pulls back."
+    text: "Table it. Vestria pulls back."
     effects: { escalation: -5, military: -5, allies: -2, trust_primary: 3 }
     tags: [diplomacy, deescalate, proxy]
     odds:
@@ -456,15 +432,15 @@
       base: 0.5
       tags: [diplomacy, proxy]
       success:
-        text: "Signed at 02:00 in a hotel in Amberline by two men who will not shake hands. The monitors fly on Monday."
+        text: "Signed at 02:00 in an Amberline hotel by two men who will not shake hands. The monitors fly on Monday."
         effects: { escalation: -6, public: 4, trust_primary: 4 }
         set: [proxy:ceasefire]
         follow: [{ card: proxy_23_the_line, in: 3 }]
       failure:
-        text: "The corridor yes becomes a podium no. Sennet has already pulled back, and the north bank has moved a kilometre south."
+        text: "The corridor yes becomes a podium no. Vestria has already pulled back, and the rebel line has moved a kilometre south."
         effects: { escalation: 4, public: -5, military: -3 }
   right:
-    text: "Not while they hold the north bank"
+    text: "Not while they hold the far bank"
     effects: { commitment: 5, escalation: 2, allies: 2, trust_primary: -3 }
     tags: [deterrence, stall, proxy]
 
@@ -477,10 +453,9 @@
   conditions: { flags_all: [proxy:advisers_in] }
   note: Drawable, and also queued after a "no comment". Ahlgren is not trying to trap you.
   text: >-
-    I am going to ask you in the chamber how many of our people are in Vestria,
-    and I want you to know that beforehand, because I am not trying to trap you.
-    The number I have is two hundred and twelve. Yours, in the statement, is
-    forty. I will use whichever one you give me, and so will they.
+    Tomorrow I ask the chamber how many of our people are in Vestria; I tell you
+    now because I am not trying to trap you. My number is two hundred and twelve;
+    yours says forty.
   left:
     text: "Give him the real number"
     effects: { public: -5, allies: 2, commitment: 4, trust_primary: -2 }
@@ -502,10 +477,9 @@
   conditions: { flags_all: [proxy:advisers_in] }
   note: Drawable, and also queued after the forty. The timeout calls it an accident.
   text: >-
-    Captain Elias Wren, thirty-four, killed by a mortar round at Kestrel Bridge at
-    17:05, which is when the mortars come. His mother has been on the radio since
-    seven this morning asking what an adviser was doing at a bridge. The casket
-    lands at 14:00. I am asking whether you will be there.
+    Captain Wren, thirty-four, killed by a mortar at Kestrel Bridge at 17:05; his
+    mother asks on air what an adviser was doing there. The casket lands at 14:00;
+    will you be there?
   left:
     text: "Be there. Name him."
     effects: { public: 2, commitment: 8, escalation: 2, allies: 2 }
@@ -527,11 +501,9 @@
     flags_none: [proxy:ceasefire, proxy:escalated, proxy:withdrawn]
   note: Two readings of one column; the timeout strikes it.
   text: >-
-    An armoured column left the rail head at 03:00 and is thirty kilometres from
-    the Aum, closing. We assess, moderate confidence, that it is the volunteers'
-    relief in place, which is what the last three rotations looked like. The
-    General assesses it is the attack, and he has aircraft on the runway at
-    Sennet. Both readings fit the picture; only one of them can be undone.
+    A tank column is thirty kilometres from the river in Vestria, closing; the
+    last three like it were relief troops. The General says this one is the
+    attack, and his jets are ready.
   left:
     text: "Strike the column"
     effects: { military: 6, escalation: 12, trust_primary: -12, public: 3 }
@@ -542,11 +514,11 @@
       base: 0.55
       tags: [strike, proxy, military]
       success:
-        text: "Eleven vehicles burning on the valley road at dawn, and among them a relief convoy's field kitchens. {Rival} announces the names of the dead by noon."
+        text: "Eleven vehicles burning on the valley road at dawn, and among them a relief convoy's field kitchens. {Rival} names the dead by noon."
         effects: { public: 4, allies: -3, trust_primary: -4 }
         follow: [{ card: proxy_24_contact, in: 1 }]
       failure:
-        text: "The lead aircraft is hit by something nobody knew was in the valley. The pilot ejects over the north bank. The column, which was a relief, keeps coming."
+        text: "The lead aircraft is hit by something nobody knew was in the valley; the pilot ejects over the far bank. The column, which was a relief, keeps coming."
         effects: { military: -6, escalation: 6, public: -6 }
         follow: [{ card: proxy_24_contact, in: 1 }]
   right:
@@ -564,10 +536,9 @@
     flags_none: [proxy:ceasefire, proxy:withdrawn, proxy:escalated]
   note: Finishing it. The volunteers were told they were on leave.
   text: >-
-    The brigade holds the south bank and the bridge. The Front is across the river
-    with its back to their volunteers, and the volunteers have their backs to the
-    border. One night, two fords, and there is nothing left in Vestria to advise.
-    Their people will not fight for the Front; they were told they were on leave.
+    The rebels are across the river with their backs to their volunteers, who were
+    told they were on leave. One night, two fords, and there is nothing left in
+    Vestria to advise.
   left:
     text: "Cross tonight"
     effects: { military: 6, escalation: 10, trust_primary: -10, public: 2 }
@@ -577,10 +548,10 @@
       base: 0.4
       tags: [proxy, adversary]
       success:
-        text: "The Front breaks by 04:00 and the volunteers go north with it, filming themselves not fighting. The valley is quiet and full of {rival_adj} papers."
+        text: "The rebels break by 04:00 and the volunteers go north with them, filming themselves not fighting. The valley is quiet and full of {rival_adj} papers."
         effects: { public: 8, allies: 4, commitment: 4, trust_primary: -5 }
       failure:
-        text: "The volunteers do not go home. At 05:10 the brigade is in contact with regular troops in civilian coats, and the coats are coming off."
+        text: "The volunteers do not go home. At 05:10 the brigade is fighting regular troops in civilian coats, and the coats are coming off."
         effects: { escalation: 12, military: -4, public: -3 }
         set: [proxy:escalated]
         follow: [{ card: proxy_24_contact, in: 1 }]
@@ -601,12 +572,9 @@
     flags_none: [proxy:ceasefire, proxy:withdrawn]
   note: Resolution by withdrawal. It will look like losing.
   text: >-
-    We have been in Vestria for three weeks and I cannot tell you what leaving
-    looks like except by describing it. Transports at Sennet on Sunday, the
-    school handed back on Monday, the Front on the north bank calling it a
-    victory and their volunteers going home because there is nobody left to be
-    volunteers against. It will look like losing. It is the only version where
-    the losing stops here.
+    Leaving Vestria looks like this: transports on Sunday, the school handed back,
+    the rebels calling it a victory. It looks like losing; it is the only version
+    where the losing stops.
   left:
     text: "Bring them home"
     effects: { public: -8, military: -8, escalation: -10, trust_primary: 8, allies: -5 }
@@ -625,11 +593,9 @@
   conditions: { flags_all: [proxy:ceasefire] }
   note: Chained from the signing. Resolution by ceasefire, if the numbers come down.
   text: >-
-    Twelve days of ceasefire and the monitors have logged two hundred violations,
-    all of them small, most of them mortars fired at 17:00 by men who cannot break
-    a habit. The Front has not crossed. Sennet has not crossed. Both patrons still
-    have people in the valley, and next week's report will name them unless the
-    numbers come down.
+    Twelve days of ceasefire in Vestria, two hundred violations, mostly mortars
+    fired at 17:00 out of habit. Both patrons still have men in the valley; next
+    week's report names them.
   left:
     text: "Thin ours first. Publicly."
     effects: { escalation: -8, military: -6, trust_primary: 8, public: -3, allies: -2 }
@@ -649,29 +615,27 @@
   tags: [proxy, military, intel]
   note: Chained from the strike or the crossing. Resolution by escalation, unless Marrow flies. Timeout denies.
   text: >-
-    The brigade is in contact with regular {rival_adj} troops; nineteen of theirs
-    are dead, and the papers in their coats say so. {Rival} has not announced it,
-    which gives us about four hours before their families do. We assess they are
-    deciding, right now, whether this was a proxy fight or the start of the other
-    thing. So are we.
+    Our brigade in Vestria has killed nineteen regular {rival_adj} soldiers; the
+    papers in their coats prove it. {Rival} is silent, which buys four hours
+    before their families do.
   left:
     text: "Deny the contact. Hold the ground."
     effects: { escalation: 8, trust_primary: -8, public: 3, intel: -3 }
     tags: [secrecy, military, stall]
     set: [proxy:escalated]
   right:
-    text: "Get Marrow on a plane tonight"
+    text: "Send the Foreign Minister tonight"
     effects: { escalation: -6, military: -5, public: -4, trust_primary: 4 }
     tags: [diplomacy, deescalate, back_channel]
     odds:
-      label: They take the meeting
+      label: They meet her
       base: 0.5
       tags: [adversary, diplomacy]
       success:
-        text: "She lands at 23:00 and is met by their deputy foreign minister, not a protocol officer. Nineteen dead become a training accident on both sides, which is the kindest lie available."
+        text: "She lands at 23:00 and is met by their deputy foreign minister, not a protocol officer. Nineteen dead become a training accident on both sides."
         effects: { escalation: -6, trust_primary: 6, commitment: -3 }
       failure:
-        text: "She lands and waits nine hours in a room with a portrait. Their statement names the dead at dawn and calls the brigade an invasion force."
+        text: "She lands and waits nine hours in a room with a portrait. Their statement names the dead at dawn and calls our brigade an invasion force."
         effects: { escalation: 8, public: -4, trust_primary: -4 }
         set: [proxy:escalated]
 
@@ -687,12 +651,9 @@
     flags_none: [proxy:ceasefire, proxy:withdrawn]
   note: Cross-hook. After a scare, a radar on a ridge is two things at once.
   text: >-
-    Their volunteers have put a long-range radar on the ridge above the Halder
-    Valley, the kind that watches the sky and not the river. After last week's
-    scare the watch centre has it marked as a hole in our warning, and the
-    General has it marked as a target. We assess, low confidence, that it is
-    there to watch our transports. The kind of radar that watches transports is
-    also the kind that would see a launch.
+    A radar went up above the Vestrian valley, watching sky rather than river, and
+    the General wants it gone. It probably watches our transports; it would also
+    see a launch.
   left:
     text: "Take the radar off the ridge"
     effects: { military: 4, escalation: 9, trust_primary: -9, intel: 2 }
@@ -712,10 +673,9 @@
     flags_any: [proxy:brigade_deployed, proxy:escalated]
   note: Ahlgren's motion. It passes with or without you.
   text: >-
-    My motion goes down tomorrow: no further deployment to Vestria without a vote
-    of the chamber. I have the numbers to pass it with or without you. If you
-    support it, it is a government measure and you look like a democrat. If you
-    fight it, it passes anyway and you look like what the Front says you are.
+    My motion is tomorrow: no more troops to Vestria without a vote, and I have
+    the numbers with or without you. Back it and you look like a democrat; fight
+    it and it passes anyway.
   left:
     text: "Support the motion"
     effects: { public: 5, military: -6, commitment: -6, allies: -2, escalation: -2 }
