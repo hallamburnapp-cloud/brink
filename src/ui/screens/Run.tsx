@@ -89,7 +89,7 @@ export function Run() {
             </ul>
           )}
           <div class="mono mt-2 text-[10px] text-mute">
-            SEED {s.seed} · {runMeta.value?.mode === 'daily' ? `DAILY #${runMeta.value.dailyNumber}` : 'ENDLESS'}
+            SEED {s.seed} · {runMeta.value?.mode === 'challenge' ? 'CHALLENGE' : 'EXPERT'}
             {s.endless ? ` · ENDLESS ACT ${s.act - c.acts.length}` : ''}
           </div>
           <div class="mt-3 flex gap-2">

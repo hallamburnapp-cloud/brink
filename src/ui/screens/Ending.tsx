@@ -196,7 +196,7 @@ export function Ending() {
           Copy text
         </button>
         <button class="btn btn-danger" onClick={runAgain}>
-          {m.mode === 'daily' ? 'Run again (Endless)' : 'Run again'}
+          Run again
         </button>
         <button class="btn" onClick={replaySeed}>
           Replay this seed
