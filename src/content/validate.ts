@@ -78,6 +78,48 @@ function flagIsSettable(flag: string, settable: Set<string>): boolean {
   return ENGINE_FLAG_PREFIXES.some((p) => flag.startsWith(p));
 }
 
+/**
+ * The voice contract (REDESIGN.md): what a tired person can read in five seconds.
+ * Violations are errors when BRINK_VOICE=strict (the rewrite workflow and CI after
+ * the rewrite) and warnings otherwise, so a half-rewritten deck still builds.
+ */
+export const VOICE = {
+  cardChars: 180,
+  cardSentences: 2,
+  choiceChars: 34,
+  outcomeChars: 160,
+  endingChars: 420,
+  endingParagraphs: 2,
+  compendiumChars: 120,
+} as const;
+
+/** Jargon that is the wall between the game and a wide audience. Matched as whole words, case-insensitively. */
+export const BANNED_JARGON = [
+  'NC3', 'DEFCON', 'predelegation', 'pre-delegation', 'escalation dominance', 'attribution', 'kinetic', 'doctrine',
+  'deterrence by denial', 'deterrence-by-denial', 'leverage', 'ante', 'political capital', 'commitment trap',
+  'security dilemma', 'intel reliability', 'moderate confidence', 'high confidence', 'low confidence', 'we assess',
+  'salvo', 'SIGINT', 'ELINT', 'ISR', 'CONOPS', 'TEL', 'C2', 'early-warning constellation', 'launch on warning',
+  'second strike', 'first use', 'no first use', 'flashpoint', 'de-escalat', 'deescalat', 'escalatory', 'posture',
+  'situational', 'assessment', 'liaison', 'accreditation', 'quarantine of the straits',
+];
+
+export function voiceStrict(): boolean {
+  return typeof process !== 'undefined' && process.env?.BRINK_VOICE === 'strict';
+}
+
+function paragraphs(text: string): number {
+  return text.split(/\n\s*\n/).filter((p) => p.trim().length > 0).length;
+}
+
+function jargonIn(text: string): string[] {
+  const hits: string[] = [];
+  for (const w of BANNED_JARGON) {
+    const re = new RegExp(`(^|[^A-Za-z])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[^A-Za-z])`, 'i');
+    if (re.test(text)) hits.push(w);
+  }
+  return hits;
+}
+
 function sentences(text: string): number {
   return (text.match(/[.!?]["”']?(\s|$)/g) ?? []).length;
 }
@@ -152,7 +194,27 @@ export function validateContent(content: Content): ContentIssue[] {
     if (c.warning && c.warning.true_follow === c.warning.false_follow) warn(where, 'warning true/false follow-ups are the same card');
     if (!c.chained && c.weight <= 0) warn(where, 'weight 0 and not chained: can never be drawn');
     if (c.timer !== undefined && (c.timer < 6 || c.timer > 15)) warn(where, `timer ${c.timer}s is outside the 6–15s design band`);
-    if (sentences(c.text) > 4) warn(where, `text has ${sentences(c.text)} sentences (max 4)`);
+    {
+      const voice = voiceStrict() ? err : warn;
+      const t = c.text.replace(/\s+/g, ' ').trim();
+      if (sentences(t) > VOICE.cardSentences) voice(where, `voice: text has ${sentences(t)} sentences (max ${VOICE.cardSentences})`);
+      if (t.length > VOICE.cardChars) voice(where, `voice: text is ${t.length} chars (max ${VOICE.cardChars})`);
+      for (const side of ['left', 'right'] as const) {
+        const ch = c[side];
+        if (ch.text.length > VOICE.choiceChars) voice(`${where}.${side}`, `voice: choice is ${ch.text.length} chars (max ${VOICE.choiceChars})`);
+        if (/\.\.\.|…/.test(ch.text)) voice(`${where}.${side}`, 'voice: no ellipses in a choice');
+        for (const j of jargonIn(ch.text)) voice(`${where}.${side}`, `voice: jargon "${j}"`);
+        if (ch.odds) {
+          for (const o of ['success', 'failure'] as const) {
+            const ot = ch.odds[o].text;
+            if (ot && ot.length > VOICE.outcomeChars) voice(`${where}.${side}.odds.${o}`, `voice: outcome is ${ot.length} chars (max ${VOICE.outcomeChars})`);
+            if (ot) for (const j of jargonIn(ot)) voice(`${where}.${side}.odds.${o}`, `voice: jargon "${j}"`);
+          }
+          for (const j of jargonIn(ch.odds.label)) voice(`${where}.${side}.odds`, `voice: jargon "${j}" in the odds label`);
+        }
+      }
+      for (const j of jargonIn(t)) voice(where, `voice: jargon "${j}"`);
+    }
     for (const side of ['left', 'right'] as const) {
       const ch = c[side];
       const w = `${where}.${side}`;
@@ -260,6 +322,14 @@ export function validateContent(content: Content): ContentIssue[] {
     }
     lint(where, e.text, issues);
     lint(where, e.compendium, issues);
+    {
+      const voice = voiceStrict() ? err : warn;
+      const t = e.text.trim();
+      if (t.length > VOICE.endingChars) voice(where, `voice: text is ${t.length} chars (max ${VOICE.endingChars})`);
+      if (paragraphs(t) > VOICE.endingParagraphs) voice(where, `voice: ${paragraphs(t)} paragraphs (max ${VOICE.endingParagraphs})`);
+      if (e.compendium.length > VOICE.compendiumChars) voice(where, `voice: compendium line is ${e.compendium.length} chars (max ${VOICE.compendiumChars})`);
+      for (const j of jargonIn(t + ' ' + e.name + ' ' + e.compendium + ' ' + e.moment_label)) voice(where, `voice: jargon "${j}"`);
+    }
   }
   for (const k of ['public', 'military', 'allies', 'economy']) for (const at of [0, 100]) if (!meterTriggers.has(`${k}:${at}`)) warn('endings', `no authored ending for ${k} reaching ${at} (fallback will be used)`);
   if (!meterTriggers.has('escalation:100')) warn('endings', 'no authored nuclear ending (fallback will be used)');

@@ -11,7 +11,18 @@
 export type Seat = 'republic' | 'federation' | 'coalition';
 export const SEATS: readonly Seat[] = ['republic', 'federation', 'coalition'] as const;
 
-export type Mode = 'daily' | 'endless' | 'challenge';
+/**
+ * daily: tonight's shared night (simple ruleset, one attempt);
+ * night: any night, any seat (simple ruleset, the unlock);
+ * endless: the Expert game (leverage, antes, the shop, endless escalation);
+ * challenge: an Expert run on a shared seed.
+ */
+export type Mode = 'daily' | 'night' | 'endless' | 'challenge';
+/** simple: five dials, a night clock, the crisis at dawn; expert: the scaling core. */
+export type Ruleset = 'simple' | 'expert';
+export function rulesetFor(mode: Mode): Ruleset {
+  return mode === 'daily' || mode === 'night' ? 'simple' : 'expert';
+}
 
 export type MeterKey = 'public' | 'military' | 'allies' | 'economy' | 'escalation';
 export const METERS: readonly MeterKey[] = ['public', 'military', 'allies', 'economy', 'escalation'] as const;
@@ -425,6 +436,8 @@ export interface ActDef {
    * alliances persist. Fractional parts are rolled.
    */
   recovery?: number;
+  /** Whether the act ends with a flashpoint (default true). The night's early stretches set false. */
+  flashpoint?: boolean;
   /** Leverage that must be accumulated during the act (the ante). */
   target: number;
 }
@@ -452,6 +465,8 @@ export interface Content {
   flashpoints: Record<string, FlashpointDef>;
   speakers: Record<string, SpeakerDef>;
   acts: ActDef[];
+  /** The night's structure for the simple ruleset (rules.yaml `night.acts`); falls back to `acts`. */
+  nightActs: ActDef[];
   difficulties: DifficultyDef[];
   /** Ordered ids for stable iteration. */
   cardOrder: string[];
@@ -576,6 +591,7 @@ export interface RunState {
   rng: [number, number, number, number];
   seat: Seat;
   mode: Mode;
+  ruleset: Ruleset;
   difficulty: 1 | 2 | 3 | 4 | 5;
   act: number;
   /** Cards played this act (excluding flashpoint cards). */

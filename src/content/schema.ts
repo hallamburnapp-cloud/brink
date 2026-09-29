@@ -351,7 +351,7 @@ export const actSchema = z
   .object({
     index: z.number().int().min(1).max(5),
     name: z.string(),
-    cards: z.number().int().min(6).max(30),
+    cards: z.number().int().min(1).max(30),
     effect_scale: z.number().min(0.5).max(3),
     intel_shift: z.number().min(-50).max(50),
     timer_scale: z.number().min(0.3).max(2),
@@ -359,6 +359,7 @@ export const actSchema = z
     target: z.number().int().min(50),
     cooling: z.number().min(0).max(3).optional(),
     recovery: z.number().min(0).max(3).optional(),
+    flashpoint: z.boolean().optional(),
   })
   .strict();
 
@@ -375,7 +376,14 @@ export const difficultySchema = z
   })
   .strict();
 
-export const rulesFileSchema = z.object({ acts: z.array(actSchema).length(5), difficulties: z.array(difficultySchema).min(1) }).strict();
+export const rulesFileSchema = z
+  .object({
+    acts: z.array(actSchema).length(5),
+    /** The simple ruleset's night: five stretches from 3:00am to dawn. */
+    night: z.object({ acts: z.array(actSchema).length(5) }).strict().optional(),
+    difficulties: z.array(difficultySchema).min(1),
+  })
+  .strict();
 
 export interface RawContent {
   cards: { file: string; items: unknown[] }[];
@@ -609,16 +617,18 @@ export function compileContent(raw: RawContent): { content: Content; issues: Con
   } else err(raw.speakers.file, 'speakers file must contain a YAML list');
 
   let acts: ActDef[] = [];
+  let nightActs: ActDef[] = [];
   let difficulties: DifficultyDef[] = [];
   const rr = rulesFileSchema.safeParse(raw.rules.item);
   if (!rr.success) err(raw.rules.file, fmtZod(rr.error));
   else {
     acts = [...rr.data.acts].sort((a, b) => a.index - b.index);
+    nightActs = rr.data.night ? [...rr.data.night.acts].sort((a, b) => a.index - b.index) : acts;
     difficulties = rr.data.difficulties as DifficultyDef[];
   }
 
   return {
-    content: { cards, pieces, orders, archetypes, endings, seats, flashpoints, speakers, acts, difficulties, cardOrder, pieceOrder, orderOrder, endingOrder },
+    content: { cards, pieces, orders, archetypes, endings, seats, flashpoints, speakers, acts, nightActs, difficulties, cardOrder, pieceOrder, orderOrder, endingOrder },
     issues,
   };
 }

@@ -3,139 +3,139 @@
 # piece changes what they say (cards condition on pieces_any).
 - id: aide
   name: Mara Quell
-  role: Private Secretary
+  role: "Your Private Secretary"
   accent: "#c9b98a"
   art: aide
   voice: Calm, procedural, the one who reads the schedule at 3am. Short sentences. Never opines unless asked; when she does, it lands.
 - id: hawk_general
   name: General Oren Vasska
-  role: Chief of the Defence Staff
+  role: "Your General"
   accent: "#b8352f"
   art: hawk_general
   voice: Clipped, certain, speaks in capabilities and windows. Talks about "them" never "the enemy". Hides cost in the passive voice.
 - id: dove_fm
   name: Ilse Marrow
-  role: Foreign Minister
+  role: "Your Foreign Minister"
   accent: "#4f8fc9"
   art: dove_fm
   voice: Long-view, dry, occasionally weary. Reaches for what the other side sees. Uses "we" for the world.
 - id: intel_director
   name: Director Sefton Lyle
-  role: Director of National Intelligence
+  role: "Your Spy Chief"
   accent: "#7c8b9a"
   art: intel_director
   voice: Hedged to the exact degree of confidence. "We assess", "moderate confidence", "a single source". Never says "I think".
 - id: spin_doctor
   name: Dov Karrick
-  role: Director of Communications
+  role: "Your Spin Doctor"
   accent: "#d98a2b"
   art: spin_doctor
   voice: Fast, transactional, thinks in headlines and half-lives. Every problem is a framing problem until it isn't.
 - id: ambassador
   name: Ambassador Hale Okonkwo-Reyes
-  role: Ambassador-at-Large
+  role: "Your Ambassador"
   accent: "#8e6bb3"
   art: ambassador
   voice: Old-school, courteous, remembers the last crisis and the one before. Speaks in anecdotes that turn out to be warnings.
 - id: cyber_director
   name: Dr Teodora Vance
-  role: Director, Cyber & Space Command
+  role: "Your Cyber Chief"
   accent: "#3fbf9f"
   art: cyber_director
   voice: Precise, technical, allergic to false certainty about attribution. Distinguishes "consistent with" from "is".
 - id: treasury
   name: Chancellor Anselm Roke
-  role: Treasury
+  role: "Your Chancellor"
   accent: "#c1a23a"
   art: treasury
   voice: Numbers, then consequences, then a dry joke. Thinks a crisis is a balance sheet with a body count.
 - id: admiral
   name: Admiral Petra Volanski
-  role: Fleet Commander
+  role: "Your Admiral"
   accent: "#2f6fb8"
   art: admiral
   voice: Plain-spoken, loyal, sea-minded. Talks about distances, hours, and what a captain will do when he cannot reach you.
 - id: peace_leader
   name: Yusra Delacroix-Amin
-  role: Peace Movement Leader
+  role: "The Peace Movement"
   accent: "#6fbf5c"
   art: peace_leader
   voice: Moral, unhurried, addresses you as a person not an office. Impossible to dismiss because she is often right.
 - id: contractor
   name: Corin Ashby-Tal
-  role: Chief Executive, Halvard Systems
+  role: "The Arms Dealer"
   accent: "#9aa0a6"
   art: contractor
   voice: Smooth, helpful, always has a product. Says "capability" where others say "weapon".
 - id: fixer
   name: Ferris Nkemelu
-  role: Chief of Staff
+  role: "Your Chief of Staff"
   accent: "#b07a4a"
   art: fixer
   voice: Profane in spirit, polite in text. Solves the problem in front of you and never tells you how.
 - id: hotline
   name: The Hotline
-  role: Direct line to {rival_capital}
+  role: "The Hotline"
   accent: "#e03b3b"
   art: hotline
   voice: Translated, formal, delayed by a beat. Everything is deniable; the pauses are the message.
 - id: watch_officer
   name: Lt. Cmdr. Ash Rennick
-  role: Duty Officer, National Command Centre
+  role: "The Duty Officer"
   accent: "#5f7f9f"
   art: watch_officer
   voice: Reads the board. Times, tracks, confidence levels. Calls you "sir or ma'am" once, then just talks.
 - id: press
   name: Nadia Ferrante
-  role: Chief Political Correspondent
+  role: "The Press"
   accent: "#d0d0d0"
   art: press
   voice: Questions that are statements. Knows what your cabinet leaked before you do.
 - id: ally_leader
   name: Prime Minister Selene Varga
-  role: Leader of the Northern Compact
+  role: "Your Ally's Prime Minister"
   accent: "#5aa9d6"
   art: ally_leader
   voice: Warm in public, blunt in private. Asks what you will do, not what you feel.
 - id: rival_leader
   name: "{rival_leader} of {rival}"
-  role: Head of the rival power
+  role: "Their Leader"
   accent: "#c43a3a"
   art: rival_leader
   voice: Appears only through the hotline, the summit, or a public statement. Never a villain; always a man with a domestic audience.
 - id: other_leader
   name: "{other_leader} of {other}"
-  role: Head of the third power
+  role: "The Third Power's Leader"
   accent: "#c98a3a"
   art: other_leader
   voice: Watching, weighing, offering to help in ways that help them.
 - id: opposition
   name: Tomas Ahlgren
-  role: Leader of the Opposition
+  role: "The Opposition"
   accent: "#a06fd6"
   art: opposition
   voice: Reasonable in tone, lethal in timing. Supports you right up to the moment he doesn't.
 - id: family
   name: Jonah
-  role: Your partner
+  role: "Your Partner"
   accent: "#e6c5a5"
   art: family
   voice: The only person who asks if you have eaten. Short. Real.
 - id: scientist
   name: Prof. Aurelio Benn-Sato
-  role: Chief Scientific Adviser
+  role: "Your Chief Scientist"
   accent: "#7fd6e6"
   art: scientist
   voice: Explains the physics as if it were weather. Frightening because he is not frightened.
 - id: envoy
   name: Secretary Adaeze Lindqvist
-  role: Secretary of the Assembly of Nations
+  role: "The Assembly's Secretary"
   accent: "#e6e0c8"
   art: envoy
   voice: Multilateral, patient, in the room because everyone needs someone to blame for the compromise.
 - id: legal
   name: Attorney General Rhea Castellane
-  role: Attorney General
+  role: "Your Attorney General"
   accent: "#8f9fbf"
   art: legal
   voice: Precise about what you may do and what you can later be seen to have done. Two different things.

@@ -37,6 +37,8 @@ import {
   type RollResult,
   type RunEvent,
   type RunState,
+  type Ruleset,
+  rulesetFor,
   type ScaleTrigger,
   type Seat,
   type Side,
@@ -95,10 +97,19 @@ export interface StepResult {
 
 // ------------------------------------------------------------------ helpers
 
-export function actDef(content: Content, act: number): ActDef {
-  const acts = content.acts;
+export function actDef(content: Content, act: number, ruleset: Ruleset = 'expert'): ActDef {
+  const acts = ruleset === 'simple' ? content.nightActs : content.acts;
   if (act <= acts.length) return acts[Math.max(act, 1) - 1];
   return endlessActDef(acts[acts.length - 1], act);
+}
+
+/** The act list a run plays (the night for the simple ruleset). */
+export function actsFor(content: Content, state: RunState): ActDef[] {
+  return state.ruleset === 'simple' ? content.nightActs : content.acts;
+}
+
+export function isSimple(state: RunState): boolean {
+  return state.ruleset === 'simple';
 }
 
 export function difficultyDef(content: Content, level: number): DifficultyDef {
@@ -115,7 +126,7 @@ export function heldPieces(content: Content, state: RunState): PieceDef[] {
 }
 
 export function ctxFor(content: Content, state: RunState): ModContext {
-  return { pieces: heldPieces(content, state), act: actDef(content, state.act), difficulty: difficultyDef(content, state.difficulty) };
+  return { pieces: heldPieces(content, state), act: actDef(content, state.act, state.ruleset), difficulty: difficultyDef(content, state.difficulty) };
 }
 
 function rngOf(state: RunState): Rng {
@@ -179,6 +190,7 @@ export function createRun(content: Content, opts: RunOptions): RunState {
     rng: rng.snapshot(),
     seat: opts.seat,
     mode: opts.mode,
+    ruleset: rulesetFor(opts.mode),
     difficulty,
     act: 1,
     actCards: 0,
@@ -279,7 +291,7 @@ export function view(content: Content, state: RunState): CardView | null {
   const card = content.cards[state.current];
   if (!card) return null;
   const ctx = ctxFor(content, state);
-  const act = actDef(content, state.act);
+  const act = actDef(content, state.act, state.ruleset);
   const fp = state.flashpoint ? content.flashpoints[state.flashpoint] : null;
   const timer = resolveTimer(card.timer, ctx);
   return {
@@ -371,7 +383,7 @@ export function choose(content: Content, state: RunState, side: Side | 'timeout'
   if (!card) return { state, events };
   const rng = rngOf(state);
   const ctx = ctxFor(content, state);
-  const act = actDef(content, state.act);
+  const act = actDef(content, state.act, state.ruleset);
 
   let resolvedSide: Side;
   if (side === 'timeout') {
@@ -537,7 +549,7 @@ export function choose(content: Content, state: RunState, side: Side | 'timeout'
   // 10. Mid-act shop, or tick the queue and draw.
   tickQueue(state);
   const halfway = act.cards >= 8 && state.actCards === Math.floor(act.cards / 2);
-  if (!state.flashpoint && (card.shop || (!state.midShopDone && halfway))) {
+  if (!isSimple(state) && !state.flashpoint && (card.shop || (!state.midShopDone && halfway))) {
     state.midShopDone = true;
     openShop(content, state, rng, true, events);
     saveRng(state, rng);
@@ -856,7 +868,7 @@ function eligible(content: Content, state: RunState, card: CardDef, pieces: read
 function drawNext(content: Content, state: RunState, rng: Rng, events: RunEvent[]): void {
   if (state.phase !== 'card') return;
   const pieces = heldPieces(content, state);
-  const act = actDef(content, state.act);
+  const act = actDef(content, state.act, state.ruleset);
 
   // Queued follow-ups that are due come first, in order. Inside a flashpoint,
   // ordinary follow-ups stay in the queue (untouched) until it is over.
@@ -942,8 +954,8 @@ function present(content: Content, state: RunState, rng: Rng, card: CardDef): vo
     if (floor) p = Math.max(p, floor / 100);
     state.truth = rng.next() < clamp(p, 0.05, 0.98);
   }
-  // Accidents: the price of living near the top of the curve.
-  if (!card.flashpoint && !card.bluff) {
+  // Accidents: the price of living near the top of the curve (Expert only).
+  if (!card.flashpoint && !card.bluff && !isSimple(state)) {
     const { pMult } = accidentModifiers(ctx.pieces);
     const p = Math.round(clamp(accidentChance(state.meters.escalation) * pMult, 0, 0.9) * 100) / 100;
     if (p > 0 && rng.next() < 0.75) {
@@ -961,6 +973,20 @@ function present(content: Content, state: RunState, rng: Rng, card: CardDef): vo
  */
 function endAct(content: Content, state: RunState, rng: Rng, events: RunEvent[]): boolean {
   if (state.anteSettled) return false;
+  const act = actDef(content, state.act, state.ruleset);
+  if (isSimple(state)) {
+    state.anteSettled = true;
+    if (act.flashpoint === false) return false;
+    if (startFlashpoint(content, state, rng, events, false)) {
+      drawNext(content, state, rng, events);
+      return true;
+    }
+    return false;
+  }
+  if (act.flashpoint === false) {
+    state.anteSettled = true;
+    return false;
+  }
   const bluff = settleAnte(content, state, events);
   if (startFlashpoint(content, state, rng, events, bluff)) {
     drawNext(content, state, rng, events);
@@ -1051,9 +1077,14 @@ function pickBluffCard(content: Content, state: RunState, rng: Rng, pieces: read
 }
 
 function finishAct(content: Content, state: RunState, rng: Rng, events: RunEvent[]): void {
-  if (state.act >= content.acts.length && !state.endless) {
+  if (state.act >= actsFor(content, state).length && !state.endless) {
     const e = pickEnding(content, state, { type: 'run_end' });
     endRun(content, state, e?.id ?? (state.meters.escalation <= STANDDOWN_THRESHOLD ? 'fallback_standdown' : 'fallback_survival'), events);
+    return;
+  }
+  if (isSimple(state)) {
+    // The night rolls on: no shop, straight into the next stretch.
+    beginAct(content, state, rng, events);
     return;
   }
   openShop(content, state, rng, false, events);
@@ -1217,7 +1248,7 @@ export function leaveShop(content: Content, state: RunState): StepResult {
 /** Continue past a winning ending into endless acts with rising targets. */
 export function continueRun(content: Content, state: RunState): StepResult {
   const events: RunEvent[] = [];
-  if (state.phase !== 'ended' || !state.canContinue) return { state, events };
+  if (state.phase !== 'ended' || !state.canContinue || isSimple(state)) return { state, events };
   state.endless = true;
   state.canContinue = false;
   state.ending = null;
@@ -1243,7 +1274,7 @@ function beginAct(content: Content, state: RunState, rng: Rng, events: RunEvent[
   const perAct = ruleValue(ctx, 'capital_per_act') + (state.act > 1 ? ACT_STIPEND : 0);
   if (perAct) addCapital(state, perAct, 'act', events);
   grow(content, state, 'act_start', undefined, events);
-  const act = actDef(content, state.act);
+  const act = actDef(content, state.act, state.ruleset);
   events.push({ type: 'act_start', act: state.act, name: act.name, target: state.actTarget });
   drawNext(content, state, rng, events);
 }
@@ -1325,6 +1356,7 @@ export function deserialise(json: string): RunState {
   const s = JSON.parse(json) as RunState;
   if (s.v !== 2) throw new Error('Unsupported run state version');
   if (typeof s.anteSettled !== 'boolean') s.anteSettled = false;
+  if (s.ruleset !== 'simple' && s.ruleset !== 'expert') s.ruleset = rulesetFor(s.mode);
   return s;
 }
 

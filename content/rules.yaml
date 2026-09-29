@@ -8,6 +8,16 @@ acts:
   - { index: 4, name: Week Four,  cards: 16, effect_scale: 1.28, intel_shift: -15, timer_scale: 0.70, day_per_card: 0.5, target: 3200, cooling: 0.5, recovery: 0.15 }
   - { index: 5, name: Endgame,    cards: 10, effect_scale: 1.40, intel_shift: -20, timer_scale: 0.60, day_per_card: 0.5, target: 7000, cooling: 0.5, recovery: 0.15 }
 
+# The simple ruleset's night: 3:00am to dawn in five stretches, 21 ordinary cards and
+# the crisis (a flashpoint) at the end. Targets are unused in the simple ruleset.
+night:
+  acts:
+    - { index: 1, name: "3:00am", cards: 5, effect_scale: 1.00, intel_shift: 0,   timer_scale: 1.00, day_per_card: 0.05, target: 50, cooling: 0.5, recovery: 0.15, flashpoint: false }
+    - { index: 2, name: "3:35am", cards: 5, effect_scale: 1.04, intel_shift: -3,  timer_scale: 0.95, day_per_card: 0.05, target: 50, cooling: 0.5, recovery: 0.15, flashpoint: false }
+    - { index: 3, name: "4:10am", cards: 5, effect_scale: 1.08, intel_shift: -6,  timer_scale: 0.90, day_per_card: 0.05, target: 50, cooling: 0.5, recovery: 0.15, flashpoint: false }
+    - { index: 4, name: "4:45am", cards: 5, effect_scale: 1.12, intel_shift: -9,  timer_scale: 0.85, day_per_card: 0.05, target: 50, cooling: 0.5, recovery: 0.15, flashpoint: false }
+    - { index: 5, name: "5:20am", cards: 1, effect_scale: 1.16, intel_shift: -12, timer_scale: 0.80, day_per_card: 0.05, target: 50, cooling: 0.5, recovery: 0.15, flashpoint: true }
+
 difficulties:
   - { level: 5, name: DEFCON 5, effect_scale: 1.00, intel_shift: 0,   timer_scale: 1.00, start_escalation: 0,  target_scale: 1.00 }
   - { level: 4, name: DEFCON 4, effect_scale: 1.08, intel_shift: -5,  timer_scale: 0.90, start_escalation: 5,  target_scale: 1.15, unlock: defcon_4 }

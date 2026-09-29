@@ -396,6 +396,32 @@ describe('antes, flashpoints and the shop', () => {
     choose(content, s, 'left');
     expect(s.current).toBe('fp_1');
   });
+  it('simple ruleset: no shop, no antes, no accidents; the crisis only at the end; a dawn ending', () => {
+    const s = createRun(content, { seed: 'night-1', seat: 'republic', mode: 'daily' });
+    expect(s.ruleset).toBe('simple');
+    s.meters.escalation = 70; // accidents would attach in Expert from 50
+    const types = new Set<string>();
+    let flashpointAt = 0;
+    for (let i = 0; i < 80 && s.phase !== 'ended'; i++) {
+      expect(s.phase).toBe('card');
+      expect(s.accident).toBeNull();
+      if (s.flashpoint && !flashpointAt) flashpointAt = s.act;
+      const r = choose(content, s, i % 2 ? 'left' : 'right');
+      for (const e of r.events) types.add(e.type);
+      s.meters.escalation = Math.min(s.meters.escalation, 70); // stay alive for the test
+      for (const k of ['public', 'military', 'allies', 'economy'] as const) s.meters[k] = Math.max(30, Math.min(70, s.meters[k]));
+    }
+    expect(s.phase).toBe('ended');
+    expect(types.has('shop')).toBe(false);
+    expect(types.has('ante')).toBe(false);
+    expect(types.has('accident')).toBe(false);
+    expect(flashpointAt).toBe(5);
+    expect(s.stats.antesMet + s.stats.antesMissed).toBe(0);
+    expect(['fallback_standdown', 'fallback_survival', 'standdown_quiet', 'survival_cold']).toContain(s.ending ?? '');
+    // Replays identically from JSON at every step is covered elsewhere; here: the same seed gives the same night.
+    const t = createRun(content, { seed: 'night-1', seat: 'republic', mode: 'daily' });
+    expect(t.current).toBe(createRun(content, { seed: 'night-1', seat: 'republic', mode: 'daily' }).current);
+  });
   it('deals a standalone bluff card when the ante is missed and no flashpoint is available', () => {
     const noFp = { ...content, flashpoints: {} } as typeof content;
     const s = createRun(noFp, { seed: 'bluff-nofp', seat: 'republic', mode: 'endless' });

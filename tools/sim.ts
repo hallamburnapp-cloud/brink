@@ -44,7 +44,7 @@ const USAGE = `usage: tsx tools/sim.ts [options]
   --seat S            republic | federation | coalition | all, or a comma list (default all, round-robin)
   --seed BASE         seed base; run i uses "BASE-i" (default brink)
   --difficulty 1..5   DEFCON level (default 5)
-  --mode M            endless | daily | challenge (default endless)
+  --mode M            endless | daily | night | challenge (default endless; daily and night use the simple ruleset)
   --out DIR           output directory (default sim-output/)
   --quiet             no progress, one-line summary only
   --json              print the JSON report to stdout instead of markdown
