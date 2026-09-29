@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'preact/hooks';
 import { BRAND, FEATURES, VERSION } from '../../config';
-import { dailyDateKey, dailyNumber, dailyPlayed, dailySeat, dailyStreak, getDailyRecord, msUntilNextDaily } from '../../meta/daily';
+import { dailyNumber, dailyPlayed, dailySeat, dailyStreak, getDailyRecord, msUntilNextDaily } from '../../meta/daily';
 import { hasEndless } from '../../meta/unlock';
 import { compendium } from '../../meta/compendium';
-import { formatScore, getBestScore } from '../../meta/score';
-import { content, endlessAvailable, goto, hasSavedRun, resumeRun, startDaily } from '../store';
+import { stripCells } from '../../meta/share';
+import { content, endlessAvailable, goto, hasSavedRun, resumeRun, startDaily, startNight } from '../store';
 import { Mark } from '../components/Mark';
+import { DIAL_LABEL } from '../../engine/night';
+import { METERS } from '../../engine/types';
 
 function fmt(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -29,62 +31,76 @@ export function Home() {
   }, []);
   const comp = compendium(c);
   const streak = dailyStreak();
-  const best = getBestScore();
+  const cells = rec?.trail ? stripCells(rec.trail, 12) : null;
+  const endingName = rec ? c.endings[rec.ending]?.name ?? '' : '';
 
   return (
-    <div class="flex flex-1 flex-col gap-6 pt-6">
-      <header class="flex flex-col items-center gap-3 pt-6 text-center">
-        <Mark size={72} />
+    <div class="flex flex-1 flex-col gap-5 pt-6">
+      <header class="flex flex-col items-center gap-3 pt-4 text-center">
+        <Mark size={64} />
         <h1 class="serif text-5xl font-semibold tracking-[0.18em]">{BRAND.name}</h1>
-        <p class="serif max-w-[320px] text-sm leading-snug text-paper/70">{BRAND.tagline}</p>
+        <p class="serif max-w-[300px] text-[15px] leading-snug text-paper/75">It's 3am. The phone is ringing. Make it to dawn.</p>
       </header>
 
       {hasSavedRun.value && (
         <button class="btn btn-danger" onClick={() => resumeRun()}>
-          Resume the crisis in progress
+          Pick the phone back up
         </button>
       )}
 
-      <section class="paper-dark rounded-md p-4">
+      <section class="paper-dark rounded-md p-4" aria-label="Tonight">
         <div class="mono flex items-center justify-between text-[10px] tracking-[0.24em] text-mute">
-          <span>DAILY #{dailyNumber()}</span>
-          <span>{dailyDateKey()}</span>
+          <span>TONIGHT · #{dailyNumber()}</span>
+          <span>{streak > 1 ? `${streak} NIGHTS IN A ROW` : 'SAME NIGHT FOR EVERYONE'}</span>
         </div>
-        <div class="mt-2 flex items-center justify-between gap-3">
-          <div>
-            <div class="serif text-xl font-semibold" style={{ color: seat.accent }}>
-              {seat.name}
+        {!played ? (
+          <>
+            <div class="serif mt-2 text-xl font-semibold" style={{ color: seat.accent }}>
+              You are {seat.the}.
             </div>
-            <div class="serif text-xs text-paper/70">Same seed for everyone. One attempt.{streak > 1 ? ` Streak ${streak}.` : ''}</div>
-          </div>
-          {!played ? (
-            <button class="btn btn-primary" onClick={startDaily}>
-              Play
+            <button class="btn btn-primary mt-3 w-full py-4 text-lg" onClick={startDaily}>
+              Play tonight
             </button>
-          ) : (
-            <div class="mono text-right text-[10px] tracking-[0.14em] text-mute">
-              <div class="text-paper/80">{rec?.days} DAYS · {rec ? c.endings[rec.ending]?.name.toUpperCase() : ''}</div>
-              <div>NEXT IN {countdown}</div>
+            <div class="mono mt-2 text-center text-[10px] tracking-[0.14em] text-mute">ONE ATTEMPT · TWO MINUTES</div>
+          </>
+        ) : (
+          <>
+            <div class="mt-2 flex items-baseline justify-between gap-3">
+              <div class="serif text-xl font-semibold">
+                {rec?.dawn ? '🌅 Dawn' : rec?.kind === 'nuclear' ? `☢️ ${rec.clock ?? ''}` : `🌑 Fell at ${rec?.clock ?? ''}`}
+              </div>
+              <div class="mono text-[10px] tracking-[0.14em] text-mute">{endingName.toUpperCase()}</div>
             </div>
-          )}
-        </div>
-      </section>
-
-      <section class="paper-dark rounded-md p-4">
-        <div class="mono text-[10px] tracking-[0.24em] text-mute">ENDLESS</div>
-        <div class="mt-2 flex items-center justify-between gap-3">
-          <div>
-            <div class="serif text-xl font-semibold">Every seat, every seed</div>
-            <div class="serif text-xs text-paper/70">Unlimited runs. Choose a seat, a DEFCON tier, share a seed.</div>
-            {best && (
-              <div class="mono mt-1 text-[10px] tracking-[0.14em] text-amber">
-                BEST SCORE {formatScore(best.score)} · {c.seats[best.seat as keyof typeof c.seats]?.name ?? best.seat}
-                {best.endless ? ` · ENDLESS ${best.act - c.acts.length}` : ''}
+            {cells && (
+              <div class="mt-3 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1">
+                {METERS.map((k, row) => (
+                  <>
+                    <div key={k} class="mono text-[8px] tracking-[0.14em] text-mute">
+                      {DIAL_LABEL[k]}
+                    </div>
+                    <div key={k + 'v'} class="grid gap-[2px]" style={{ gridTemplateColumns: `repeat(${cells[row].length}, minmax(0, 1fr))` }}>
+                      {cells[row].map((colour, i) => (
+                        <span key={i} class="strip-cell" style={{ background: colour }} />
+                      ))}
+                    </div>
+                  </>
+                ))}
               </div>
             )}
+            <div class="mono mt-3 text-[10px] tracking-[0.14em] text-mute">TOMORROW'S NIGHT IN {countdown}</div>
+          </>
+        )}
+      </section>
+
+      <section class="paper-dark rounded-md p-4" aria-label="Night after night">
+        <div class="mono text-[10px] tracking-[0.24em] text-mute">NIGHT AFTER NIGHT</div>
+        <div class="mt-2 flex items-center justify-between gap-3">
+          <div>
+            <div class="serif text-lg font-semibold">Any night, any seat</div>
+            <div class="serif text-xs text-paper/70">Unlimited nights. Share a seed. Expert mode for the numbers.</div>
           </div>
           {endlessAvailable.value ? (
-            <button class="btn btn-primary" onClick={() => goto('seat')}>
+            <button class="btn btn-primary" onClick={() => startNight()}>
               Play
             </button>
           ) : (
@@ -93,6 +109,16 @@ export function Home() {
             </button>
           )}
         </div>
+        {endlessAvailable.value && (
+          <div class="mono mt-2 flex gap-3 text-[10px] tracking-[0.14em]">
+            <button class="link text-paper/80" onClick={() => goto('seat')}>
+              CHOOSE A SEAT OR SEED
+            </button>
+            <button class="link text-paper/60" onClick={() => goto('seat')}>
+              EXPERT
+            </button>
+          </div>
+        )}
       </section>
 
       <nav class="grid grid-cols-2 gap-2">

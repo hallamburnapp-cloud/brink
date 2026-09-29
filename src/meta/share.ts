@@ -31,8 +31,12 @@ export interface ShareCardData {
   dailyNumber?: number; // e.g. 12 → "BRINK #12"
   streak?: number;
   pieces?: string[]; // display names of held pieces (≤ 4 shown)
-  /** Total leverage scored (the run's score). */
+  /** Total leverage scored (the run's score). Expert only; omitted for the night. */
   score?: number;
+  /** The night's clock at the end ("6:00" at dawn, the time of the fall otherwise). Simple ruleset only. */
+  clock?: string;
+  /** True when the night reached dawn. */
+  dawn?: boolean;
   /** Endless acts survived past the Endgame. */
   endlessActs?: number;
 }
@@ -120,11 +124,26 @@ export function emojiStrip(trail: number[][], columns: number = DEFAULT_COLUMNS)
   return METER_LABELS.map((_, row) => idx.map((i) => cellBand(trail[i]?.[row], row) ?? EMPTY_CELL).join(''));
 }
 
+/** The same strip as colours (hex) for drawing in the DOM: five rows × `columns`. */
+export function stripCells(trail: number[][], columns: number = DEFAULT_COLUMNS): string[][] {
+  const cols = Math.max(1, Math.floor(Number.isFinite(columns) ? columns : DEFAULT_COLUMNS));
+  const n = Array.isArray(trail) ? trail.length : 0;
+  if (n === 0) return METER_LABELS.map(() => new Array(cols).fill(EMPTY_HEX));
+  const idx = sampleIndices(n, cols);
+  return METER_LABELS.map((_, row) =>
+    idx.map((i) => {
+      const b = cellBand(trail[i]?.[row], row);
+      return b ? BAND_HEX[b] : EMPTY_HEX;
+    }),
+  );
+}
+
 // ------------------------------------------------------------------ text share
 
 function modeLabel(data: ShareCardData): string {
   if (data.mode === 'daily') return typeof data.dailyNumber === 'number' ? `#${data.dailyNumber}` : 'Daily';
   if (data.mode === 'challenge') return 'Challenge';
+  if (data.mode === 'night') return 'Night';
   return 'Endless';
 }
 
@@ -155,6 +174,16 @@ function urlOf(data: ShareCardData): string {
  * The moment line is omitted when `moment` is null.
  */
 export function shareText(data: ShareCardData): string {
+  if (typeof data.clock === 'string') {
+    // The night: one line people paste, the strip, the link.
+    const result = data.dawn ? '🌅 Dawn' : data.endingKind === 'nuclear' ? `☢️ ${data.clock}` : `🌑 Fell at ${data.clock}`;
+    const head = `${brandOf(data)} ${modeLabel(data)} ${result}`;
+    const lines: string[] = [head];
+    if (data.mode === 'daily' && typeof data.streak === 'number' && data.streak > 1) lines.push(`${Math.floor(data.streak)} nights in a row`);
+    lines.push(...emojiStrip(data.trail));
+    lines.push(urlOf(data));
+    return lines.join('\n');
+  }
   const head = [`${brandOf(data)} ${modeLabel(data)}`, data.seatName, dayCount(data.days)];
   if (data.mode === 'daily' && typeof data.streak === 'number' && data.streak > 1) {
     head.push(`${Math.floor(data.streak)}-day streak`);
@@ -484,16 +513,18 @@ function paintEnding(ctx: Ctx, data: ShareCardData): void {
 
 function paintDays(ctx: Ctx, data: ShareCardData, heat: number): void {
   const baseline = PANEL_Y + 512;
-  const days = String(Math.max(0, Math.floor(Number.isFinite(data.days) ? data.days : 0)));
+  const night = typeof data.clock === 'string';
+  const days = night ? data.clock! : String(Math.max(0, Math.floor(Number.isFinite(data.days) ? data.days : 0)));
   ctx.fillStyle = INK;
   ctx.textBaseline = 'alphabetic';
-  fitFont(ctx, days, 470, 236, 120, 'bold', SERIF);
+  fitFont(ctx, days, 470, night ? 180 : 236, 120, 'bold', SERIF);
   ctx.fillText(days, CONTENT_L - 6, baseline);
   const numberWidth = ctx.measureText(days).width;
 
   ctx.fillStyle = INK_MUTED;
   ctx.font = `22px ${MONO}`;
-  drawSpaced(ctx, days === '1' ? 'DAY SURVIVED' : 'DAYS SURVIVED', CONTENT_L, baseline + 40, 5);
+  const caption = night ? (data.dawn ? 'DAWN' : 'FELL') : days === '1' ? 'DAY SURVIVED' : 'DAYS SURVIVED';
+  drawSpaced(ctx, caption, CONTENT_L, baseline + 40, 5);
 
   // Stamp: kind, rotated, right of the number.
   const label = (KIND_LABEL[data.endingKind] ?? 'Ending').toUpperCase();

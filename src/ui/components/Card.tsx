@@ -11,12 +11,16 @@ export interface CardProps {
   /** Speaker display name (templated). */
   speakerName: string;
   speakerRole: string;
+  /** The simple ruleset: role first, the clock instead of the day, no numbers anywhere. */
+  simple?: boolean;
+  /** Footer text on the left (the clock in the simple ruleset). */
+  footer?: string;
 }
 
 const THRESHOLD = 88;
 
 /** Reigns-style card: drag with resistance, tilt reveals the choice, release commits. */
-export function Card({ card, disabled, onTilt, onCommit, speakerName, speakerRole }: CardProps) {
+export function Card({ card, disabled, onTilt, onCommit, speakerName, speakerRole, simple = false, footer }: CardProps) {
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [leaving, setLeaving] = useState<null | 'left' | 'right'>(null);
@@ -101,7 +105,7 @@ export function Card({ card, disabled, onTilt, onCommit, speakerName, speakerRol
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         role="group"
-        aria-label={`Card from ${speakerName}`}
+        aria-label={`Card from ${simple ? speakerRole : speakerName}`}
       >
         {/* choice reveal ribbons */}
         <div class="pointer-events-none absolute left-3 top-3 max-w-[70%] transition-opacity" style={{ opacity: side === 'left' ? 0.35 + strength * 0.65 : 0 }}>
@@ -116,18 +120,36 @@ export function Card({ card, disabled, onTilt, onCommit, speakerName, speakerRol
             <Portrait art={card.advisor.art} accent={card.advisor.accent} size={56} title={speakerName} />
           </div>
           <div class="min-w-0">
-            <div class="serif truncate text-base font-semibold text-ink">{speakerName}</div>
-            <div class="mono truncate text-[10px] uppercase tracking-[0.18em] text-ink-2/70">{speakerRole}</div>
+            {simple ? (
+              <>
+                <div class="serif truncate text-lg font-semibold text-ink">{speakerRole}</div>
+                <div class="mono truncate text-[10px] uppercase tracking-[0.18em] text-ink-2/60">{speakerName}</div>
+              </>
+            ) : (
+              <>
+                <div class="serif truncate text-base font-semibold text-ink">{speakerName}</div>
+                <div class="mono truncate text-[10px] uppercase tracking-[0.18em] text-ink-2/70">{speakerRole}</div>
+              </>
+            )}
           </div>
         </div>
 
-        <div class="serif flex-1 px-5 py-4 text-[17px] leading-[1.45] text-ink" style={{ textWrap: 'pretty' } as any}>
+        <div class={`serif flex-1 px-5 py-4 text-ink ${simple ? 'text-[20px] leading-[1.4]' : 'text-[17px] leading-[1.45]'}`} style={{ textWrap: 'pretty' } as any}>
           {card.text}
         </div>
 
         <div class="mono flex items-center justify-between px-5 pb-3 text-[10px] uppercase tracking-[0.18em] text-ink-2/60">
-          <span>{card.isFlashpoint ? `FLASHPOINT · ${card.flashpointName}` : card.actName}</span>
-          <span>Day {card.day}</span>
+          {simple ? (
+            <>
+              <span>{card.isFlashpoint ? 'THE CRISIS' : ''}</span>
+              <span class="clock">{footer ?? ''}</span>
+            </>
+          ) : (
+            <>
+              <span>{card.isFlashpoint ? `FLASHPOINT · ${card.flashpointName}` : card.actName}</span>
+              <span>Day {card.day}</span>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -139,12 +161,44 @@ export interface ChoiceButtonsProps {
   disabled: boolean;
   onHover: (side: 'left' | 'right' | null) => void;
   onCommit: (side: 'left' | 'right') => void;
+  /** The simple ruleset: text only; odds as a word, as a percentage only in the crisis. */
+  simple?: boolean;
+}
+
+function oddsWord(p: number): string {
+  if (p >= 0.7) return 'Likely';
+  if (p >= 0.5) return 'Even';
+  return 'Risky';
 }
 
 /** Tap targets under the card (also the accessible path). */
-export function ChoiceButtons({ card, disabled, onHover, onCommit }: ChoiceButtonsProps) {
+export function ChoiceButtons({ card, disabled, onHover, onCommit, simple = false }: ChoiceButtonsProps) {
   const btn = (side: 'left' | 'right') => {
     const c = card[side];
+    if (simple) {
+      const pct = Math.round(c.odds ? c.odds.p * 100 : 0);
+      const oddsLabel = c.odds ? (card.isFlashpoint ? `${oddsWord(c.odds.p)} · ${pct}% ${c.odds.label.toLowerCase()}` : oddsWord(c.odds.p)) : '';
+      return (
+        <button
+          class={`paper-dark flex min-h-[72px] flex-1 flex-col items-${side === 'left' ? 'start' : 'end'} justify-center gap-1 rounded-md px-3 py-2 text-${side} transition hover:border-paper/40 active:translate-y-px disabled:opacity-50`}
+          disabled={disabled}
+          onMouseEnter={() => onHover(side)}
+          onMouseLeave={() => onHover(null)}
+          onFocus={() => onHover(side)}
+          onBlur={() => onHover(null)}
+          onClick={() => onCommit(side)}
+          aria-label={`${side === 'left' ? 'Left' : 'Right'}: ${c.text}${c.odds ? `, ${oddsWord(c.odds.p).toLowerCase()}` : ''}`}
+        >
+          <span class="serif text-[17px] leading-tight text-paper">{c.text}</span>
+          {(oddsLabel || c.hiddenCosts.length > 0) && (
+            <span class="mono flex items-center gap-2 text-[10px] tracking-[0.14em]">
+              {oddsLabel && <span class={c.odds!.p >= 0.7 ? 'text-green' : c.odds!.p >= 0.5 ? 'text-amber' : 'text-red'}>{oddsLabel.toUpperCase()}</span>}
+              {c.hiddenCosts.length > 0 && <span class="text-red">?</span>}
+            </span>
+          )}
+        </button>
+      );
+    }
     return (
       <button
         class={`paper-dark flex min-h-[64px] flex-1 flex-col items-${side === 'left' ? 'start' : 'end'} justify-center gap-1 rounded-sm px-3 py-2 text-${side} transition hover:border-paper/40 active:translate-y-px disabled:opacity-50`}

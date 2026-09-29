@@ -17,7 +17,7 @@ export function Paywall() {
     setBusyRestore(false);
     if (r === 'unlocked') {
       endlessAvailable.value = true;
-      toast('Restored. Endless is yours.', 'good');
+      toast('Restored. Night after night is yours.', 'good');
       goto('home');
     } else toast(r === 'not_found' ? 'No purchase found for that email.' : 'Could not reach the unlock server.', 'warn');
   };
@@ -27,22 +27,22 @@ export function Paywall() {
         <button class="mono text-[11px] tracking-[0.2em] text-mute hover:text-paper" onClick={() => goto('home')}>
           ← HOME
         </button>
-        <div class="mono text-[11px] tracking-[0.2em] text-mute">ENDLESS</div>
+        <div class="mono text-[11px] tracking-[0.2em] text-mute">NIGHT AFTER NIGHT</div>
       </header>
       <section class="paper rounded-md p-5 text-ink">
         <div class="mono text-[11px] tracking-[0.3em] text-ink-2/70">ONE-TIME PURCHASE</div>
-        <h2 class="serif mt-1 text-3xl font-semibold leading-tight">The whole crisis, every night.</h2>
+        <h2 class="serif mt-1 text-3xl font-semibold leading-tight">Night after night.</h2>
         <ul class="serif mt-3 space-y-1.5 text-[15px]">
-          <li>· All three seats and every DEFCON tier</li>
-          <li>· Unlimited runs, any seed, replay and share seeds</li>
-          <li>· Every posture piece, every ending, the full compendium</li>
-          <li>· The Daily stays free forever</li>
+          <li>· Another night whenever you want one, on any seat</li>
+          <li>· Replay a night from its seed and share it</li>
+          <li>· Expert mode: the long game with the numbers on</li>
+          <li>· Tonight stays free forever</li>
         </ul>
         <p class="mono mt-3 text-[11px] text-ink-2/70">Payment by Stripe. No account. A token is stored on this device; restore on any other with your email.</p>
       </section>
       {link ? (
         <a class="btn btn-primary" href={link} rel="noopener">
-          Unlock Endless
+          Unlock for one payment
         </a>
       ) : (
         <div class="btn" aria-disabled="true">

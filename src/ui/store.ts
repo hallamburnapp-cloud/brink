@@ -23,7 +23,8 @@ import {
   view,
 } from '../engine/run';
 import { randomSeed } from '../engine/rng';
-import type { AccidentResult, Content, EndingDef, LeverageBreakdown, RollResult, RunEvent, RunState, Seat } from '../engine/types';
+import type { AccidentResult, Content, EndingDef, LeverageBreakdown, Mode, RollResult, RunEvent, RunState, Seat } from '../engine/types';
+import { nightClock } from '../engine/night';
 import { audio } from '../audio';
 import { snd } from './sound';
 import { load, save, remove } from '../meta/storage';
@@ -37,7 +38,7 @@ import { FEATURES } from '../config';
 export type Screen = 'home' | 'seat' | 'run' | 'ending' | 'compendium' | 'stats' | 'privacy' | 'unlocked' | 'settings' | 'paywall' | 'about';
 
 export interface RunMeta {
-  mode: 'daily' | 'endless' | 'challenge';
+  mode: Mode;
   dailyNumber?: number;
   offered: string[];
   startedAt: number;
@@ -161,7 +162,7 @@ function persist(): void {
   }
 }
 
-export function startRun(opts: { mode: 'daily' | 'endless' | 'challenge'; seat: Seat; seed?: string; difficulty?: 1 | 2 | 3 | 4 | 5 }): void {
+export function startRun(opts: { mode: Mode; seat: Seat; seed?: string; difficulty?: 1 | 2 | 3 | 4 | 5 }): void {
   const c = content.value;
   const seed = opts.seed ?? (opts.mode === 'daily' ? dailySeed() : randomSeed());
   const unlocked = FEATURES.allUnlocked ? ('all' as const) : unlockedIds();
@@ -187,7 +188,17 @@ export function startRun(opts: { mode: 'daily' | 'endless' | 'challenge'; seat: 
   track('run_start', { seat: opts.seat, mode: opts.mode, difficulty: opts.difficulty ?? 5, runs_this_session: runMeta.value.runsThisSession, days_since_first_run: cohortDay });
   if (opts.mode === 'daily') track('daily_played', { number: dailyNumber(), days_since_first_run: cohortDay });
   snd.play('ring');
-  showBanner({ title: c.acts[0].name, sub: `${c.seats[opts.seat].name} · target ${state.actTarget}`, kind: 'act' });
+  if (state.ruleset === 'simple') showBanner({ title: '3:00 AM', sub: 'the phone is ringing', kind: 'act' }, 1400);
+  else showBanner({ title: c.acts[0].name, sub: `${c.seats[opts.seat].name} · target ${state.actTarget}`, kind: 'act' });
+}
+
+/** Any night, any seat: the unlock's mode (free where there is no paywall). */
+export function startNight(seat?: Seat, seed?: string): void {
+  if (!endlessAvailable.value) return goto('paywall');
+  const c = content.value;
+  const seats = Object.keys(c.seats) as Seat[];
+  const pick = seat ?? seats[Math.floor(Math.random() * seats.length)];
+  startRun({ mode: 'night', seat: pick, seed, difficulty: 5 });
 }
 
 export function startDaily(): void {
@@ -231,6 +242,7 @@ export function runAgain(): void {
   const m = runMeta.value;
   if (!s || !m) return goto('home');
   if (!endlessAvailable.value) return goto('paywall');
+  if (s.ruleset === 'simple') return startNight(s.seat);
   startRun({ mode: m.mode === 'daily' ? 'endless' : m.mode, seat: s.seat, difficulty: s.difficulty });
 }
 
@@ -239,6 +251,7 @@ export function replaySeed(): void {
   const m = runMeta.value;
   if (!s || !m) return goto('home');
   if (!endlessAvailable.value) return goto('paywall');
+  if (s.ruleset === 'simple') return startNight(s.seat, s.seed);
   startRun({ mode: m.mode === 'daily' ? 'endless' : m.mode, seat: s.seat, seed: s.seed, difficulty: s.difficulty });
 }
 
@@ -448,8 +461,9 @@ async function processEvents(events: RunEvent[], wasFlashpoint: boolean): Promis
     if (up) setTimeout(() => snd.play('meter_up'), 140);
   }
 
-  // The tally: base counts up, mult counts up, they slam together.
-  const lev = events.find((e) => e.type === 'leverage');
+  const simple = run.value?.ruleset === 'simple';
+  // The tally: base counts up, mult counts up, they slam together (Expert only; the night shows no numbers).
+  const lev = simple ? undefined : events.find((e) => e.type === 'leverage');
   if (lev && lev.type === 'leverage') {
     const ms = tallyDuration(lev.breakdown.total);
     tally.value = { breakdown: lev.breakdown, key: Date.now(), actLeverage: lev.actLeverage, actTarget: lev.actTarget };
@@ -510,13 +524,19 @@ async function processEvents(events: RunEvent[], wasFlashpoint: boolean): Promis
       doShake(1);
       snd.play('flashpoint_hit');
       snd.drone(true, 0.6 + (0.4 * (run.value?.meters.escalation ?? 0)) / 100);
-      showBanner({ title: 'FLASHPOINT', sub: e.name, kind: 'flashpoint' }, 2200);
+      if (simple) showBanner({ title: 'THE CRISIS', sub: `${run.value ? nightClock(run.value) : ''} AM · ${e.name}`, kind: 'flashpoint' }, 2200);
+      else showBanner({ title: 'FLASHPOINT', sub: e.name, kind: 'flashpoint' }, 2200);
       await wait(600);
     }
     if (e.type === 'flashpoint_end') snd.drone(false);
     if (e.type === 'act_start') {
-      showBanner({ title: e.name, sub: `target ${e.target.toLocaleString()}`, kind: 'act' });
-      snd.play('act');
+      if (simple) {
+        // The clock turns over quietly; no banner, no target.
+        snd.play('tick');
+      } else {
+        showBanner({ title: e.name, sub: `target ${e.target.toLocaleString()}`, kind: 'act' });
+        snd.play('act');
+      }
     }
     if (e.type === 'shop') {
       snd.play('offer');

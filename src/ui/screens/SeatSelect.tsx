@@ -2,24 +2,33 @@ import { useState } from 'preact/hooks';
 import type { Seat } from '../../engine/types';
 import { SEATS } from '../../engine/types';
 import { randomSeed } from '../../engine/rng';
-import { content, difficultyUnlocked, goto, seatUnlocked, startRun } from '../store';
+import { content, difficultyUnlocked, goto, seatUnlocked, startNight, startRun } from '../store';
 
 export function SeatSelect() {
   const c = content.value;
   const [seat, setSeat] = useState<Seat>('republic');
   const [level, setLevel] = useState<1 | 2 | 3 | 4 | 5>(5);
   const [seed, setSeed] = useState('');
+  const [expert, setExpert] = useState(false);
   const chosen = c.seats[seat];
-  const ok = seatUnlocked(seat) && difficultyUnlocked(level);
+  const ok = seatUnlocked(seat) && (!expert || difficultyUnlocked(level));
   return (
     <div class="flex flex-1 flex-col gap-4 rise">
       <header class="flex items-center justify-between pt-2">
         <button class="mono text-[11px] tracking-[0.2em] text-mute hover:text-paper" onClick={() => goto('home')}>
           ← HOME
         </button>
-        <div class="mono text-[11px] tracking-[0.2em] text-mute">ENDLESS</div>
+        <div class="mono flex gap-1 text-[10px] tracking-[0.2em]" role="tablist" aria-label="Game">
+          <button class={`rounded-sm px-2 py-1 ${!expert ? 'bg-paper text-ink' : 'text-mute hover:text-paper'}`} role="tab" aria-selected={!expert} onClick={() => setExpert(false)}>
+            A NIGHT
+          </button>
+          <button class={`rounded-sm px-2 py-1 ${expert ? 'bg-paper text-ink' : 'text-mute hover:text-paper'}`} role="tab" aria-selected={expert} onClick={() => setExpert(true)}>
+            EXPERT
+          </button>
+        </div>
       </header>
       <h2 class="serif text-2xl font-semibold">Take a seat</h2>
+      {expert && <p class="serif -mt-2 text-sm text-paper/70">The long game: leverage on every choice, weekly targets, the shop, endless escalation. Numbers everywhere.</p>}
       <div class="flex flex-col gap-2">
         {SEATS.map((id) => {
           const s = c.seats[id];
@@ -53,6 +62,7 @@ export function SeatSelect() {
         })}
       </div>
 
+      {expert && (
       <div>
         <div class="mono mb-1 text-[10px] tracking-[0.24em] text-mute">DEFCON</div>
         <div class="grid grid-cols-5 gap-1">
@@ -73,6 +83,7 @@ export function SeatSelect() {
           })}
         </div>
       </div>
+      )}
 
       <div>
         <div class="mono mb-1 text-[10px] tracking-[0.24em] text-mute">SEED (optional)</div>
@@ -84,8 +95,8 @@ export function SeatSelect() {
         </div>
       </div>
 
-      <button class="btn btn-primary mt-auto" disabled={!ok} onClick={() => startRun({ mode: 'endless', seat, seed: seed || undefined, difficulty: level })}>
-        Pick up the phone as {chosen.leader_title}
+      <button class="btn btn-primary mt-auto" disabled={!ok} onClick={() => (expert ? startRun({ mode: 'endless', seat, seed: seed || undefined, difficulty: level }) : startNight(seat, seed || undefined))}>
+        {expert ? `Pick up the phone as ${chosen.leader_title}` : `Start the night as ${chosen.leader_title}`}
       </button>
     </div>
   );

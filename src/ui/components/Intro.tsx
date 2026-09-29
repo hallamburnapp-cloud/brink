@@ -28,3 +28,21 @@ export function Intro() {
     </div>
   );
 }
+
+/** The night's whole rulebook, once, over the first card. */
+export function IntroSimple() {
+  if (settings.value.seenIntro) return null;
+  return (
+    <div class="fixed inset-0 z-[52] flex items-end justify-center bg-navy/80 px-4 pb-[max(env(safe-area-inset-bottom),16px)] fade-in" role="dialog" aria-label="How this works">
+      <div class="paper w-full max-w-[440px] rounded-md p-5 text-ink shadow-2xl">
+        <div class="mono text-[11px] tracking-[0.3em] text-ink-2/70">3:00 AM</div>
+        <p class="serif mt-2 text-[19px] leading-snug">
+          <span class="font-semibold">Swipe.</span> Keep the five dials off the edges. <span class="font-semibold">Make it to dawn.</span>
+        </p>
+        <button class="btn btn-primary mt-4 w-full" onClick={() => updateSettings({ seenIntro: true })}>
+          Answer the phone
+        </button>
+      </div>
+    </div>
+  );
+}

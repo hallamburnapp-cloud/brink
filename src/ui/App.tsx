@@ -3,7 +3,9 @@ import { screen, run, shake, toasts, banner } from './store';
 import { Home } from './screens/Home';
 import { SeatSelect } from './screens/SeatSelect';
 import { Run } from './screens/Run';
+import { Night } from './screens/Night';
 import { Ending } from './screens/Ending';
+import { Dawn } from './screens/Dawn';
 import { Compendium } from './screens/Compendium';
 import { Stats } from './screens/Stats';
 import { Privacy } from './screens/Privacy';
@@ -32,8 +34,8 @@ export function App() {
       <div class="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col px-4 pb-6 pt-[max(env(safe-area-inset-top),12px)]">
         {s === 'home' && <Home />}
         {s === 'seat' && <SeatSelect />}
-        {s === 'run' && <Run />}
-        {s === 'ending' && <Ending />}
+        {s === 'run' && (run.value?.ruleset === 'simple' ? <Night /> : <Run />)}
+        {s === 'ending' && (run.value?.ruleset === 'simple' ? <Dawn /> : <Ending />)}
         {s === 'compendium' && <Compendium />}
         {s === 'stats' && <Stats />}
         {s === 'privacy' && <Privacy />}
@@ -53,7 +55,8 @@ function Banner() {
   if (!b) return null;
   const red = b.kind === 'flashpoint' || b.kind === 'ante_missed' || b.kind === 'deadman';
   const green = b.kind === 'ante_met' || b.kind === 'ante_smashed';
-  const label = b.kind === 'flashpoint' ? 'PRIORITY' : b.kind === 'ante_missed' ? 'THE ANTE' : green ? 'THE ANTE' : b.kind === 'deadman' ? 'FAILSAFE' : 'BRIEFING';
+  const simple = run.value?.ruleset === 'simple';
+  const label = b.kind === 'flashpoint' ? (simple ? 'THE PHONE' : 'PRIORITY') : b.kind === 'ante_missed' ? 'THE ANTE' : green ? 'THE ANTE' : b.kind === 'deadman' ? 'FAILSAFE' : simple ? 'TONIGHT' : 'BRIEFING';
   return (
     <div class="pointer-events-none fixed inset-x-0 top-[18%] z-50 flex justify-center px-4" aria-live="polite">
       <div class={`rise ${red ? 'bg-red text-white' : green ? 'bg-green text-ink' : 'paper'} px-6 py-4 text-center shadow-2xl ${b.kind === 'ante_smashed' ? 'scale-110' : ''}`} style="min-width: 240px">
