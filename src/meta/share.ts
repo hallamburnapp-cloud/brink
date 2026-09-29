@@ -528,8 +528,8 @@ function paintDays(ctx: Ctx, data: ShareCardData, heat: number): void {
   const caption = night ? (data.dawn ? 'DAWN' : 'FELL') : days === '1' ? 'DAY SURVIVED' : 'DAYS SURVIVED';
   drawSpaced(ctx, caption, CONTENT_L, baseline + 40, 5);
 
-  // Stamp: kind, rotated, right of the number.
-  const label = (KIND_LABEL[data.endingKind] ?? 'Ending').toUpperCase();
+  // Stamp: kind, rotated, right of the number. The night says it in its own words.
+  const label = night ? (data.dawn ? 'DAWN' : data.endingKind === 'nuclear' ? 'NUCLEAR WAR' : 'YOU ARE OUT') : (KIND_LABEL[data.endingKind] ?? 'Ending').toUpperCase();
   const stampColour = RED_KINDS.has(data.endingKind) ? RED : STAMP_MUTED;
   const stampCx = Math.max(CONTENT_L + numberWidth + 200, 800);
   paintStamp(ctx, label, Math.min(stampCx, CONTENT_R - 150), baseline - 70, stampColour, RED_KINDS.has(data.endingKind) ? 0.78 + 0.2 * heat : 0.82);
