@@ -9,11 +9,11 @@
   timer: 10
   timeout: right
   text: >-
-    "{Rival_leader} has reviewed your government's statements of the past week and
-    finds nothing in them that requires a response." A pause for the translator, then
-    the line goes to hold music. They have looked at your hand and decided it is empty.
+    "{Rival_leader} has read your statements of the past week and finds nothing that
+    requires a response." Then hold music, because they have seen your hand and
+    think it is empty.
   left:
-    text: "Concede the point in public"
+    text: "Back down in public"
     effects: { public: -8, allies: -6, commitment: -15, trust_primary: 4 }
     tags: [concede, walk_back]
     base: 6
@@ -35,11 +35,11 @@
   weight: 1
   tags: [domestic, commitment_trap]
   text: >-
-    Tomorrow's front page has a photograph of you from the week you were strong and a
-    headline that asks where that person went. {Rival} has quoted it already. The
-    General has read it twice and put it face down on the table.
+    Tomorrow's front page is a photo of you from the week you sounded strong, under
+    a headline asking where that person went. {Rival} has already quoted it, so
+    you will be answering?
   left:
-    text: "Let it run. Absorb it."
+    text: "Let it run. Take the hit."
     effects: { public: -10, military: -4, commitment: -10 }
     tags: [concede, domestic]
     base: 6
@@ -61,16 +61,16 @@
   weight: 1
   tags: [alliance, commitment_trap]
   text: >-
-    "I defended you in my own parliament last week on the strength of what you said
-    you would do." Selene Varga does not raise her voice. "Tonight I have to tell them
-    what you actually did. Help me find the sentence."
+    "Last week I defended you in my parliament on what you said you would do, and
+    tonight I tell them what you did." She does not raise her voice, and she wants
+    one line to read out.
   left:
-    text: "Tell her the truth. It was a bluff."
+    text: "Tell her the truth. A bluff."
     effects: { allies: -10, public: -4, trust_primary: 3, commitment: -12 }
     tags: [concede, alliance, transparency]
     base: 6
   right:
-    text: "Give her something real to say. Deploy."
+    text: "Give her something real. Deploy."
     effects: { escalation: 11, allies: 4, military: 3, economy: -5 }
     tags: [mobilise, alliance, escalatory]
     base: 22
@@ -87,12 +87,11 @@
   weight: 1
   tags: [economy, commitment_trap]
   text: >-
-    The currency opened down four percent because the markets, like {rival}, have
-    decided you will not do what you said. I can spend the reserve defending the
-    number, or you can make the number irrelevant by doing something they did not
-    price in.
+    The currency is down four percent because the markets, like {rival}, have
+    decided you will not do what you said. I can burn the reserve holding it up,
+    or you can surprise everyone.
   left:
-    text: "Defend the currency"
+    text: "Burn the reserve. Hold it up."
     effects: { economy: -11, public: -4, commitment: -8 }
     tags: [economy, concede]
     base: 7
@@ -116,9 +115,9 @@
   timer: 9
   timeout: right
   text: >-
-    "Their general staff has stood their forces down from the alert I was told to
-    expect a response to." He does not say the next sentence, which is that his own
-    staff read the same cables. "I need to tell my commanders whether we were serious."
+    Their generals have stood down from the alert I was told we would answer, and
+    my staff read the same cables. I need to tell my commanders tonight whether we
+    were ever serious.
   left:
     text: "We were not. Stand them down."
     effects: { military: -10, public: -4, escalation: -3, commitment: -10 }
@@ -142,22 +141,21 @@
   weight: 1
   tags: [diplomacy, commitment_trap]
   text: >-
-    "Everyone in the chamber has noticed that your government's words and your
-    government's actions live in different buildings." Secretary Lindqvist offers a
-    way out that is also a way in. "I can host a climbdown that looks like a summit,
-    or a summit that looks like a climbdown."
+    "Everyone in the chamber has noticed that your words and your actions live in
+    different buildings." She offers a climbdown dressed as a summit, or a summit
+    dressed as a climbdown.
   left:
-    text: "Take the climbdown that looks like a summit"
+    text: "Climb down. Call it a summit."
     effects: { public: -6, allies: -4, escalation: -4, trust_primary: 5, commitment: -12 }
     tags: [deescalate, concede, diplomacy]
     base: 8
   right:
-    text: "Take the summit that looks like a climbdown"
+    text: "Take the summit. Hold the line."
     effects: { escalation: 7, public: 3, trust_primary: -6, allies: 2 }
     tags: [public_commitment, diplomacy]
     base: 18
     odds:
-      label: They attend
+      label: They show up
       base: 0.5
       tags: [adversary, diplomacy]
       success: { effects: { escalation: -6, trust_primary: 6 }, capital: 1 }

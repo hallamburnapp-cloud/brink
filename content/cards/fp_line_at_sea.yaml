@@ -18,30 +18,27 @@
   tags: [naval, blockade, military]
   note: "Entry. Timeout lets her through, which dissolves the line and brings two more ships."
   text: >-
-    The freighter Sable Meridian, {rival_adj} flag, forty thousand tonnes, with the
-    frigate Vesna eight hundred yards off her quarter. She is nine miles from the line
-    and has not answered a hail in two hours. Captain Ostrova on the Kestrel is
-    holding station on the line and has asked me twice what he does when she reaches
-    it. I have told him he will know in twelve minutes.
+    A {rival_adj} freighter and her frigate are nine miles from our line across the
+    Straits and have ignored our calls for two hours. My captain asks what he does
+    when she reaches it.
   left:
     text: "Board her"
     effects: { military: 6, escalation: 5, economy: -4 }
     tags: [naval, military, blockade]
     odds:
-      label: Boarding
+      label: We get aboard
       base: 0.55
       tags: [naval]
       success:
         text: >-
-          Two boats, a dozen sailors, up her side in four minutes while the Vesna
+          Two boats, a dozen sailors, up her side in four minutes while the frigate
           watches with her guns trained and her mouth shut.
         effects: { public: 5, trust_primary: -10 }
         follow: [{ card: fp_line_02_on_deck, in: 0 }]
       failure:
         text: >-
-          The Vesna puts a burst across the boats' bows. Two of ours in the water,
-          both recovered, and the Sable Meridian is across the line with her horn
-          going.
+          The frigate fires a burst across our boats. Two of ours in the water, both
+          pulled out, and the freighter crosses the line with her horn going.
         effects: { military: -6, public: -5, escalation: 4 }
         follow: [{ card: fp_line_03_warned_off, in: 0 }]
   right:
@@ -59,19 +56,16 @@
   tags: [naval, blockade, intel]
   note: "Boarding succeeded. Seize her or search and release."
   text: >-
-    The boarding officer reports forty crates listed as agricultural machinery, each
-    weighing what a canister weighs and stencilled in a language nobody aboard reads.
-    Her master says he is bound for Amberline with tractors. The Vesna has closed to
-    four hundred yards. Ostrova can take her into Caldor under her own power in six
-    hours, or photograph the crates and let her go before the Vesna's captain decides
-    what he is for.
+    Our sailors are aboard the freighter, and the forty crates marked tractors weigh
+    what missiles weigh. Six hours to Caldor with her, or photograph the crates and
+    let her go.
   left:
     text: "Take her into Caldor"
     effects: { military: 6, escalation: 6, public: 5, trust_primary: -14, economy: -3 }
     tags: [naval, blockade, escalatory, military]
     follow: [{ card: fp_line_06_the_seizure, in: 0 }]
   right:
-    text: "Photograph everything. Release her."
+    text: "Photograph everything. Let her go."
     effects: { military: -6, public: -4, intel: 12, escalation: -4 }
     tags: [naval, investigate, deescalate]
     follow: [{ card: fp_line_07_the_photographs, in: 0 }]
@@ -83,12 +77,11 @@
   tags: [naval, blockade, military]
   note: "Boarding failed. Stop her by force or shadow her home."
   text: >-
-    05:58. The Sable Meridian is four miles past the line and slowing, which means
-    she is waiting to see what happens to the ship that let her through. The Vesna is
-    between her and the Kestrel, guns trained, and has not answered a hail either.
-    Ostrova can be across the freighter's bow in twenty minutes if he goes now.
+    The freighter is four miles past our line and slowing, her frigate between her
+    and our ship with guns trained. Our captain can be across her bow in twenty
+    minutes if he goes now.
   left:
-    text: "Put the Kestrel across her bow"
+    text: "Put our ship across her bow"
     effects: { military: 6, escalation: 6, public: 4, trust_primary: -12 }
     tags: [naval, military, escalatory, blockade]
     follow: [{ card: fp_line_08_hands_on_the_switch, in: 0 }]
@@ -108,18 +101,16 @@
   tags: [naval, blockade, mobilise, misperception]
   note: "Fleet held. The carrier can restore the line and be misread doing it."
   text: >-
-    She is through, and two more are behind her with the Vesna and a cruiser. My
-    carrier group is nine hours south and can put the line back by dawn with enough
-    steel that nobody tests it. It can also be seen from every camera on both shores,
-    and a carrier that arrives to restore a line looks, from their side, very like a
-    carrier that has come to start something.
+    The freighter is through our line, two more behind her, and my carriers nine
+    hours south can put it back by dawn. To them, a carrier fixing a line looks like
+    one starting a war.
   left:
-    text: "Bring the group up. The line is the line."
+    text: "Bring the carriers. Hold the line."
     effects: { military: 8, escalation: 8, economy: -6, trust_primary: -14, allies: 3 }
     tags: [naval, mobilise, deterrence, escalatory]
     follow: [{ card: fp_line_08_hands_on_the_switch, in: 0 }]
   right:
-    text: "Fold the line back to Caldor"
+    text: "Pull the line back to Caldor"
     effects: { military: -9, public: -7, commitment: -12, escalation: -4, trust_primary: 6 }
     tags: [naval, walk_back, deescalate]
     follow:
@@ -134,17 +125,16 @@
   tags: [naval, blockade, mobilise, military]
   note: "No fleet. The line was a line on a chart."
   text: >-
-    She is through, and two more are behind her with the Vesna and a cruiser. We drew
-    a line on a chart and they have just found out what it is made of. I have coastal
-    batteries that reach the Straits and four aircraft that can put a bomb on a hull.
-    What I do not have is a fleet, and they can count.
+    The freighter is through, two more behind her, and they now know our line across
+    the Straits was ink. I have guns that reach it, four aircraft that can hit a
+    hull, and no fleet.
   left:
-    text: "Close the Straits with the batteries"
+    text: "Close the Straits with the guns"
     effects: { military: 7, escalation: 8, trust_primary: -14, public: 4 }
     tags: [military, mobilise, escalatory, naval]
     follow: [{ card: fp_line_08_hands_on_the_switch, in: 0 }]
   right:
-    text: "Fold the line back to Caldor"
+    text: "Pull the line back to Caldor"
     effects: { military: -8, public: -7, commitment: -12, escalation: -4 }
     tags: [walk_back, deescalate, naval]
     follow:
@@ -158,13 +148,11 @@
   tags: [naval, diplomacy, commitment_trap]
   note: "Their deadline. Keeping her is an adversary roll; failure goes straight to the catastrophe."
   text: >-
-    "The Sable Meridian is a civilian vessel under {rival_adj} flag, carrying
-    agricultural equipment under contract to Amberline, and {Rival} requires her
-    release, with cargo, by 12:00." A pause long enough to be counted. "After 12:00 the
-    Vesna will act to protect {rival_adj} nationals." It is 06:20, and she is four hours
-    from Caldor at her best speed.
+    "{Rival} requires its freighter and its cargo released within the hour, or its
+    frigate will act to protect its citizens." Caldor is four hours away, and the
+    frigate is not.
   left:
-    text: "Release her at noon. Keep the crates."
+    text: "Free her. Keep the crates."
     effects: { escalation: -5, military: -5, public: -4, trust_primary: 6, intel: 10 }
     tags: [deescalate, diplomacy, naval]
     follow: [{ card: fp_line_07_the_photographs, in: 0 }]
@@ -178,14 +166,14 @@
       tags: [adversary, naval]
       success:
         text: >-
-          12:00 passes. The Vesna holds station off Caldor's breakwater, then at 12:40
-          she turns north without signalling anyone. The crates are canisters.
+          The hour passes. The frigate hangs off our stern for forty minutes more,
+          then turns north without a word, and the crates are missile canisters.
         effects: { public: 4, allies: 4, intel: 8 }
         set: [fp:line_boarded]
       failure:
         text: >-
-          At 12:04 the Vesna fires into the Kestrel's stern to stop her. Eleven of
-          ours dead in the after steering compartment. Ostrova returns fire.
+          The hour passes, and the frigate fires into our ship's stern to stop her.
+          Eleven of ours die in the steering flat, and our captain fires back.
         effects: { escalation: 9, military: -5, public: 4 }
         follow: [{ card: fp_line_09_the_straits, in: 0 }]
 
@@ -196,18 +184,16 @@
   tags: [naval, intel, transparency]
   note: "Terminal, boarded. Evidence or a story."
   text: >-
-    Forty crates, photographed, weighed and in two cases opened: canisters for a coastal
-    missile system, consistent with a delivery to Amberline that Amberline denies
-    ordering. We assess with high confidence that the photographs are genuine and with
-    moderate confidence that nobody will believe them from us. To the Assembly they are
-    evidence. To the press they are a story, and stories get answered.
+    Two crates opened, and inside are missiles for a coastal battery, bound for
+    Amberline, which says it ordered none. The photos are real, and my worry is who
+    believes them from us.
   left:
     text: "Publish them tonight"
     effects: { public: 7, escalation: 3, trust_primary: -12, allies: 5, commitment: 8 }
     tags: [transparency, public_commitment, naval]
     set: [fp:line_boarded]
   right:
-    text: "To the Assembly, sealed"
+    text: "Send them to the Assembly, sealed"
     effects: { escalation: -7, public: -5, allies: 3, trust_primary: 6, intel: 6 }
     tags: [diplomacy, deescalate, secrecy, naval]
     set: [fp:line_boarded]
@@ -221,11 +207,9 @@
   tags: [naval, military, misperception]
   note: "The standoff. Timeout gives him permission to fire first, the worse side. Both rolls fail into 09."
   text: >-
-    The Kestrel is across the Sable Meridian's bow at three hundred yards and the
-    freighter has stopped. The Vesna has had her fire-control radar on the Kestrel
-    for nine minutes, which is longer than anyone keeps it on by accident. Ostrova
-    asks, once and plainly, whether he may fire first if he judges he is about to be
-    fired on. If I do not answer him, he will decide for himself.
+    Our ship is across the freighter's bow, and the frigate has had her gun radar
+    on us for nine minutes, which nobody does by accident. My captain asks, once,
+    if he may fire first.
   left:
     text: "He may fire first"
     effects: { military: 7, escalation: 8, trust_primary: -14, public: 3 }
@@ -236,15 +220,14 @@
       tags: [naval, adversary]
       success:
         text: >-
-          The Vesna's radar goes dark at 06:31 and she turns away. Nobody fired.
-          Ostrova says his gunner has had his finger on the trigger for eleven
-          minutes and would like to be relieved.
+          The frigate's radar goes dark and she turns away. Nobody fired, and my
+          captain's gunner, eleven minutes on the trigger, asks to be relieved.
         effects: { public: 5, military: 3, escalation: -2 }
         set: [fp:line_stood_off]
       failure:
         text: >-
-          The Kestrel fires first and hits the Vesna twice. The Vesna hits her once,
-          in the hangar, and forty of ours are dead before the fire is out.
+          Our ship fires first and hits the frigate twice. The frigate hits back
+          once, in the hangar, and forty of ours are dead before the fire is out.
         effects: { escalation: 10, military: -6, public: 3 }
         follow: [{ card: fp_line_09_the_straits, in: 0 }]
   right:
@@ -257,14 +240,14 @@
       tags: [adversary]
       success:
         text: >-
-          At 06:34 the Vesna's radar goes dark. The Sable Meridian gets under way and
-          turns for home with her escort, slowly, so that everyone can see her do it.
+          The frigate's radar goes dark. The freighter gets under way and turns for
+          home with her escort, slowly, so that everyone can see her do it.
         effects: { escalation: -6, public: -3, trust_primary: 6 }
         set: [fp:line_stood_off]
       failure:
         text: >-
-          The Vesna fires a warning burst. Ostrova's gunner reads it as the real thing
-          and answers. Both ships are hit. Twenty-two of ours.
+          The frigate fires a warning burst, our gunner reads it as the real thing
+          and answers, and both ships are hit. Twenty-two of ours.
         effects: { escalation: 9, military: -7, public: -4 }
         follow: [{ card: fp_line_09_the_straits, in: 0 }]
 
@@ -275,23 +258,21 @@
   tags: [naval, nuclear, military, strike]
   note: "Catastrophic branch. Clearing the Straits rolls first_use; failure forces nuclear_straits. Cease-fire rolls adversary."
   text: >-
-    The Kestrel is burning and the Vesna is going down by the stern, and both of them
-    are still shooting. Their submarine flotilla at Greyholm sortied twenty minutes ago. Their
-    fleet doctrine, in the paragraph we have all read, permits a nuclear-tipped
-    torpedo against a surface group. I can clear the Straits of everything of theirs
-    before that boat is in range, and I can do it in ninety minutes.
+    Both ships are burning and still firing, and their submarines sailed twenty
+    minutes ago cleared to use a nuclear torpedo. Ninety minutes and I sweep the
+    Straits before they arrive.
   left:
     text: "Clear the Straits"
     effects: { military: 8, escalation: 11, trust_primary: -18, public: 4 }
     tags: [naval, strike, military, escalatory]
     odds:
-      label: They stay conventional
+      label: No nuclear torpedo
       base: 0.4
       tags: [naval, first_use]
       success:
         text: >-
-          Ninety-four minutes. Three of theirs on the bottom of the Straits and two of
-          ours. The torpedo that was fired was ordinary, and it missed.
+          Ninety-four minutes. Three of theirs on the bottom of the Straits and two
+          of ours, and the one torpedo they fired was ordinary, and it missed.
         effects: { public: 5, allies: -4 }
         follow: [{ card: fp_line_11_the_morning_count, in: 0 }]
       failure:
@@ -301,7 +282,7 @@
         set: [fp:line_shots]
         ending: nuclear_straits
   right:
-    text: "Cease fire. Recover the crews. Hotline."
+    text: "Cease fire. Rescue crews. Hotline."
     effects: { military: -8, public: -5, escalation: -4, commitment: -8 }
     tags: [deescalate, diplomacy, naval]
     spend_charge: deescalation
@@ -311,15 +292,15 @@
       tags: [adversary, diplomacy]
       success:
         text: >-
-          Their guns stop first, ours a minute later. For two hours the Kestrel and the
-          Vesna pull each other's sailors out of the same water and nobody on either
-          bridge says a word about it.
+          Their guns stop first, ours a minute later. For two hours both crews pull
+          each other's sailors out of the same water, and nobody on either bridge
+          mentions it.
         effects: { escalation: -7, trust_primary: 10, allies: 3 }
         set: [fp:line_shots]
       failure:
         text: >-
-          Their guns do not stop. The Kestrel's do, on your order, and she takes two
-          more hits before Ostrova stops obeying it.
+          Their guns do not stop. Ours do, on your order, and our ship takes two
+          more hits before her captain stops obeying it.
         effects: { escalation: 8, military: -7, public: -5 }
         follow: [{ card: fp_line_11_the_morning_count, in: 0 }]
 
@@ -331,11 +312,9 @@
   tags: [naval, blockade, commitment_trap]
   note: "Terminal, stood off. Cross-arc: this is not the first line drawn at sea this run."
   text: >-
-    The line is where it was and the ships are past it. This is the second line this
-    month that moved after it was drawn, and my captains have started asking me,
-    politely, which ones they are meant to hold. Ostrova has not asked. He has been on
-    the bridge for nineteen hours and would like to know whether he is still there
-    tomorrow.
+    The ships are past our line, the second line at sea this month to move after
+    we drew it. My captains are asking me, politely, which of my lines they are
+    meant to hold.
   left:
     text: "This one holds. Reinforce it."
     effects: { military: 6, escalation: 5, economy: -5, commitment: 10 }
@@ -355,11 +334,9 @@
   tags: [naval, blockade, commitment_trap]
   note: "Terminal, stood off. What a line is worth after a ship has crossed it."
   text: >-
-    The line is where it was and the ships are past it. Nobody fired, which will read
-    as restraint in {capital} and as something else in {rival_capital}. Ostrova has
-    been on the bridge for nineteen hours. Before he stands down he would like to know
-    whether the line is still there tomorrow, because his sailors will ask him and he
-    would rather not guess.
+    The ships are past our line and nobody fired, restraint in {capital}, something
+    else in {rival_capital}. My captain, nineteen hours on the bridge, asks if it is
+    there tomorrow.
   left:
     text: "It holds tomorrow. Reinforce it."
     effects: { military: 6, escalation: 5, economy: -5, commitment: 10 }
@@ -378,18 +355,16 @@
   tags: [naval, domestic, personal]
   note: "Terminal, shots. Their sailors are on Caldor."
   text: >-
-    Sixty-one of ours are dead. Forty-four of theirs were pulled out alive by our boats
-    and are now on Caldor, where there is nowhere to put them. The Kestrel will float;
-    the Assembly has convened, the Vesna's captain is asking for a lawyer and the
-    Premier has not called. The press briefing is in ninety minutes and the sailors
-    cannot wait for it.
+    Sixty-one of ours are dead, and forty-four of theirs, pulled from the sea by
+    our boats, sit on Caldor's quay. The press wants you in ninety minutes and
+    {rival_leader} has not rung.
   left:
     text: "Send their sailors home today"
     effects: { escalation: -6, public: -6, trust_primary: 12, military: -4 }
     tags: [deescalate, reassurance, naval]
     set: [fp:line_shots]
   right:
-    text: "They stay until the Vesna's log is ours"
+    text: "Hold them for the frigate's log"
     effects: { escalation: 6, public: 4, trust_primary: -12, intel: 10 }
     tags: [naval, stall, escalatory]
     set: [fp:line_shots]

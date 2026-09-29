@@ -20,29 +20,28 @@
   tags: [nuclear, warning, missile_defence]
   note: "Entry. Real launch. Timeout lets it fly, the worse side with an unknown warhead over Caldor."
   text: >-
-    04:51, one vehicle out of the {rival_adj} northern range, ballistic, both radars
-    and the constellation agree. Predicted impact is the sea off Caldor, and the
-    ellipse has the island in it. Warhead unknown, flight time eleven minutes. The
-    battery commander at Caldor is asking for a release, and I have told him to wait
-    for you.
+    One missile is up from the {rival_adj} north, eleven minutes out, and it comes
+    down somewhere around Caldor. The Caldor battery wants to fire and I have told
+    them to wait for you.
   left:
-    text: "Release the interceptors"
+    text: "Fire the interceptors"
     effects: { military: 6, escalation: 5, economy: -4, trust_primary: -8 }
     tags: [missile_defence, military, nuclear]
     odds:
-      label: Intercept
+      label: Shot down
       base: 0.55
       tags: [intercept]
       success:
         text: >-
-          Two interceptors, one hit, at 04:58 and a hundred and ten miles up. The
-          debris comes down in the sea. Caldor hears the boom and nothing else.
+          Two interceptors go up and one hits, a hundred miles over the sea at
+          04:58. The pieces fall into the water, and Caldor hears one boom and
+          nothing else.
         effects: { public: 6, allies: 4 }
         follow: [{ card: fp_intercept_02_splash, in: 0 }]
       failure:
         text: >-
-          Two interceptors, two misses. The vehicle comes down thirty miles off
-          Caldor's harbour, and the harbour cameras get all of it.
+          Two interceptors, two misses. The missile comes down thirty miles off
+          Caldor harbour, and the harbour cameras get all of it.
         effects: { public: -7, military: -5 }
         follow: [{ card: fp_intercept_03_two_misses, in: 0 }]
   right:
@@ -60,18 +59,16 @@
   tags: [nuclear, military, missile_defence]
   note: "Intercept succeeded. The hawk has a package."
   text: >-
-    Intercept confirmed, warhead inert, nothing on the island but a broken window
-    in the harbourmaster's office. They will call it a test that strayed. It was
-    aimed to within four miles of a town of nine thousand people. A package that
-    answers a test with a test can be in the air in six minutes, into the sea off
-    their coast, and it would be understood.
+    The missile we shot down over Caldor was a dummy, aimed four miles from a town
+    of nine thousand people. I can put a dummy of ours in the sea off their coast
+    in six minutes.
   left:
-    text: "Send the package"
+    text: "Fire a dummy at their coast"
     effects: { military: 7, escalation: 8, trust_primary: -14, public: 3 }
     tags: [strike, military, escalatory, nuclear]
     follow: [{ card: fp_intercept_06_the_package, in: 0 }]
   right:
-    text: "Call it a test. Get me the line."
+    text: "Call it a test. Ring the hotline."
     effects: { military: -7, public: -4, trust_primary: 8, escalation: -4 }
     tags: [deescalate, reassurance, diplomacy]
     follow: [{ card: fp_intercept_05_the_line, in: 0 }]
@@ -83,12 +80,11 @@
   tags: [nuclear, military, missile_defence]
   note: "Intercept failed. Inert impact, public failure."
   text: >-
-    Impact 05:02, thirty-one miles east of Caldor harbour, inert. No casualties, a
-    fishing boat with a cracked wheelhouse and a very good camera. Both interceptors
-    are in the sea a long way from where they were meant to be. The battery
-    commander would like it on record that he asked for the release at 04:53.
+    The missile was a dummy, down thirty-one miles off Caldor, and the only damage
+    is a cracked window on a fishing boat. Both our interceptors missed, and the
+    fishing boat filmed it.
   left:
-    text: "Answer it now. Same range, same sea."
+    text: "Answer it. Same range, same sea."
     effects: { military: 6, escalation: 8, trust_primary: -14, public: 5 }
     tags: [strike, military, escalatory, nuclear]
     follow: [{ card: fp_intercept_06_the_package, in: 0 }]
@@ -106,17 +102,16 @@
   tags: [nuclear, military, missile_defence, domestic]
   note: "Complicates Missile Defence and Deterrence by Denial. You had the shield and watched."
   text: >-
-    Impact at 05:02, inert, thirty-one miles off Caldor. We have spent four years and a
-    great deal of money telling them nothing reaches us, and something reached us, on
-    purpose, while the battery that exists to stop it was told to watch. The crews know,
-    and by tonight the country will know. I need something to give them.
+    Their missile landed thirty-one miles off Caldor while the battery built to
+    stop it was told to watch. Four years of promising nothing gets through, and
+    the crews want an answer.
   left:
-    text: "Give them the package"
+    text: "Fire back. A dummy into their sea."
     effects: { military: 8, escalation: 8, trust_primary: -14, public: 6 }
     tags: [strike, military, escalatory, nuclear]
     follow: [{ card: fp_intercept_06_the_package, in: 0 }]
   right:
-    text: "Give them the truth. Then the line."
+    text: "Tell the truth. Then the hotline."
     effects: { military: -8, public: -8, trust_primary: 10, commitment: -8 }
     tags: [transparency, diplomacy, nuclear]
     follow: [{ card: fp_intercept_05_the_line, in: 0 }]
@@ -129,17 +124,16 @@
   tags: [nuclear, intel, misperception]
   note: "Let it fly, no shield held. The intel director reads the impact."
   text: >-
-    Impact 05:02, inert, thirty-one miles east of Caldor. We assess with moderate
-    confidence that the aim point was the water, not the island, and with high
-    confidence that we were meant to see how long we took to decide. Eleven minutes, and
-    the answer was that we watched. They have that number now.
+    Their missile was a dummy, thirty miles off Caldor, and my guess is the water
+    was always the target. The real test was how fast we decide, and now they know
+    it is eleven minutes.
   left:
-    text: "Give them a number of our own"
+    text: "Fire back. Show them our number."
     effects: { military: 7, escalation: 8, trust_primary: -12, public: 4 }
     tags: [strike, military, escalatory, nuclear]
     follow: [{ card: fp_intercept_06_the_package, in: 0 }]
   right:
-    text: "Take it to the line"
+    text: "Take it to the hotline"
     effects: { military: -6, public: -5, intel: 8, escalation: -2 }
     tags: [diplomacy, deescalate, nuclear]
     follow: [{ card: fp_intercept_05_the_line, in: 0 }]
@@ -151,13 +145,11 @@
   tags: [nuclear, diplomacy, misperception]
   note: "Their account. Accepting it costs at home; rejecting it goes to the package."
   text: >-
-    "{Rival} conducted a scheduled test of a re-entry vehicle into international waters,
-    notified to the Assembly Secretariat at 04:30 {rival_capital} time." A pause, then,
-    "The Premier regrets any alarm in Caldor." The Secretariat's night desk confirms a
-    fax arrived at 04:31, twenty minutes before the launch and an hour before anyone read it.
-    It was a test, and it was aimed.
+    "{Rival} conducted a scheduled test into open sea, notified the Assembly at
+    04:30, and regrets any alarm in Caldor." The fax is real, timed 04:31, and
+    nobody read it in time.
   left:
-    text: "Accept it. Demand the calendar."
+    text: "Accept it. Demand the schedule."
     effects: { escalation: -7, trust_primary: 8, public: -6, military: -5, commitment: -6 }
     tags: [deescalate, diplomacy, nuclear]
     spend_charge: deescalation
@@ -177,10 +169,9 @@
   tags: [nuclear, military, strike]
   note: "The retaliation. Timeout sends it, the worse side. Success is a terminal (retaliated); failure goes to the second track."
   text: >-
-    The package is one vehicle, inert, into the sea forty miles off their northern
-    port, notified to nobody. It lands eleven minutes after launch, which is a number
-    they will recognise. Their coastal radar sees it at the same moment their
-    harbourmaster does. What they do in those eleven minutes is not up to me.
+    One dummy missile of ours into the sea forty miles off their northern port, no
+    warning, eleven minutes in the air. What they do in those eleven minutes is not
+    up to me.
   left:
     text: "Send it"
     effects: { military: 6, escalation: 9, trust_primary: -16, public: 4 }
@@ -191,18 +182,18 @@
       tags: [adversary]
       success:
         text: >-
-          It lands. Their statement, forty minutes later, calls it a regrettable test
-          that should have been notified. "Regrettable" is a door left open.
+          It lands. Forty minutes later their statement calls it a regrettable test
+          that should have been notified, and "regrettable" is a door left open.
         effects: { escalation: -4, public: 3, commitment: 6 }
         set: [fp:intercept_retaliated]
       failure:
         text: >-
-          Their coastal battery fires at it and misses. Then two tracks rise out of
-          the northern range, and this time the ellipses are on land.
+          Their coastal guns fire at it and miss. Then two more missiles rise out of
+          their northern range, and this time they are heading for land.
         effects: { escalation: 6, military: -3, intel: -6 }
         follow: [{ card: fp_intercept_08_second_track, in: 0 }]
   right:
-    text: "Hold it. Bring the bombers home."
+    text: "Hold it. Stand everyone down."
     effects: { military: -8, public: -6, escalation: -5, trust_primary: 6, commitment: -10 }
     tags: [deescalate, walk_back, reassurance, nuclear]
     follow: [{ card: fp_intercept_07_the_morning_after, in: 0 }]
@@ -214,13 +205,11 @@
   tags: [nuclear, domestic, transparency]
   note: "Terminal, restrained. Publishing burns the radar picture; secrecy costs the allies."
   text: >-
-    06:40, and the Caldor ferry sailed on time, which the harbourmaster wanted you to
-    know. The Assembly wants a statement by nine, the General wants the battery kept hot
-    and the Chancellor wants to know who pays for two interceptors. Everyone wants to
-    know how close it came. The trajectory file is on my desk and nobody has asked me
-    for it yet.
+    The Caldor ferry sails at six, on time, and the Assembly wants a statement by
+    nine. Everyone will ask how close the missile came, and the answer, four miles,
+    is on my desk, unread.
   left:
-    text: "Publish the trajectory. All of it."
+    text: "Publish the track. All of it."
     effects: { escalation: -10, public: -5, allies: 5, trust_primary: 10, intel: -8 }
     tags: [transparency, deescalate, nuclear]
     set: [fp:intercept_restrained]
@@ -239,11 +228,11 @@
   tags: [nuclear, warning, missile_defence]
   note: "Catastrophic branch. Left launches; right rolls the intercept and fails into the same ending."
   text: >-
-    Two tracks, northern range, 05:31, both radars. Ellipses on the Caldor battery
-    and the bomber field at Harrow Vale. Warheads unknown, nine minutes. The release
-    authority is in the room, and the room is you.
+    Two missiles up at 05:31 from their north, aimed at the Caldor battery and the
+    bomber base at Harrow Vale, nine minutes out. Warheads unknown, and the room
+    is waiting on you.
   left:
-    text: "Launch the response"
+    text: "Launch our missiles"
     effects: { escalation: 30, military: 5 }
     tags: [nuclear, strike, escalatory]
     set: [fp:intercept_exchange]
@@ -253,20 +242,19 @@
     effects: { military: 4, escalation: 5, economy: -5 }
     tags: [missile_defence, military, nuclear]
     odds:
-      label: Intercept
+      label: Shot down
       base: 0.5
       tags: [intercept]
       success:
         text: >-
-          Two hits, 05:37 and 05:38. The pieces come down on farmland and on the sea.
-          Both warheads were inert, which the General says we will never be able to
-          prove we knew.
+          Two hits, 05:37 and 05:38, pieces down on farmland and sea. Both warheads
+          were dummies, which the General says we can never prove we knew.
         effects: { public: 5, military: 3, allies: 3 }
         follow: [{ card: fp_intercept_09_the_question, in: 0 }]
       failure:
         text: >-
-          One hit. The second comes down on the bomber field at Harrow Vale, and it
-          is not inert.
+          One hit. The second comes down on the bomber base at Harrow Vale, and it
+          is not a dummy.
         effects: { escalation: 30 }
         set: [fp:intercept_exchange]
         ending: nuclear_intercept_exchange
@@ -278,10 +266,9 @@
   tags: [nuclear, diplomacy, commitment_trap]
   note: "Terminal. No First Use moves the first_use roll. Left can end retaliated or exchange; right is exchange."
   text: >-
-    "The Premier asks {leader} directly whether {us} intends to use nuclear weapons in
-    the next hour." The translator's voice is not steady. "He says that he does not, and
-    asks that you say the same, so that both of you can be heard to have said it."
-    Twenty seconds of nothing on the line, and then, "He is waiting."
+    "{Rival_leader} asks if {us} will use nuclear weapons in the next hour, says he
+    will not, and asks you to say the same." The translator's voice is not steady,
+    and he is waiting.
   left:
     text: "Tell him no. Then make it true."
     effects: { escalation: -6, military: -7, public: -4, trust_primary: 12 }
@@ -292,16 +279,16 @@
       tags: [first_use, adversary]
       success:
         text: >-
-          "The Premier hears you." A stand-down order to their northern range is read
-          over the line in the original and then in translation, slowly, so that our
-          people can check the words.
+          "He hears you." A stand-down order to their northern range is read over
+          the line, slowly, in their language and then in ours, so we can check the
+          words.
         effects: { escalation: -7, allies: 4, commitment: 6 }
         set: [fp:intercept_retaliated]
       failure:
         text: >-
-          "The Premier has heard such words before." The line stays open. Behind it
-          two more of their launchers move to firing positions and ours do the same.
-          Nobody fires. Nobody comes down from it either.
+          "He has heard such words before." The line stays open while two more of
+          their launchers move to fire, ours do the same, and nobody fires or backs
+          down.
         effects: { escalation: 9, military: 4, trust_primary: -10 }
         set: [fp:intercept_exchange]
   right:
@@ -318,13 +305,11 @@
   tags: [nuclear, warning, intel, misperception]
   note: "False-alarm entry. The tracks are not there. Branches by piece: fa_02 (Launch on Warning), fa_05 (Hardened NC3), fa_03 (neither)."
   text: >-
-    04:12, eleven tracks, polar sector, both radars, ballistic, and the constellation
-    has plumes under nine of them. Predicted impacts are {capital}, the bomber fields
-    and the Caldor battery, first impact in nineteen minutes. Every rule we wrote after
-    the last alert has been met, sir or ma'am. I am telling you because the rules say I
-    tell you, and they say what comes next.
+    Eleven missiles over the pole, both radars agree, and the first is due on
+    {capital} in nineteen minutes. The rules say I wake you first, and the page
+    after that is the launch keys.
   left:
-    text: "Bring the release authority in"
+    text: "Bring the launch keys in"
     effects: { escalation: 6, military: 5, public: -4, commitment: 8 }
     tags: [nuclear, military, mobilise, warning]
     follow:
@@ -332,7 +317,7 @@
       - { card: fp_intercept_fa_05_three_keys, in: 0 }
       - { card: fp_intercept_fa_03_the_honest_number, in: 0 }
   right:
-    text: "Wake nobody yet. Get me the tapes."
+    text: "Wake nobody. Show me the radar."
     effects: { military: -7, intel: 10, escalation: 2 }
     tags: [stall, intel, warning, nuclear]
     follow:
@@ -350,28 +335,26 @@
   tags: [nuclear, warning, military, misperception]
   note: "Launch on Warning makes the false alarm a launch decision. Timeout executes, the worse side. Second radar roll is intel-tagged."
   text: >-
-    The doctrine is the doctrine. Eleven inbound, nineteen minutes, confirmed on two
-    sensors, and the codes are open in front of you because you decided a year ago
-    that they would be. The second radar chain rotates onto the polar sector in
-    ninety seconds. If we wait for it and the tracks are real, the bomber fields are
-    gone before the order reaches them.
+    Eleven missiles, nineteen minutes, and the codes are open in front of you
+    because a year ago you decided they would be. A second radar can look in ninety
+    seconds, if we have that.
   left:
-    text: "Execute"
+    text: "Launch now"
     effects: { escalation: 30, military: 6 }
     tags: [nuclear, strike, escalatory]
     ending: nuclear_launch_on_warning
   right:
-    text: "Ninety seconds. Second radar."
+    text: "Wait ninety seconds for the radar"
     effects: { military: -7, commitment: -10, escalation: 4 }
     tags: [stall, intel, nuclear]
     odds:
-      label: Second radar
+      label: Empty sky
       base: 0.5
       tags: [intel]
       success:
         text: >-
-          The second chain sees an empty sky. The eleven tracks drop off the board one
-          at a time, like lights going out along a street.
+          The second radar sees an empty sky. The eleven tracks drop off the board
+          one at a time, like lights going out along a street.
         effects: { intel: 8, public: -4 }
         clear: [false_alarm_live]
         set: [fp:intercept_false_alarm_caught]
@@ -380,8 +363,8 @@
           - { card: fp_intercept_fa_04_the_tape, in: 0 }
       failure:
         text: >-
-          The second chain reports the same eleven tracks, because it reads the same
-          correlator. Six minutes to impact. The General does not say anything. He
+          The second radar shows the same eleven, because it reads the same
+          computer. Six minutes to impact, and the General says nothing, because he
           does not have to.
         effects: { escalation: 30 }
         ending: nuclear_launch_on_warning
@@ -396,13 +379,11 @@
   tags: [nuclear, warning, intel, misperception]
   note: "No doctrine, no hardened system. Waiting costs military and public. Timeout puts the bombers up, the worse side."
   text: >-
-    I cannot tell you they are real and I cannot tell you they are not. The second
-    radar chain reaches the polar sector in four minutes, which the General's staff
-    are calling four minutes we do not have. We assess, low confidence, that eleven
-    vehicles is more than their northern range has ever put up in one salvo. Low
-    confidence is the honest number.
+    Eleven missiles on the board, more than they have ever fired at once, and I
+    cannot swear they are real. The second radar needs four minutes the General says
+    we do not have.
   left:
-    text: "Wait for the second chain"
+    text: "Wait four minutes for the radar"
     effects: { military: -8, public: -6, intel: 10, escalation: 3 }
     tags: [stall, intel, investigate, nuclear]
     set: [fp:intercept_false_alarm_caught]
@@ -411,7 +392,7 @@
       - { card: fp_intercept_fa_06_the_sirens, in: 0 }
       - { card: fp_intercept_fa_04_the_tape, in: 0 }
   right:
-    text: "Top state. Bombers up. Then wait."
+    text: "Full alert. Bombers up. Then wait."
     effects: { escalation: 10, military: 6, trust_primary: -16, public: -3 }
     tags: [mobilise, military, escalatory, nuclear]
     set: [fp:intercept_false_alarm_caught]
@@ -428,19 +409,17 @@
   tags: [nuclear, intel, misperception, warning]
   note: "Terminal, false alarm caught. What the board saw."
   text: >-
-    There were no vehicles. At 04:11 a maintenance load put last month's exercise
-    tape onto the live correlator, and the constellation's processor, which trusts
-    the correlator, found plumes to match nine of them. Eleven tracks, nine plumes,
-    nineteen minutes, all of it arithmetic. It will do it again unless the correlator
-    comes off the network, and that is a week with one eye.
+    No missiles, only an old practice tape loaded into the live system at 04:11 and
+    a satellite computer that believed it. Unplug it and we are half blind for a
+    week, or it repeats.
   left:
-    text: "Take it off. One eye for a week."
+    text: "Unplug it. Half blind for a week."
     effects: { military: -7, intel: 12, escalation: -8 }
     tags: [investigate, intel, deescalate, warning]
     set: [fp:intercept_false_alarm_caught]
     clear: [false_alarm_live]
   right:
-    text: "Keep it up. Nobody loads anything."
+    text: "Keep it on. Nobody loads anything."
     effects: { intel: -10, escalation: -5, military: 3, public: -4 }
     tags: [stall, military, warning]
     set: [fp:intercept_false_alarm_caught]
@@ -454,11 +433,9 @@
   tags: [nuclear, warning, intel, misperception]
   note: "Complicates Hardened NC3. Three concurrences before the board is believed, and the third key is in a lift."
   text: >-
-    Three concurrences before the board is believed; that is what the hardened system
-    buys you. The northern bunker concurs. The constellation controller does not,
-    because she has nine plumes and the radars have eleven. The third key is the
-    deputy chief, and he is in a lift between the fourth floor and the bunker, out of
-    contact for the next two minutes.
+    Three of us must agree before we believe the board, and it is one yes, one no,
+    because the satellites see nine plumes for eleven missiles. The third is in a
+    lift for two minutes.
   left:
     text: "Wait for the lift"
     effects: { military: -7, public: -5, intel: 8 }
@@ -469,7 +446,7 @@
       - { card: fp_intercept_fa_06_the_sirens, in: 0 }
       - { card: fp_intercept_fa_04_the_tape, in: 0 }
   right:
-    text: "Override the third key"
+    text: "Override. Two votes will do."
     effects: { escalation: 8, military: 4, commitment: 10, trust_primary: -10 }
     tags: [military, nuclear, escalatory, secrecy]
     set: [fp:intercept_false_alarm_caught]
@@ -486,11 +463,9 @@
   tags: [nuclear, domestic, misperception, warning]
   note: "Terminal, false alarm caught. Complicates Civil Defence, which worked, loudly."
   text: >-
-    The sirens went at 04:14 in {capital} and six cities, because the programme says
-    they go at that alert state and the alert state was reached. Two hundred thousand
-    people are under schools and car parks. The board is clear and the scientist says it
-    was a tape. I have a statement that says the system worked, which is true, and which
-    nobody in a shelter will hear that way.
+    Sirens at 04:14 in {capital} and six cities, two hundred thousand people in
+    shelters, and it was a tape. My draft says the system worked, which is true, and
+    useless in a car park.
   left:
     text: "Tell them it was a drill"
     effects: { public: 5, allies: -4, trust_primary: -8, escalation: -4, commitment: 6 }
