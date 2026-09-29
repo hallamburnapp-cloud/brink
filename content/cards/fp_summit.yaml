@@ -36,13 +36,11 @@
   tags: [diplomacy, alliance, domestic]
   note: Entry, no conditions. Whoever is seen waiting wanted it more. Both follow lists run the arrival layer, then the private session.
   text: >-
-    Welcome to Vellmar. His plane is twenty minutes out and yours has landed,
-    so you are already the one who wanted it more, and the hundred and forty
-    cameras at the front door know it. There is a lake door with no cameras,
-    which he has asked about, and a front door with two flags, which your
-    General has asked about. I can only open one of them first.
+    His plane lands in twenty minutes and yours already has, so you wanted this
+    more, and a hundred and forty cameras out front know it. He asked about the
+    lake door, which has none.
   left:
-    text: "The front door. Both flags. Wait for him"
+    text: "Wait for him out front, both flags"
     effects: { public: -4, trust_primary: 8, escalation: -1, military: -3 }
     tags: [reassurance, diplomacy]
     follow:
@@ -52,7 +50,7 @@
       - { card: fp_summit_05_the_folder, in: 0 }
       - { card: fp_summit_06_not_a_knife, in: 0 }
   right:
-    text: "The lake door. He can find us inside"
+    text: "Take the lake door. Let him wait"
     effects: { public: 3, trust_primary: -8, escalation: 1, commitment: 6 }
     tags: [deterrence, secrecy, domestic]
     follow:
@@ -72,11 +70,9 @@
   tags: [military, deterrence, misperception]
   note: The General undermines. The folder says what a month of statements has not, and burns the source that took it.
   text: >-
-    The targeting cell has printed forty photographs of their column at the
-    Sallow crossing, taken at 05:00 today from a height they do not think we
-    have, and I have them in a folder for the table. Placed face down beside
-    your hand they say what a month of statements has not. They are not being
-    recommended. They are being made available, which is what a staff is for.
+    Forty photographs of their column at the Sallow crossing, taken at five
+    today from a height they think we lack. Face down by your hand, they say
+    what a month of talk has not.
   left:
     text: "Put the folder on the table"
     effects: { military: 4, trust_primary: -12, escalation: 3, public: 2, intel: -6 }
@@ -94,14 +90,11 @@
   tags: [misperception, military, domestic]
   note: The contractor undermines, helpfully. His delivery schedule is their headline on the morning of the handshake.
   text: >-
-    Their press office has photographs of Halvard's new interceptor batteries
-    on flatbeds at the airbase at 05:00 this morning, and they have the
-    delivery schedule too, because Ashby-Tal's office confirmed it to me an
-    hour ago, helpfully, while you were landing. Their line is that you came to
-    shake a hand with the other one behind your back. I go live at one. What is
-    the capability for?
+    Their press office has your new missile batteries on trucks at the airbase
+    this morning, and your arms dealer confirmed the dates to me an hour ago.
+    Live at one: what are they for?
   left:
-    text: "Defensive. Say it once, then nothing"
+    text: "Say 'defensive' once, then nothing"
     effects: { public: 2, military: 3, trust_primary: -12, escalation: 3, intel: -2 }
     tags: [secrecy, misperception, deterrence]
   right:
@@ -117,11 +110,9 @@
   tags: [domestic, personal, deescalate]
   note: The Peace Movement across the lake. Going down to the shore reads as sincerity to him and as a leader who answers to a crowd to Varga.
   text: >-
-    There are candles the whole way round the lake, the police say sixty
-    thousand and she says a quarter of a million, and one of them is
-    Delacroix-Amin with a loudhailer, asking for you by your first name. Not
-    the office. You. His delegation is at the windows on the other side of the
-    house, watching, and I am going down to the shore whether you come or not.
+    Candles all round the lake, sixty thousand by the police count, and a woman
+    with a loudhailer calling your first name. I am going down to the shore
+    whether you come or not.
   left:
     text: "Come down with me. Ten minutes"
     effects: { public: 5, military: -4, trust_primary: 6, allies: -3, commitment: 4 }
@@ -141,25 +132,22 @@
   tags: [diplomacy, misperception, back_channel]
   note: Cross-arc hook for players holding none of the arrival pieces. The month has been bound and brought to the table.
   text: >-
-    Their delegation has brought a folder of the month, every shot fired and
-    every deadline named, with dates, and it is on the table before either of
-    you has sat down. In the last crisis I watched a man open a folder like
-    that and read it aloud for an hour, and the meeting ended with the folder.
-    I know their deputy, and I could ask him, before the door closes, to leave
-    it shut. He would want to know what we leave shut in return.
+    Their folder is on the table: every shot this month, every deadline, with
+    dates. I know their deputy and can ask him to keep it shut, and he will ask
+    what we keep shut in return.
   left:
     text: "Ask him. Offer the same"
     effects: { trust_primary: 10, public: -3, commitment: -6, intel: -2 }
     tags: [back_channel, diplomacy, reassurance]
     odds:
-      label: The folder stays shut
+      label: It stays shut
       base: 0.55
       tags: [back_channel, diplomacy]
       success:
-        text: "The folder stayed on the table, shut, for six hours, and both delegations looked at it more than at each other."
+        text: "The folder stays on the table, shut, for six hours, and both delegations look at it more than at each other."
         effects: { escalation: -4, trust_primary: 4 }
       failure:
-        text: "He opened it anyway, at the second item, and read for fifty minutes. Your delegation had brought its own, and it came out."
+        text: "He opens it anyway, at the second item, and reads for fifty minutes. Your side has brought its own, and out it comes."
         effects: { escalation: 4, trust_primary: -6, public: 2 }
   right:
     text: "Let him read. We have a folder too"
@@ -177,14 +165,11 @@
   tags: [diplomacy, personal, misperception]
   note: The room. Left reassures and leads to the last sentence; right holds and leads to the third chair. Both run the drafting layer first. Timeout refuses him, the worse side.
   text: >-
-    'We are alone, so I will ask you the only thing I came to ask. My people
-    have been told for a year that your battalion on the ridge is a knife at
-    the door, and I have said it too, on days when I needed to. Give me
-    something to hold up when I go home that is not a knife.' He has not
-    touched the water in front of him, and he has forty minutes before his own
-    people expect him at the window.
+    'My people have been told for a year that your battalion on the ridge is a
+    knife at their door, so give me something to take home that is not a knife.'
+    He has forty minutes.
   left:
-    text: "The battalion leaves when the column does"
+    text: "Our men leave when his column does"
     effects: { trust_primary: 14, commitment: 8, military: -5, public: -3, escalation: -2 }
     tags: [reassurance, transparency, diplomacy]
     follow:
@@ -194,7 +179,7 @@
       - { card: fp_summit_10_four_lines, in: 0 }
       - { card: fp_summit_11_both_sides, in: 0 }
   right:
-    text: "The battalion is not on the table"
+    text: "Refuse. The ridge is not on offer"
     effects: { trust_primary: -10, military: 4, public: 3, escalation: 3, commitment: 6 }
     tags: [deterrence, stall, commitment_trap]
     follow:
@@ -214,18 +199,15 @@
   tags: [nuclear, military, misperception]
   note: No First Use, gift and bill. They believe it, so they want it in writing, and writing costs the alliance and the officers.
   text: >-
-    Their drafting team has asked that your declaration, the one about never
-    firing first, go into the paper as a joint undertaking, signed by both.
-    They believe it, which was the intention, and now they would like it in a
-    form their generals can hold. A pledge in writing is a target list they no
-    longer have to guess at, and the officers who will read it tomorrow were
-    not consulted about the first version either.
+    Their drafters want your promise never to fire first written into the
+    paper and signed by both sides. In writing, it is a target list they no
+    longer have to guess at.
   left:
     text: "Write it in. Both signatures"
     effects: { trust_primary: 12, military: -5, allies: -4, escalation: -4, commitment: 6 }
     tags: [reassurance, nuclear, public_commitment, deescalate]
   right:
-    text: "Ours stands alone. Theirs is theirs"
+    text: "Keep our promise ours alone"
     effects: { trust_primary: -6, military: 2, allies: 2, escalation: 1, commitment: -2 }
     tags: [deterrence, nuclear, stall]
 
@@ -237,14 +219,11 @@
   tags: [diplomacy, reassurance, domestic]
   note: The Dove, gift and bill. They will believe her paragraph because it is hers, and tomorrow someone will ask whose signature that was.
   text: >-
-    I have been in their drafting room since two, because their Foreign
-    Minister asked for me and not for the General, and I have a paragraph they
-    will sign. It is mine. They will believe it because I wrote it, and that is
-    the difficulty, because I am not you, and at some point tomorrow someone in
-    {rival_capital} will ask whether {leader} signed it or the Foreign Minister
-    did. I would like you to read it before you decide whose it is.
+    I have sat in their drafting room since two, and I have a paragraph they
+    will sign because I wrote it. Tomorrow {rival_capital} will ask whether
+    {leader} signed it or I did.
   left:
-    text: "Her paragraph. My signature"
+    text: "Sign her paragraph as it is"
     effects: { trust_primary: 12, military: -5, escalation: -4, allies: -2, public: -2 }
     tags: [reassurance, diplomacy, deescalate]
   right:
@@ -260,13 +239,9 @@
   tags: [back_channel, diplomacy, misperception]
   note: The Ambassador, gift and bill. The anecdote is either the key to the room or the deputy's own shopping list.
   text: >-
-    Their deputy and I shared a cigarette on the lake steps, which neither of
-    us has done since a posting we do not mention, and he told me what his man
-    needs to take home. It is not the ridge. It is a sentence about the Sorrel
-    Straits, that transit will be 'notified', which costs us nothing we do not
-    already do and which his navy has been told is a victory. In the last
-    crisis I was told something like this by someone like him, and it was true,
-    and the time before that it was not.
+    Over a cigarette, their deputy says his man needs a sentence: ships in the
+    Straits to be 'notified'. Last crisis a deputy told me this and it was true;
+    the one before, it was not.
   left:
     text: "Give him the sentence"
     effects: { trust_primary: 8, commitment: 4, allies: -2, military: -2 }
@@ -276,13 +251,13 @@
       base: 0.6
       tags: [back_channel, diplomacy]
       success:
-        text: "It was what his man needed. The Straits sentence went in at four, and the ridge was not mentioned again until the cars."
+        text: "It is what his man needed. The Straits sentence goes in at four, and the ridge is not mentioned again until the cars."
         effects: { trust_primary: 8, escalation: -4, public: -2 }
       failure:
-        text: "It was what the deputy needed. His man read the sentence and asked what else there was, and now there is a list."
+        text: "It is what the deputy needed. His man reads the sentence and asks what else there is, and now there is a list."
         effects: { trust_primary: -6, allies: -3, escalation: 2, intel: -4 }
   right:
-    text: "A cigarette is not a position"
+    text: "Refuse. A cigarette is not a deal"
     effects: { trust_primary: -6, intel: -4, public: 2, military: 2 }
     tags: [deterrence, stall, secrecy]
 
@@ -294,28 +269,25 @@
   tags: [back_channel, secrecy, diplomacy]
   note: The Back-Channel, gift and bill. A handwritten price for a signature, and two journalists who already know the restaurant.
   text: >-
-    A note has come through the academic in the neutral capital, handwritten,
-    four lines. Their side will sign tonight if the word 'withdrawal' appears
-    nowhere in the paper and the word 'lunch' appears nowhere afterwards, ever.
-    Two journalists at the front door already have the restaurant's name. I
-    have put the note in your jacket, and I can also have it never have
-    arrived.
+    Four handwritten lines: they sign tonight if 'withdrawal' is nowhere in the
+    paper and 'lunch' nowhere afterwards, ever. Two journalists out front
+    already know the restaurant.
   left:
     text: "Honour it. Strike 'withdrawal'"
     effects: { trust_primary: 8, allies: -3, public: -3, commitment: -6 }
     tags: [back_channel, secrecy, concede]
     odds:
-      label: The lunch stays secret
+      label: Lunch stays secret
       base: 0.55
       tags: [back_channel]
       success:
-        text: "The word did not appear and neither did the restaurant. The paper was initialled at five."
+        text: "The word does not appear, and neither does the restaurant. The paper is initialled at five."
         effects: { trust_primary: 6, escalation: -4 }
       failure:
-        text: "The word did not appear. The restaurant did, on the front page in {rival_capital}, and their delegation spent the evening explaining to their own press why they had eaten with ours."
+        text: "The word does not appear. The restaurant does, on the front page in {rival_capital}, and their delegation spends the evening explaining why it ate with ours."
         effects: { trust_primary: -8, escalation: 2, public: -2 }
   right:
-    text: "It never arrived. Write what is true"
+    text: "Burn the note. Write what is true"
     effects: { trust_primary: -8, public: 2, intel: -4, allies: 2, commitment: 4 }
     tags: [transparency, deterrence]
 
@@ -328,12 +300,9 @@
   tags: [diplomacy, reassurance, domestic]
   note: After reassurance in the room. One word in the last sentence. Signing costs the floor at home; striking it rolls on whether he signs anyway.
   text: >-
-    It is four in the morning and the paper is agreed except for one word in
-    the last sentence, which says the month's incidents were 'regrettable on
-    both sides'. Strike 'both' and he cannot sign, because his people will read
-    the sentence as a confession. Keep it and Ahlgren will read it on the floor
-    at three tomorrow, as a confession. One of those readings is about a war,
-    and the other is about a Tuesday.
+    Four in the morning, and the paper is agreed but for one word: 'regrettable
+    on both sides'. Strike 'both' and he cannot sign; keep it and the Opposition
+    calls it a confession.
   left:
     text: "Sign it. Both sides"
     effects: { escalation: -6, trust_primary: 12, public: -5, allies: -2, commitment: -6 }
@@ -348,11 +317,11 @@
       base: 0.5
       tags: [adversary, diplomacy]
       success:
-        text: "He signed at 05:10, without the word, and told his press it had been his idea to leave it out."
+        text: "He signs at 05:10, without the word, and tells his press it was his idea to leave it out."
         effects: { escalation: -4, trust_primary: -2, public: 2 }
         follow: [{ card: fp_summit_13_witness, in: 0 }]
       failure:
-        text: "He did not sign. At 05:20 his delegation asked for their cars, and then asked for them to wait, and they are still waiting."
+        text: "He does not sign. At 05:20 his delegation asks for their cars, then asks for them to wait, and they are still waiting."
         effects: { escalation: 3, trust_primary: -6, public: -2 }
         follow: [{ card: fp_summit_14_the_cars, in: 0 }]
 
@@ -363,12 +332,9 @@
   tags: [diplomacy, misperception, alliance]
   note: After the deadlock in the room. Help that helps the helper. His paper or none, and the roll is on the secondary power.
   text: >-
-    'You have both spent four hours saying what is not on the table, and I have
-    spent them writing down what is. I have a paper. It thanks {other} in the
-    first paragraph, it says nothing about the ridge or the column, and it says
-    that transit of the Sorrel Straits will be notified to all three of us. It
-    is the only paper there will be tonight, and I would take it before he
-    stops being embarrassed.'
+    'You spent four hours on what is not on the table; I spent them writing down
+    what is. My paper thanks {other} first, skips the ridge, and is the only
+    paper there will be tonight.'
   left:
     text: "Take his paper"
     effects: { trust_secondary: 10, allies: -4, public: -3, commitment: -4 }
@@ -378,15 +344,15 @@
       base: 0.55
       tags: [secondary, diplomacy]
       success:
-        text: "He delivered. Three signatures at 06:00, his in the middle, and a photograph in which he is the only one smiling."
+        text: "He delivers. Three signatures at six, his in the middle, and a photograph in which he is the only one smiling."
         effects: { escalation: -5, trust_primary: 6, trust_secondary: 6 }
         follow: [{ card: fp_summit_13_witness, in: 0 }]
       failure:
-        text: "{Rival_leader} read the first paragraph and put the pen down. 'I did not fly here to thank {other_capital}.'"
+        text: "{Rival_leader} reads the first paragraph and puts the pen down. 'I did not fly here to thank {other_capital}.'"
         effects: { trust_secondary: -8, escalation: 2, public: -2 }
         follow: [{ card: fp_summit_14_the_cars, in: 0 }]
   right:
-    text: "No paper of his. Ours or none"
+    text: "Refuse his paper. Ours or none"
     effects: { trust_secondary: -12, allies: 2, public: 2, escalation: 2, commitment: 6 }
     tags: [deterrence, public_commitment, alliance]
     follow: [{ card: fp_summit_14_the_cars, in: 0 }]
@@ -400,19 +366,16 @@
   tags: [diplomacy, alliance, domestic]
   note: Terminal, communiqué. Whose paper it was, on the steps.
   text: >-
-    It is signed, and my name is at the bottom as witness, which means that by
-    tomorrow the first paragraph will be mine, the inspections will be mine,
-    and whatever either of you regrets will have been the Assembly's idea. That
-    is what I am for. You may say so, on the steps, and go home lighter. Or you
-    may own every line of it, which your opposition will make you do anyway,
-    and which he will hear.
+    It is signed, my name at the bottom as witness, so by tomorrow whatever you
+    regret will have been the Assembly's idea. Say so on the steps and go home
+    lighter, or own every line.
   left:
     text: "Own every line. On the steps"
     effects: { public: -4, trust_primary: 10, commitment: 10, escalation: -4, military: -2 }
     tags: [public_commitment, reassurance, transparency]
     set: [fp:summit_communique]
   right:
-    text: "The Assembly's paper. We signed it"
+    text: "Call it the Assembly's paper"
     effects: { public: 3, trust_primary: -4, trust_secondary: -6, allies: -3, escalation: -1 }
     tags: [domestic, stall, diplomacy]
     set: [fp:summit_communique]
@@ -426,19 +389,16 @@
   tags: [diplomacy, domestic, misperception]
   note: Terminal, no paper. Another night is a collapse; the front door with both flags is a walkout. Timeout is wheels up, the worse side.
   text: >-
-    There is no paper. Their cars are at the lake door with the engines running
-    and their delegation is beside them with coats on, being photographed not
-    leaving, and the Secretary has asked whether you would like the house for
-    another night. Your plane can be wheels up at 06:40 from the front, past
-    the cameras, with both flags. I need one word, and the drivers need it
-    first.
+    No paper: their cars are at the lake door, engines running, their delegation
+    in coats beside them, not quite leaving. Stay the night, or fly at 06:40
+    past the cameras.
   left:
-    text: "Another night. Tell the drivers to go"
+    text: "Take the house another night"
     effects: { public: -5, trust_primary: 6, allies: -2, military: -3, escalation: 1 }
     tags: [stall, reassurance, diplomacy]
     set: [fp:summit_collapsed]
   right:
-    text: "Wheels up. The front door, both flags"
+    text: "Fly home. Front door, both flags"
     effects: { public: 4, trust_primary: -14, escalation: 5, allies: -3, commitment: 8 }
     tags: [deterrence, public_commitment, domestic, escalatory]
     set: [fp:summit_walkout]

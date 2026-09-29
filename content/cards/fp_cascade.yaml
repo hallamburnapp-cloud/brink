@@ -17,18 +17,16 @@
   tags: [space, cyber, warning, entanglement]
   note: "Entry. Three events in four minutes and no board."
   text: >-
-    03:05, an object at eight hundred and ten kilometres comes apart into a cloud the
-    tracking radar counts at four hundred pieces. 03:07, the northern warning chain
-    drops off the network. 03:09, the constellation's ground segment goes dark. I have
-    three events in four minutes and no board to put them on, sir or ma'am; what I
-    have is a telephone.
+    03:05, a satellite breaks into four hundred pieces; 03:07, the northern
+    radar goes dark; 03:09, the ground stations follow. Three events in four
+    minutes, and I have a telephone.
   left:
-    text: "Alert state up. Assume attack."
+    text: "Raise the alert. Assume attack"
     effects: { escalation: 6, military: 5, intel: -8, public: -3 }
     tags: [military, mobilise, escalatory, warning]
     follow: [{ card: fp_cascade_03_the_dark_board, in: 0 }]
   right:
-    text: "Get me Vance and Benn-Sato. Then decide."
+    text: "Get the scientists in. Then decide"
     effects: { military: -6, intel: 8, escalation: 2, public: -3 }
     tags: [stall, intel, investigate, space]
     follow: [{ card: fp_cascade_02_the_physics, in: 0 }]
@@ -40,18 +38,16 @@
   tags: [space, attribution, misperception]
   note: "What can and cannot be told apart in six hours."
   text: >-
-    The object was a {rival_adj} relay, a twenty-year-old bus with fuel left in it.
-    The break-up is consistent with a kinetic interceptor and consistent with a tank
-    that has waited two decades to rupture; for six hours they look the same. The
-    radars are different weather. Debris does not log in with a valid password, and
-    whatever took the chain down knew where the door was.
+    A twenty-year-old {rival_adj} relay with fuel left in it, and for six hours
+    a missile and a burst tank look the same. Debris does not log in with a
+    password, and something did.
   left:
-    text: "Attribution, whatever it costs"
+    text: "Find who did it, whatever it costs"
     effects: { military: -5, intel: 10, escalation: 2, economy: -4 }
     tags: [investigate, attribution, cyber, intel]
     follow: [{ card: fp_cascade_04_consistent_with, in: 0 }]
   right:
-    text: "Ask them directly. Now."
+    text: "Ask them directly, now"
     effects: { trust_primary: 6, military: -6, public: -4, commitment: -6 }
     tags: [diplomacy, deescalate, entanglement]
     follow: [{ card: fp_cascade_09_the_call, in: 0 }]
@@ -65,18 +61,16 @@
   tags: [nuclear, military, warning, misperception]
   note: "Blind and the doctrine says strike inside the gap. Timeout flushes the force, the worse side."
   text: >-
-    Blind for eleven minutes and counting. Their doctrine, the paragraph we all read,
-    says blind the other side first and strike inside the gap. Every bomber we own is
-    on a runway they can see and we cannot. I can have the force airborne and the
-    boats out of harbour in twenty minutes, and after that I cannot get them back
-    quietly.
+    Eleven minutes blind, and their war plan, which we have all read, says blind
+    the other side first and strike inside the gap. Every bomber we own is on a
+    runway they can see.
   left:
-    text: "Flush the force"
+    text: "Get every bomber in the air"
     effects: { military: 8, escalation: 10, trust_primary: -16, public: 3 }
     tags: [mobilise, military, nuclear, escalatory]
     follow: [{ card: fp_cascade_11_the_blind_minute, in: 0 }]
   right:
-    text: "Hold. Attribution first."
+    text: "Hold. Find out who did it first"
     effects: { military: -7, escalation: -2, intel: 6, commitment: -6 }
     tags: [stall, investigate, attribution]
     follow: [{ card: fp_cascade_04_consistent_with, in: 0 }]
@@ -88,37 +82,33 @@
   tags: [cyber, attribution, space, entanglement]
   note: "The attribution roll, or the board back in ninety minutes. Not both."
   text: >-
-    The intrusion is consistent with tools from their signals directorate, and with
-    tools they lost in a leak three years ago that anyone can now buy. The break-up is
-    consistent with a test. In six hours I can run the traffic back to a building and
-    give you a name with a confidence level attached, or I can cut the commercial
-    constellation out of the ground segment, which is where they came in, and have the
-    radars back in ninety minutes. Not both.
+    The break-in used tools their spies wrote, then lost, so anyone could have.
+    Six hours gets you a name; cutting the satellite link gets the radar back in
+    ninety minutes, not both.
   left:
     text: "Get me the name"
     effects: { military: -6, intel: 12, escalation: 3, economy: -3 }
     tags: [attribution, investigate, cyber, intel]
     odds:
-      label: Attribution
+      label: Traced
       base: 0.5
       tags: [attribution, cyber, intel]
       success:
         text: >-
-          The traffic ends in a building in {rival_capital} we have watched for two
-          years. Moderate confidence, and she says moderate the way other people say
-          certain.
+          The trail ends in a building in {rival_capital} we have watched for two
+          years. She says 'probably' the way other people say 'certain'.
         effects: { intel: 8, public: 3 }
         follow: [{ card: fp_cascade_07_the_building, in: 0 }]
       failure:
         text: >-
-          The traffic ends in a rented server in Amberline and, behind it, nothing.
+          The trail ends in a rented server in Amberline and, behind it, nothing.
           Six hours blind and no name.
         effects: { intel: -10, military: -4, escalation: 3 }
         follow:
           - { card: fp_cascade_08a_the_operator, in: 0 }
           - { card: fp_cascade_08b_the_shrug, in: 0 }
   right:
-    text: "Cut the feed. Get the board back."
+    text: "Cut the link. Get the radar back"
     effects: { military: 5, economy: -7, intel: -8, escalation: -2, allies: -3 }
     tags: [cyber, entanglement, space, stall]
     follow: [{ card: fp_cascade_09_the_call, in: 0 }]
@@ -130,11 +120,9 @@
   tags: [attribution, intel, diplomacy]
   note: "A name with a number attached. In public it hardens; in private it becomes a price."
   text: >-
-    We assess with moderate confidence that the intrusion was directed from their
-    signals directorate, and with low confidence that the break-up was a test timed to
-    match it. Moderate is the highest number I can give you honestly. Said in public,
-    it becomes certain by the second headline. Said to them in private, it becomes a
-    price.
+    Probably their spies broke our radar, and 'probably' is the most I can
+    honestly give you. In public it turns certain by the second headline; in
+    private, it becomes a price.
   left:
     text: "Say it in public"
     effects: { public: 6, escalation: 6, trust_primary: -14, allies: 4, commitment: 10 }
@@ -145,13 +133,13 @@
     effects: { public: -5, military: -4, trust_primary: 6, intel: -6 }
     tags: [back_channel, diplomacy, attribution, secrecy]
     odds:
-      label: They take the pause
+      label: They pause
       base: 0.5
       tags: [adversary, back_channel]
       success:
         text: >-
-          Forty minutes. Then, "The Premier proposes a mutual pause on tests in orbit
-          while both sides restore their systems." Proposes. As if it were his.
+          Forty minutes, then: "{Rival_leader} proposes a mutual pause on tests in
+          orbit while both sides repair their systems." Proposes, as if it were his.
         effects: { escalation: -5, trust_primary: 8 }
         follow: [{ card: fp_cascade_12_the_pause, in: 0 }]
       failure:
@@ -169,18 +157,16 @@
   tags: [cyber, entanglement, space, attribution]
   note: "Piece line. The door was a maintenance account on the leased constellation; the warning birds have nothing to talk to."
   text: >-
-    No name, and something worse than no name. The unit traced the intrusion to a
-    maintenance account on the commercial constellation's ground segment, which we
-    lease by the hour and so does everyone else, including them. The warning birds are
-    still up there with nothing to talk to. The operator's lawyers have asked me not
-    to say any of this aloud.
+    No name, and worse: the way in was a maintenance login on the satellite
+    network we rent by the hour, like everyone, including them. Our warning
+    satellites now talk to nobody.
   left:
-    text: "Name them anyway. Moderate is enough."
+    text: "Name them anyway. Probably will do"
     effects: { public: 5, escalation: 6, trust_primary: -14, intel: -8, commitment: 8 }
     tags: [attribution, public_commitment, escalatory]
     follow: [{ card: fp_cascade_13_the_name, in: 0 }]
   right:
-    text: "Call it an accident. Propose the pause."
+    text: "Call it an accident. Offer a pause"
     effects: { public: -7, military: -6, trust_primary: 8, escalation: -4, economy: -4 }
     tags: [deescalate, diplomacy, concede, space]
     follow: [{ card: fp_cascade_12_the_pause, in: 0 }]
@@ -193,18 +179,16 @@
   tags: [attribution, intel, misperception]
   note: "No name and no tools to find one."
   text: >-
-    We cannot say. A single technical source, low confidence, pointing at a rented
-    server in Amberline and then at nothing. The break-up is consistent with a test
-    and consistent with a tank. I am aware that the General regards an accident that
-    blinds us at 03:00 as too large a coincidence, and that he is often right, and
-    neither of those is an assessment.
+    One source, pointing at a rented server in Amberline and then at nothing.
+    The General calls an accident that blinds us at 03:00 too neat; he is often
+    right, which is not evidence.
   left:
     text: "Name them anyway"
     effects: { public: 5, escalation: 6, trust_primary: -14, intel: -8, commitment: 8 }
     tags: [attribution, public_commitment, escalatory]
     follow: [{ card: fp_cascade_13_the_name, in: 0 }]
   right:
-    text: "Call it an accident. Propose the pause."
+    text: "Call it an accident. Offer a pause"
     effects: { public: -7, military: -6, trust_primary: 8, escalation: -4 }
     tags: [deescalate, diplomacy, concede, space]
     follow: [{ card: fp_cascade_12_the_pause, in: 0 }]
@@ -216,13 +200,11 @@
   tags: [diplomacy, entanglement, misperception, space]
   note: "They are blind too. Standing down together is an adversary roll; failure goes to the long night."
   text: >-
-    "{Rival} has lost its northern picture at the same hour as {us}," and then a pause
-    longer than the translation needs. "The Premier asks whether this is the work of
-    {us}, and wishes it understood that he is asking rather than concluding." They are
-    blind too, and nobody in the room had considered that; everyone is now considering
-    what they would do in his chair.
+    "{Rival} lost its northern radar in the same hour as {us}." A pause, then:
+    "{Rival_leader} asks if this is the work of {us}, and wishes it known he is
+    asking, not concluding."
   left:
-    text: "Neither of us did it. Stand down together."
+    text: "Propose both sides stand down"
     effects: { military: -7, public: -4, trust_primary: 8, commitment: -6 }
     tags: [deescalate, diplomacy, reassurance, entanglement]
     spend_charge: deescalation
@@ -232,15 +214,16 @@
       tags: [adversary, diplomacy]
       success:
         text: >-
-          "The Premier agrees." Both alert states come down one step at 04:20 and
-          another at 04:40, each side waiting to see the other move first, like two
-          men lowering pistols.
+          "{Rival_leader} agrees." Both alerts come down a step at 04:20 and again
+          at 04:40, each waiting for the other to move first, like two men lowering
+          pistols.
         effects: { escalation: -6, trust_primary: 8, allies: 3 }
         follow: [{ card: fp_cascade_12_the_pause, in: 0 }]
       failure:
         text: >-
-          "The Premier does not negotiate blind." The line stays open while their
-          bombers go to dispersal, and the General puts ours on the runways to match.
+          "{Rival_leader} does not negotiate blind." The line stays open while their
+          bombers scatter to other fields, and the General puts ours on the runways
+          to match.
         effects: { escalation: 8, military: 4, trust_primary: -8 }
         follow: [{ card: fp_cascade_14_the_long_night, in: 0 }]
   right:
@@ -258,35 +241,34 @@
   tags: [nuclear, warning, space, misperception]
   note: "Catastrophic branch. Left launches on a bloom; right rolls intel and fails into the same ending."
   text: >-
-    The force is airborne, the boats are out, and they can see all of it. 03:41, the
-    one warning bird still talking to us has an infrared bloom over their northern
-    range. It is a launch or it is this morning's debris coming back in over the same
-    longitude, and the processor that would tell me which is the thing that is dark.
-    The hotline is ringing and nobody can tell me what the flash is.
+    03:41, our one working warning satellite sees a flash over their northern
+    missile range. A launch, or this morning's debris falling back, and the
+    computer that knows which is dark.
   left:
-    text: "Launch on it"
+    text: "Launch. Treat it as real"
     effects: { escalation: 30, military: 5 }
     tags: [nuclear, strike, escalatory]
     set: [fp:cascade_escalated]
     ending: nuclear_blind
   right:
-    text: "Wait for Benn-Sato"
+    text: "Wait for the scientist"
     effects: { military: -7, escalation: 5, commitment: -8 }
     tags: [stall, intel, nuclear]
     odds:
-      label: Re-entry
+      label: Debris
       base: 0.5
       tags: [intel]
       success:
         text: >-
-          Re-entry. Eleven fragments of a twenty-year-old relay burning up over their
-          own range, seen by their sensors as well as ours. The bloom fades at 03:44.
+          Debris. Eleven pieces of a twenty-year-old relay burning up over their
+          own range, seen by their sensors as well as ours, and the flash fades at
+          03:44.
         effects: { intel: 8, public: -4 }
         follow: [{ card: fp_cascade_14_the_long_night, in: 0 }]
       failure:
         text: >-
-          Benn-Sato says re-entry, moderate confidence. The northern bunker says two
-          more blooms. Nobody waits for the third.
+          The scientist says debris, probably. The northern bunker says two more
+          flashes. Nobody waits for the third.
         effects: { escalation: 30 }
         set: [fp:cascade_escalated]
         ending: nuclear_blind
@@ -298,19 +280,16 @@
   tags: [space, diplomacy, transparency]
   note: "Terminal, moratorium. Physics does not sign things."
   text: >-
-    The pause is a page and a half. No tests in orbit for ninety days, both sides,
-    with each side's debris catalogue shared daily through the Assembly, which is the
-    first time anyone has agreed to tell the other what is falling. This morning's
-    cloud will be up there for eleven years regardless; physics does not sign things.
-    The General wants our own test, scheduled for the twelfth, kept on the calendar
-    and off the page.
+    The pause is a page and a half: no tests in orbit for ninety days, each side
+    telling the other what is falling. The General wants our own test on the
+    twelfth kept off the page.
   left:
-    text: "Sign it. Ground our test."
+    text: "Sign it. Cancel our test"
     effects: { escalation: -11, military: -7, trust_primary: 10, allies: 4, public: -3 }
     tags: [deescalate, transparency, space, public_commitment]
     set: [fp:cascade_moratorium]
   right:
-    text: "Sign it. Keep the twelfth quiet."
+    text: "Sign it. Keep our test quiet"
     effects: { escalation: -7, military: 3, trust_primary: -8, intel: -6, commitment: 6 }
     tags: [deescalate, secrecy, space]
     set: [fp:cascade_moratorium]
@@ -322,18 +301,16 @@
   tags: [attribution, domestic, economy]
   note: "Terminal, blamed. The name is said and the radars are back, which nobody will remember."
   text: >-
-    The name is said, and the Assembly sits at noon; their ambassador has been recalled
-    for consultations, and the Chancellor has a list of things we can stop buying from
-    them by Friday. The radars are back, which nobody outside this building will
-    remember by tonight. The press want to know what happens if we are wrong. I said we
-    would tell them at nine.
+    The name is out, their ambassador is flying home, and the Chancellor has a
+    list of things we stop buying by Friday. The press ask what happens if we
+    are wrong, and I said nine.
   left:
     text: "Sanctions and expulsions by Friday"
     effects: { escalation: 6, economy: -7, public: 4, trust_primary: -14, allies: 3 }
     tags: [sanction, escalatory, economy, attribution]
     set: [fp:cascade_blamed]
   right:
-    text: "The statement stands. Nothing else."
+    text: "Leave it at the statement"
     effects: { escalation: 4, public: -5, commitment: 8, trust_primary: -8, military: -3 }
     tags: [stall, public_commitment, attribution]
     set: [fp:cascade_blamed]
@@ -345,18 +322,16 @@
   tags: [nuclear, military, mobilise]
   note: "Terminal, escalated. Both sides have now rehearsed the first twenty minutes."
   text: >-
-    The board is back at 05:10 and shows what it showed before it went dark, which is
-    their bombers dispersed and ours in the air. Nobody launched. Both of us have now
-    practised the first twenty minutes of the end of the world, and both of us know
-    the other one has. The force can stay up another six hours; after that it lands,
-    and where it lands is what they will be watching.
+    Radar back at 05:10: their bombers scattered, ours up, nobody fired. We have
+    both rehearsed the first twenty minutes of the end of the world, and ours
+    have six hours of fuel.
   left:
-    text: "Keep the force up until dawn"
+    text: "Keep the bombers up till dawn"
     effects: { escalation: 11, military: 6, economy: -6, trust_primary: -12 }
     tags: [mobilise, military, deterrence, nuclear, escalatory]
     set: [fp:cascade_escalated]
   right:
-    text: "Bring them home now. On camera."
+    text: "Land them now, on camera"
     effects: { escalation: 7, military: -7, public: -4, trust_primary: 6, commitment: -8 }
     tags: [deescalate, walk_back, transparency, nuclear]
     set: [fp:cascade_escalated]
