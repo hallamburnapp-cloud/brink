@@ -26,7 +26,7 @@ Transcripts, share cards and three screenshots are under `docs/playtests/night/`
 | Run | Seat | Style | Result | Ending | Cards | Rolls | Danger at 5:20 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | NIGHT-DOVE-FINAL | Republic | dove | 🌑 Fell at 5:48 | 🏛️ Impeached (people at the edge in the crisis) | 28 | 3 | 51 |
-| NIGHT-HAWK-FINAL | Federation | hawk | ☢️ 5:55 | 🕛 Midnight (two failed rolls at full alert) | 54 | 5 | 63 |
+| NIGHT-HAWK-FINAL | Federation | hawk | ☢️ 5:55 | 🕛 Midnight (two failed rolls at full alert) | 54 | 5 | 67 |
 | NIGHT-BALANCED-FINAL | Coalition | balanced | ☢️ 5:59 | 📝 The Paper at Vellmar (the summit walked out at danger 99) | 42 | 6 | 58 |
 | NIGHT-GAMBLER-FINAL | Republic | gambler | ☢️ 5:06 | 🌊 Forty Miles of Water (before the crisis) | 31 | 4 | — |
 
