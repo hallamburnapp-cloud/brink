@@ -81,6 +81,8 @@ const oddsSchema = z
 export const choiceSchema = z
   .object({
     text: z.string().min(2).max(90),
+    /** The world's one-line answer to this choice, shown before the next card (the night's "then"). */
+    reply: z.string().min(2).max(110).optional(),
     effects: effectsSchema.default({}),
     tags: z.array(tag).default([]),
     /** Printed base leverage; derived from effects and tags when omitted. */

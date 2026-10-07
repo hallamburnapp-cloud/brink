@@ -71,6 +71,8 @@ export interface OddsDef {
 
 export interface ChoiceDef {
   text: string;
+  /** The speaker's one-line reaction to this choice; odds cards use their outcome text instead. */
+  reply?: string;
   effects: Effects;
   /** Tags that modifiers match on (e.g. military, deescalate, public_commitment). */
   tags: string[];
@@ -706,6 +708,8 @@ export interface CardView {
 export type RunEvent =
   | { type: 'effects'; applied: Effects }
   | { type: 'roll'; result: RollResult }
+  /** The world answers the choice in one line (a choice's `reply`, or an odds outcome's text). */
+  | { type: 'reply'; text: string; speaker: string; outcome?: 'success' | 'failure' }
   | { type: 'flag'; set: string[]; clear: string[] }
   | { type: 'warning'; truth: boolean }
   | { type: 'act_start'; act: number; name: string; target: number }

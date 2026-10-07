@@ -425,6 +425,7 @@ export function choose(content: Content, state: RunState, side: Side | 'timeout'
     entry.roll = result;
     events.push({ type: 'roll', result });
     const outcome: OutcomeDef = r.success ? choice.odds.success : choice.odds.failure;
+    if (outcome.text) events.push({ type: 'reply', text: template(content, state, outcome.text), speaker: card.advisor, outcome: r.success ? 'success' : 'failure' });
     const tags = [...choice.tags, ...choice.odds.tags, r.success ? 'success' : 'failure'];
     if (outcome.effects) {
       const a2 = applyEffects(content, state, rng, outcome.effects, tags, ctx);
@@ -438,6 +439,9 @@ export function choose(content: Content, state: RunState, side: Side | 'timeout'
     grow(content, state, r.success ? 'roll_success' : 'roll_failure', choice.tags, events);
     if (result.nearMiss) grow(content, state, 'near_miss', choice.tags, events);
   }
+
+  // 2b. The reply: a plain choice's one-liner (odds cards answered above with their outcome text).
+  if (!choice.odds && choice.reply) events.push({ type: 'reply', text: template(content, state, choice.reply), speaker: card.advisor });
 
   // 3. Flags, reveals, follow-ups.
   applyFlags(state, choice.set, choice.clear, events);
