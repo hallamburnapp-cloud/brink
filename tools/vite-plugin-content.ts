@@ -5,14 +5,13 @@
  * show them in-game without leaving the run.
  */
 import type { Plugin, ViteDevServer } from 'vite';
-import { join } from 'node:path';
-import { loadContent, formatIssues } from './load.ts';
+import { contentRoot, loadContent, formatIssues } from './load.ts';
 
 const VIRTUAL = 'virtual:brink-content';
 const RESOLVED = '\0' + VIRTUAL;
 
 export function brinkContentPlugin(): Plugin {
-  const root = join(process.cwd(), 'content');
+  const root = contentRoot();
   let server: ViteDevServer | null = null;
 
   const build = () => {

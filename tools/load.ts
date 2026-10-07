@@ -57,7 +57,17 @@ export function loadRaw(root: string): { raw: RawContent; issues: ContentIssue[]
   return { raw, issues };
 }
 
-export function loadContent(root = join(process.cwd(), 'content')): { content: Content; issues: ContentIssue[] } {
+/**
+ * The content pack directory: `content/` by default, or `BRINK_CONTENT_DIR` (relative to the
+ * working directory or absolute), so a second pack can be built and played without touching
+ * the first (`BRINK_CONTENT_DIR=content-hotel npm run dev`).
+ */
+export function contentRoot(): string {
+  const dir = process.env.BRINK_CONTENT_DIR || 'content';
+  return dir.startsWith('/') ? dir : join(process.cwd(), dir);
+}
+
+export function loadContent(root = contentRoot()): { content: Content; issues: ContentIssue[] } {
   const { raw, issues } = loadRaw(root);
   const compiled = compileContent(raw);
   const all = [...issues, ...compiled.issues];
