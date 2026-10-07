@@ -4,7 +4,7 @@ import { dailyNumber, dailyPlayed, dailySeat, dailyStreak, getDailyRecord, msUnt
 import { hasEndless } from '../../meta/unlock';
 import { compendium } from '../../meta/compendium';
 import { stripCells } from '../../meta/share';
-import { content, endlessAvailable, goto, hasSavedRun, resumeRun, startDaily, startNight } from '../store';
+import { content, endlessAvailable, goto, hasSavedRun, resumeRun, savedRunMode, startDaily, startNight } from '../store';
 import { Mark } from '../components/Mark';
 import { DIAL_LABEL } from '../../engine/night';
 import { METERS } from '../../engine/types';
@@ -42,9 +42,9 @@ export function Home() {
         <p class="serif max-w-[300px] text-[15px] leading-snug text-paper/75">It's 3am. The phone is ringing. Make it to dawn.</p>
       </header>
 
-      {hasSavedRun.value && (
+      {hasSavedRun.value && savedRunMode.value !== 'daily' && (
         <button class="btn btn-danger" onClick={() => resumeRun()}>
-          Pick the phone back up
+          Pick the phone back up {savedRunMode.value === 'night' ? '· the night you left' : savedRunMode.value ? '· Expert' : ''}
         </button>
       )}
 
@@ -58,10 +58,21 @@ export function Home() {
             <div class="serif mt-2 text-xl font-semibold" style={{ color: seat.accent }}>
               You are {seat.the}.
             </div>
-            <button class="btn btn-primary mt-3 w-full py-4 text-lg" onClick={startDaily}>
-              Play tonight
-            </button>
-            <div class="mono mt-2 text-center text-[10px] tracking-[0.14em] text-mute">ONE ATTEMPT · TWO MINUTES</div>
+            {hasSavedRun.value && savedRunMode.value === 'daily' ? (
+              <>
+                <button class="btn btn-primary mt-3 w-full py-4 text-lg" onClick={() => resumeRun()}>
+                  Pick the phone back up
+                </button>
+                <div class="mono mt-2 text-center text-[10px] tracking-[0.14em] text-mute">TONIGHT IS WHERE YOU LEFT IT</div>
+              </>
+            ) : (
+              <>
+                <button class="btn btn-primary mt-3 w-full py-4 text-lg" onClick={startDaily}>
+                  Play tonight
+                </button>
+                <div class="mono mt-2 text-center text-[10px] tracking-[0.14em] text-mute">ONE ATTEMPT · TWO MINUTES</div>
+              </>
+            )}
           </>
         ) : (
           <>

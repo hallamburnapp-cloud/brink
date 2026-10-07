@@ -6,7 +6,7 @@ import { Dials } from '../components/Dials';
 import { Timer } from '../components/Timer';
 import { RollOverlay } from '../components/RollOverlay';
 import { IntroSimple } from '../components/Intro';
-import { abandonRun, busy, cardView, content, decide, lastApplied, rollOverlay, run, runMeta, settings } from '../store';
+import { abandonRun, busy, cardView, content, decide, lastApplied, leaveToHome, rollOverlay, run, runMeta, settings } from '../store';
 import { nightClock } from '../../engine/night';
 
 /** The simple ruleset's run screen: the clock, five dials, the card, two choices. Nothing else. */
@@ -41,30 +41,37 @@ export function Night() {
   return (
     <div class="flex flex-1 flex-col gap-3">
       <header class="flex items-center justify-between">
-        <button class="mono flex items-center gap-2 text-[11px] tracking-[0.2em] text-mute hover:text-paper" onClick={() => setMenu(!menu)} aria-label="Menu">
-          <span class="inline-block h-2 w-2 rounded-full bg-paper/50" />
-          {m?.mode === 'daily' ? 'TONIGHT' : 'THE NIGHT'}
+        <button class="mono -ml-1 rounded-sm px-1 py-1 text-[11px] tracking-[0.2em] text-mute hover:text-paper" onClick={leaveToHome} aria-label="Home (the night is saved)">
+          ← HOME
         </button>
         <div class={`clock mono text-[15px] ${s.flashpoint ? 'text-red' : 'text-paper/90'}`} aria-label={`The time is ${clock}`}>
           {clock}
           <span class="text-[10px] text-mute"> AM</span>
         </div>
+        <button class="mono flex items-center gap-2 rounded-sm px-1 py-1 text-[11px] tracking-[0.2em] text-mute hover:text-paper" onClick={() => setMenu(!menu)} aria-label="Menu" aria-expanded={menu}>
+          {m?.mode === 'daily' ? 'TONIGHT' : 'THE NIGHT'}
+          <span class="inline-block h-2 w-2 rounded-full bg-paper/50" />
+        </button>
       </header>
 
       {menu && (
-        <div class="paper-dark rise rounded-md p-3">
+        <div class="paper-dark rise rounded-md p-3" role="region" aria-label="Menu">
           <div class="serif text-sm text-paper/80">Keep the five dials off the edges until 6:00. Danger full ends everything, and a calm night makes the crisis kinder.</div>
+          <div class="serif mt-2 text-xs text-paper/60">Home keeps the night where it is; you can pick the phone back up later. Leaving ends it.</div>
           <div class="mt-3 flex gap-2">
             <button class="btn flex-1" onClick={() => setMenu(false)}>
               Back to the phone
             </button>
+            <button class="btn flex-1" onClick={leaveToHome}>
+              Home
+            </button>
             <button
               class="btn flex-1 text-red"
               onClick={() => {
-                if (confirm('Leave tonight unfinished? It counts as played.')) abandonRun();
+                if (confirm(m?.mode === 'daily' ? 'End tonight unfinished? It counts as played.' : 'End this night?')) abandonRun();
               }}
             >
-              Leave the night
+              Leave
             </button>
           </div>
         </div>

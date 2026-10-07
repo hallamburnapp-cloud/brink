@@ -9,7 +9,7 @@ import { AccidentOverlay } from '../components/AccidentOverlay';
 import { Tally } from '../components/Tally';
 import { Intro } from '../components/Intro';
 import { Shop } from './Shop';
-import { abandonRun, accidentOverlay, bury, busy, cardView, content, decide, lastApplied, rollOverlay, run, runMeta, settings, tally, toast, useOrderAt } from '../store';
+import { abandonRun, accidentOverlay, bury, busy, cardView, content, decide, lastApplied, leaveToHome, rollOverlay, run, runMeta, settings, tally, toast, useOrderAt } from '../store';
 import { Portrait, PieceIcon } from '../art/Portrait';
 import { formatScore } from '../../meta/score';
 
@@ -47,10 +47,13 @@ export function Run() {
 
   return (
     <div class="flex flex-1 flex-col gap-3">
-      <header class="flex items-center justify-between">
-        <button class="mono flex items-center gap-2 text-[11px] tracking-[0.2em] text-mute hover:text-paper" onClick={() => setMenu(!menu)} aria-label="Menu">
-          <span class="inline-block h-2 w-2 rounded-full" style={{ background: seat.accent }} />
-          {seat.name.toUpperCase()} · {v.actName.toUpperCase()}
+      <header class="flex items-center justify-between gap-2">
+        <button class="mono -ml-1 shrink-0 rounded-sm px-1 py-1 text-[11px] tracking-[0.2em] text-mute hover:text-paper" onClick={leaveToHome} aria-label="Home (the run is saved)">
+          ← HOME
+        </button>
+        <button class="mono flex min-w-0 items-center gap-2 truncate text-[11px] tracking-[0.2em] text-mute hover:text-paper" onClick={() => setMenu(!menu)} aria-label="Menu" aria-expanded={menu}>
+          <span class="inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: seat.accent }} />
+          <span class="truncate">{seat.name.toUpperCase()} · {v.actName.toUpperCase()}</span>
         </button>
         <div class="mono flex items-center gap-3 text-[11px] tracking-[0.2em] text-mute">
           <span title="Political capital" class="text-amber">
@@ -95,6 +98,9 @@ export function Run() {
           <div class="mt-3 flex gap-2">
             <button class="btn flex-1" onClick={() => setMenu(false)}>
               Back to the desk
+            </button>
+            <button class="btn flex-1" onClick={leaveToHome}>
+              Home
             </button>
             <button
               class="btn flex-1 text-red"

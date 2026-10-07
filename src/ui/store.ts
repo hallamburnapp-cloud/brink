@@ -87,13 +87,55 @@ export function toast(text: string, kind: 'info' | 'warn' | 'good' = 'info', ms 
   setTimeout(() => (toasts.value = toasts.value.filter((t) => t.id !== id)), ms);
 }
 
-export function goto(s: Screen): void {
+/** The mode of the run saved on this device (so Home can offer to pick it back up instead of starting another). */
+export const savedRunMode = signal<Mode | null>(null);
+
+/**
+ * Change screen. Every change is a history entry, so the phone's back button and the browser's
+ * back arrow walk back through the app and never out of it by surprise; a run in progress is
+ * kept (it is saved on every card) and Home offers to pick it back up.
+ */
+export function goto(s: Screen, opts: { replace?: boolean; fromHistory?: boolean } = {}): void {
   screen.value = s;
-  if (typeof history !== 'undefined') {
+  if (typeof history !== 'undefined' && !opts.fromHistory) {
     const path = s === 'privacy' ? '/privacy' : s === 'unlocked' ? '/unlocked' : '/';
-    if (location.pathname !== path) history.replaceState(null, '', path);
+    const state = { screen: s };
+    if (opts.replace || history.state === null) history.replaceState(state, '', path);
+    else history.pushState(state, '', path);
   }
   if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
+}
+
+/** Leave the run screen for Home without ending the run: it stays saved and resumable. */
+export function leaveToHome(): void {
+  if (run.value && run.value.phase !== 'ended') {
+    persist();
+    hasSavedRun.value = true;
+    savedRunMode.value = runMeta.value?.mode ?? null;
+    toast('Saved. Pick the phone back up whenever you like.', 'good');
+  }
+  snd.heartbeat(null);
+  snd.pulse(null);
+  snd.drone(false);
+  goto('home');
+}
+
+function onPopState(e: PopStateEvent): void {
+  const target = (e.state && (e.state as { screen?: Screen }).screen) || 'home';
+  // Going back out of a run keeps it; going back onto a run screen with no run goes home instead.
+  if (target === 'run' || target === 'ending') {
+    if (!run.value) return goto('home', { fromHistory: true });
+    if (run.value.phase === 'ended' && target === 'run') return goto('ending', { fromHistory: true });
+  }
+  if (screen.value === 'run' && run.value && run.value.phase !== 'ended') {
+    persist();
+    hasSavedRun.value = true;
+    savedRunMode.value = runMeta.value?.mode ?? null;
+    snd.heartbeat(null);
+    snd.pulse(null);
+    snd.drone(false);
+  }
+  goto(target, { fromHistory: true });
 }
 
 export function updateSettings(patch: Partial<Settings>): void {
@@ -128,6 +170,8 @@ export function boot(): void {
   });
   const saved = load<{ state: RunState; meta: RunMeta } | null>(RUN_KEY, null);
   hasSavedRun.value = !!saved && saved.state.v === 2 && saved.state.phase !== 'ended';
+  savedRunMode.value = hasSavedRun.value && saved ? saved.meta.mode : null;
+  if (typeof window !== 'undefined') window.addEventListener('popstate', onPopState);
   if (typeof location !== 'undefined') {
     if (location.pathname === '/privacy') screen.value = 'privacy';
     else if (location.pathname === '/unlocked') screen.value = 'unlocked';
@@ -203,9 +247,11 @@ export function startNight(seat?: Seat, seed?: string): void {
 
 export function startDaily(): void {
   if (dailyPlayed()) {
-    toast('Today’s crisis is already on record. Come back after midnight UTC.', 'warn');
+    toast('Tonight is already on record. Come back after midnight UTC.', 'warn');
     return;
   }
+  // Tonight is one attempt: a night left half-played is picked back up, never restarted.
+  if (hasSavedRun.value && savedRunMode.value === 'daily' && resumeRun()) return;
   startRun({ mode: 'daily', seat: dailySeat(), seed: dailySeed(), difficulty: 5 });
 }
 
@@ -222,6 +268,8 @@ export function resumeRun(): boolean {
   }
   run.value = s;
   runMeta.value = { ...saved.meta, newBest: saved.meta.newBest ?? false };
+  savedRunMode.value = null;
+  hasSavedRun.value = false;
   goto('run');
   return true;
 }
@@ -231,6 +279,7 @@ export function abandonRun(): void {
   runMeta.value = null;
   remove(RUN_KEY);
   hasSavedRun.value = false;
+  savedRunMode.value = null;
   snd.heartbeat(null);
   snd.pulse(null);
   snd.drone(false);
