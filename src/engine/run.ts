@@ -88,6 +88,10 @@ export interface RunOptions {
   difficulty?: 1 | 2 | 3 | 4 | 5;
   /** Piece ids the player has unlocked ('all' = everything). Locked pieces are never offered. */
   unlocked?: string[] | 'all';
+  /** The hotel: tonight's Booking (omitted, the seed picks one by weight). */
+  booking?: string;
+  /** Flags seeded at the start (the hotel's memory of last night: `memory:*`). */
+  flags?: string[];
 }
 
 export interface StepResult {
@@ -108,9 +112,9 @@ export function actsFor(content: Content, state: RunState): ActDef[] {
   return state.ruleset === 'simple' ? content.nightActs : content.acts;
 }
 
-/** The night's crisis: the danger dial moves the odds (undefined outside the simple ruleset's flashpoint). */
-function crisisDanger(state: RunState): number | undefined {
-  return isSimple(state) && state.flashpoint ? state.meters.escalation : undefined;
+/** The night's crisis: the danger dial moves the odds (undefined outside the simple ruleset's flashpoint, and in packs that do not use it). */
+function crisisDanger(content: Content, state: RunState): number | undefined {
+  return isSimple(state) && content.night.useEscalation && state.flashpoint ? state.meters.escalation : undefined;
 }
 
 export function isSimple(state: RunState): boolean {
@@ -153,8 +157,9 @@ export function maxOrders(ctx: ModContext): number {
 /** Replace {us}, {rival}, {other}, {leader}, {capital}, {rival_adj}, {us_adj}… in card text. */
 export function template(content: Content, state: RunState, text: string): string {
   const seat = content.seats[state.seat];
-  const rival = content.seats[seat.rivals[0]];
-  const other = content.seats[seat.rivals[1]];
+  // A pack with one seat (the hotel) has no rivals; every rival variable reads as the seat itself.
+  const rival = content.seats[seat.rivals[0]] ?? seat;
+  const other = content.seats[seat.rivals[1]] ?? seat;
   const map: Record<string, string> = {
     us: seat.the,
     rival: rival.the,
@@ -183,6 +188,34 @@ function cap(s: string): string {
 }
 
 // ------------------------------------------------------------------ creation
+
+/**
+ * The hotel: pick tonight's Booking (by option or by weight from the seed) and pin its spine
+ * into the queue: the opener as card 1, each beat and the head inside their slot windows.
+ * `in` counts the cards answered before a queued card surfaces, so slot n is `in: n - 1`.
+ */
+function seatBooking(content: Content, state: RunState, rng: Rng, chosen?: string): void {
+  const ids = content.bookingOrder.filter((id) => content.bookings[id].weight > 0);
+  if (ids.length === 0) return;
+  let id = chosen && content.bookings[chosen] ? chosen : null;
+  if (!id) {
+    const idx = rng.weightedIndex(ids.map((b) => content.bookings[b].weight));
+    id = ids[Math.max(0, idx)];
+  }
+  const b = content.bookings[id];
+  state.booking = id;
+  addFlag(state, `booking:${id}`);
+  const pin = (card: string, slot: [number, number]) => {
+    if (!content.cards[card]) return;
+    const lo = Math.max(2, Math.min(slot[0], slot[1]));
+    const hi = Math.max(lo, slot[1]);
+    const at = lo + rng.int(hi - lo + 1);
+    state.queue.push({ card, in: at - 1 });
+  };
+  if (content.cards[b.opener]) state.queue.push({ card: b.opener, in: 0 });
+  for (const beat of b.beats) pin(beat.card, beat.slot);
+  pin(b.head.card, b.head.slot);
+}
 
 export function createRun(content: Content, opts: RunOptions): RunState {
   const seat = content.seats[opts.seat];
@@ -253,9 +286,11 @@ export function createRun(content: Content, opts: RunOptions): RunState {
   };
   if (opts.unlocked && opts.unlocked !== 'all') state.flags.push(...opts.unlocked.map((u) => `unlocked:${u}`));
   else state.flags.push('unlocked:all');
+  for (const f of opts.flags ?? []) addFlag(state, f);
   resetCharges(content, state);
   applyReveals(content, state, []);
   const events: RunEvent[] = [];
+  if (state.ruleset === 'simple') seatBooking(content, state, rng, opts.booking);
   drawNext(content, state, rng, events);
   saveRng(state, rng);
   return state;
@@ -338,7 +373,7 @@ function choiceView(content: Content, state: RunState, card: CardDef, side: Side
   }
   let odds: ChoiceView['odds'];
   if (choice.odds) {
-    const r = resolveOdds(choice.odds.base, choice.odds.tags, ctx, state.hidden, crisisDanger(state));
+    const r = resolveOdds(choice.odds.base, choice.odds.tags, ctx, state.hidden, crisisDanger(content, state));
     odds = { label: choice.odds.label, p: r.p };
   }
   return {
@@ -416,7 +451,7 @@ export function choose(content: Content, state: RunState, side: Side | 'timeout'
 
   // 2. Odds roll.
   if (choice.odds) {
-    const o = resolveOdds(choice.odds.base, choice.odds.tags, ctx, state.hidden, crisisDanger(state));
+    const o = resolveOdds(choice.odds.base, choice.odds.tags, ctx, state.hidden, crisisDanger(content, state));
     const r = rng.roll(o.p);
     const margin = Math.abs(o.p - r.roll) * 100;
     const result: RollResult = { label: choice.odds.label, p: o.p, roll: r.roll, success: r.success, margin, nearMiss: margin < NEAR_MISS_MARGIN };
@@ -540,7 +575,8 @@ export function choose(content: Content, state: RunState, side: Side | 'timeout'
       return { state, events };
     }
   }
-  const trig = thresholdTrigger(state);
+  seatFullCards(content, state, events);
+  const trig = thresholdTrigger(content, state);
   if (trig) {
     if (trig.type === 'meter' && trig.key === 'escalation' && tryDeadman(content, state, ctx, events)) {
       /* survived */
@@ -749,13 +785,29 @@ function grow(content: Content, state: RunState, trigger: ScaleTrigger, tags: re
 
 // ------------------------------------------------------------------ endings
 
-function thresholdTrigger(state: RunState): EndingTrigger | null {
-  if (state.meters.escalation >= 100) return { type: 'meter', key: 'escalation', at: 100 };
+function thresholdTrigger(content: Content, state: RunState): EndingTrigger | null {
+  const simple = state.ruleset === 'simple';
+  if (state.meters.escalation >= 100 && (!simple || content.night.useEscalation)) return { type: 'meter', key: 'escalation', at: 100 };
+  const oneSided = simple && content.night.oneSided;
   for (const k of ['public', 'military', 'allies', 'economy'] as MeterKey[]) {
     if (state.meters[k] <= 0) return { type: 'meter', key: k, at: 0 };
-    if (state.meters[k] >= 100) return { type: 'meter', key: k, at: 100 };
+    if (!oneSided && state.meters[k] >= 100) return { type: 'meter', key: k, at: 100 };
   }
   return null;
+}
+
+/** The hotel: a bar that reached 100 stays there and seats its comedy card once a night. */
+function seatFullCards(content: Content, state: RunState, events: RunEvent[]): void {
+  if (state.ruleset !== 'simple' || !content.night.oneSided) return;
+  for (const k of ['public', 'military', 'allies', 'economy'] as const) {
+    if (state.meters[k] < 100) continue;
+    const flag = `full:${k}`;
+    if (state.flags.includes(flag)) continue;
+    addFlag(state, flag);
+    events.push({ type: 'full', key: k });
+    const card = content.night.fullCards[k];
+    if (card && content.cards[card] && !state.queue.some((q) => q.card === card) && !state.seen.includes(card)) state.queue.push({ card, in: 0 });
+  }
 }
 
 function triggerMatches(a: EndingTrigger, b: EndingTrigger): boolean {

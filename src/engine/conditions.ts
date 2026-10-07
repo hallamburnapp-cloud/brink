@@ -1,4 +1,5 @@
 import type { ConditionDef, EffectKey, PieceDef, RunState } from './types';
+import { starsFor } from './night';
 
 /** Flags active right now: run flags plus flags granted by held pieces. */
 // One-entry cache: a draw checks every card against the same flags and pieces.
@@ -48,5 +49,10 @@ export function checkConditions(cond: ConditionDef | undefined, state: RunState,
   if (cond.seen && !cond.seen.every((c) => state.seen.includes(c))) return false;
   if (cond.unseen && cond.unseen.some((c) => state.seen.includes(c))) return false;
   if (cond.act_card_min !== undefined && state.actCards < cond.act_card_min) return false;
+  if (cond.stars) {
+    const st = starsFor(state);
+    if (cond.stars.min !== undefined && st < cond.stars.min) return false;
+    if (cond.stars.max !== undefined && st > cond.stars.max) return false;
+  }
   return true;
 }

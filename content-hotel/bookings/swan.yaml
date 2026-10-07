@@ -1,0 +1,12 @@
+# THE SWAN — Room 412 has a swan in the bath. It gets out.
+- id: swan
+  name: The Swan
+  lead: room412
+  opener: swan_01_bath
+  beats:
+    - { card: swan_02_corridor, slot: [4, 6] }
+    - { card: swan_03_majestic, slot: [9, 11] }
+    - { card: swan_04_critic_bath, slot: [13, 14] }
+  head: { card: swan_05_council, slot: [15, 17] }
+  teaser: "Room 412 has a swan in the bath."
+  weight: 1

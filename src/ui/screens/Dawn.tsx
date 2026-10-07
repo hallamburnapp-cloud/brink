@@ -71,7 +71,7 @@ export function Dawn() {
   }, [s.seed, e?.id]);
 
   const cells = stripCells(s.trail, 12);
-  const speaker = moment ? c.speakers[moment.advisor] ?? c.speakers.aide : null;
+  const speaker = moment ? c.speakers[moment.advisor] ?? Object.values(c.speakers)[0] : null;
 
   const copyResult = async () => {
     try {

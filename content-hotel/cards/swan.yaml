@@ -1,0 +1,120 @@
+# THE SWAN — the Booking's spine. Opener at 3:00, three beats, the head in the five o'clock hour.
+# Bars: public = GUESTS, military = STAFF, allies = THE BUILDING, economy = MONEY.
+# Regards: trust_primary = the Owner's patience, trust_secondary = Room 412's goodwill,
+# intel = the Critic's opinion, commitment = your promises.
+
+- id: swan_01_bath
+  arc: swan
+  advisor: porter
+  acts: [1, 1]
+  tags: [swan, guests]
+  text: >-
+    Room 412 has a swan in the bath. I went up because I didn't believe it either, and
+    I'd like it noted that I was polite to the swan.
+  left:
+    text: Move 412 upstairs. Leave the swan
+    reply: "412 takes the Penthouse. Quietly, which means she'll mention it later."
+    effects: { public: 10, economy: -10, trust_secondary: 8 }
+    tags: [guests, money]
+    set: [swan:412_moved]
+  right:
+    text: Ring the wildlife people
+    reply: "A recorded voice says they open at seven. The swan does not."
+    effects: { public: -8, trust_secondary: -6 }
+    tags: [guests]
+    set: [swan:called]
+
+- id: swan_02_corridor
+  arc: swan
+  advisor: housekeeper
+  acts: [1, 3]
+  tags: [swan, staff]
+  text: >-
+    The swan is out of the bath and in the corridor, and it is faster than you'd think.
+    The Porter is on the fire stairs with a towel and a theory.
+  left:
+    text: Towel. Catch it
+    reply: "Caught on the second landing. The towel is a loss; the Porter is fine."
+    effects: { military: -10, public: 8 }
+    tags: [staff]
+    set: [swan:caught]
+  right:
+    text: Open the terrace doors
+    reply: "It walks to the terrace, looks at the sea, and decides against it."
+    effects: { public: -8, allies: -8 }
+    tags: [guests]
+    set: [swan:terrace]
+
+- id: swan_03_majestic
+  arc: swan
+  advisor: majestic
+  acts: [1, 3]
+  tags: [swan, majestic]
+  text: >-
+    "The Majestic has heard about your swan and would be glad to take any guests you
+    can't accommodate." A pause, then: "As a courtesy."
+  left:
+    text: Thank them. Send nobody
+    reply: "'Of course.' The line goes quiet in the way that is not the same as calm."
+    effects: { public: -8, military: 8 }
+    tags: [staff]
+    set: [majestic:refused]
+  right:
+    text: Send them the swan
+    reply: "A long pause. 'The Majestic does not, at present, have a suitable bath.'"
+    effects: { public: 12, economy: -8 }
+    tags: [guests, money]
+    set: [swan:offered_majestic]
+
+- id: swan_04_critic_bath
+  arc: swan
+  advisor: critic
+  acts: [2, 3]
+  tags: [swan, critic]
+  text: >-
+    The swan is in my bath now, which I did not book, and it has opinions about my
+    pillows. I file at nine.
+  left:
+    text: The Penthouse. With champagne
+    reply: "She takes the key and the bottle and, worryingly, a notebook."
+    effects: { economy: -12, public: 12, intel: 10 }
+    tags: [guests, money, critic]
+    set: [swan:critic_penthouse]
+  right:
+    text: A screen. The swan stays
+    reply: "'A screen,' she says, and writes it down. The swan watches her write."
+    effects: { public: -10, military: 8, intel: -8 }
+    tags: [guests, critic]
+    set: [swan:critic_screen]
+
+- id: swan_05_council
+  arc: swan
+  advisor: owner
+  acts: [3, 3]
+  minutes: 20
+  tags: [swan, owner]
+  text: >-
+    I'm in the car park in my dressing gown with a man from the council who says a swan
+    belongs to the Crown. He would like to see it.
+  left:
+    text: Show him the swan
+    effects: {}
+    tags: [owner]
+    odds:
+      label: He's charmed
+      base: 0.6
+      tags: [owner]
+      success:
+        text: "He photographs it for his wife and leaves the Crown out of it. The Owner laughs, once."
+        effects: { public: 10, economy: 8, trust_primary: 10 }
+        set: [swan:crown_charmed]
+      failure:
+        text: "He produces a form. The Owner produces a face. The swan produces a smaller swan."
+        effects: { economy: -14, public: -8, trust_primary: -8 }
+        set: [swan:crown_form]
+  right:
+    text: There is no swan
+    reply: "'No swan,' says the Owner, as a swan crosses the lobby behind him."
+    effects: { military: -10, economy: 8, trust_primary: -6 }
+    tags: [staff, owner]
+    set: [swan:denied]

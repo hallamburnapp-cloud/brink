@@ -81,7 +81,7 @@ export function Ending() {
 
   const strip = emojiStrip(s.trail);
   const kindColour = e.kind === 'nuclear' ? 'text-red' : e.kind === 'standdown' ? 'text-green' : e.kind === 'survival' ? 'text-blue' : 'text-amber';
-  const speaker = moment ? c.speakers[moment.advisor] ?? c.speakers.aide : null;
+  const speaker = moment ? c.speakers[moment.advisor] ?? Object.values(c.speakers)[0] : null;
 
   const doShare = async () => {
     const r = await share(data, png ?? undefined);

@@ -33,7 +33,7 @@ export const FORBIDDEN_WORDS = [
 ];
 
 /** Flags the engine sets itself (see CONTENT.md §4.6). `false_alarm_live` and `endless` are exact names. */
-const ENGINE_FLAG_PREFIXES = ['seat:', 'mode:', 'arc:', 'piece:', 'unlocked:', 'accident:', 'ante:', 'peak:', 'deadman:'];
+const ENGINE_FLAG_PREFIXES = ['seat:', 'mode:', 'arc:', 'piece:', 'unlocked:', 'accident:', 'ante:', 'peak:', 'deadman:', 'booking:', 'full:', 'memory:'];
 const ENGINE_FLAGS = new Set(['false_alarm_live', 'endless']);
 
 function choices(c: CardDef): ChoiceDef[] {
@@ -103,6 +103,13 @@ export const BANNED_JARGON = [
   'situational', 'assessment', 'liaison', 'accreditation', 'quarantine of the straits',
 ];
 
+/** The hotel's additional limits (HOTEL.md "The voice contract"). */
+export const HOTEL_VOICE = { cardChars: 150, replyChars: 80, minVisibleMove: 8, maxMove: 25 } as const;
+const TIME_WORDS = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|yesterday|noon|midnight|next week|last week|this morning|this afternoon)\b/gi;
+function timeWordsIn(text: string): string[] {
+  return (text.match(TIME_WORDS) ?? []).map((w) => w.toLowerCase());
+}
+
 export function voiceStrict(): boolean {
   return typeof process !== 'undefined' && process.env?.BRINK_VOICE === 'strict';
 }
@@ -160,7 +167,7 @@ export function validateContent(content: Content): ContentIssue[] {
   };
 
   // ---- speakers
-  if (!speakers.aide) err('speakers', 'a speaker with id "aide" is required as the fallback voice');
+  if (Object.keys(speakers).length === 0) err('speakers', 'at least one speaker is required (the first is the fallback voice)');
 
   // ---- cards
   const forcedEndingRefs = new Set<string>();
@@ -214,6 +221,31 @@ export function validateContent(content: Content): ContentIssue[] {
         }
       }
       for (const j of jargonIn(t)) voice(where, `voice: jargon "${j}"`);
+      if (content.voice === 'hotel') {
+        // The hotel's contract (HOTEL.md): shorter cards, a reply on every side, everything happens tonight.
+        if (t.length > HOTEL_VOICE.cardChars) voice(where, `hotel: text is ${t.length} chars (max ${HOTEL_VOICE.cardChars})`);
+        for (const tw of timeWordsIn(t)) voice(where, `hotel: "${tw}" (everything happens tonight, between 3:00 and 6:00)`);
+        let visible = false;
+        for (const side of ['left', 'right'] as const) {
+          const ch = c[side];
+          const w = `${where}.${side}`;
+          if (!ch.odds && !ch.reply) voice(w, 'hotel: every choice needs a reply (the world answers in one line)');
+          if (ch.reply && ch.reply.length > HOTEL_VOICE.replyChars) voice(w, `hotel: reply is ${ch.reply.length} chars (max ${HOTEL_VOICE.replyChars})`);
+          if (ch.reply) for (const tw of timeWordsIn(ch.reply)) voice(w, `hotel: "${tw}" in the reply`);
+          if (ch.odds) {
+            for (const o of ['success', 'failure'] as const) {
+              if (!ch.odds[o].text) voice(`${w}.odds.${o}`, 'hotel: an odds outcome needs its sentence (it is the reply)');
+              if (ch.odds[o].ending && content.night.oneSided) err(`${w}.odds.${o}`, 'hotel: no roll may carry an ending');
+            }
+          }
+          const moves = (fx: Record<string, number | undefined> | undefined) => Object.entries(fx ?? {}).filter(([k]) => ['public', 'military', 'allies', 'economy'].includes(k)).map(([, v]) => Math.abs(v ?? 0));
+          const biggest = Math.max(0, ...moves(ch.effects), ...moves(ch.odds?.success.effects), ...moves(ch.odds?.failure.effects));
+          if (biggest >= HOTEL_VOICE.minVisibleMove) visible = true;
+          if (biggest > HOTEL_VOICE.maxMove) warn(w, `hotel: a move of ${biggest} is more than a bar should take in one card (max ${HOTEL_VOICE.maxMove})`);
+          if (!content.night.useEscalation && (ch.effects.escalation || ch.odds?.success.effects?.escalation || ch.odds?.failure.effects?.escalation)) warn(w, 'hotel: escalation is not used in this pack');
+        }
+        if (!visible) warn(where, `hotel: neither choice moves a bar by ${HOTEL_VOICE.minVisibleMove} or more (a change must be visible)`);
+      }
     }
     for (const side of ['left', 'right'] as const) {
       const ch = c[side];
@@ -234,7 +266,7 @@ export function validateContent(content: Content): ContentIssue[] {
     lint(`${where}.right`, c.right.text, issues);
   }
 
-  if (bluffCards === 0) warn('cards', 'no bluff cards (bluff: true): a missed ante has no "bluff called" card unless every flashpoint sets bluff_entry');
+  if (bluffCards === 0 && content.voice !== 'hotel') warn('cards', 'no bluff cards (bluff: true): a missed ante has no "bluff called" card unless every flashpoint sets bluff_entry');
 
   // ---- reachability (BFS from drawable roots + flashpoint entries + bluff cards)
   const reachable = new Set<string>();
@@ -258,6 +290,12 @@ export function validateContent(content: Content): ContentIssue[] {
     checkCond(`flashpoint ${fp.id}`, fp.conditions);
     if (fp.acts[0] > fp.acts[1]) err(`flashpoint ${fp.id}`, 'acts range is empty');
   }
+  // The hotel seats these itself: a Booking's spine and the full-bar comedy cards.
+  for (const id of content.bookingOrder) {
+    const b = content.bookings[id];
+    for (const c of [b.opener, ...b.beats.map((x) => x.card), b.head.card]) if (cards[c]) stack.push(c);
+  }
+  for (const c of Object.values(content.night.fullCards)) if (c && cards[c]) stack.push(c);
   while (stack.length) {
     const id = stack.pop()!;
     if (reachable.has(id)) continue;
@@ -306,7 +344,8 @@ export function validateContent(content: Content): ContentIssue[] {
   for (const id of content.cardOrder) if (cards[id].flashpoint && !fpReach.has(id)) err(`card ${id}`, `marked flashpoint "${cards[id].flashpoint}" but not reachable from its entry`);
 
   // ---- endings
-  for (const f of REQUIRED_FALLBACK_ENDINGS) if (!endings[f]) err('endings', `missing required fallback ending "${f}"`);
+  const requiredFallbacks = content.night.oneSided && !content.night.useEscalation ? REQUIRED_FALLBACK_ENDINGS.filter((f) => !/_100$|nuclear|standdown/.test(f)) : REQUIRED_FALLBACK_ENDINGS;
+  for (const f of requiredFallbacks) if (!endings[f]) err('endings', `missing required fallback ending "${f}"`);
   const meterTriggers = new Set<string>();
   for (const id of content.endingOrder) {
     const e = endings[id];
@@ -315,7 +354,7 @@ export function validateContent(content: Content): ContentIssue[] {
     if (e.trigger.type === 'forced' && !forcedEndingRefs.has(id) && !id.startsWith('fallback_')) err(where, 'forced ending is never referenced by any choice or odds outcome');
     if (e.trigger.type === 'meter' && !id.startsWith('fallback_')) meterTriggers.add(`${e.trigger.key}:${e.trigger.at}`);
     if (e.trigger.type === 'meter' && e.trigger.key === 'escalation' && e.trigger.at === 0) err(where, 'escalation 0 is not an ending trigger');
-    if (e.trigger.type === 'run_end' && !id.startsWith('fallback_')) {
+    if (e.trigger.type === 'run_end' && !id.startsWith('fallback_') && content.night.useEscalation) {
       const max = e.conditions?.values?.escalation?.max;
       if (e.kind === 'standdown' && (max === undefined || max > 35)) err(where, 'a stand-down ending must require values.escalation.max ≤ 35 (the engine picks endings by priority, not kind)');
       if (e.kind === 'survival' && max !== undefined && max <= 35) warn(where, 'a survival ending limited to escalation ≤ 35 competes with stand-downs');
@@ -331,10 +370,42 @@ export function validateContent(content: Content): ContentIssue[] {
       for (const j of jargonIn(t + ' ' + e.name + ' ' + e.compendium + ' ' + e.moment_label)) voice(where, `voice: jargon "${j}"`);
     }
   }
-  for (const k of ['public', 'military', 'allies', 'economy']) for (const at of [0, 100]) if (!meterTriggers.has(`${k}:${at}`)) warn('endings', `no authored ending for ${k} reaching ${at} (fallback will be used)`);
-  if (!meterTriggers.has('escalation:100')) warn('endings', 'no authored nuclear ending (fallback will be used)');
+  for (const k of ['public', 'military', 'allies', 'economy']) for (const at of content.night.oneSided ? [0] : [0, 100]) if (!meterTriggers.has(`${k}:${at}`)) warn('endings', `no authored ending for ${k} reaching ${at} (fallback will be used)`);
+  if (content.night.useEscalation && !meterTriggers.has('escalation:100')) warn('endings', 'no authored nuclear ending (fallback will be used)');
   const hasRunEnd = content.endingOrder.some((id) => endings[id].trigger.type === 'run_end' && !id.startsWith('fallback_'));
   if (!hasRunEnd) warn('endings', 'no authored run_end (stand-down / survival) endings');
+
+  // ---- bookings (the hotel)
+  for (const id of content.bookingOrder) {
+    const b = content.bookings[id];
+    const where = `booking ${id}`;
+    const nightCards = content.night.cards ?? content.nightActs.reduce((n, a) => n + a.cards, 0);
+    if (!cards[b.opener]) err(where, `opener "${b.opener}" does not exist`);
+    else if (cards[b.opener].conditions) err(where, `opener "${b.opener}" has conditions; the opener is always card one`);
+    if (!content.speakers[b.lead]) err(where, `lead "${b.lead}" is not a speaker`);
+    const pins = [...b.beats.map((x, i) => ({ ...x, label: `beat ${i + 1}` })), { ...b.head, label: 'head' }];
+    let last = 1;
+    for (const pin of pins) {
+      if (!cards[pin.card]) err(where, `${pin.label} card "${pin.card}" does not exist`);
+      if (pin.slot[0] > pin.slot[1]) err(where, `${pin.label} slot window ${pin.slot[0]}–${pin.slot[1]} is empty`);
+      if (pin.slot[1] > nightCards) err(where, `${pin.label} slot ${pin.slot[1]} is past the night's ${nightCards} cards`);
+      if (pin.slot[0] <= last) warn(where, `${pin.label} window starts at ${pin.slot[0]}, not after the previous pin (${last})`);
+      last = pin.slot[1];
+    }
+    const reviews = content.endingOrder.filter((e) => endings[e].trigger.type === 'run_end' && (endings[e].conditions?.flags_all ?? []).includes(`booking:${id}`));
+    if (reviews.length < 3) warn(where, `${reviews.length} review(s) condition on booking:${id} (aim for three star bands)`);
+    const bands = new Set(reviews.map((e) => endings[e].stars ?? 0));
+    if (reviews.length >= 3 && bands.size < 3) warn(where, 'the reviews share star bands; a night should read differently at two, three and five stars');
+  }
+  if (content.voice === 'hotel') {
+    for (const id of content.endingOrder) {
+      const e = endings[id];
+      if (id.startsWith('fallback_')) continue;
+      if (!e.quote) warn(`ending ${id}`, 'hotel: a review needs its quote (the line people share)');
+      if (e.byline && !content.speakers[e.byline]) err(`ending ${id}`, `hotel: byline "${e.byline}" is not a speaker`);
+      if (e.trigger.type === 'run_end' && !e.stars) warn(`ending ${id}`, 'hotel: a review at 6:00 needs its stars');
+    }
+  }
 
   // ---- pieces
   for (const id of content.pieceOrder) {
@@ -369,8 +440,11 @@ export function validateContent(content: Content): ContentIssue[] {
   }
 
   // ---- deck depth per act × seat (baseline = drawable, unconditioned, non-warning)
-  for (const act of content.acts) {
-    for (const s of SEATS) {
+  // A pack that only plays the night (the hotel) is judged on its night acts and its own seats.
+  const deckActs = content.voice === 'hotel' ? content.nightActs : content.acts;
+  const deckSeats = content.voice === 'hotel' ? (Object.keys(seats) as typeof SEATS[number][]) : SEATS;
+  for (const act of deckActs) {
+    for (const s of deckSeats) {
       let baseline = 0;
       let drawable = 0;
       for (const id of content.cardOrder) {
@@ -385,7 +459,7 @@ export function validateContent(content: Content): ContentIssue[] {
       else if (drawable < act.cards + 4) warn(`deck act ${act.index} / ${s}`, `only ${drawable} drawable cards for ${act.cards} slots (thin deck)`);
     }
     const fps = Object.values(flashpoints).filter((f) => act.index >= f.acts[0] && act.index <= f.acts[1]);
-    if (fps.length === 0) warn(`act ${act.index}`, 'no flashpoint covers this act');
+    if (fps.length === 0 && content.voice !== 'hotel') warn(`act ${act.index}`, 'no flashpoint covers this act');
   }
 
   return issues;

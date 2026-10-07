@@ -210,6 +210,10 @@ export function fixture(): Content {
       { index: 4, name: 'Week Four', cards: 3, effect_scale: 1.35, intel_shift: -15, timer_scale: 0.7, day_per_card: 0.5, target: 80 },
       { index: 5, name: 'Endgame', cards: 3, effect_scale: 1.5, intel_shift: -20, timer_scale: 0.6, day_per_card: 0.5, target: 100 },
     ],
+    bookings: {},
+    bookingOrder: [],
+    night: { minutes: 7, oneSided: false, useEscalation: true, fullCards: {}, firstNightScale: 1 },
+    voice: 'crisis',
     nightActs: [
       { index: 1, name: '3:00am', cards: 2, effect_scale: 1, intel_shift: 0, timer_scale: 1, day_per_card: 0.1, target: 50, flashpoint: false },
       { index: 2, name: '3:35am', cards: 2, effect_scale: 1, intel_shift: 0, timer_scale: 1, day_per_card: 0.1, target: 50, flashpoint: false },

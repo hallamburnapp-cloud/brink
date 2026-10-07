@@ -292,7 +292,9 @@ export function runOne(content: Content, opts: RunOneOptions): RunSummary {
       if (ending === null) {
         ending = state.ending ?? UNFINISHED;
         kind = content.endings[ending]?.kind ?? 'special';
-        won = state.canContinue && state.act >= lastAct && !state.endless;
+        // Expert wins by reaching the Endgame's end with the option to continue; the night (simple
+        // ruleset) wins by reaching 6:00, which is any run_end ending.
+        won = state.ruleset === 'simple' ? content.endings[ending]?.trigger.type === 'run_end' : state.canContinue && state.act >= lastAct && !state.endless;
         estMinutes = estimateMinutes(state.cardsPlayed, state.stats.rolls, shops, state.stats.accidents);
       }
       if (state.canContinue && policy.continueRun(content, state, rng)) {
@@ -1458,7 +1460,8 @@ export function finalTarget(content: Content, difficulty: number): number {
 
 export function simulate(content: Content, opts: SimulateOptions): Report {
   const policies = opts.policies.map((p) => (typeof p === 'string' ? policyByName(p) : p));
-  const seats: Seat[] = !opts.seats || opts.seats === 'all' ? ALL_SEATS.slice() : opts.seats.slice();
+  // "all" means the seats this pack defines (the hotel has one).
+  const seats: Seat[] = !opts.seats || opts.seats === 'all' ? (Object.keys(content.seats) as Seat[]) : opts.seats.filter((s) => content.seats[s]);
   if (seats.length === 0) throw new Error('simulate: at least one seat is required');
   if (policies.length === 0) throw new Error('simulate: at least one policy is required');
   const difficulty = opts.difficulty ?? 5;

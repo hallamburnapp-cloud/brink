@@ -6,18 +6,19 @@ import { z } from 'zod';
 import type {
   ActDef,
   ArchetypeDef,
+  BookingDef,
   CardDef,
   Content,
   DifficultyDef,
   EndingDef,
   FlashpointDef,
+  NightRules,
   OrderDef,
   PieceDef,
   Seat,
   SeatDef,
   SpeakerDef,
 } from '../engine/types.ts';
-import { SEATS } from '../engine/types.ts';
 import { RARITY_PRICE, deriveBase } from '../engine/leverage.ts';
 
 const seat = z.enum(['republic', 'federation', 'coalition']);
@@ -49,6 +50,8 @@ export const conditionSchema = z
     unseen: z.array(id).optional(),
     act_card_min: z.number().int().min(0).optional(),
     act: range.optional(),
+    /** The hotel's review bands: the stars the night earned (computed at the end, 1–5). */
+    stars: range.optional(),
   })
   .strict();
 
@@ -112,6 +115,8 @@ export const cardSchema = z
     right: choiceSchema,
     timer: z.number().int().min(5).max(20).optional(),
     timeout: z.enum(['left', 'right']).optional(),
+    /** Minutes of the clock this card takes in the simple ruleset (default rules.night.minutes). */
+    minutes: z.number().int().min(1).max(30).optional(),
     conditions: conditionSchema.optional(),
     tags: z.array(tag).default([]),
     weight: z.number().min(0).max(10).optional(),
@@ -300,8 +305,30 @@ export const endingSchema = z
     compendium: z.string().min(10).max(200),
     emoji: z.string().min(1).max(8),
     achievements: z.array(id).optional(),
+    /** The hotel's review: stars out of five, who wrote it, and the one line people quote. */
+    stars: z.number().int().min(1).max(5).optional(),
+    byline: id.optional(),
+    quote: z.string().min(4).max(120).optional(),
   })
   .strict();
+
+/** A Booking: tonight's situation, pinned to slots of the 18-card night. */
+export const bookingSchema = z
+  .object({
+    id,
+    name: z.string().min(2).max(40),
+    /** The speaker the Booking is about (the Bride's Mother, the Inspector…). */
+    lead: id,
+    opener: id,
+    beats: z.array(z.object({ card: id, slot: z.tuple([z.number().int().min(2).max(30), z.number().int().min(2).max(30)]) }).strict()).min(1).max(4),
+    head: z.object({ card: id, slot: z.tuple([z.number().int().min(2).max(30), z.number().int().min(2).max(30)]) }).strict(),
+    /** One line for "Tomorrow: …". */
+    teaser: z.string().min(4).max(120),
+    weight: z.number().min(0).max(10).default(1),
+    note: z.string().optional(),
+  })
+  .strict();
+export type RawBooking = z.infer<typeof bookingSchema>;
 
 export const seatSchema = z
   .object({
@@ -379,12 +406,32 @@ export const difficultySchema = z
   })
   .strict();
 
+const nightSchema = z
+  .object({
+    acts: z.array(actSchema).min(1).max(5),
+    /** Fixed card count of the night (the hotel: 18); omitted, the acts' card counts decide. */
+    cards: z.number().int().min(1).max(60).optional(),
+    /** Minutes of the clock per card by default (the hotel: 10; the crisis night: 7). */
+    minutes: z.number().int().min(1).max(30).default(7),
+    /** One-sided bars: a meter fails only at 0; 100 is clamped and seats a comedy card. */
+    one_sided: z.boolean().default(false),
+    /** Whether the fifth meter (escalation / danger) is shown, moves the crisis odds and can end the night. */
+    use_escalation: z.boolean().default(true),
+    /** The comedy cards seated when a one-sided bar fills. */
+    full_cards: z.partialRecord(z.enum(['public', 'military', 'allies', 'economy']), id).optional(),
+    /** Cost scale for a player's very first night (the practice night). */
+    first_night_scale: z.number().min(0.3).max(1).default(1),
+  })
+  .strict();
+
 export const rulesFileSchema = z
   .object({
     acts: z.array(actSchema).length(5),
-    /** The simple ruleset's night: five stretches from 3:00am to dawn. */
-    night: z.object({ acts: z.array(actSchema).length(5) }).strict().optional(),
+    /** The simple ruleset's night: stretches from 3:00am to dawn, and the night's rules. */
+    night: nightSchema.optional(),
     difficulties: z.array(difficultySchema).min(1),
+    /** Which voice contract the strict validator applies. */
+    voice: z.enum(['crisis', 'hotel']).default('crisis'),
   })
   .strict();
 
@@ -394,6 +441,7 @@ export interface RawContent {
   endings: { file: string; items: unknown[] }[];
   seats: { file: string; item: unknown }[];
   flashpoints: { file: string; items: unknown[] }[];
+  bookings?: { file: string; items: unknown[] }[];
   speakers: { file: string; items: unknown[] };
   rules: { file: string; item: unknown };
   orders?: { file: string; items: unknown[] };
@@ -443,6 +491,22 @@ export function compileContent(raw: RawContent): { content: Content; issues: Con
   // Cards referenced by a follow-up / warning / flashpoint entry default to chained.
   const referenced = new Set<string>();
   const fpEntries = new Set<string>();
+  {
+    // Cards the rules or a Booking seat themselves (the hotel's full-bar comedy cards, a Booking's
+    // opener, beats and head) are reached, never drawn by weight.
+    const pre = rulesFileSchema.safeParse(raw.rules.item);
+    if (pre.success && pre.data.night?.full_cards) for (const id of Object.values(pre.data.night.full_cards)) if (id) referenced.add(id);
+    for (const f of raw.bookings ?? []) {
+      if (!Array.isArray(f.items)) continue;
+      for (const item of f.items) {
+        const b = bookingSchema.safeParse(item);
+        if (!b.success) continue;
+        referenced.add(b.data.opener);
+        for (const beat of b.data.beats) referenced.add(beat.card);
+        referenced.add(b.data.head.card);
+      }
+    }
+  }
   for (const c of rawCards) {
     for (const ch of [c.left, c.right]) {
       for (const f of ch.follow ?? []) referenced.add(f.card);
@@ -494,6 +558,7 @@ export function compileContent(raw: RawContent): { content: Content; issues: Con
       right: compileChoice(c.right),
       timer: c.timer,
       timeout: c.timeout,
+      minutes: c.minutes,
       conditions: c.conditions,
       tags: c.tags,
       weight: c.weight ?? 1,
@@ -605,7 +670,7 @@ export function compileContent(raw: RawContent): { content: Content; issues: Con
     }
     seats[r.data.id] = r.data as SeatDef;
   }
-  for (const s of SEATS) if (!seats[s]) err('seats', `missing seat definition for ${s}`);
+  if (Object.keys(seats).length === 0) err('seats', 'no seat definitions (content/seats/*.yaml)');
 
   const speakers: Record<string, SpeakerDef> = {};
   if (Array.isArray(raw.speakers.items)) {
@@ -619,19 +684,48 @@ export function compileContent(raw: RawContent): { content: Content; issues: Con
     });
   } else err(raw.speakers.file, 'speakers file must contain a YAML list');
 
+  const bookings: Record<string, BookingDef> = {};
+  const bookingOrder: string[] = [];
+  for (const f of raw.bookings ?? []) {
+    if (!Array.isArray(f.items)) {
+      err(f.file, 'file must contain a YAML list of bookings');
+      continue;
+    }
+    f.items.forEach((item, i) => {
+      const r = bookingSchema.safeParse(item);
+      if (!r.success) {
+        err(`${f.file} › item #${i + 1}`, fmtZod(r.error));
+        return;
+      }
+      if (bookings[r.data.id]) {
+        err(`booking ${r.data.id}`, 'duplicate booking id');
+        return;
+      }
+      bookings[r.data.id] = r.data as BookingDef;
+      bookingOrder.push(r.data.id);
+    });
+  }
+
   let acts: ActDef[] = [];
   let nightActs: ActDef[] = [];
   let difficulties: DifficultyDef[] = [];
+  let night: NightRules = { minutes: 7, oneSided: false, useEscalation: true, fullCards: {}, firstNightScale: 1 };
+  let voice: 'crisis' | 'hotel' = 'crisis';
   const rr = rulesFileSchema.safeParse(raw.rules.item);
   if (!rr.success) err(raw.rules.file, fmtZod(rr.error));
   else {
     acts = [...rr.data.acts].sort((a, b) => a.index - b.index);
     nightActs = rr.data.night ? [...rr.data.night.acts].sort((a, b) => a.index - b.index) : acts;
     difficulties = rr.data.difficulties as DifficultyDef[];
+    voice = rr.data.voice;
+    if (rr.data.night) {
+      const n = rr.data.night;
+      night = { cards: n.cards, minutes: n.minutes, oneSided: n.one_sided, useEscalation: n.use_escalation, fullCards: (n.full_cards ?? {}) as NightRules['fullCards'], firstNightScale: n.first_night_scale };
+    }
   }
 
   return {
-    content: { cards, pieces, orders, archetypes, endings, seats, flashpoints, speakers, acts, nightActs, difficulties, cardOrder, pieceOrder, orderOrder, endingOrder },
+    content: { cards, pieces, orders, archetypes, endings, seats, flashpoints, speakers, bookings, acts, nightActs, night, voice, difficulties, cardOrder, pieceOrder, orderOrder, endingOrder, bookingOrder },
     issues,
   };
 }

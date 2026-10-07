@@ -211,11 +211,13 @@ export function resolveOdds(
     if (m.add) add += m.add;
     if (m.mult !== undefined) mult *= m.mult;
   }
+  // The hotel reads the same four hidden values as people: the Owner's patience, the lead guest's
+  // goodwill, the Critic's opinion, your own promises (tags owner / guest / critic / promise).
   let situational = 0;
-  if (tags.includes('adversary')) situational += (hidden.trust_primary - 50) / 200;
-  if (tags.includes('secondary')) situational += (hidden.trust_secondary - 50) / 200;
-  if (tags.includes('intel')) situational += (hidden.intel - 50) / 200;
-  if (tags.includes('alliance')) situational += (hidden.commitment - 50) / 250;
+  if (tags.includes('adversary') || tags.includes('owner')) situational += (hidden.trust_primary - 50) / 200;
+  if (tags.includes('secondary') || tags.includes('guest')) situational += (hidden.trust_secondary - 50) / 200;
+  if (tags.includes('intel') || tags.includes('critic')) situational += (hidden.intel - 50) / 200;
+  if (tags.includes('alliance') || tags.includes('promise')) situational += (hidden.commitment - 50) / 250;
   if (typeof danger === 'number' && Number.isFinite(danger)) situational += (50 - clamp(danger, 0, 100)) / DANGER_ODDS_DIVISOR;
   const p = clamp((base + add + situational) * mult, ODDS_MIN, ODDS_MAX);
   return { p, add, mult, situational };

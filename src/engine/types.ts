@@ -95,6 +95,8 @@ export interface ChoiceDef {
 export interface RangeCond { min?: number; max?: number }
 
 export interface ConditionDef {
+  /** The stars the night has earned so far (hotel reviews pick their band with this). */
+  stars?: RangeCond;
   flags_all?: string[];
   flags_any?: string[];
   flags_none?: string[];
@@ -129,6 +131,8 @@ export interface CardDef {
   advisor: string;
   /** Inclusive act range 1..5. */
   acts: [number, number];
+  /** Minutes of the clock this card takes in the simple ruleset (default rules.night.minutes). */
+  minutes?: number;
   seats?: Seat[];
   text: string;
   left: ChoiceDef;
@@ -361,6 +365,10 @@ export interface EndingDef {
   moment_label: string;
   /** One line for the compendium. */
   compendium: string;
+  /** The hotel's review: stars out of five, who wrote it, the line people quote. */
+  stars?: number;
+  byline?: string;
+  quote?: string;
   /** Emoji used on the share card. */
   emoji: string;
   /** Achievement ids granted when reached. */
@@ -468,15 +476,47 @@ export interface Content {
   seats: Record<Seat, SeatDef>;
   flashpoints: Record<string, FlashpointDef>;
   speakers: Record<string, SpeakerDef>;
+  /** The hotel's Bookings (tonight's situation, pinned to slots). Empty for the crisis pack. */
+  bookings: Record<string, BookingDef>;
   acts: ActDef[];
   /** The night's structure for the simple ruleset (rules.yaml `night.acts`); falls back to `acts`. */
   nightActs: ActDef[];
+  /** The simple ruleset's night rules (rules.yaml `night`). */
+  night: NightRules;
+  /** Which voice contract the pack is written to. */
+  voice: 'crisis' | 'hotel';
   difficulties: DifficultyDef[];
   /** Ordered ids for stable iteration. */
   cardOrder: string[];
   pieceOrder: string[];
   orderOrder: string[];
   endingOrder: string[];
+  bookingOrder: string[];
+}
+
+export interface NightRules {
+  /** Fixed card count of the night; omitted, the acts decide. */
+  cards?: number;
+  /** Minutes of the clock per card by default. */
+  minutes: number;
+  /** Bars fail only at 0; 100 is clamped and seats a comedy card. */
+  oneSided: boolean;
+  /** Whether escalation is shown, moves the crisis odds and can end the night. */
+  useEscalation: boolean;
+  fullCards: Partial<Record<Exclude<MeterKey, 'escalation'>, string>>;
+  firstNightScale: number;
+}
+
+export interface BookingDef {
+  id: string;
+  name: string;
+  lead: string;
+  opener: string;
+  beats: { card: string; slot: [number, number] }[];
+  head: { card: string; slot: [number, number] };
+  teaser: string;
+  weight: number;
+  note?: string;
 }
 
 // ------------------------------------------------------------------ run state
@@ -627,6 +667,8 @@ export interface RunState {
   flashpoint: string | null;
   /** Flashpoints already used this run. */
   flashpointsUsed: string[];
+  /** The hotel: tonight's Booking id. */
+  booking?: string;
   ending: string | null;
   /** The card id of "the moment it went wrong / held". */
   moment: string | null;
@@ -710,6 +752,8 @@ export type RunEvent =
   | { type: 'roll'; result: RollResult }
   /** The world answers the choice in one line (a choice's `reply`, or an odds outcome's text). */
   | { type: 'reply'; text: string; speaker: string; outcome?: 'success' | 'failure' }
+  /** A one-sided bar reached 100 (the hotel): clamped, and its comedy card is seated. */
+  | { type: 'full'; key: MeterKey }
   | { type: 'flag'; set: string[]; clear: string[] }
   | { type: 'warning'; truth: boolean }
   | { type: 'act_start'; act: number; name: string; target: number }

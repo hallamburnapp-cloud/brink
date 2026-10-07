@@ -1,0 +1,398 @@
+# THE POOL — the regulars, the Owner, The Majestic, Your Partner. Any night, any Booking.
+# Bars: public = GUESTS, military = STAFF, allies = THE BUILDING, economy = MONEY.
+
+- id: pool_chef_eggs
+  advisor: chef
+  acts: [1, 2]
+  weight: 1.5
+  tags: [kitchen, staff]
+  text: >-
+    Sixty down for breakfast and there are no eggs. I'm not saying the night manager forgot
+    to sign for them; I'm saying somebody did.
+  left:
+    text: Wake the grocer. Pay double
+    reply: "The grocer answers on the ninth ring and names a price. You say yes."
+    effects: { economy: -14, military: 8 }
+    tags: [money, staff]
+  right:
+    text: Pancakes. Call it a theme
+    reply: "'Pancakes.' He says it once, and then goes to find a bigger pan."
+    effects: { military: -8, public: -8 }
+    tags: [staff, guests]
+    set: [chef:pancakes]
+
+- id: pool_critic_drums
+  advisor: critic
+  acts: [1, 2]
+  tags: [critic, guests]
+  text: >-
+    I'm reviewing you, I'm in 212, and 310 is playing the drums. I file at nine, and I
+    came here hoping to write about the pillows.
+  left:
+    text: Champagne. On the house
+    reply: "She takes the bottle and writes something down. Possibly the vintage."
+    effects: { economy: -10, public: 10, intel: 8 }
+    tags: [money, guests, critic]
+  right:
+    text: Move the drummer, not her
+    reply: "The drummer moves to the ballroom: louder, but further away."
+    effects: { military: -8, public: 8 }
+    tags: [staff, guests]
+    set: [drummer:ballroom]
+
+- id: pool_owner_lights
+  advisor: owner
+  acts: [1, 3]
+  tags: [owner, money]
+  text: >-
+    Why is the terrace lit at this hour? Lights cost money, and nobody is on a terrace at
+    this hour except people I'm not charging.
+  left:
+    text: Turn the lights off
+    reply: "The terrace goes dark. Somewhere out there, something hisses."
+    effects: { economy: 10, public: -8, allies: -8 }
+    tags: [money, guests]
+    set: [terrace:dark]
+  right:
+    text: Leave them on. Safety
+    reply: "He says 'safety' once, in the voice of a man doing a sum."
+    effects: { economy: -8, trust_primary: -8 }
+    tags: [money, owner]
+
+- id: pool_handyman_boiler
+  advisor: handyman
+  acts: [1, 3]
+  tags: [building, boiler]
+  text: >-
+    The boiler's making the noise from last time, and last time it stopped when I hit it.
+    I can hit it now, or you've got hot water till about five.
+  left:
+    text: Hit it
+    effects: {}
+    tags: [building]
+    odds:
+      label: It stops
+      base: 0.65
+      tags: []
+      success:
+        text: "One hit. Silence. He doesn't say anything, which is somehow worse."
+        effects: { allies: 10 }
+      failure:
+        text: "It stops for a breath, then starts again, louder. So does he."
+        effects: { allies: -10, military: -8 }
+        set: [boiler:angry]
+  right:
+    text: Leave it. Hot water till five
+    reply: "'Five,' he says. 'Ish.' The intercom clicks off before you can ask."
+    effects: { allies: -8 }
+    tags: [building]
+    set: [boiler:left]
+
+- id: pool_partner_soup
+  advisor: partner
+  acts: [2, 2]
+  weight: 3
+  tags: [partner]
+  text: >-
+    There's soup in the pan and a bed upstairs, which I mention because you seem to have
+    forgotten where it is. Also the cat has your side.
+  left:
+    text: Eat the soup. Ten minutes
+    reply: "Ten minutes of soup in a dark kitchen. The best ten minutes of the night."
+    effects: { military: 10, public: -8, commitment: 6 }
+    tags: [staff]
+    set: [memory:ate_the_soup]
+  right:
+    text: Not yet. Send a heart
+    reply: "A heart comes back. Then: 'I've screenshotted the time.'"
+    effects: { military: -8, public: 8, commitment: -6 }
+    tags: [guests]
+    set: [memory:skipped_the_soup]
+
+- id: pool_room12_singing
+  advisor: room12
+  acts: [1, 3]
+  tags: [guests, rules]
+  text: >-
+    There is singing on the second floor. The rule is no singing, which I know because I
+    wrote it, in 1991, on the card by the lift.
+  left:
+    text: Knock. Ask them nicely
+    reply: "They stop. They start again in a lower key, which she counts as a win."
+    effects: { public: -8, military: 8, trust_secondary: 4 }
+    tags: [guests, staff]
+    set: [room12:obeyed]
+  right:
+    text: It's one night. Let them sing
+    reply: "'One night,' she repeats, and goes to find the card by the lift."
+    effects: { public: 10, allies: -8 }
+    tags: [guests]
+    set: [room12:crossed]
+
+- id: pool_barman_last_orders
+  advisor: barman
+  acts: [1, 2]
+  tags: [bar, guests]
+  text: >-
+    Last orders was an hour ago and so, in a sense, was the gentleman at the end of the
+    bar. He has ordered a taxi to the bar.
+  left:
+    text: Close the bar. Walk him up
+    reply: "He goes up singing. The song has one word in it, and the word is 'no'."
+    effects: { economy: -8, military: 8, public: -8 }
+    tags: [staff, guests]
+  right:
+    text: One more. On the house
+    reply: "'The house is kind,' he says, 'and I shall say so in the book.' He does."
+    effects: { economy: -10, public: 12 }
+    tags: [money, guests]
+
+- id: pool_doorman_lift
+  advisor: doorman
+  acts: [1, 3]
+  tags: [building, lift]
+  text: >-
+    The last time the lift stopped at this hour it was 1991, and a Duke was in it. He was
+    very understanding, after the first forty minutes.
+  left:
+    text: Call the lift people
+    reply: "They can come at eight. Until then the Duke's advice is: sit down."
+    effects: { economy: -10, allies: 10 }
+    tags: [money, building]
+  right:
+    text: Stairs. All night
+    reply: "The Porter learns how many stairs there are. He says the number twice."
+    effects: { military: -10, public: -8, allies: 8 }
+    tags: [staff, guests]
+    set: [lift:off]
+
+- id: pool_concierge_man
+  advisor: concierge
+  acts: [1, 3]
+  tags: [guests, desk]
+  text: >-
+    A man at the desk is asking for a guest by a name nobody has, and he knows her room.
+    One source, and the source is the man.
+  left:
+    text: Tell him nothing
+    reply: "He thanks you, in the way people do when they will be back."
+    effects: { public: 8, military: 8 }
+    tags: [guests, staff]
+    set: [desk:discreet]
+  right:
+    text: Give him the room number
+    reply: "He tips. The Concierge writes the amount down, and the time, and your name."
+    effects: { public: -14, economy: 8 }
+    tags: [guests, money]
+    set: [desk:told]
+
+- id: pool_events_drums
+  advisor: events
+  acts: [1, 3]
+  tags: [ballroom, staff]
+  text: >-
+    The ballroom is set for a wedding at eleven and the band has left their drums in it.
+    The drums are a moment, and the wrong one.
+  left:
+    text: Drums out. Now
+    reply: "Four staff, one drum kit, one chandelier. No casualties, one note."
+    effects: { military: -8, allies: 8 }
+    tags: [staff, building]
+  right:
+    text: Leave them. It's a look
+    reply: "'A look,' she says, and takes a photo for the file she keeps on you."
+    effects: { public: 8, trust_secondary: -8 }
+    tags: [guests]
+
+- id: pool_daymanager_pen
+  advisor: daymanager
+  acts: [2, 3]
+  tags: [daymanager]
+  text: >-
+    A text: "Heard it's a lively one, so I've brought my own pen for six." She has never
+    brought her own pen.
+  left:
+    text: "Reply: all under control"
+    reply: "'Good,' she writes. Then, a minute later: 'Define control.'"
+    effects: { public: 8, commitment: -8 }
+    tags: [promise]
+    set: [promise:control]
+  right:
+    text: Don't reply
+    reply: "No reply. Your phone shows her typing for a very long time."
+    effects: { military: 8, trust_primary: -8 }
+    tags: [staff]
+
+- id: pool_housekeeper_towels
+  advisor: housekeeper
+  acts: [1, 3]
+  tags: [guests, linen]
+  text: >-
+    We are out of clean towels on the third floor, and a guest has asked for twelve. I
+    have asked what for, and she has not said.
+  left:
+    text: Give her the twelve
+    reply: "Twelve towels go up. Eleven come down at six, dyed blue."
+    effects: { public: 10, economy: -8 }
+    tags: [guests, money]
+  right:
+    text: Three. Firmly
+    reply: "Three towels. She looks at them like a verdict and accepts it."
+    effects: { public: -8, military: 8 }
+    tags: [guests, staff]
+
+- id: pool_porter_dog_lift
+  advisor: porter
+  acts: [1, 3]
+  tags: [lift, guests]
+  text: >-
+    The Labrador from 118 has learned the lift. Up, ding, down, ding, and every time the
+    doors open a guest meets a dog with no explanation.
+  left:
+    text: Lock the lift
+    reply: "The lift is locked. The dog sits in front of it and waits, like a man."
+    effects: { allies: 8, public: -8 }
+    tags: [building, guests]
+    set: [lift:off]
+  right:
+    text: Let him. He's happy
+    reply: "He goes up. Room 310 reports a dog. Room 310 does not sound unhappy."
+    effects: { public: 10, military: -8 }
+    tags: [guests, staff]
+    set: [dog:lift]
+
+- id: pool_barman_glass
+  advisor: barman
+  acts: [2, 3]
+  tags: [bar, money]
+  text: >-
+    Somebody has drunk the good brandy, the one the Owner counts, and left the bottle
+    looking full. It is full of tea.
+  left:
+    text: Pour the tea away. Say nothing
+    reply: "The bottle is empty now, which is at least honest."
+    effects: { economy: -10, military: 8 }
+    tags: [money, staff]
+  right:
+    text: Leave it. Let him find out
+    reply: "'Tea,' the Barman says, admiringly. 'Cold tea. Somebody planned this.'"
+    effects: { economy: 8, trust_primary: -10 }
+    tags: [money, owner]
+    set: [brandy:tea]
+
+- id: pool_doorman_fox
+  advisor: doorman
+  acts: [1, 3]
+  tags: [door, guests]
+  text: >-
+    There is a fox in the revolving door, going round. It got in on a guest's heels and
+    it has not worked out the leaving part.
+  left:
+    text: Stop the door. Shoo it
+    reply: "The door stops. The fox leaves at a walk, as if it had meant to."
+    effects: { military: -8, allies: 8 }
+    tags: [staff, building]
+  right:
+    text: Let it go round. It's content
+    reply: "A guest comes in, meets the fox, goes round again, and comes in smiling."
+    effects: { public: 10, allies: -8 }
+    tags: [guests]
+
+- id: pool_concierge_cab
+  advisor: concierge
+  acts: [2, 3]
+  tags: [guests, desk]
+  text: >-
+    The guest in 7 wants a cab to the airport, now, with the lights off. He has paid in
+    cash and I have, in a sense, not seen him.
+  left:
+    text: Call the cab. Lights off
+    reply: "The cab comes with its lights off, which is not how cabs work, but it comes."
+    effects: { economy: 10, military: -8 }
+    tags: [money, staff]
+    set: [room7:left]
+  right:
+    text: No cab till six. House rules
+    reply: "He sits in the lobby in a hat. He is very good at it."
+    effects: { public: -10, allies: 8 }
+    tags: [guests, building]
+
+# ---- Full-bar comedy cards (seated once a night when a bar reaches the top)
+
+- id: full_guests_coach
+  advisor: events
+  acts: [1, 3]
+  weight: 0
+  tags: [full, guests]
+  text: >-
+    A coach has pulled up with forty-one people who have heard we're the happy hotel
+    tonight. The driver would like a bed as well.
+  left:
+    text: Take them. All of them
+    reply: "Forty-one keys, one more for the driver, and a chair for the Porter."
+    effects: { economy: 14, military: -12, public: -8 }
+    tags: [money, staff]
+  right:
+    text: Full. Send them to The Majestic
+    reply: "'A courtesy,' says The Majestic's night manager. 'Remembered.'"
+    effects: { public: -12, economy: -8 }
+    tags: [guests, majestic]
+    set: [majestic:owed]
+
+- id: full_staff_singing
+  advisor: chef
+  acts: [1, 3]
+  weight: 0
+  tags: [full, staff]
+  text: >-
+    The staff are so happy they have started singing in the kitchen, in harmony, which is
+    new. The Chef is conducting with a ladle.
+  left:
+    text: Let them sing
+    reply: "The song finishes. The Chef bows to the fridge."
+    effects: { public: 8, military: -8 }
+    tags: [guests, staff]
+  right:
+    text: Back to work. Gently
+    reply: "'Gently,' says the Chef, and the ladle goes back in the soup."
+    effects: { military: -10, allies: 8 }
+    tags: [staff, building]
+
+- id: full_money_fountain
+  advisor: owner
+  acts: [1, 3]
+  weight: 0
+  tags: [full, money]
+  text: >-
+    The till is so full the Owner has rung to ask about a fountain for the lobby. With a
+    swan on it, he says, not knowing.
+  left:
+    text: Order the fountain
+    reply: "A fountain is ordered. The swan, when told, is unmoved."
+    effects: { economy: -16, public: 10 }
+    tags: [money, guests]
+  right:
+    text: Not tonight
+    reply: "'Not tonight,' he repeats, and takes four hundred out of the till for taxis."
+    effects: { economy: -8, allies: 8, trust_primary: -8 }
+    tags: [money, owner]
+
+- id: full_building_trust
+  advisor: handyman
+  acts: [1, 3]
+  weight: 0
+  tags: [full, building]
+  text: >-
+    Everything in the building is working at once, which has never happened, and I don't
+    trust it. I'd like to switch something off, as a precaution.
+  left:
+    text: Switch off the lift
+    reply: "The lift stops between floors with nobody in it, which he calls a success."
+    effects: { allies: -8, public: -8 }
+    tags: [building, guests]
+    set: [lift:off]
+  right:
+    text: Trust the building
+    reply: "'Right,' he says. Behind him, something in the boiler room clears its throat."
+    effects: { allies: -10, military: 8 }
+    tags: [building, staff]

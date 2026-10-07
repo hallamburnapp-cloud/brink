@@ -1,0 +1,20 @@
+# The only seat: the night desk of The Brink. (The engine calls it a seat and needs one of
+# its three ids; the hotel has one chair and it is this one.)
+id: republic
+name: The Brink
+the: The Brink
+adjective: Brink
+leader_title: the Night Manager
+capital: The Brink
+rivals: [federation, coalition]
+# GUESTS = public, STAFF = military, THE BUILDING = allies, MONEY = economy. Escalation is unused.
+meters: { public: 65, military: 65, allies: 65, economy: 60, escalation: 0 }
+# The Owner's patience, the lead guest's goodwill, the Critic's opinion, your promises.
+hidden: { trust_primary: 55, trust_secondary: 55, intel: 50, commitment: 50 }
+blurb: >-
+  A grand old hotel on a cliff by the sea, slightly too big for its staff, with a lift
+  that has opinions and The Majestic across the square, which is always fully booked.
+strengths: Loyal staff, a view, a Night Porter who notices things.
+vulnerabilities: An Owner on the phone from abroad, a Critic in 212, a boiler.
+accent: "#c9a24a"
+starting_pieces: []

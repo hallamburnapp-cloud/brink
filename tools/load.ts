@@ -41,6 +41,7 @@ export function loadRaw(root: string): { raw: RawContent; issues: ContentIssue[]
     endings: list('endings'),
     seats: walk(join(root, 'seats')).map((f) => ({ file: relative(root, f), item: read(f) })),
     flashpoints: list('flashpoints'),
+    bookings: list('bookings'),
     speakers: { file: 'speakers.yaml', items: (read(join(root, 'speakers.yaml')) as unknown[]) ?? [] },
     rules: { file: 'rules.yaml', item: read(join(root, 'rules.yaml')) },
   };

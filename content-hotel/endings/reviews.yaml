@@ -1,0 +1,254 @@
+# REVIEWS — what a guest writes at 6:00 (kind: survival), what happens when a bar empties
+# (kind: removed), and the fallbacks the engine requires.
+# `stars` is the band the review belongs to; the screen shows the stars the night earned.
+
+# ---- THE SWAN at 6:00
+
+- id: review_swan_five
+  name: The Swan Is the Review
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:swan], stars: { min: 4 } }
+  priority: 40
+  stars: 5
+  byline: room412
+  quote: "Lovely staff. The swan was very well handled, and so was I."
+  text: >-
+    At six the Day Manager walks in with her own pen and finds the lobby exactly as she
+    left it, except for the swan, which is asleep on the good armchair and will not be
+    moved by anyone below the rank of Owner.
+
+
+    Room 412 leaves a note at the desk: five stars, one line, and a drawing of a swan
+    that is, the Porter says, a very fair likeness. You go home. The cat has your side.
+  moment_label: "The moment the swan sat down"
+  compendium: "Six o'clock with every bar high and the swan asleep in the lobby. The best night The Brink has had."
+  emoji: "🦢"
+
+- id: review_swan_three
+  name: Adequate, With Swan
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:swan], stars: { min: 3, max: 3 } }
+  priority: 40
+  stars: 3
+  byline: room12
+  quote: "The swan was polite. The management was present."
+  text: >-
+    At six the swan is on the terrace, the Critic is in the Penthouse, the Chef has made
+    something with pancakes in it, and the Day Manager says "right" in the voice she
+    keeps for nights that were nearly fine.
+
+
+    Room 12 writes the review on the back of the card by the lift, which she has taken
+    down for the purpose. Three stars. "The swan was polite." You decide that is a win.
+  moment_label: "The moment it was nearly fine"
+  compendium: "Six o'clock, the bars somewhere in the middle, a review that could be read either way."
+  emoji: "🪶"
+
+- id: review_swan_two
+  name: There Was a Swan
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:swan], stars: { max: 2 } }
+  priority: 40
+  stars: 2
+  byline: critic
+  quote: "There was a swan. Nobody told me there would be a swan."
+  text: >-
+    At six the hotel is still open, which the Owner says on the phone as if it were an
+    achievement and the Day Manager says as if it were a question. The swan has gone. Nobody
+    saw it go. The Porter has a theory.
+
+
+    The Critic files at nine. Two stars, a paragraph about the pillows, and one sentence
+    everyone will quote, which is the sentence about the swan.
+  moment_label: "The moment the swan left"
+  compendium: "Six o'clock by a whisker, every bar low, and a review that leads with the swan."
+  emoji: "🫗"
+
+# ---- The falls (any Booking)
+
+- id: fall_guests
+  name: Walkout
+  kind: removed
+  trigger: { type: meter, key: public, at: 0 }
+  priority: 20
+  stars: 1
+  byline: critic
+  quote: "We left before breakfast. So, I gather, did the swan."
+  text: >-
+    They go in ones and twos at first, then as a lobby: coats over nightclothes, keys on the
+    desk, nobody quite shouting. The Doorman holds the door because that is the job, and
+    says good night to each of them because that is also the job.
+
+
+    The Day Manager arrives to an empty hotel and a full car park. She does not need the
+    pen. The review writes itself and it is one star, and it is fair.
+  moment_label: "The moment the first guest left"
+  compendium: "The guests walked. One star, a full car park, and a very quiet lobby."
+  emoji: "🧳"
+
+- id: fall_staff
+  name: The Staff Walked
+  kind: removed
+  trigger: { type: meter, key: military, at: 0 }
+  priority: 20
+  stars: 1
+  byline: chef
+  quote: "I left first. I took the ladle."
+  text: >-
+    The Chef goes at the head of it, coat on, ladle in hand, and the kitchen goes with him,
+    and then the Porter, who apologises, and then the Barman, who does not. The lift, left
+    alone, goes up and down for a while out of habit.
+
+
+    At six you are the only member of staff in a hotel of two hundred rooms, and a guest
+    would like some toast. The review is one star. The Chef's review is shorter.
+  moment_label: "The moment the Chef put his coat on"
+  compendium: "The staff walked out behind the Chef. One star, and the toast was never made."
+  emoji: "🥄"
+
+- id: fall_money
+  name: Closed by the Owner
+  kind: removed
+  trigger: { type: meter, key: economy, at: 0 }
+  priority: 20
+  stars: 1
+  byline: owner
+  quote: "I have closed the hotel from abroad. Do not ask me how."
+  text: >-
+    The call comes at the worst moment, as his calls do. He has seen the till from a
+    thousand miles away, in a dressing gown, and he has made a decision, and the decision
+    is the word "closed", said once, in the voice he keeps for sums.
+
+
+    The Porter puts the sign in the door. It says CLOSED on one side and WELCOME on the other,
+    and for a while he cannot remember which way round it goes. One star, from the Owner.
+  moment_label: "The moment the till rang empty"
+  compendium: "The money ran out and the Owner closed the hotel by phone. One star, his."
+  emoji: "💷"
+
+- id: fall_building
+  name: Closed by the Fire Brigade
+  kind: removed
+  trigger: { type: meter, key: allies, at: 0 }
+  priority: 20
+  stars: 1
+  byline: doorman
+  quote: "Lovely hotel. Shame about the ceiling."
+  text: >-
+    It is not a fire, in the end; it is everything else at once. The boiler, the lift, the
+    ceiling of the ballroom and the terrace lights all give up within ten minutes of each
+    other, as if they had agreed it earlier.
+
+
+    The fire brigade are very nice about it. They put the guests in blankets on the lawn
+    and the Doorman tells them about 1991. One star, and a form.
+  moment_label: "The moment the ceiling came down"
+  compendium: "The building gave up all at once and the fire brigade closed it. One star, and blankets on the lawn."
+  emoji: "🧯"
+
+# ---- Fallbacks the engine requires
+
+- id: fallback_public_0
+  name: Walkout
+  kind: removed
+  trigger: { type: meter, key: public, at: 0 }
+  priority: 0
+  stars: 1
+  quote: "We left. All of us. At once."
+  text: >-
+    The guests left in a body before breakfast, coats over nightclothes, keys on the desk.
+    The Day Manager found an empty hotel and did not need her pen.
+
+
+    One star, and it was fair.
+  moment_label: "The moment the first guest left"
+  compendium: "Every guest walked out before breakfast."
+  emoji: "🧳"
+
+- id: fallback_military_0
+  name: The Staff Walked
+  kind: removed
+  trigger: { type: meter, key: military, at: 0 }
+  priority: 0
+  stars: 1
+  quote: "We've gone. The kettle is still on."
+  text: >-
+    The staff walked out together, the Chef at the front, and the hotel ran itself for an
+    hour, badly. At six you were the only one in the building who worked there.
+
+
+    One star, and the toast was never made.
+  moment_label: "The moment the kitchen went quiet"
+  compendium: "The staff walked out behind the Chef."
+  emoji: "🥄"
+
+- id: fallback_economy_0
+  name: Closed by the Owner
+  kind: removed
+  trigger: { type: meter, key: economy, at: 0 }
+  priority: 0
+  stars: 1
+  quote: "Closed. By phone. From abroad."
+  text: >-
+    The Owner saw the till from a thousand miles away and said the word "closed" once, in
+    the voice he keeps for sums. The Porter put the sign in the door.
+
+
+    One star, from the Owner, who does not usually review.
+  moment_label: "The moment the till rang empty"
+  compendium: "The money ran out and the Owner closed the hotel by phone."
+  emoji: "💷"
+
+- id: fallback_allies_0
+  name: Closed by the Fire Brigade
+  kind: removed
+  trigger: { type: meter, key: allies, at: 0 }
+  priority: 0
+  stars: 1
+  quote: "Lovely hotel. Shame about the ceiling."
+  text: >-
+    Everything in the building gave up within ten minutes of everything else, as if agreed.
+    The fire brigade were very nice about it and put the guests on the lawn in blankets.
+
+
+    One star, and a form.
+  moment_label: "The moment the ceiling came down"
+  compendium: "The building gave up all at once."
+  emoji: "🧯"
+
+- id: fallback_survival
+  name: Six O'Clock
+  kind: survival
+  trigger: { type: run_end }
+  priority: 0
+  stars: 3
+  quote: "It was a night. It is now a morning."
+  text: >-
+    At six the Day Manager walks in, looks at the lobby, looks at you, and says "right".
+    The hotel is open, the guests are mostly asleep, and nobody has written anything down yet.
+
+
+    Three stars, by default, which is the kindest thing a default has ever done.
+  moment_label: "The moment the Day Manager said right"
+  compendium: "Made it to six without a review worth the name."
+  emoji: "☕"
+
+- id: fallback_special
+  name: The Night Ends
+  kind: special
+  trigger: { type: forced }
+  priority: 0
+  stars: 1
+  quote: "Something happened. Nobody will say what."
+  text: >-
+    The night ended in a way nobody at the desk can quite describe, and the Day Manager has
+    decided not to ask. The Porter has a theory, and is keeping it.
+
+
+    No stars, no review, a hotel that is somehow still open.
+  moment_label: "The moment nobody describes"
+  compendium: "A night that ended without a review."
+  emoji: "🕯️"
