@@ -90,3 +90,17 @@ export function starString(stars: number): string {
   return '★'.repeat(n) + '☆'.repeat(5 - n);
 }
 
+
+/** The bar that emptied, if one did. */
+export function fallenBar(state: Pick<RunState, 'meters'>): Exclude<MeterKey, 'escalation'> | null {
+  for (const k of BARS) if (state.meters[k] <= 0) return k;
+  return null;
+}
+
+/** What the review is stamped with when a bar empties. */
+export const FALL_STAMP: Record<Exclude<MeterKey, 'escalation'>, string> = {
+  public: 'WALKOUT',
+  military: 'STAFF WALKED',
+  economy: 'CLOSED BY THE OWNER',
+  allies: 'CLOSED BY THE FIRE BRIGADE',
+};

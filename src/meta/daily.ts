@@ -3,7 +3,7 @@
  * the same seat, and each player gets exactly one attempt.
  */
 import { SEATS, type Content, type RunState, type Seat } from '../engine/types';
-import { isDawn, nightClock } from '../engine/night';
+import { isDawn, nightClock, shiftClock, starsFor } from '../engine/night';
 import { load, save } from './storage';
 
 /** Daily #1. */
@@ -30,6 +30,12 @@ export interface DailyRecord {
   clock?: string;
   dawn?: boolean;
   cards?: number;
+  /** The hotel: the review's stars, tonight's Booking, the ending's name and the line people quote. */
+  stars?: number;
+  booking?: string;
+  name?: string;
+  quote?: string;
+  byline?: string;
 }
 
 type DailyStore = Record<string, DailyRecord>;
@@ -142,8 +148,13 @@ export function dailyRecordFromRun(state: RunState, content: Content, now: Date 
     act: state.act,
     playedAt: now.getTime(),
     trail: state.trail.slice(-60),
-    clock: nightClock(state, ending?.kind),
+    clock: content.voice === 'hotel' ? shiftClock(content, state) : nightClock(state, ending?.kind),
     dawn: isDawn(ending?.kind),
     cards: state.cardsPlayed,
+    stars: content.voice === 'hotel' ? starsFor(state) : undefined,
+    booking: state.booking,
+    name: ending?.name,
+    quote: ending?.quote,
+    byline: ending?.byline,
   };
 }

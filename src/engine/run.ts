@@ -11,6 +11,7 @@
  */
 import { Rng } from './rng';
 import {
+  type BookingDef,
   METERS,
   type AccidentResult,
   type AccidentState,
@@ -215,6 +216,15 @@ function seatBooking(content: Content, state: RunState, rng: Rng, chosen?: strin
   if (content.cards[b.opener]) state.queue.push({ card: b.opener, in: 0 });
   for (const beat of b.beats) pin(beat.card, beat.slot);
   pin(b.head.card, b.head.slot);
+}
+
+/** Which Booking a seed would seat (the daily's teaser for tomorrow, Home's name for tonight): the same draw createRun makes first. */
+export function bookingForSeed(content: Content, seed: string, seat: Seat, difficulty = 5): BookingDef | null {
+  const ids = content.bookingOrder.filter((id) => content.bookings[id].weight > 0);
+  if (ids.length === 0) return null;
+  const rng = new Rng(`${seed}|${seat}|${difficulty}`);
+  const idx = rng.weightedIndex(ids.map((b) => content.bookings[b].weight));
+  return content.bookings[ids[Math.max(0, idx)]] ?? null;
 }
 
 export function createRun(content: Content, opts: RunOptions): RunState {

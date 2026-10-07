@@ -14,7 +14,7 @@
 import { BRAND } from '../config';
 import type { EndingKind, Mode } from '../engine/types';
 import { METERS } from '../engine/types';
-import { DIAL_LABEL } from '../engine/night';
+import { BAR_LABEL, BARS, DIAL_LABEL, starString } from '../engine/night';
 
 export interface ShareCardData {
   brand: string; // 'BRINK' (from config; do not hardcode)
@@ -41,6 +41,13 @@ export interface ShareCardData {
   dawn?: boolean;
   /** Endless acts survived past the Endgame. */
   endlessActs?: number;
+  /** The hotel: the review's stars (its presence selects the hotel format), tonight's Booking, the line people quote and who wrote it. */
+  stars?: number;
+  bookingName?: string;
+  quote?: string;
+  byline?: string;
+  /** The plate: a brass badge in the letterhead of every review shared. */
+  badge?: boolean;
 }
 
 function scoreLabel(n: number): string {
@@ -140,6 +147,68 @@ export function stripCells(trail: number[][], columns: number = DEFAULT_COLUMNS)
   );
 }
 
+// ------------------------------------------------------------------ the hotel's strip
+
+const HOTEL_COLUMNS = 9;
+const BRASS = '#c9a24a';
+const BRASS_INK = '#8a6b22';
+type HotelCell = '🟩' | '🟨' | '🟧' | '🟥' | '⬜';
+const HOTEL_HEX: Record<HotelCell, string> = { '🟩': '#5cbf6f', '🟨': '#e0c43b', '🟧': '#e08a3b', '🟥': '#e03b3b', '⬜': '#c9c3b3' };
+
+/** The hotel's share is selected by the stars: a night without a review is the crisis game's. */
+export function isHotel(data: Pick<ShareCardData, 'stars'>): boolean {
+  return typeof data.stars === 'number' && Number.isFinite(data.stars);
+}
+
+/** The lowest of the four bars in one trail snapshot (escalation is not a bar). */
+function lowestBar(snapshot: number[] | undefined): number | null {
+  if (!Array.isArray(snapshot)) return null;
+  let low = Infinity;
+  for (const k of BARS) {
+    const v = snapshot[METERS.indexOf(k)];
+    if (typeof v === 'number' && Number.isFinite(v)) low = Math.min(low, v);
+  }
+  return low === Infinity ? null : low;
+}
+
+/**
+ * One row for the hotel, sampled evenly across the trail: the lowest bar at that moment
+ * (🟩 50 and up, 🟨 25 and up, 🟧 above the floor), the fall as a single 🟥, and ⬜ for the
+ * hours that were never worked. The fall always shows, whatever the sampling.
+ */
+export function hotelStrip(trail: number[][], columns: number = HOTEL_COLUMNS): HotelCell[] {
+  const cols = Math.max(1, Math.floor(Number.isFinite(columns) ? columns : HOTEL_COLUMNS));
+  const n = Array.isArray(trail) ? trail.length : 0;
+  if (n === 0) return new Array<HotelCell>(cols).fill('⬜');
+  let fallAt = -1;
+  for (let i = 0; i < n; i++) {
+    const low = lowestBar(trail[i]);
+    if (low !== null && low <= 0) {
+      fallAt = i;
+      break;
+    }
+  }
+  const idx = sampleIndices(n, cols);
+  let fallShown = false;
+  return idx.map((i) => {
+    if (fallAt >= 0 && i >= fallAt) {
+      if (fallShown) return '⬜';
+      fallShown = true;
+      return '🟥';
+    }
+    const low = lowestBar(trail[i]);
+    if (low === null) return '⬜';
+    if (low >= 50) return '🟩';
+    if (low >= 25) return '🟨';
+    return '🟧';
+  });
+}
+
+/** The same row as colours (hex) for drawing in the DOM. */
+export function hotelStripCells(trail: number[][], columns: number = HOTEL_COLUMNS): string[] {
+  return hotelStrip(trail, columns).map((c) => HOTEL_HEX[c]);
+}
+
 // ------------------------------------------------------------------ text share
 
 function modeLabel(data: ShareCardData): string {
@@ -176,6 +245,21 @@ function urlOf(data: ShareCardData): string {
  * The moment line is omitted when `moment` is null.
  */
 export function shareText(data: ShareCardData): string {
+  if (isHotel(data)) {
+    // The hotel: the booking and the stars, one row for the night, the line people quote, the link.
+    const number = data.mode === 'daily' && typeof data.dailyNumber === 'number' ? ` #${data.dailyNumber}` : '';
+    const head = [`${brandOf(data)}${number}`];
+    if (data.bookingName) head.push(data.bookingName.toUpperCase());
+    head.push(starString(data.stars!));
+    const lines: string[] = [head.join(' · ')];
+    if (data.mode === 'daily' && typeof data.streak === 'number' && data.streak > 1) lines.push(`${Math.floor(data.streak)} nights in a row`);
+    const end = data.dawn ? '🌅' : `🌑 ${data.clock ?? ''}`.trim();
+    lines.push(`${hotelStrip(data.trail).join('')} ${end}`);
+    const quote = (data.quote ?? '').replace(/\s+/g, ' ').trim();
+    if (quote) lines.push(`“${quote}”${data.byline ? ` — ${data.byline}` : ''}`);
+    lines.push(urlOf(data));
+    return lines.join('\n');
+  }
   if (typeof data.clock === 'string') {
     // The night: one line people paste, the strip, the link.
     const result = data.dawn ? '🌅 Dawn' : data.endingKind === 'nuclear' ? `☢️ ${data.clock}` : `🌑 Fell at ${data.clock}`;
@@ -391,7 +475,7 @@ function hexToRgb(hex: string): [number, number, number] | null {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-function paintBackground(ctx: Ctx, rnd: () => number, heat: number): void {
+function paintBackground(ctx: Ctx, rnd: () => number, heat: number, hotel: boolean): void {
   ctx.fillStyle = NAVY;
   ctx.fillRect(0, 0, W, H);
 
@@ -404,8 +488,9 @@ function paintBackground(ctx: Ctx, rnd: () => number, heat: number): void {
 
   // Red heat glow, top-right, scaled by final escalation.
   const glow = ctx.createRadialGradient(W, 0, 40, W, 0, 760);
-  glow.addColorStop(0, `rgba(224,59,59,${(0.08 + 0.42 * heat).toFixed(3)})`);
-  glow.addColorStop(1, 'rgba(224,59,59,0)');
+  const glowRgb = hotel ? '201,162,74' : '224,59,59';
+  glow.addColorStop(0, `rgba(${glowRgb},${(0.08 + 0.42 * heat).toFixed(3)})`);
+  glow.addColorStop(1, `rgba(${glowRgb},0)`);
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
 
@@ -423,12 +508,12 @@ function paintBackground(ctx: Ctx, rnd: () => number, heat: number): void {
     ctx.fillRect(x, y, 2, 2);
   }
 
-  // Top rule: the "alert" bar.
-  ctx.fillStyle = `rgba(224,59,59,${(0.35 + 0.65 * heat).toFixed(3)})`;
+  // Top rule: the "alert" bar (brass for the hotel).
+  ctx.fillStyle = hotel ? BRASS : `rgba(224,59,59,${(0.35 + 0.65 * heat).toFixed(3)})`;
   ctx.fillRect(0, 0, W, 6);
 }
 
-function paintPanel(ctx: Ctx, rnd: () => number, heat: number): void {
+function paintPanel(ctx: Ctx, rnd: () => number, heat: number, band: string | null): void {
   ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.55)';
   ctx.shadowBlur = 48;
@@ -457,8 +542,8 @@ function paintPanel(ctx: Ctx, rnd: () => number, heat: number): void {
   ctx.fillStyle = tone;
   ctx.fillRect(PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
 
-  // Red file-tab band, intensity from escalation.
-  ctx.fillStyle = `rgba(200,50,47,${(0.55 + 0.45 * heat).toFixed(3)})`;
+  // File-tab band: red with intensity from escalation, or the hotel's brass.
+  ctx.fillStyle = band ?? `rgba(200,50,47,${(0.55 + 0.45 * heat).toFixed(3)})`;
   ctx.fillRect(PANEL_X, PANEL_Y, BAND_W, PANEL_H);
   ctx.restore();
 }
@@ -473,24 +558,25 @@ function paintHeader(ctx: Ctx, data: ShareCardData): void {
   ctx.font = `bold 44px ${MONO}`;
   drawSpaced(ctx, brandOf(data).toUpperCase(), CONTENT_L, line1, 8);
 
-  // Mode / daily number, right aligned.
+  // Mode / daily number, right aligned. The hotel's unnumbered nights are practice.
+  const hotel = isHotel(data);
   ctx.fillStyle = INK_MUTED;
   ctx.font = `bold 30px ${MONO}`;
-  drawSpaced(ctx, modeLabel(data).toUpperCase(), CONTENT_R, line1, 3, 'right');
+  drawSpaced(ctx, hotel && data.mode !== 'daily' ? 'PRACTICE' : modeLabel(data).toUpperCase(), CONTENT_R, line1, 3, 'right');
 
-  // Seat with accent swatch.
+  // Seat (or the hotel's Booking) with a swatch.
   const rgb = hexToRgb(data.seatAccent);
-  ctx.fillStyle = rgb ? `rgb(${rgb.join(',')})` : INK_MUTED;
+  ctx.fillStyle = hotel ? BRASS : rgb ? `rgb(${rgb.join(',')})` : INK_MUTED;
   ctx.beginPath();
   ctx.arc(CONTENT_L + 8, line2 - 9, 8, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = INK;
   ctx.font = `22px ${MONO}`;
-  drawSpaced(ctx, data.seatName.toUpperCase(), CONTENT_L + 30, line2, 3);
+  drawSpaced(ctx, (hotel ? data.bookingName || data.seatName : data.seatName).toUpperCase(), CONTENT_L + 30, line2, 3);
 
-  // Seed, right aligned.
+  // Seed, right aligned; the hotel shows the clock instead.
   ctx.fillStyle = INK_MUTED;
-  drawSpaced(ctx, `SEED ${data.seed}`.toUpperCase(), CONTENT_R, line2, 2, 'right');
+  drawSpaced(ctx, hotel ? (data.dawn ? '6:00 · DAWN' : `FELL AT ${data.clock ?? ''}`.trim()) : `SEED ${data.seed}`.toUpperCase(), CONTENT_R, line2, 2, 'right');
 
   // Rule.
   ctx.fillStyle = INK_FAINT;
@@ -513,8 +599,30 @@ function paintEnding(ctx: Ctx, data: ShareCardData): void {
   ctx.fillText(name, x, baseline);
 }
 
+/** The hotel's big number is the stars; the stamp says whether the night reached dawn. */
+function paintStars(ctx: Ctx, data: ShareCardData, baseline: number): void {
+  const n = Math.max(0, Math.min(5, Math.round(data.stars ?? 0)));
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = `bold 124px ${SERIF}`;
+  const starW = ctx.measureText('★').width;
+  let x = CONTENT_L - 4;
+  for (let i = 0; i < 5; i++) {
+    const filled = i < n;
+    ctx.fillStyle = filled ? BRASS_INK : INK_FAINT;
+    ctx.fillText(filled ? '★' : '☆', x, baseline);
+    x += starW + 6;
+  }
+  const words = ['NO STARS', 'ONE STAR', 'TWO STARS', 'THREE STARS', 'FOUR STARS', 'FIVE STARS'];
+  ctx.fillStyle = INK_MUTED;
+  ctx.font = `22px ${MONO}`;
+  drawSpaced(ctx, `${words[n]} OUT OF FIVE`, CONTENT_L, baseline + 40, 5);
+  const fell = !data.dawn;
+  paintStamp(ctx, fell ? `FELL AT ${data.clock ?? ''}`.trim() : 'DAWN', CONTENT_R - 190, baseline + 30, fell ? RED : STAMP_MUTED, fell ? 0.9 : 0.82);
+}
+
 function paintDays(ctx: Ctx, data: ShareCardData, heat: number): void {
   const baseline = PANEL_Y + 512;
+  if (isHotel(data)) return paintStars(ctx, data, baseline);
   const night = typeof data.clock === 'string';
   const days = night ? data.clock! : String(Math.max(0, Math.floor(Number.isFinite(data.days) ? data.days : 0)));
   ctx.fillStyle = INK;
@@ -579,6 +687,26 @@ function paintStamp(ctx: Ctx, text: string, cx: number, cy: number, colour: stri
 function paintMoment(ctx: Ctx, data: ShareCardData): void {
   const labelY = PANEL_Y + 618;
   ctx.textBaseline = 'alphabetic';
+  if (isHotel(data)) {
+    // The line people quote from the review, and who wrote it.
+    ctx.fillStyle = INK_MUTED;
+    ctx.font = `bold 20px ${MONO}`;
+    drawSpaced(ctx, 'IN THE GUEST BOOK', CONTENT_L, labelY, 3);
+    ctx.fillStyle = INK;
+    ctx.font = `italic 32px ${SERIF}`;
+    const quote = (data.quote ?? '').replace(/\s+/g, ' ').trim();
+    const lines = wrapText(ctx, quote ? `“${quote}”` : '—', CONTENT_R - CONTENT_L, 3);
+    lines.forEach((line, i) => ctx.fillText(line, CONTENT_L, labelY + 44 + i * 40));
+    if (data.byline) {
+      ctx.save();
+      ctx.textAlign = 'right';
+      ctx.fillStyle = INK_MUTED;
+      ctx.font = `20px ${MONO}`;
+      ctx.fillText(`— ${data.byline}`, CONTENT_R, labelY + 44 + lines.length * 40 + 6);
+      ctx.restore();
+    }
+    return;
+  }
   ctx.fillStyle = RED_KINDS.has(data.endingKind) ? RED : INK_MUTED;
   ctx.font = `bold 20px ${MONO}`;
   drawSpaced(ctx, (data.momentLabel || 'The moment').toUpperCase(), CONTENT_L, labelY, 3);
@@ -619,7 +747,54 @@ function paintPieces(ctx: Ctx, data: ShareCardData): void {
   ctx.textBaseline = 'alphabetic';
 }
 
+/** The hotel: one row for the night, the hours under it, then where the four bars stood at the end. */
+function paintHotelStrip(ctx: Ctx, data: ShareCardData): void {
+  const top = PANEL_Y + 816;
+  const labelRight = CONTENT_L + 150;
+  const gridLeft = labelRight + 22;
+  const gridRight = CONTENT_R;
+  const gap = 8;
+  const cells = hotelStrip(data.trail, HOTEL_COLUMNS);
+  const cellW = (gridRight - gridLeft - gap * (cells.length - 1)) / cells.length;
+  const cellH = 40;
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = INK_MUTED;
+  ctx.font = `16px ${MONO}`;
+  drawSpaced(ctx, 'THE NIGHT', labelRight, top + cellH / 2 + 6, 2, 'right');
+  cells.forEach((cell, c) => {
+    ctx.fillStyle = HOTEL_HEX[cell];
+    roundRectPath(ctx, gridLeft + c * (cellW + gap), top, cellW, cellH, 6);
+    ctx.fill();
+  });
+  const hintY = top + cellH + 26;
+  ctx.fillStyle = INK_MUTED;
+  ctx.font = `16px ${MONO}`;
+  drawSpaced(ctx, '3:00', gridLeft, hintY, 2);
+  drawSpaced(ctx, data.dawn ? '6:00 · DAWN' : `FELL AT ${data.clock ?? ''}`.trim(), gridRight, hintY, 2, 'right');
+
+  // Where the four bars stood when the night ended.
+  const last = data.trail[data.trail.length - 1];
+  const barH = 22;
+  let y = hintY + 44;
+  for (const k of BARS) {
+    const raw = last?.[METERS.indexOf(k)];
+    const v = typeof raw === 'number' && Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : 0;
+    ctx.fillStyle = INK_MUTED;
+    ctx.font = `16px ${MONO}`;
+    drawSpaced(ctx, BAR_LABEL[k], labelRight, y + barH / 2 + 6, 2, 'right');
+    ctx.fillStyle = 'rgba(20,26,38,0.08)';
+    roundRectPath(ctx, gridLeft, y, gridRight - gridLeft, barH, 5);
+    ctx.fill();
+    const w = ((gridRight - gridLeft) * v) / 100;
+    ctx.fillStyle = v <= 0 ? '#e03b3b' : v <= 12 ? '#e03b3b' : v <= 25 ? '#e08a3b' : v < 50 ? '#d1b23a' : BRASS;
+    roundRectPath(ctx, gridLeft, y, Math.max(10, w), barH, 5);
+    ctx.fill();
+    y += barH + 22;
+  }
+}
+
 function paintStrip(ctx: Ctx, data: ShareCardData): void {
+  if (isHotel(data)) return paintHotelStrip(ctx, data);
   const top = PANEL_Y + 816;
   const cellW = 56;
   const cellH = 40;
@@ -659,6 +834,28 @@ function paintStrip(ctx: Ctx, data: ShareCardData): void {
   drawSpaced(ctx, `DAY ${Math.max(1, Math.floor(Number.isFinite(data.days) ? data.days : 1))}`, gridRight, hintY, 2, 'right');
 }
 
+/** The plate's badge: a brass pill in the navy letterhead above the paper. */
+function paintBadge(ctx: Ctx): void {
+  const text = 'NIGHT MANAGER · THE BRINK';
+  ctx.font = `bold 18px ${MONO}`;
+  const spacing = 4;
+  const w = spacedWidth(ctx, text, spacing) + 44;
+  const h = 40;
+  const x = W / 2 - w / 2;
+  const y = 32;
+  ctx.fillStyle = BRASS;
+  roundRectPath(ctx, x, y, w, h, h / 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 1.5;
+  roundRectPath(ctx, x + 3, y + 3, w - 6, h - 6, (h - 6) / 2);
+  ctx.stroke();
+  ctx.fillStyle = INK;
+  ctx.textBaseline = 'middle';
+  drawSpaced(ctx, text, W / 2, y + h / 2 + 1, spacing, 'center');
+  ctx.textBaseline = 'alphabetic';
+}
+
 function paintFooter(ctx: Ctx, data: ShareCardData): void {
   const display = urlOf(data).replace(/^https?:\/\//i, '').replace(/\/+$/, '');
   ctx.fillStyle = NAVY_TEXT;
@@ -670,17 +867,20 @@ function paintFooter(ctx: Ctx, data: ShareCardData): void {
 function paint(ctx: Ctx, data: ShareCardData): void {
   const last = data.trail[data.trail.length - 1];
   const finalEscalation = typeof last?.[ESCALATION_ROW] === 'number' ? last[ESCALATION_ROW] : 50;
-  const heat = Math.min(1, Math.max(0, finalEscalation / 100));
+  const hotel = isHotel(data);
+  // The hotel has no escalation: a fall warms the card a little, a dawn leaves it calm.
+  const heat = hotel ? (data.dawn ? 0.04 : 0.5) : Math.min(1, Math.max(0, finalEscalation / 100));
   const rnd = seededRandom(`${data.seed}|${data.mode}|${data.days}`);
 
-  paintBackground(ctx, rnd, heat);
-  paintPanel(ctx, rnd, heat);
+  paintBackground(ctx, rnd, heat, hotel);
+  paintPanel(ctx, rnd, heat, hotel ? BRASS : null);
   paintHeader(ctx, data);
   paintEnding(ctx, data);
   paintDays(ctx, data, heat);
   paintMoment(ctx, data);
   paintPieces(ctx, data);
   paintStrip(ctx, data);
+  if (hotel && data.badge) paintBadge(ctx);
   paintFooter(ctx, data);
 }
 

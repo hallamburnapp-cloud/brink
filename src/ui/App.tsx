@@ -1,9 +1,13 @@
 import { useEffect } from 'preact/hooks';
-import { screen, run, shake, toasts, banner } from './store';
+import { screen, run, shake, toasts, banner, hotel } from './store';
 import { Home } from './screens/Home';
 import { SeatSelect } from './screens/SeatSelect';
 import { Run } from './screens/Run';
 import { Night } from './screens/Night';
+import { Desk } from './screens/Desk';
+import { Review } from './screens/Review';
+import { HotelHome } from './screens/HotelHome';
+import { GuestBook } from './screens/GuestBook';
 import { Ending } from './screens/Ending';
 import { Dawn } from './screens/Dawn';
 import { Compendium } from './screens/Compendium';
@@ -17,6 +21,7 @@ import { DevBanner } from './components/DevBanner';
 
 export function App() {
   const s = screen.value;
+  const h = hotel.value;
   useEffect(() => {
     const el = document.getElementById('app');
     if (!el || shake.value.n === 0) return;
@@ -32,11 +37,11 @@ export function App() {
     <div class={`bg-crt min-h-dvh text-paper ${run.value?.flashpoint && s === 'run' ? 'pulse-red' : ''}`}>
       <DevBanner />
       <div class="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col px-4 pb-6 pt-[max(env(safe-area-inset-top),12px)]">
-        {s === 'home' && <Home />}
+        {s === 'home' && (h ? <HotelHome /> : <Home />)}
         {s === 'seat' && <SeatSelect />}
-        {s === 'run' && (run.value?.ruleset === 'simple' ? <Night /> : <Run />)}
-        {s === 'ending' && (run.value?.ruleset === 'simple' ? <Dawn /> : <Ending />)}
-        {s === 'compendium' && <Compendium />}
+        {s === 'run' && (run.value?.ruleset === 'simple' ? (h ? <Desk /> : <Night />) : <Run />)}
+        {s === 'ending' && (run.value?.ruleset === 'simple' ? (h ? <Review /> : <Dawn />) : <Ending />)}
+        {s === 'compendium' && (h ? <GuestBook /> : <Compendium />)}
         {s === 'stats' && <Stats />}
         {s === 'privacy' && <Privacy />}
         {s === 'unlocked' && <Unlocked />}

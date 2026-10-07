@@ -13,14 +13,16 @@ export interface CardProps {
   speakerRole: string;
   /** The simple ruleset: role first, the clock instead of the day, no numbers anywhere. */
   simple?: boolean;
-  /** Footer text on the left (the clock in the simple ruleset). */
+  /** Footer text on the right (the clock in the simple ruleset). */
   footer?: string;
+  /** Footer text on the left (the hotel: tonight's Booking). */
+  tag?: string;
 }
 
 const THRESHOLD = 88;
 
 /** Reigns-style card: drag with resistance, tilt reveals the choice, release commits. */
-export function Card({ card, disabled, onTilt, onCommit, speakerName, speakerRole, simple = false, footer }: CardProps) {
+export function Card({ card, disabled, onTilt, onCommit, speakerName, speakerRole, simple = false, footer, tag }: CardProps) {
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [leaving, setLeaving] = useState<null | 'left' | 'right'>(null);
@@ -141,7 +143,7 @@ export function Card({ card, disabled, onTilt, onCommit, speakerName, speakerRol
         <div class="mono flex items-center justify-between px-5 pb-3 text-[10px] uppercase tracking-[0.18em] text-ink-2/60">
           {simple ? (
             <>
-              <span>{card.isFlashpoint ? 'THE CRISIS' : ''}</span>
+              <span>{tag ?? (card.isFlashpoint ? 'THE CRISIS' : '')}</span>
               <span class="clock">{footer ?? ''}</span>
             </>
           ) : (
@@ -163,6 +165,8 @@ export interface ChoiceButtonsProps {
   onCommit: (side: 'left' | 'right') => void;
   /** The simple ruleset: text only; odds as a word, as a percentage only in the crisis. */
   simple?: boolean;
+  /** The hotel: at rest, each button shows which bars it moves and which way, so a tap is never blind. */
+  chips?: boolean;
 }
 
 function oddsWord(p: number): string {
@@ -172,12 +176,16 @@ function oddsWord(p: number): string {
 }
 
 /** Tap targets under the card (also the accessible path). */
-export function ChoiceButtons({ card, disabled, onHover, onCommit, simple = false }: ChoiceButtonsProps) {
+const CHIP_LABEL: Record<string, string> = { public: 'GUESTS', military: 'STAFF', economy: 'MONEY', allies: 'BUILDING' };
+const CHIP_ORDER = ['public', 'military', 'economy', 'allies'] as const;
+
+export function ChoiceButtons({ card, disabled, onHover, onCommit, simple = false, chips = false }: ChoiceButtonsProps) {
   const btn = (side: 'left' | 'right') => {
     const c = card[side];
     if (simple) {
       const pct = Math.round(c.odds ? c.odds.p * 100 : 0);
       const oddsLabel = c.odds ? (card.isFlashpoint ? `${oddsWord(c.odds.p)} · ${pct}% ${c.odds.label.toLowerCase()}` : oddsWord(c.odds.p)) : '';
+      const chipList = chips ? CHIP_ORDER.filter((k) => (c.preview[k] ?? 0) !== 0).map((k) => ({ k, up: (c.preview[k] ?? 0) > 0 })) : [];
       return (
         <button
           class={`paper-dark flex min-h-[72px] flex-1 flex-col items-${side === 'left' ? 'start' : 'end'} justify-center gap-1 rounded-md px-3 py-2 text-${side} transition hover:border-paper/40 active:translate-y-px disabled:opacity-50`}
@@ -190,8 +198,13 @@ export function ChoiceButtons({ card, disabled, onHover, onCommit, simple = fals
           aria-label={`${side === 'left' ? 'Left' : 'Right'}: ${c.text}${c.odds ? `, ${oddsWord(c.odds.p).toLowerCase()}` : ''}`}
         >
           <span class="serif text-[17px] leading-tight text-paper">{c.text}</span>
-          {(oddsLabel || c.hiddenCosts.length > 0) && (
-            <span class="mono flex items-center gap-2 text-[10px] tracking-[0.14em]">
+          {(oddsLabel || c.hiddenCosts.length > 0 || chipList.length > 0) && (
+            <span class={`mono flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] tracking-[0.12em] ${side === 'left' ? 'justify-start' : 'justify-end'}`}>
+              {chipList.map(({ k, up }) => (
+                <span key={k} class={up ? 'text-green' : 'text-amber'}>
+                  {CHIP_LABEL[k]} {up ? '▲' : '▼'}
+                </span>
+              ))}
               {oddsLabel && <span class={c.odds!.p >= 0.7 ? 'text-green' : c.odds!.p >= 0.5 ? 'text-amber' : 'text-red'}>{oddsLabel.toUpperCase()}</span>}
               {c.hiddenCosts.length > 0 && <span class="text-red">?</span>}
             </span>

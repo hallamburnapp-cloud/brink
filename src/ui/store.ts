@@ -24,11 +24,11 @@ import {
 } from '../engine/run';
 import { randomSeed } from '../engine/rng';
 import type { AccidentResult, Content, EndingDef, LeverageBreakdown, Mode, RollResult, RunEvent, RunState, Seat } from '../engine/types';
-import { nightClock } from '../engine/night';
+import { nightClock, shiftClock } from '../engine/night';
 import { audio } from '../audio';
 import { snd } from './sound';
 import { load, save, remove } from '../meta/storage';
-import { dailyNumber, dailyPlayed, dailyRecordFromRun, dailySeat, dailySeed, saveDailyRecord } from '../meta/daily';
+import { dailyNumber, dailyPlayed, dailyRecordFromRun, dailySeat, dailySeed, getDailyRecord, saveDailyRecord, type DailyRecord } from '../meta/daily';
 import { evaluateUnlocks, isUnlocked, unlockedIds } from '../meta/unlocks';
 import { getStats, recordOffer, recordRun } from '../meta/stats';
 import { countRun, daysSinceFirstRun, track } from '../meta/analytics';
@@ -70,6 +70,10 @@ export const shake = signal<{ n: number; strength: number }>({ n: 0, strength: 1
 export const lastApplied = signal<Partial<Record<string, number>>>({});
 export const settings = signal<Settings>(load<Settings>(SETTINGS_KEY, { motion: 'auto', muted: false, seenIntro: false }));
 export const hasSavedRun = signal(false);
+/** The hotel: the world's one-line answer to the last choice, shown until the next decision. */
+export const reply = signal<{ text: string; speaker: string; outcome?: 'success' | 'failure' } | null>(null);
+/** The hotel pack is loaded (the night desk screens instead of the crisis ones). */
+export const hotel = computed(() => content.value.voice === 'hotel');
 export const endlessAvailable = signal(!FEATURES.paywall || FEATURES.allUnlocked);
 
 export const cardView = computed(() => (run.value && run.value.phase === 'card' ? view(content.value, run.value) : null));
@@ -206,11 +210,12 @@ function persist(): void {
   }
 }
 
-export function startRun(opts: { mode: Mode; seat: Seat; seed?: string; difficulty?: 1 | 2 | 3 | 4 | 5 }): void {
+export function startRun(opts: { mode: Mode; seat: Seat; seed?: string; difficulty?: 1 | 2 | 3 | 4 | 5; booking?: string; flags?: string[] }): void {
   const c = content.value;
   const seed = opts.seed ?? (opts.mode === 'daily' ? dailySeed() : randomSeed());
   const unlocked = FEATURES.allUnlocked ? ('all' as const) : unlockedIds();
-  const state = createRun(c, { seed, seat: opts.seat, mode: opts.mode, difficulty: opts.difficulty ?? 5, unlocked });
+  const state = createRun(c, { seed, seat: opts.seat, mode: opts.mode, difficulty: opts.difficulty ?? 5, unlocked, booking: opts.booking, flags: opts.flags });
+  reply.value = null;
   run.value = state;
   runMeta.value = {
     mode: opts.mode,
@@ -232,8 +237,101 @@ export function startRun(opts: { mode: Mode; seat: Seat; seed?: string; difficul
   track('run_start', { seat: opts.seat, mode: opts.mode, difficulty: opts.difficulty ?? 5, runs_this_session: runMeta.value.runsThisSession, days_since_first_run: cohortDay });
   if (opts.mode === 'daily') track('daily_played', { number: dailyNumber(), days_since_first_run: cohortDay });
   snd.play('ring');
+  if (hotel.value) return;
   if (state.ruleset === 'simple') showBanner({ title: '3:00 AM', sub: 'the phone is ringing', kind: 'act' }, 1400);
   else showBanner({ title: c.acts[0].name, sub: `${c.seats[opts.seat].name} · target ${state.actTarget}`, kind: 'act' });
+}
+
+// ------------------------------------------------------------------ the hotel's shifts
+
+const MEMORY_KEY = 'brink.memory';
+/** What the regulars remember from last night (up to eight `memory:` flags). */
+export function loadMemory(): string[] {
+  const m = load<unknown>(MEMORY_KEY, []);
+  return Array.isArray(m) ? m.filter((f): f is string => typeof f === 'string' && f.startsWith('memory:')).slice(-8) : [];
+}
+function saveMemory(state: RunState): void {
+  const fresh = state.flags.filter((f) => f.startsWith('memory:'));
+  const merged = [...loadMemory().filter((f) => !fresh.includes(f)), ...fresh].slice(-8);
+  save(MEMORY_KEY, merged);
+}
+
+/** The one seat of a one-seat pack, or the daily seat of a pack with several. */
+export function hotelSeat(): Seat {
+  const seats = Object.keys(content.value.seats) as Seat[];
+  return seats.length === 1 ? seats[0] : dailySeat();
+}
+
+/** A player's very first night is a gentler practice night on The Swan. */
+export function isFirstNight(): boolean {
+  return getStats().nights === 0 && !hasSavedRun.value;
+}
+
+/**
+ * The hotel's three ways in. `practice`: any night, free, instant, never recorded (the first
+ * one is The Swan at the first-night scale). `tonight`: the shared night, one recorded
+ * attempt, picked back up if left. `again`: the last night's seed, as practice.
+ */
+export function startShift(kind: 'practice' | 'tonight' | 'again'): void {
+  const c = content.value;
+  const seat = hotelSeat();
+  const flags = loadMemory();
+  if (kind === 'tonight') {
+    if (dailyPlayed()) {
+      toast('Tonight is already in the book. The next night starts at midnight UTC.', 'warn');
+      return;
+    }
+    if (hasSavedRun.value && savedRunMode.value === 'daily' && resumeRun()) return;
+    startRun({ mode: 'daily', seat, seed: dailySeed(), difficulty: 5, flags });
+    return;
+  }
+  if (kind === 'again') {
+    const last = run.value;
+    if (last) {
+      startRun({ mode: 'night', seat: last.seat, seed: last.seed, difficulty: last.difficulty as 1 | 2 | 3 | 4 | 5, booking: last.booking, flags });
+      return;
+    }
+  }
+  if (isFirstNight()) {
+    const swan = c.bookings.swan ? 'swan' : undefined;
+    startRun({ mode: 'night', seat, seed: 'first-night', difficulty: 1, booking: swan, flags });
+    return;
+  }
+  startRun({ mode: 'night', seat, difficulty: 5, flags });
+}
+
+/** The booking of the saved or current run, for Home's "Pick the phone back up · THE SWAN". */
+export function savedBookingName(): string | null {
+  const saved = load<{ state: RunState } | null>(RUN_KEY, null);
+  const id = saved?.state?.booking;
+  return id ? content.value.bookings[id]?.name ?? null : null;
+}
+
+/** Today's review from the record, for Home and the reopenable Review. */
+export function todaysReview() {
+  return getDailyRecord();
+}
+
+/** What the saved run is, for Home: the Booking's name and the clock it was left at. */
+export function savedRunSummary(): { booking: string | null; clock: string | null } {
+  const saved = load<{ state: RunState } | null>(RUN_KEY, null);
+  const st = saved?.state;
+  if (!st) return { booking: null, clock: null };
+  const c = content.value;
+  return { booking: st.booking ? c.bookings[st.booking]?.name ?? null : null, clock: shiftClock(c, st) };
+}
+
+/** The plate: a chosen Booking as a practice night, with a seed to send along or a fresh one. */
+export function startBooking(id: string, seed?: string): void {
+  if (!endlessAvailable.value) return goto('paywall');
+  if (!content.value.bookings[id]) return;
+  startRun({ mode: 'night', seat: hotelSeat(), seed, difficulty: 5, booking: id, flags: loadMemory() });
+}
+
+/** A past Tonight from the record, worked again as practice (the same seed gives the same night). */
+export function startArchived(rec: DailyRecord): void {
+  const seat = content.value.seats[rec.seat] ? rec.seat : hotelSeat();
+  startRun({ mode: 'night', seat, seed: rec.seed, difficulty: 5, booking: rec.booking, flags: loadMemory() });
 }
 
 /** Any night, any seat: the unlock's mode (free where there is no paywall). */
@@ -481,6 +579,15 @@ async function processEvents(events: RunEvent[], wasFlashpoint: boolean): Promis
       case 'charge_used':
         toast('Hotline Protocol: no price at home for that one.', 'good');
         break;
+      case 'reply':
+        if (simple) {
+          reply.value = { text: e.text, speaker: e.speaker, outcome: e.outcome };
+          await wait(reducedMotion() ? 400 : 1100);
+        }
+        break;
+      case 'full':
+        if (simple) snd.play('capital');
+        break;
       case 'reveal':
         snd.play('reveal');
         toast(e.key === 'intel' ? 'Intel reliability is now readable.' : e.key === 'commitment' ? 'You can now see how boxed in you are.' : 'Their trust in you is now readable.', 'good');
@@ -611,6 +718,7 @@ async function finishRun(kind: string): Promise<void> {
   snd.drone(false);
   const ending = s.ending ? c.endings[s.ending] : null;
   const stats = recordRun(s, c, []);
+  if (hotel.value && s.ruleset === 'simple') saveMemory(s);
   const unlockedNow = evaluateUnlocks({ state: s, content: c, ending: ending ?? null, stats });
   const newBest = recordScore(s);
   runMeta.value = { ...m, unlockedNow, newBest };

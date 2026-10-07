@@ -301,3 +301,45 @@ button {
 }
 [data-motion='reduce'] .dial-edge { animation: none; }
 [data-motion='reduce'] .dial-fill { transition: none; }
+
+/* ---- The hotel: bars, the reply, brass */
+@theme {
+  --color-brass: #c9a24a;
+  --color-brass-ink: #8a6b22;
+}
+.blank-page {
+  border: 1px dashed rgba(236, 231, 216, 0.16);
+}
+.bar-track {
+  background: rgba(236, 231, 216, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(236, 231, 216, 0.1);
+}
+.bar-fill {
+  transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1), background-color 300ms;
+}
+.bar-ghost {
+  opacity: 0.45;
+  background-image: repeating-linear-gradient(135deg, transparent 0 3px, rgba(11, 18, 32, 0.35) 3px 6px);
+}
+.bar-low .bar-track {
+  animation: bar-pulse 1.4s ease-in-out infinite;
+}
+@keyframes bar-pulse {
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(236, 231, 216, 0.1); }
+  50% { box-shadow: inset 0 0 0 1px rgba(224, 59, 59, 0.7), 0 0 10px rgba(224, 59, 59, 0.35); }
+}
+.reply-line {
+  animation: reply-in 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes reply-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.stars {
+  letter-spacing: 0.08em;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar-fill { transition: none; }
+  .bar-low .bar-track { animation: none; box-shadow: inset 0 0 0 1px rgba(224, 59, 59, 0.7); }
+  .reply-line { animation: none; }
+}
