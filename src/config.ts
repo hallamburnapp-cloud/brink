@@ -18,6 +18,8 @@ export const FEATURES = {
   paywall: bool(env.VITE_PAYWALL, false),
   /** Stripe Payment Link URL for the one-time purchase. */
   stripePaymentLink: (env.VITE_STRIPE_PAYMENT_LINK as string) ?? '',
+  /** The price as shown in the app ("$3.99"); the Stripe page is the source of truth, this is the promise. */
+  priceLabel: (env.VITE_PRICE_LABEL as string) || '$3.99',
   /** Cloudflare Worker base URL for unlock tokens and purchase restore. */
   unlockWorkerUrl: (env.VITE_UNLOCK_WORKER_URL as string) ?? '',
   /** Public key (base64url-encoded P-256 JWK) used to verify unlock tokens client-side. */

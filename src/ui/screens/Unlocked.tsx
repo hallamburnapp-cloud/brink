@@ -22,19 +22,19 @@ export function Unlocked() {
         {(status === 'unlocked' || status === 'already') && (
           <>
             <h2 class="serif mt-1 text-2xl font-semibold">Night after night is yours.</h2>
-            <p class="serif mt-2 text-[15px]">Any night, any seat, any seed, and Expert mode. The token is stored on this device; use Restore on another device with the same email.</p>
+            <p class="serif mt-2 text-[15px]">Any night, any seat, any seed, and Expert mode. The token is stored in this browser; if you play from the home-screen app or another device, use Restore there with the same email.</p>
           </>
         )}
         {status === 'invalid' && (
           <>
             <h2 class="serif mt-1 text-2xl font-semibold">That link did not check out.</h2>
-            <p class="serif mt-2 text-[15px]">If you paid, use Restore purchase in Settings with the email you used at checkout.</p>
+            <p class="serif mt-2 text-[15px]">If you paid, open the unlock screen (Home → Unlock) and use Restore with the email you used at checkout.</p>
           </>
         )}
         {status === 'error' && (
           <>
             <h2 class="serif mt-1 text-2xl font-semibold">We could not reach the unlock server.</h2>
-            <p class="serif mt-2 text-[15px]">Try again in a minute, or use Restore purchase in Settings.</p>
+            <p class="serif mt-2 text-[15px]">Try again in a minute, or open the unlock screen (Home → Unlock) and use Restore with your email.</p>
           </>
         )}
         {status === 'none' && (

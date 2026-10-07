@@ -468,6 +468,7 @@ export async function continueEndless(): Promise<void> {
 
 async function processEvents(events: RunEvent[], wasFlashpoint: boolean): Promise<void> {
   const c = content.value;
+  const simple = run.value?.ruleset === 'simple';
   const applied: Record<string, number> = {};
   for (const e of events) {
     switch (e.type) {
@@ -485,7 +486,7 @@ async function processEvents(events: RunEvent[], wasFlashpoint: boolean): Promis
         toast(e.key === 'intel' ? 'Intel reliability is now readable.' : e.key === 'commitment' ? 'You can now see how boxed in you are.' : 'Their trust in you is now readable.', 'good');
         break;
       case 'capital':
-        if (e.delta > 0 && e.reason !== 'ante') {
+        if (!simple && e.delta > 0 && e.reason !== 'ante') {
           snd.play('capital');
           toast(`+${e.delta} political capital`, 'good', 1600);
         }
@@ -510,7 +511,6 @@ async function processEvents(events: RunEvent[], wasFlashpoint: boolean): Promis
     if (up) setTimeout(() => snd.play('meter_up'), 140);
   }
 
-  const simple = run.value?.ruleset === 'simple';
   // The tally: base counts up, mult counts up, they slam together (Expert only; the night shows no numbers).
   const lev = simple ? undefined : events.find((e) => e.type === 'leverage');
   if (lev && lev.type === 'leverage') {

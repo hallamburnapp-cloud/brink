@@ -116,7 +116,7 @@ export function Home() {
             </button>
           ) : (
             <button class="btn" onClick={() => goto('paywall')}>
-              Unlock
+              Unlock · {FEATURES.priceLabel}
             </button>
           )}
         </div>

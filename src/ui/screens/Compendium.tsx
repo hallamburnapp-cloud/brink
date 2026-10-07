@@ -31,17 +31,26 @@ export function Compendium() {
               {KIND_LABEL[k]} · {list.filter((x) => x.seen > 0).length}/{list.length}
             </div>
             <ul class="space-y-1.5">
-              {list.map((x) => (
-                <li key={x.id} class={`paper-dark rounded-md px-3 py-2 ${x.seen ? '' : 'opacity-60'}`}>
-                  <div class="flex items-center justify-between gap-2">
-                    <div class="serif text-[15px] font-semibold">
-                      {x.seen ? `${x.ending.emoji} ${x.ending.name}` : '▒▒▒▒▒▒'}
+              {list
+                .filter((x) => x.seen > 0)
+                .map((x) => (
+                  <li key={x.id} class="paper-dark rounded-md px-3 py-2">
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="serif text-[15px] font-semibold">
+                        {x.ending.emoji} {x.ending.name}
+                      </div>
+                      <div class="mono text-[10px] text-mute">×{x.seen}</div>
                     </div>
-                    {x.seen > 0 && <div class="mono text-[10px] text-mute">×{x.seen}</div>}
+                    <div class="serif text-[12px] text-paper/70">{x.ending.compendium}</div>
+                  </li>
+                ))}
+              {list.some((x) => x.seen === 0) && (
+                <li class="paper-dark rounded-md px-3 py-2 opacity-70">
+                  <div class="serif text-[13px] text-paper/70">
+                    {list.filter((x) => x.seen === 0).length} more to find.
                   </div>
-                  <div class="serif text-[12px] text-paper/70">{x.seen ? x.ending.compendium : 'Not yet witnessed.'}</div>
                 </li>
-              ))}
+              )}
             </ul>
           </section>
         );

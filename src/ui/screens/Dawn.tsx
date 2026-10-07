@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { BRAND } from '../../config';
+import { BRAND, FEATURES } from '../../config';
 import { renderShareCard, share, shareText, stripCells, summariseMoment, type ShareCardData } from '../../meta/share';
 import { track } from '../../meta/analytics';
 import { dailyStreak, msUntilNextDaily } from '../../meta/daily';
@@ -163,7 +163,7 @@ export function Dawn() {
             </button>
           ) : (
             <button class="btn mt-3 w-full" onClick={() => goto('paywall')}>
-              Night after night · unlock
+              Night after night · unlock for {FEATURES.priceLabel}
             </button>
           )}
         </section>

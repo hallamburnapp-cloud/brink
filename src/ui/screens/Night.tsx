@@ -18,12 +18,15 @@ export function Night() {
   const [menu, setMenu] = useState(false);
   if (!s) return null;
   if (s.phase === 'ended' || !v) {
+    // The beat between the last card and the ending: the dials stay, nothing is tappable.
     return (
-      <div class="flex flex-1 flex-col items-center justify-center gap-3">
-        <div class="mono text-mute">…</div>
-        <button class="btn" onClick={abandonRun}>
-          Leave the night
-        </button>
+      <div class="flex flex-1 flex-col gap-3">
+        <header class="flex items-center justify-between">
+          <span class="mono text-[11px] tracking-[0.2em] text-mute">{runMeta.value?.mode === 'daily' ? 'TONIGHT' : 'THE NIGHT'}</span>
+          <span class={`clock mono text-[15px] ${s.flashpoint ? 'text-red' : 'text-paper/90'}`}>{nightClock(s)}<span class="text-[10px] text-mute"> AM</span></span>
+        </header>
+        <Dials state={s} preview={null} hiddenCosts={[]} applied={lastApplied.value} />
+        <div class="mono mt-10 text-center text-[11px] tracking-[0.3em] text-mute">…</div>
       </div>
     );
   }
@@ -57,7 +60,7 @@ export function Night() {
       {menu && (
         <div class="paper-dark rise rounded-md p-3" role="region" aria-label="Menu">
           <div class="serif text-sm text-paper/80">Keep the five dials off the edges until 6:00. Danger full ends everything, and a calm night makes the crisis kinder.</div>
-          <div class="serif mt-2 text-xs text-paper/60">Home keeps the night where it is; you can pick the phone back up later. Leaving ends it.</div>
+          <div class="serif mt-2 text-xs text-paper/60">{m?.mode === 'daily' ? 'Home keeps tonight where it is; pick the phone back up whenever you like. Tonight is one attempt, so it waits for you rather than starting over.' : 'Home keeps the night where it is; you can pick the phone back up later. Leaving ends it.'}</div>
           <div class="mt-3 flex gap-2">
             <button class="btn flex-1" onClick={() => setMenu(false)}>
               Back to the phone
@@ -65,14 +68,16 @@ export function Night() {
             <button class="btn flex-1" onClick={leaveToHome}>
               Home
             </button>
-            <button
-              class="btn flex-1 text-red"
-              onClick={() => {
-                if (confirm(m?.mode === 'daily' ? 'End tonight unfinished? It counts as played.' : 'End this night?')) abandonRun();
-              }}
-            >
-              Leave
-            </button>
+            {m?.mode !== 'daily' && (
+              <button
+                class="btn flex-1 text-red"
+                onClick={() => {
+                  if (confirm('End this night?')) abandonRun();
+                }}
+              >
+                Leave
+              </button>
+            )}
           </div>
         </div>
       )}

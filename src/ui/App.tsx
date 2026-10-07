@@ -58,11 +58,11 @@ function Banner() {
   const simple = run.value?.ruleset === 'simple';
   const label = b.kind === 'flashpoint' ? (simple ? 'THE PHONE' : 'PRIORITY') : b.kind === 'ante_missed' ? 'THE ANTE' : green ? 'THE ANTE' : b.kind === 'deadman' ? 'FAILSAFE' : simple ? 'TONIGHT' : 'BRIEFING';
   return (
-    <div class="pointer-events-none fixed inset-x-0 top-[18%] z-50 flex justify-center px-4" aria-live="polite">
-      <div class={`rise ${red ? 'bg-red text-white' : green ? 'bg-green text-ink' : 'paper'} px-6 py-4 text-center shadow-2xl ${b.kind === 'ante_smashed' ? 'scale-110' : ''}`} style="min-width: 240px">
-        <div class="mono text-[11px] tracking-[0.3em] opacity-80">{label}</div>
-        <div class="serif text-2xl font-semibold tracking-wide">{b.title}</div>
-        {b.sub && <div class="mono mt-1 text-xs tracking-[0.2em] uppercase opacity-80">{b.sub}</div>}
+    <div class="pointer-events-none fixed inset-x-0 top-[max(env(safe-area-inset-top),8px)] z-50 flex justify-center px-4" aria-live="polite">
+      <div class={`rise flex items-baseline gap-3 rounded-md ${red ? 'bg-red text-white' : green ? 'bg-green text-ink' : 'paper'} px-4 py-2 text-center shadow-2xl ${b.kind === 'ante_smashed' ? 'scale-110' : ''}`}>
+        <span class="mono text-[10px] tracking-[0.3em] opacity-80">{label}</span>
+        <span class="serif text-lg font-semibold tracking-wide">{b.title}</span>
+        {b.sub && <span class="mono text-[10px] tracking-[0.2em] uppercase opacity-80">{b.sub}</span>}
       </div>
     </div>
   );

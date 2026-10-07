@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { FEATURES } from '../../config';
 import { paymentLinkUrl, restoreByEmail } from '../../meta/unlock';
 import { track } from '../../meta/analytics';
 import { endlessAvailable, goto, toast } from '../store';
@@ -38,11 +39,11 @@ export function Paywall() {
           <li>· Expert mode: the long game with the numbers on</li>
           <li>· Tonight stays free forever</li>
         </ul>
-        <p class="mono mt-3 text-[11px] text-ink-2/70">Payment by Stripe. No account. A token is stored on this device; restore on any other with your email.</p>
+        <p class="mono mt-3 text-[11px] text-ink-2/70">{FEATURES.priceLabel}, once. Payment by Stripe in your browser. No account. A token is stored on this device; restore on any other with the email you used at checkout, below.</p>
       </section>
       {link ? (
         <a class="btn btn-primary" href={link} rel="noopener">
-          Unlock for one payment
+          Unlock for {FEATURES.priceLabel} · one payment, forever
         </a>
       ) : (
         <div class="btn" aria-disabled="true">

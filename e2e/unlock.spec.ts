@@ -18,10 +18,10 @@ async function signToken(payload: object): Promise<string> {
 test.describe('Unlock flow with a stubbed Worker', () => {
   test('Night after night is locked, then unlocked after the Stripe redirect', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByRole('button', { name: 'Unlock' })).toBeVisible();
-    await page.getByRole('button', { name: 'Unlock' }).click();
+    await expect(page.getByRole('button', { name: /^Unlock/ })).toBeVisible();
+    await page.getByRole('button', { name: /^Unlock/ }).click();
     await expect(page.getByText(/ONE-TIME PURCHASE/)).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Unlock for one payment' })).toHaveAttribute('href', /stripe/);
+    await expect(page.getByRole('link', { name: /^Unlock for/ })).toHaveAttribute('href', /stripe/);
 
     const token = await signToken({ sub: 'a'.repeat(64), plan: 'endless', iat: Math.floor(Date.now() / 1000), v: 1 });
     await page.route('http://unlock.test/**', async (route) => {
@@ -66,7 +66,7 @@ test.describe('Unlock flow with a stubbed Worker', () => {
     const token = await signToken({ sub: 'c'.repeat(64), plan: 'endless', iat: Math.floor(Date.now() / 1000), v: 1 });
     await page.route('http://unlock.test/**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ token }) }));
     await page.goto('/');
-    await page.getByRole('button', { name: 'Unlock' }).click();
+    await page.getByRole('button', { name: /^Unlock/ }).click();
     await page.getByPlaceholder('email used at checkout').fill('buyer@example.com');
     await page.getByRole('button', { name: 'Restore' }).click();
     await expect(page.getByText(/Restored/)).toBeVisible();
