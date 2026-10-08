@@ -2,6 +2,49 @@
 
 All notable changes to BRINK. Dates are UTC.
 
+## 0.4.0 — 2026-10-08 (The Brink Hotel)
+
+The setting changed; the brand, the engine and the loop did not (D-089; the step back is on
+record in `docs/step-back/`). BRINK is the night desk at The Brink Hotel: 3am, the phone,
+eighteen cards of ten minutes, four bars, a review at 6:00, the same night for everyone.
+
+### Engine
+- Content packs: `BRINK_CONTENT_DIR` selects the pack for the dev server, the build, the validator and the simulator; the crisis game is preserved as `content-crisis/` and tag `v0.3.0-night`.
+- The hotel's rules in `rules.night`: a fixed card count, minutes per card (and a per-card `minutes`), one-sided bars (a bar fails only at 0; 100 clamps and seats a comedy card), escalation off, a first-night scale, and `drift` (the night wears every bar down a little per card).
+- Bookings: a night's situation (opener, three beats in slot windows, a head in the five o'clock hour) pinned into the queue at run start; `bookingForSeed` replicates the draw so Home can promise tomorrow's.
+- Reviews: endings with `stars`, `byline` and `quote` choose their band with `conditions.stars`; `starsFor` bands the mean of the four bars; a bar on the floor is a one-star review with a stamp.
+- The reply line: `reply` on every choice; the engine emits a `reply` event, and the outcome text of every odds roll (authored for the crisis packs and never shown) is now shown.
+- Memory: `memory:*` flags persist between nights (up to eight) and are seeded into the next.
+- The hotel's clock runs on the cards' minutes and reaches 6:00 exactly on the last card.
+
+### Content (`content/`, the hotel pack)
+- Twelve Bookings (The Swan, The Wedding, The Alarm, The Critic, The Power Cut, The Inspector, The Flood, The Lift, The Band, The Man Who Isn't Here, The Snow, The Dog Show), five spine cards and three tied cards each; a pool of regulars across the three hours; four comedy cards for a full bar; reviews in five bands per Booking, four falls, the fallbacks.
+- A cast of 14 roles with names in the Guest Book and roles on the cards, plus the lead guests.
+- The voice contract for the hotel, enforced by the validator under `voice: hotel`: cards ≤ 150 characters and two sentences, choices ≤ 34, a reply ≤ 80 on every side, moves ±8..±25, no roll carries an ending, no weekday or "tomorrow" words.
+
+### Interface
+- Home in three states: the first open (one button, CLOCK IN, a practice night on The Swan), tonight (the Booking's name and teaser, ANSWER IT or pick the phone back up at the clock it was left), today's review with SHARE and tomorrow's Booking.
+- The Desk: HOME, the clock, the bell; four horizontal bars with icons, a ghost segment for the tilted choice and an arrow that stays until the next decision; the card with the Booking and the time in its footer; two choices with at-rest chips naming the bars they move; the reply line.
+- The Review: stars, byline, headline, the quote, two paragraphs, the stamp on a night that ended early, the moment card, one row for the night and where the bars stood, Copy result / Share image, tomorrow's Booking, AGAIN, the plate slip after a four- or five-star night.
+- The Guest Book: reviews by Booking as pages (blank until earned; the plate opens every page), the nights that ended early, the Archive of every Tonight worked (the plate works any of them again).
+- The Brass Plate: one purchase; choose the night you work, the Guest Book in full, the Archive, a badge on shared reviews. No typed name (D-097).
+- Home is one tap away from every screen, every screen change is a history entry, and the first entry is Home so the phone's back button never leaves the app by surprise.
+
+### Share
+- Text: `BRINK #212 · THE SWAN · ★★★★☆`, one row of nine cells coloured by the lowest bar with the fall as a single red cell, the quote and its byline, the link.
+- PNG: a brass letterhead, the Booking, the clock, the review's name, the stars as the big number with a DAWN or FELL AT stamp, the quote in italic serif with the byline, the row and the four bars at the end; the plate's badge when bought.
+
+### Balance (BALANCE.md "The hotel")
+- B1–B6 in the simulator for `voice: hotel`, with stars, the bars' end mean and each Booking's dawn rate in the report; a sweep tool over drift, scale and start; a per-Booking economics report.
+- Drift 1.5, costs ×1.4, start 65/60; star bands 38/31/24/18 and bar colours good 38 / low 24 / danger 12, read from where a careful night ends.
+
+### Tooling and tests
+- `tools/smoke/hotel.ts` plays the first night and tonight through the real screens with screenshots; `e2e/hotel.spec.ts` covers the loop on a phone; unit tests for the strip, the share text, the stars, the falls and the Guest Book.
+
+## 0.3.0 — 2026-09-30 (the night)
+
+The second redesign (REDESIGN.md, since superseded by HOTEL.md): the simple ruleset for `daily` and `night` (no accidents, antes, shop, pieces, orders or leverage on screen), 3:00am to 6:00am at seven minutes a card, five dials with no numbers, the crisis only at the end with the danger dial moving its odds, dawn named by the dials, all 451 cards and 92 endings rewritten to a two-sentence voice enforced by the validator, Home one tap away from inside a night, tonight as one attempt that waits. Balance N1–N5 in BALANCE.md "The night"; the pack is kept as `content-crisis/`.
+
 ## 0.2.0 — 2026-09-28 (the brinkmanship scaling core)
 
 ### Engine

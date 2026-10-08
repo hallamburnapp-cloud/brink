@@ -1,5 +1,7 @@
 # LAUNCH.md — fourteen days, no audience
 
+> Updated for the hotel (0.4.0): "Tonight" is tonight's Booking at The Brink, the unlock is The Brass Plate, and the result is a review. §6's pinned Dailies (three crises for news cycles) belong to the crisis pack and are kept for the day it ships as a second hotel.
+
 Assumptions. Day 0 is a Tuesday; Tonight rolls at 00:00 UTC; the web build is on
 Cloudflare Pages with `VITE_ANALYTICS=plausible` switched on from Day −1; the itch.io
 page is paid; the Steam page is a Coming Soon page whose desktop build follows later.
@@ -52,29 +54,29 @@ browser, so it qualifies.
 
 ### Title options
 
-1. `Show HN: BRINK – a two-minute daily about surviving one night of a nuclear crisis, no accounts`
-2. `Show HN: A swipe-card game whose one rule is "keep five dials off the edges until 6am"`
-3. `Show HN: BRINK – a deterministic crisis game in 52 KB of JS, tuned by a 15k-night simulator`
+1. `Show HN: BRINK – a two-minute daily about one night on a hotel desk, no accounts`
+2. `Show HN: A swipe-card comedy whose one rule is "keep four bars off the floor until 6am"`
+3. `Show HN: BRINK – a deterministic card game in 52 KB of JS, balanced by a 2,000-night simulator`
 
 Use 1 unless the day's front page is already heavy on games, in which case 3.
 
 ### Body (post as the first comment; the URL field is the game)
 
-> I've been building BRINK alone. It's a swipe-card game about one night of an international crisis: it's 3am, you lead a fictional country, and every card is someone at your door with a problem and two ways to answer it. Five dials (People, Army, Allies, Money, Danger); keep them off the edges until 6:00 and you've made it to dawn. Every card is seven minutes of the clock. Nothing on screen is a number except the clock, and the one-line rule is the only thing the game explains. Everyone gets the same night each day, one attempt, two to four minutes, and a result strip you can paste anywhere without spoiling it. A one-time unlock opens any night, seeds to share, and an Expert mode with the numbers on.
+> I've been building BRINK alone. It's a swipe-card game about one night on the desk of a hotel that isn't quite coping: it's 3am, you're the Night Manager, and every card is someone at the desk with a problem and two ways to answer it. Four bars (Guests, Staff, Money, the Building); keep them off the floor until 6:00 and a guest writes your review. Every card is ten minutes of the clock. Nothing on screen is a number except the clock, and the one-line rule is the only thing the game explains. Everyone gets the same night each day, one attempt, about two minutes, and a result you can paste anywhere without spoiling it: the Booking, the stars, one row of squares, the line the guest wrote. A one-time purchase lets you choose the night you work and opens the Guest Book.
 >
 > The parts I think are technically interesting:
 >
-> **Determinism.** The engine is pure TypeScript with no DOM access. The RNG (xoshiro128\*\*) is seeded from `"${seed}|${seat}|${difficulty}"` and its four state words live inside the serialisable run state, so a night resumes bit-identically mid-crisis and a shared seed reproduces every draw, roll and warning truth-value. Warning cards decide whether they're true at draw time, not at choice time, so the UI cannot leak it. Tests assert identical replays.
+> **Determinism.** The engine is pure TypeScript with no DOM access. The RNG (xoshiro128\*\*) is seeded from `"${seed}|${seat}|${difficulty}"` and its four state words live inside the serialisable run state, so a night resumes bit-identically mid-card, a shared seed reproduces every draw and roll, and the home screen can tell you tomorrow's Booking by replicating the first draw. Tests assert identical replays.
 >
-> **One engine, two rulesets.** The same 451 cards run the two-minute night and the long Expert game (leverage, weekly targets, a shop of doctrines, endless escalation). The night is the Expert engine with most of it switched off: a per-mode act table, no shop, one flashpoint at the end, and one extra rule, that the visible Danger dial shifts every roll of the crisis by (50 − danger)/250, so a calm night is rewarded where a player can see it. Nothing else had to be explained.
+> **One engine, three games.** The same engine ran a nuclear-crisis strategy game (leverage, weekly targets, a shop of doctrines) and a two-minute version of it, and now runs the hotel: a content pack sets the rules (`rules.night`: one-sided bars, no escalation, eighteen cards of ten minutes, a per-card drift) and the engine doesn't know which game it's playing. The crisis game is still in the repo as its own pack. The step back that changed the setting is on record: four critiques, six concepts, three judges, one synthesis.
 >
-> **Balance by bots.** Three policies (random, greedy on the visible previews, and a "calm" heuristic that reads the same view a player gets) play 15,000 nights in 19 seconds. Targets: calm bot reaches dawn 45–65%, random under 10%, a night is 2–4 minutes, no ending above 35%, and the crisis ends 25–45% of the calm nights that reach it. The last one is how I found that the crisis was a lottery: the calm bot arrived with Danger at 67 and lost 44% of the time regardless of how the night had gone. Cooling and the Danger-to-odds link fixed it; the whole log is in BALANCE.md.
+> **Balance by bots, honestly.** A careful heuristic and a random thumb play 2,000 nights in two seconds. The cards as written were a fair trade: the careful bot reached 6:00 on 100% of nights and the random bot on 90%, so nobody could lose. One rule (the night wears every bar down 1.5 a card) and a 34-cell sweep later: careful 80%, random 13–17%. Then the star bands had to be re-read from where a careful night actually ends (a mean of 27 of 100), not from "full": the first bands gave three stars 73% of the time. The whole log, with the two targets I revised and why, is in BALANCE.md.
 >
-> **The voice as a lint rule.** Every card is at most two sentences and 180 characters, every choice at most 34, every ending two paragraphs; a banned-word list keeps the jargon out (no "attribution", no "deterrence by denial"). The validator enforces it, so 451 cards could be rewritten by twelve parallel passes without drift.
+> **The voice as a lint rule.** Every card is two sentences and 150 characters, every choice 34, every answer gets a one-line reply of 80, every move is between 8 and 25 so a chip can name it, no roll may carry an ending, no card may mention tomorrow. The validator enforces it, so twelve Bookings could be written in parallel without drift.
 >
-> Other bits: content is YAML compiled through a zod schema and a semantic validator (dangling flags, unreachable endings, a blocklist of real-world names, because the world is fictional on purpose); Preact + Vite, 52 KB gzipped initial JS, installable PWA, offline; all audio synthesised in Web Audio at runtime, no files; no accounts, no cookies, no analytics unless a flag is set, and then cookie-free; the paid unlock is a Stripe Payment Link → Cloudflare Worker → ECDSA-signed token verified offline in the browser.
+> Other bits: content is YAML compiled through a zod schema and a semantic validator (dangling flags, unreachable reviews, a blocklist of real-world names); Preact + Vite, about 52 KB gzipped initial JS, installable PWA, offline; all audio synthesised in Web Audio at runtime; no accounts, no cookies, no analytics unless a flag is set, and then cookie-free; the paid unlock is a Stripe Payment Link → Cloudflare Worker → ECDSA-signed token verified offline in the browser.
 >
-> What I'm not sure about: whether a two-minute night with no numbers is legible enough for people who have never played a Reigns-like, and whether the bots' 60% dawn rate lands near 40% for humans, which is where I want it. If you play tonight, I'd like to know when you fell and whether it felt like your fault.
+> What I'm not sure about: whether machine-written comedy holds up for two minutes a day for a month, and whether the stars feel earned (the last two cards often decide the band). If you work tonight, I'd like to know the line that made you smile and whether your review felt like your fault.
 
 ---
 

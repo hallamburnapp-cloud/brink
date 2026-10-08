@@ -81,3 +81,27 @@ clock. Speakers are shown by role first ("Your General", "The Hotline", "Your Pa
 name second. Odds are words (LIKELY / EVEN / RISKY) except on the crisis cards, where the
 percentage joins the word. The result is always one of three: 🌅 Dawn, 🌑 Fell at 4:35,
 ☢️ 5:34.
+
+## The hotel (0.4.0)
+
+The hotel keeps the navy, the paper and the type, and adds one colour: **brass**
+(`--color-brass: #c9a24a`, `--color-brass-ink: #8a6b22` on paper). Brass is the hotel's
+"good": a bar at 38 or above, the stars, the Booking's name on Home, the file-tab band and
+the letterhead of the share card, the plate. Red stays for a bar in danger (12 or below) and
+the stamp on a night that ended early; amber for a bar that is low (24 or below). The bands
+live in one place (`BAR_BANDS`, `STAR_BANDS` in `src/engine/night.ts`) and the desk, the
+strip and the share card read from it, so a colour means the same thing everywhere.
+
+- **Bars, not dials.** Four horizontal bars in a two-by-two grid, an icon and a word each,
+  filling from the left; a hatched ghost segment where the tilted choice would leave the bar;
+  a ▲ or ▼ that stays until the next decision. A bar at or under 12 pulses its outline.
+- **The reply line.** One serif line under the bars, the speaker's role in small mono before
+  it, sliding up 6px over 320ms (`.reply-line`); none of it under reduced motion.
+- **The review is paper.** A night that reaches 6:00 ends on the paper card (ink text, brass
+  stars); a night that fell ends on the dark card with a rotated red stamp and the time.
+- **Stars are glyphs, never digits.** `Stars` renders five ★ with the unearned ones at 25%
+  opacity and an aria-label in words ("Four stars out of five").
+- **Blank pages, not redactions.** An unearned review in the Guest Book is a dashed page with
+  two faint lines, not a blacked-out row.
+- **No numbers anywhere but the clock** still holds; the hotel adds no exceptions.
+

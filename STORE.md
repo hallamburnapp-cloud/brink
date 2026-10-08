@@ -4,7 +4,7 @@ Everything a store page needs, in the game's register. One rule: nothing on a pa
 claims a thing the build cannot do. Brand constants: navy `#0b1220`, paper `#ece7d8`,
 red `#e03b3b`; seat accents Republic `#4f8fc9`, Federation `#c43a3a`, Coalition `#c98a3a`.
 Wordmark: bold serif, wide tracking. The mark: a paper ring with a red arc at one to
-three o'clock. Tagline everywhere: *It's 3am. The phone is ringing. Make it to dawn.*
+three o'clock. Tagline everywhere: *It's 3am at The Brink. The phone is ringing.* The hotel adds one colour, brass `#c9a24a`.
 
 Public URL is `VITE_PUBLIC_URL`; written below as `brink.example`. Replace before use.
 
@@ -15,76 +15,75 @@ Public URL is `VITE_PUBLIC_URL`; written below as `brink.example`. Replace befor
 **Title:** BRINK
 
 **Tagline (itch "short description", shown in embeds and search):**
-It's 3am. The phone is ringing. Make it to dawn.
+It's 3am at The Brink. The phone is ringing.
 
 **Hook**
 
-A swipe-card game about one night of a crisis. Keep five dials off the edges until
-6:00am. Everyone in the world gets the same night. Share how far you got.
+A swipe-card comedy about one night on a hotel desk. Keep four bars off the floor until
+6:00 and a guest writes your review. Everyone gets the same night. Share your stars.
 
 **Body**
 
-It is 3am and you lead a country. The phone is ringing. Your General wants a window.
-Your Spy Chief has one source, and he is frightened. The Hotline is a beat late and
-very polite. Your Partner asks whether you have eaten. Every card is someone at your
-door with a problem and two ways to answer it. Swipe left or right.
+It is 3am and you are the Night Manager of The Brink, a hotel that is not quite coping.
+The Night Porter has a theory. The Chef is not naming anyone. Room 412 has a swan in the
+bath and would like it noted that she did not book one. Every card is someone at the desk
+with a problem and two ways to answer it. Swipe left or right, and the hotel answers back
+in one line.
 
-Five dials: **People, Army, Allies, Money, Danger.** If any of the first four hits the
-edge, you are out. If Danger fills, everyone is. That is the whole rulebook, and it is
-the only thing the game will ever explain to you.
+Four bars: **Guests, Staff, Money, the Building.** If any of them hits the floor, the night
+is over: a walkout, a staff walkout, the Owner on the phone, or the fire brigade. That is
+the whole rulebook, and it is the only thing the game will ever explain to you.
 
-Every card moves the clock seven minutes. At 5:20am the crisis comes, a short run of
-cards with the odds written on them in plain words: Likely, Even, Risky. A calm night
-makes them kinder. Get through it and it is 6:00, and dawn.
+Every card is ten minutes of the clock. The night wears the bars down by itself; what you
+choose decides where they end. At 6:00 the Day Manager walks in with her own pen and a
+guest writes your review: one star to five, with the line everyone quotes.
 
-Tonight is the same for everyone: one night, one attempt, two to four minutes. When it
-ends you get a strip of coloured squares, one row per dial, and either 🌅 Dawn or the
-time you fell. Paste it anywhere. It gives nothing away and everyone who played tonight
-knows exactly what it means. Play every night and the streak counts.
+Tonight is the same for everyone: one Booking, one attempt, about two minutes. When it
+ends you get `BRINK #212 · THE SWAN · ★★★★☆`, one row of coloured squares and the line the
+guest wrote. Paste it anywhere. It gives nothing away and everyone who worked tonight
+knows exactly what it means. Work every night and the streak counts.
 
-Ninety-four endings, each short enough to read in ten seconds and each with the card
-that decided it. Twenty-three voices. Three seats (the Republic, the Federation, the
-Coalition) that rotate night by night. No accounts, no chat, no ads, nothing collected.
+Twelve Bookings at launch: the swan, the wedding with sixty for breakfast and no eggs, the
+alarm that may be nothing, the critic who is not called that, the power cut, the inspector
+who is early, the flood, the lift with a Labrador in it, the band that was not booked, the
+man who was never here, the snow, and the dog show. Sixty reviews. A cast of fourteen with
+names in the Guest Book. No accounts, no chat, no ads, nothing collected.
 
 **Features**
 
-- One rule: keep five dials off the edges until 6:00am. No numbers on screen but the clock.
-- Two-choice cards, swipe or tap; 451 of them across ten stories, 23 speakers with their own voices.
-- The crisis at 5:20am: visible odds in plain words, and a calm night improves them.
-- Tonight: the same night for everyone, one attempt, two to four minutes, a streak that counts nights played.
-- A result strip to paste anywhere: five rows of coloured squares and 🌅 Dawn or 🌑 Fell at 4:35.
-- 94 endings with the moment that decided them; a compendium; a record of your nights.
-- Night after night (one purchase): any night, any seat, seeds to share, and Expert mode, the long game with the numbers on.
+- One rule: keep four bars off the floor until 6:00. No numbers on screen but the clock.
+- Two-choice cards, swipe or tap; every answer gets a one-line reply from the hotel.
+- Twelve Bookings, each a night with a shape: an opener at 3:00, three beats, a head in the five o'clock hour.
+- Tonight: the same night for everyone, one attempt, about two minutes, a streak that counts nights worked.
+- A review at 6:00: stars, a byline, the line people quote; a night that ends early is a one-star review with a stamp.
+- A result to paste anywhere: the Booking, the stars, one row of coloured squares, the quote.
+- The Guest Book: every review by Booking, blank pages until you earn them; the Archive of every Tonight.
+- The Brass Plate (one purchase): choose the night you work, the Guest Book in full, any past Tonight again, a badge on the reviews you share.
 - No accounts, no chat, no comments, no leaderboards. Nothing leaves your device.
 - Synthesised audio, no downloads; installs as an app and plays offline. Runs in a phone browser.
 
 **Content note**
 
-Text depictions of an international crisis, nuclear alerts and nuclear war; civil
-emergencies and the deaths of unnamed people at scale, described, never shown. No images
-of violence: the game is text, silhouettes and dials. Occasional mild language.
-Everything is fictional: no real state, leader, event or organisation is depicted, and
-the content validator rejects real-world names.
+A comedy of hotel work at night: a false fire alarm, a flood, a power cut, a guest who was
+never here, a critic, a swan. No violence, no death; occasional mild language. Everything
+is fictional: no real hotel, person, brand or place is depicted, and the content validator
+rejects real-world names.
 
 **What's free and what's paid**
 
-| | Tonight (free, forever, on the web) | Night after night (this purchase, or the web unlock) |
+| | Tonight and practice nights (free, forever, on the web) | The Brass Plate (this purchase, or the web unlock) |
 | --- | --- | --- |
-| The night | Tonight's, the same for everyone | Any night: type a seed, replay one, share one |
-| Seat | Tonight's, rotating Republic → Federation → Coalition | Any of the three |
-| Attempts | One per night (UTC) | Unlimited; another night at once |
-| The result strip, endings, compendium, record | Yes | Yes |
-| Streak | Yes | — |
-| Expert mode (leverage, antes, the shop, endless escalation, DEFCON tiers) | — | Yes |
+| Tonight | The same Booking for everyone, one attempt | The same |
+| Practice nights | Any night, drawn for you, not recorded | Choose the Booking; a seed to send |
+| The review, the Guest Book, the record, the streak | Yes | Yes, and every page of the Guest Book open |
+| The Archive (every Tonight you worked) | Read it | Work any of them again |
+| Shared reviews | The text and the image | With the brass badge |
 | Accounts, cookies | None | None. A signed token on your device; restore by email |
 
-This itch.io build ships with Night after night open. It also plays tonight, the same
-night everyone else has.
+This itch.io build ships with The Brass Plate open. It also plays tonight, the same night
+everyone else has.
 
-*Build note (for us, not the page):* `npm run build:itch` sets `VITE_ALL_UNLOCKED=1`,
-which also skips Expert's unlock ladder (locked seats, DEFCON tiers, earned pieces).
-Recommend the itch build use `VITE_PAYWALL=0 VITE_ALL_UNLOCKED=0` so buyers keep the
-progression; the copy above assumes that.
+*Build note (for us, not the page):* `npm run build:itch` sets `VITE_ALL_UNLOCKED=1`.
 
 ---
 
@@ -297,7 +296,7 @@ first in the media strip and H.264 at the highest bitrate available.
 
 | SKU | Price | Notes |
 | --- | --- | --- |
-| Web: Night after night (Stripe Payment Link, one-time) | **$3.99 · £2.99 · €3.99** | An impulse price for a purchase made on a phone, on the dawn screen, after a free night. Set all three as explicit currency prices on the Stripe Price object (`currency_options`); let Stripe present other currencies by conversion. No regional discounting on the web: we do not know where anyone is (PRIVACY.md), the Checkout page does |
+| Web: The Brass Plate (Stripe Payment Link, one-time) | **$3.99 · £2.99 · €3.99** | An impulse price for a purchase made on a phone, on the dawn screen, after a free night. Set all three as explicit currency prices on the Stripe Price object (`currency_options`); let Stripe present other currencies by conversion. No regional discounting on the web: we do not know where anyone is (PRIVACY.md), the Checkout page does |
 | itch.io (HTML build, everything included) | **$3.99, "or more"** | Same as the web unlock so neither undercuts the other. itch is merchant of record and handles VAT. Revenue share: keep itch's default or set 15% |
 | Steam (Tauri desktop, Win/mac/Linux) | **$5.99 · £4.99 · €5.79** with a **10% launch discount** for the first week | Accept Valve's suggested regional prices (check current) for other currencies. The store page must be public before release for the period Valve requires (two weeks at last check; check current). A discount cannot follow a price change within Valve's cooling-off window (30 days at last check) so set the price before the Coming Soon page goes up and never touch it |
 
@@ -325,14 +324,14 @@ the Steam page (the web unlock is not a Steam key, so key-parity rules do not ap
 still do not advertise the difference there). The launch discount is a wishlist-conversion
 tool, not a price signal.
 
-**How Tonight and Night after night relate.** Tonight is the demo that never expires
-and the habit that brings people back; it is never gated and never nagged. The offer
-appears in exactly two places, both natural: "Night after night · unlock" on the dawn
-screen after tonight, and the Night after night card on the home screen. Everything a
-free player earns (endings, the compendium, the record, the streak) is kept. Night after
-night is a one-time price for the life of the game; there is no subscription, no season,
-no currency. Expert mode is part of the same unlock, not a second one: one purchase, one
-sentence.
+**How Tonight and The Brass Plate relate.** Tonight is the demo that never expires and
+the habit that brings people back; it is never gated and never nagged, and practice nights
+are free too. The offer appears in exactly three places, all natural: the plate slip on the
+review after a four- or five-star night (never after a fall, never on the first night), the
+plate row under the practice night on Home, and the Archive's "work it again". Everything a
+free player earns (reviews, the Guest Book, the record, the streak) is kept. The plate is a
+one-time price for the life of the game; there is no subscription, no season, no currency.
+One purchase, one sentence.
 
 **Tax (not advice; confirm with an accountant).** itch.io and Steam are merchants of
 record and remit VAT. Stripe is not: web sales to EU consumers owe VAT from the first

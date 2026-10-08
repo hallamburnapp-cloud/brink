@@ -1,5 +1,7 @@
 # REDESIGN.md — BRINK, the daily night
 
+> **Superseded on 2026-10-07 by HOTEL.md.** The night described here shipped as 0.3.0 and is kept whole as the `content-crisis/` pack and tag `v0.3.0-night`. The engine work it describes (the simple ruleset, the clock, the voice contract, Home from anywhere) carried into the hotel; the setting, the five dials and the crisis did not. The step back that led there is in `docs/step-back/`.
+
 This document replaces the player-facing design. The engine, content pipeline and
 production tooling stay; what the player sees, reads and does is rebuilt for one
 audience: everyone with a phone and two minutes. The previous design (leverage,

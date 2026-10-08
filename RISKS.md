@@ -286,3 +286,30 @@ effort on the Steam and desktop build, and on the Capacitor groundwork for store
 "install" is the default. Add an install hint on the Daily card after a three-day
 streak; if that lifts standalone above 10% in a week, keep it; otherwise leave the PWA
 as a quiet feature for the people who find it.
+
+## 13. A comedy voice holds up without a human comedy pass
+
+The hotel's 180 cards and 60 reviews were written by machine to a contract (two sentences,
+a reply on every side, roles not names) and read well in samples; whether they are *funny*
+for two minutes a day for a month is the risk the whole redesign rests on. Test: five people
+read twenty random cards cold and mark each line funny / fine / flat; the pack needs ≥ 40%
+funny and ≤ 15% flat before the comedy budget is spent elsewhere. Cheap mitigation: the owner
+(about three days) or a comedy editor (roughly £1,500–3,000) does one pass on the spine cards
+and the five-star reviews, which is where the share text comes from.
+
+## 14. Stars feel earned rather than random
+
+The star bands are seven points of bar-mean apart, and one card moves the mean three to nine
+points, so the last two cards often decide the band. The head card is designed to be the
+climax, so this may read as drama; it may also read as a coin flip. Test: in Protocol P, ask
+after each night "what did you do that earned those stars?"; if fewer than half can name a
+decision, widen the bands (fewer stars reachable) or move the review's threshold to the mean
+of the last six cards rather than the final state.
+
+## 15. Changing the setting loses the people who liked the crisis
+
+Nobody has played the hotel yet and a few people liked the crisis. The crisis pack is kept
+(`content-crisis/`, `v0.3.0-night`) and can ship as a second "hotel" of the same engine if the
+hotel finds an audience; it is not on any screen now because two settings on one Home is the
+confusion the step back diagnosed.
+

@@ -466,3 +466,87 @@ flashpoint's firm path adds ~50 escalation with average luck) are the next lever
 playtests find the crisis too cruel, not the scales. Human numbers will sit between the
 greedy and calm bots; the LAUNCH.md events (dawn rate, fell-at histogram) are the check.
 
+## The hotel
+
+The third redesign (HOTEL.md) plays a new pack, `content/` (the crisis packs live on as
+`content-crisis/`), under the simple ruleset with the hotel's rules: eighteen cards of ten
+minutes, four one-sided bars (GUESTS, STAFF, MONEY, THE BUILDING; a bar fails only at 0),
+no escalation, a Booking pinned into the night, a review at 6:00. The bots are the same:
+the "careful" bot is the heuristic that reads the chips and avoids the floor, the random
+bot is a thumb. Stars are banded from the mean of the four bars at the end (`starsFor`).
+
+`npm run sim -- --mode night --policy heuristic,random --runs 1000` (1.5 s for 2,000 nights);
+`npx tsx tools/sweep-hotel.ts` runs the three levers as a grid; `npx tsx tools/booking-nets.ts`
+prints what each Booking's spine costs.
+
+### Targets (the hotel)
+
+| # | Target | Why |
+| --- | --- | --- |
+| B1 | Careful (heuristic) bot reaches 6:00 on 75–90% of nights | A review is the social object; a fall is the minority outcome for an attentive player, about one night in five. Written as 60–75% before tuning and raised (D-096) |
+| B2 | Random bot reaches 6:00 on 15–25% of nights | Attention has to matter, and a thumb has to fall most nights without the game feeling rigged |
+| B3 | Careful bot's stars among nights that reach 6:00 roughly 5/25/40/20/10 from one to five, each within ±10 points | Three stars is the ordinary good night; five is rare enough to share; one at dawn is a scrape |
+| B4 | No single review in more than 15% of the careful bot's nights | Twelve Bookings × five bands: the Guest Book has to be worth filling |
+| B5 | Median night the full eighteen cards and at most 2.5 minutes at 7 s a card | The two-minute promise |
+| B6 | Every Booking reaches 6:00 at least once on every bot | No night is unwinnable by its cards alone |
+
+### Iteration H-1 — the cards as authored
+
+Twelve Bookings (five spine cards each, three tied cards), a pool of 102, the seat starting
+at 65/65/65/60, costs ×1.0, no drift. Careful dawn **100%**, random **90%**; the careful
+bot's stars 0/2/73/25/0 under the first bands (78/62/46/30). The cards alone are a fair
+trade: most sides pair a gain with a loss of the same size, so eighteen of them leave the
+bars where they started, and only the random bot's worst streaks reach the floor. A night
+nobody can lose is not a night.
+
+### Iteration H-2 — the three levers (34 cells, 250–400 nights each)
+
+A new rule, `rules.night.drift` (D-094): every answered card costs each bar a little,
+scaled like the cards. With `effect_scale` on the night's acts and the seat's starting bars,
+that is three levers. The sweep:
+
+| drift | scale | start | careful dawn % | random dawn % | careful bar mean p10/p50/p90 |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 1.0 | 65 | 100 | 93 | — |
+| 1 | 1.2 | 65 | 98 | 40 | 26/37/46 |
+| 1 | 1.4 | 65 | 90 | 26 | 21/32/43 |
+| 1.5 | 1.2 | 65 | 93 | 30 | 20/32/41 |
+| **1.5** | **1.4** | **65** | **81** | **17** | **16/27/38** |
+| 1.5 | 1.4 | 60 | 72 | 10 | 16/24/34 |
+| 1.5 | 1.4 | 70 | 88 | 25 | 18/30/41 |
+| 2 | 1.2 | 70 | 82 | 18 | 16/24/34 |
+| 2 | 1.4 | 65 | 45 | 4 | 12/19/28 |
+| 3 | 1.0 | 65 | 38 | 2 | — |
+
+Two reads. First, the careful/random gap the cards give is about 65 points wherever the
+random bot sits in 15–25%, so B1 at 60–75% would have needed a random rate near zero: B1
+was raised to 75–90%. Second, wherever B1 and B2 hold, a careful night ends with the four
+bars' mean near 27 of 100 (p10 16, p90 38). Under bands written for bars that stay high,
+that is one or two stars on every night: the bands had to be re-read from the economy, not
+the economy forced up to the bands (that would be H-1 again). Chosen: drift 1.5, scale
+1.4, start 65 (money 60).
+
+### Iteration H-3 — the bands and the colours
+
+`STAR_BANDS` 38/31/24/18 (five stars from a mean of 38, four from 31, three from 24, two
+from 18, one below or on a fall), fitted to the careful bot's spread at the chosen cell so
+that the nights which reach 6:00 fall roughly 5/25/40/20/10; `BAR_BANDS` good 38, low 24,
+danger 12 for the bars on the desk, the cells of the strip and the bars on the share card,
+so the colours and the stars say the same thing. B3 was redefined to count nights that
+reach 6:00 (D-096): at 78% dawn, one star over all nights could never be under 22%.
+Result at 1,000 nights a bot: careful dawn 78.2%, random 12.4%, stars at 6:00 6/18/37/27/12,
+top review 7.9%, 2.2 minutes, every Booking reaching 6:00 on both bots.
+
+### Iteration H-4 — the Bookings' own economics
+
+`tools/booking-nets.ts` showed why the Flood reached 6:00 on 54% of careful nights and the
+Wedding on 93%: the Flood's spine taxed both answers (flood_02_ceiling −8 / −10 across the
+four bars, flood_03_ballroom 0 / −10) while the Wedding's tied cards gave +4.7 a card. Seven
+spine cards where both answers cost the bars were softened so the sensible answer gives
+something back (the Flood's ceiling card now −2 / −2; the Alarm's panel, the Swan's corridor,
+the Dog Show's sneezing judge, the Inspector's salmon, the Band's encore likewise). Every
+Booking's mean over both sides now sits in −1.6..+2.7. Result: careful dawn **80.1%**
+(Flood 63%, Alarm 69%, Dog Show 68%, Swan 73%, Wedding 93%), random **12.8%**, stars at
+6:00 **5/18/36/29/13**, top review 7.9%, 2.2 minutes, 24/24 Bookings. Five of six pass;
+B2 is three points under the band. The last pool file (pool B) is still landing; the
+final cell is chosen in H-5 on the finished pack.
