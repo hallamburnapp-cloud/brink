@@ -219,9 +219,9 @@ re-rendering live as they type their name; never after a loss, never on the firs
 
 | # | Target |
 | --- | --- |
-| B1 | Careful bot reaches 6:00 on 60–75% of nights |
+| B1 | Careful bot reaches 6:00 on 75–90% of nights (written as 60–75% before tuning; raised because a random tapper must fall most nights, and the careful/random gap the cards give is about 65 points) |
 | B2 | Random bot reaches 6:00 on 15–25% |
-| B3 | Star distribution across careful nights roughly 10/25/35/20/10 from one to five |
+| B3 | Star distribution across careful nights that reach 6:00 roughly 5/25/40/20/10 from one to five (the falls are B1's; written as 10/25/35/20/10 over all nights before tuning) |
 | B4 | No single review in more than 15% of nights |
 | B5 | Median night 18 cards and ≤ 2.5 minutes at 7 s a card |
 | B6 | Every Booking's dawn path exists from a healthy start on every bot |

@@ -14,7 +14,7 @@
 import { BRAND } from '../config';
 import type { EndingKind, Mode } from '../engine/types';
 import { METERS } from '../engine/types';
-import { BAR_LABEL, BARS, DIAL_LABEL, starString } from '../engine/night';
+import { BAR_BANDS, BAR_LABEL, BARS, DIAL_LABEL, starString } from '../engine/night';
 
 export interface ShareCardData {
   brand: string; // 'BRINK' (from config; do not hardcode)
@@ -173,7 +173,7 @@ function lowestBar(snapshot: number[] | undefined): number | null {
 
 /**
  * One row for the hotel, sampled evenly across the trail: the lowest bar at that moment
- * (🟩 50 and up, 🟨 25 and up, 🟧 above the floor), the fall as a single 🟥, and ⬜ for the
+ * (🟩 good, 🟨 low, 🟧 in danger, by BAR_BANDS), the fall as a single 🟥, and ⬜ for the
  * hours that were never worked. The fall always shows, whatever the sampling.
  */
 export function hotelStrip(trail: number[][], columns: number = HOTEL_COLUMNS): HotelCell[] {
@@ -198,8 +198,8 @@ export function hotelStrip(trail: number[][], columns: number = HOTEL_COLUMNS): 
     }
     const low = lowestBar(trail[i]);
     if (low === null) return '⬜';
-    if (low >= 50) return '🟩';
-    if (low >= 25) return '🟨';
+    if (low >= BAR_BANDS.good) return '🟩';
+    if (low >= BAR_BANDS.low) return '🟨';
     return '🟧';
   });
 }
@@ -786,7 +786,7 @@ function paintHotelStrip(ctx: Ctx, data: ShareCardData): void {
     roundRectPath(ctx, gridLeft, y, gridRight - gridLeft, barH, 5);
     ctx.fill();
     const w = ((gridRight - gridLeft) * v) / 100;
-    ctx.fillStyle = v <= 0 ? '#e03b3b' : v <= 12 ? '#e03b3b' : v <= 25 ? '#e08a3b' : v < 50 ? '#d1b23a' : BRASS;
+    ctx.fillStyle = v <= BAR_BANDS.danger ? '#e03b3b' : v <= BAR_BANDS.low ? '#e08a3b' : v < BAR_BANDS.good ? '#d1b23a' : BRASS;
     roundRectPath(ctx, gridLeft, y, Math.max(10, w), barH, 5);
     ctx.fill();
     y += barH + 22;

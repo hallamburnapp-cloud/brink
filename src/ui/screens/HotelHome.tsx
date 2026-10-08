@@ -171,9 +171,12 @@ export function HotelHome() {
         ) : null}
       </section>
 
-      <nav class="grid grid-cols-3 gap-2">
-        <button class="btn" onClick={() => goto('compendium')}>
-          Guest Book {book.seen}/{book.total}
+      <nav class="grid grid-cols-2 gap-2">
+        <button class="btn col-span-2 flex items-center justify-between" onClick={() => goto('compendium')}>
+          <span>Guest Book</span>
+          <span class="mono text-[10px] tracking-[0.2em] text-mute">
+            {book.seen}/{book.total} REVIEWS
+          </span>
         </button>
         <button class="btn" onClick={() => goto('settings')}>
           Settings

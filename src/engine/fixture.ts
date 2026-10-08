@@ -212,7 +212,7 @@ export function fixture(): Content {
     ],
     bookings: {},
     bookingOrder: [],
-    night: { minutes: 7, oneSided: false, useEscalation: true, fullCards: {}, firstNightScale: 1 },
+    night: { minutes: 7, oneSided: false, useEscalation: true, fullCards: {}, firstNightScale: 1, drift: 0 },
     voice: 'crisis',
     nightActs: [
       { index: 1, name: '3:00am', cards: 2, effect_scale: 1, intel_shift: 0, timer_scale: 1, day_per_card: 0.1, target: 50, flashpoint: false },

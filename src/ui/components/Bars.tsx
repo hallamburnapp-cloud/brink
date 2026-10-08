@@ -1,5 +1,5 @@
 import type { EffectKey, Effects, MeterKey, RunState } from '../../engine/types';
-import { BARS, BAR_LABEL } from '../../engine/night';
+import { BAR_BANDS, BARS, BAR_LABEL } from '../../engine/night';
 
 /**
  * The hotel's four bars: GUESTS · STAFF · MONEY · THE BUILDING. Horizontal, filling from the
@@ -22,9 +22,9 @@ const ICON: Record<Exclude<MeterKey, 'escalation'>, string> = {
 };
 
 function fillColour(v: number): string {
-  if (v <= 12) return 'var(--color-red)';
-  if (v <= 25) return 'var(--color-amber)';
-  if (v >= 50) return 'var(--color-brass)';
+  if (v <= BAR_BANDS.danger) return 'var(--color-red)';
+  if (v <= BAR_BANDS.low) return 'var(--color-amber)';
+  if (v >= BAR_BANDS.good) return 'var(--color-brass)';
   return 'var(--color-paper)';
 }
 
@@ -37,10 +37,10 @@ export function Bars({ state, preview, hiddenCosts, applied }: BarsProps) {
         const hidden = hiddenCosts.includes(k);
         const a = applied[k];
         const target = p !== undefined ? Math.max(0, Math.min(100, v + p)) : null;
-        const low = v <= 25;
-        const word = v <= 12 ? 'nearly empty' : v <= 25 ? 'low' : v >= 85 ? 'full' : 'steady';
+        const low = v <= BAR_BANDS.low;
+        const word = v <= BAR_BANDS.danger ? 'nearly empty' : low ? 'low' : v >= 85 ? 'full' : v >= BAR_BANDS.good ? 'good' : 'steady';
         return (
-          <div key={k} class={`bar ${v <= 12 ? 'bar-low' : ''}`} aria-label={`${BAR_LABEL[k]} ${word}`}>
+          <div key={k} class={`bar ${v <= BAR_BANDS.danger ? 'bar-low' : ''}`} aria-label={`${BAR_LABEL[k]} ${word}`}>
             <div class="mb-1 flex items-center justify-between">
               <span class={`mono flex items-center gap-1.5 text-[9px] tracking-[0.16em] ${low ? 'text-amber' : 'text-mute'}`}>
                 <svg viewBox="0 0 24 24" class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

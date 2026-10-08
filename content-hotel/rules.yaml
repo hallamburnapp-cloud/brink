@@ -19,11 +19,13 @@ night:
   one_sided: true
   use_escalation: false
   first_night_scale: 0.85
+  # The night wears on: every answered card costs each bar 1.5 (scaled like the cards). See BALANCE.md "The hotel".
+  drift: 1.5
   full_cards: { public: full_guests_coach, military: full_staff_singing, economy: full_money_fountain, allies: full_building_trust }
   acts:
-    - { index: 1, name: "3 o'clock", cards: 6, effect_scale: 1.00, intel_shift: 0, timer_scale: 1.00, day_per_card: 0.1, target: 50, cooling: 0, recovery: 0, flashpoint: false }
-    - { index: 2, name: "4 o'clock", cards: 6, effect_scale: 1.00, intel_shift: 0, timer_scale: 1.00, day_per_card: 0.1, target: 50, cooling: 0, recovery: 0, flashpoint: false }
-    - { index: 3, name: "5 o'clock", cards: 6, effect_scale: 1.00, intel_shift: 0, timer_scale: 1.00, day_per_card: 0.1, target: 50, cooling: 0, recovery: 0, flashpoint: false }
+    - { index: 1, name: "3 o'clock", cards: 6, effect_scale: 1.40, intel_shift: 0, timer_scale: 1.00, day_per_card: 0.1, target: 50, cooling: 0, recovery: 0, flashpoint: false }
+    - { index: 2, name: "4 o'clock", cards: 6, effect_scale: 1.40, intel_shift: 0, timer_scale: 1.00, day_per_card: 0.1, target: 50, cooling: 0, recovery: 0, flashpoint: false }
+    - { index: 3, name: "5 o'clock", cards: 6, effect_scale: 1.40, intel_shift: 0, timer_scale: 1.00, day_per_card: 0.1, target: 50, cooling: 0, recovery: 0, flashpoint: false }
 
 # Level 5 is every night; level 1 is a player's very first (practice) night.
 difficulties:

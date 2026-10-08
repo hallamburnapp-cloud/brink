@@ -57,6 +57,14 @@ export function fallenDial(state: Pick<RunState, 'meters'>): MeterKey | null {
 export const BAR_LABEL: Record<MeterKey, string> = { public: 'GUESTS', military: 'STAFF', allies: 'THE BUILDING', economy: 'MONEY', escalation: '' };
 export const BARS: readonly Exclude<MeterKey, 'escalation'>[] = ['public', 'military', 'economy', 'allies'] as const;
 
+/**
+ * Where a bar reads as good, low and in danger, and where the stars band. The night's economy
+ * drains the bars (BALANCE.md "The hotel"): a careful night ends with the four bars' mean around
+ * 27 of 100, so "good" is 38 and up, not half. Bars, strip cells and stars all read from here.
+ */
+export const BAR_BANDS = { good: 38, low: 24, danger: 12 } as const;
+export const STAR_BANDS: readonly [number, number, number, number] = [38, 31, 24, 18];
+
 /** Minutes of the clock the night has used: the sum of the played cards' `minutes` (default rules.night.minutes). */
 export function elapsedMinutes(content: Content, state: Pick<RunState, 'history'>): number {
   let m = 0;
@@ -77,10 +85,10 @@ export function starsFor(state: Pick<RunState, 'meters'>): number {
   const m = state.meters;
   if (BARS.some((k) => m[k] <= 0)) return 1;
   const mean = BARS.reduce((n, k) => n + m[k], 0) / BARS.length;
-  if (mean >= 78) return 5;
-  if (mean >= 62) return 4;
-  if (mean >= 46) return 3;
-  if (mean >= 30) return 2;
+  if (mean >= STAR_BANDS[0]) return 5;
+  if (mean >= STAR_BANDS[1]) return 4;
+  if (mean >= STAR_BANDS[2]) return 3;
+  if (mean >= STAR_BANDS[3]) return 2;
   return 1;
 }
 

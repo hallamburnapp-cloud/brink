@@ -574,6 +574,13 @@ export function choose(content: Content, state: RunState, side: Side | 'timeout'
   // 8. Passive drift from doctrines and advisors, and the act's cooling on ordinary cards.
   applyDrift(content, state, rng, ctx, !card.flashpoint && !card.bluff);
 
+  // 8b. The hotel: the night wears on. Every answered card costs each bar a little, scaled like
+  // the card costs, so a night cannot be survived by standing still.
+  if (state.ruleset === 'simple' && content.night.drift > 0) {
+    const scale = content.difficulties.find((d) => d.level === state.difficulty)?.effect_scale ?? 1;
+    for (const k of ['public', 'military', 'allies', 'economy'] as const) state.meters[k] = Math.max(0, state.meters[k] - content.night.drift * scale);
+  }
+
   // 9. Endings (with the Deadman Switch).
   if (forcedEnding) {
     const e = content.endings[forcedEnding];

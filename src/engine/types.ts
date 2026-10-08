@@ -505,6 +505,8 @@ export interface NightRules {
   useEscalation: boolean;
   fullCards: Partial<Record<Exclude<MeterKey, 'escalation'>, string>>;
   firstNightScale: number;
+  /** The night wears on: every answered card costs each of the four bars this much, scaled by the difficulty; 0 = off. */
+  drift: number;
 }
 
 export interface BookingDef {

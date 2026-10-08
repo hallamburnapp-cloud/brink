@@ -73,7 +73,7 @@ export function Desk() {
 
       {bell && (
         <div class="paper-dark rise rounded-md p-3" role="region" aria-label="The desk bell">
-          <div class="serif text-sm text-paper/85">Keep the four bars off the floor until 6:00. Empty ends the night; full is good. Home keeps the night exactly where it is.</div>
+          <div class="serif text-sm text-paper/85">Keep the four bars off the floor until 6:00. The night wears them down by itself; what you choose decides where they end. Empty ends the night. Home keeps the night exactly where it is.</div>
           {booking && <div class="mono mt-2 text-[10px] tracking-[0.2em] text-mute">TONIGHT · {booking.toUpperCase()}</div>}
           <div class="mt-3 flex gap-2">
             <button class="btn flex-1" onClick={() => setBell(false)}>

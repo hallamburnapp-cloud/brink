@@ -34,6 +34,7 @@ import {
   view,
 } from '../engine/run';
 import { METERS, type CardView, type Content, type Effects, type EndingKind, type Mode, type Pool, type Rarity, type RunEvent, type RunState, type Seat } from '../engine/types';
+import { starsFor } from '../engine/night';
 import { archetypeAssembled, policyByName, type Decision, type Policy, type ShopApi } from './policies';
 
 // ------------------------------------------------------------------ one run
@@ -102,6 +103,12 @@ export interface RunSummary {
   estMinutesTotal: number;
   /** The step cap was hit before the run ended (a content gap or an unbeatable endless build). */
   capped: boolean;
+  /** The hotel: the review's stars (1–5) at the end of the night; null for the crisis packs. */
+  stars: number | null;
+  /** The hotel: the Booking the night was pinned to. */
+  booking: string | null;
+  /** The hotel: the mean of the four bars when the night ended (what the stars are banded from). */
+  barMean: number | null;
 }
 
 /** Called once per presented card so the simulator can build the per-card table without keeping histories. */
@@ -426,6 +433,9 @@ export function runOne(content: Content, opts: RunOneOptions): RunSummary {
     estMinutes: round(estMinutes, 2),
     estMinutesTotal: round(estimateMinutes(state.cardsPlayed, st.rolls, shops, st.accidents), 2),
     capped,
+    stars: content.voice === 'hotel' ? starsFor(state) : null,
+    booking: state.booking ?? null,
+    barMean: content.voice === 'hotel' ? round((state.meters.public + state.meters.military + state.meters.allies + state.meters.economy) / 4, 1) : null,
   };
 }
 
@@ -573,9 +583,30 @@ export interface CardStat {
   impact: number;
 }
 
+export interface StarStats {
+  /** Share of nights (%) at one to five stars, index 0 = one star. */
+  dist: number[];
+  /** The same among the nights that reached 6:00. */
+  dawnDist: number[];
+  mean: number;
+  /** The mean of the four bars at the end of the night, across nights (falls included at their value). */
+  barMean: Percentiles;
+}
+
+export interface BookingStat {
+  id: string;
+  runs: number;
+  pct: number;
+  dawnPct: number;
+  meanStars: number;
+}
+
 export interface PolicyReport {
   policy: string;
   runs: number;
+  /** The hotel: stars and Bookings; null for the crisis packs. */
+  stars: StarStats | null;
+  bookings: BookingStat[];
   days: Percentiles;
   score: Percentiles;
   estMinutes: Percentiles;
@@ -694,6 +725,8 @@ export interface Report {
     seats: Seat[];
     policies: string[];
     actNames: string[];
+    /** Which voice contract the pack is written to; 'hotel' selects the B targets. */
+    voice: 'crisis' | 'hotel';
     /** Last authored act's target × difficulty target scale. */
     finalTarget: number;
     brokeGameThreshold: number;
@@ -732,6 +765,14 @@ export const NIGHT_SECONDS_PER_CARD = 7;
 export const NIGHT_TOP_ENDING_MAX = 35;
 /** Share of the calm bot's nights that reach the crisis and do not come out: a real test, not a coin flip. */
 export const NIGHT_CRISIS_BAND: readonly [number, number] = [25, 45];
+/** The hotel (B1–B6; HOTEL.md "Targets"): the careful bot reaches 6:00 most nights, the random bot rarely. */
+export const HOTEL_DAWN_BAND: readonly [number, number] = [75, 90];
+export const HOTEL_RANDOM_DAWN_BAND: readonly [number, number] = [15, 25];
+/** Stars among the careful bot's nights that reach 6:00 (the falls are B1's business): one to five. */
+export const HOTEL_STARS_TARGET: readonly number[] = [5, 25, 40, 20, 10];
+export const HOTEL_STARS_TOLERANCE = 10;
+export const HOTEL_TOP_REVIEW_MAX = 15;
+export const HOTEL_MINUTES_MAX = 2.5;
 export const BROKE_GAME_MULT = 100;
 export const BROKE_GAME_PCT = 3;
 
@@ -830,6 +871,13 @@ class Group {
   archetypesFinal = new Map<string, number>();
   records: RunRecord[] = [];
   cards = new Map<string, CardAcc>();
+  /** The hotel: nights at one to five stars (index 0 = one star). */
+  stars = [0, 0, 0, 0, 0];
+  starsRuns = 0;
+  starsDawn = [0, 0, 0, 0, 0];
+  starsDawnRuns = 0;
+  barMeans: number[] = [];
+  bookings = new Map<string, { runs: number; won: number; stars: number }>();
 
   constructor(
     readonly policy: string,
@@ -959,6 +1007,26 @@ class Group {
     }
     if (s.archetype) bump(this.archetypesFinal, s.archetype);
     this.records.push({ pieces: s.pieces, kind: s.kind, won: s.won });
+    if (s.stars !== null) {
+      const band = Math.max(1, Math.min(5, Math.round(s.stars))) - 1;
+      this.stars[band]++;
+      this.starsRuns++;
+      if (s.won) {
+        this.starsDawn[band]++;
+        this.starsDawnRuns++;
+      }
+      if (s.barMean !== null) this.barMeans.push(s.barMean);
+    }
+    if (s.booking) {
+      let b = this.bookings.get(s.booking);
+      if (!b) {
+        b = { runs: 0, won: 0, stars: 0 };
+        this.bookings.set(s.booking, b);
+      }
+      b.runs++;
+      if (s.won) b.won++;
+      b.stars += s.stars ?? 0;
+    }
   }
 }
 
@@ -1102,9 +1170,27 @@ function buildPolicyReport(content: Content, g: Group): PolicyReport {
   let ordersUsed = 0;
   for (const n of g.ordersUsed.values()) ordersUsed += n;
 
+  const stars: StarStats | null =
+    g.starsRuns > 0
+      ? {
+          dist: g.stars.map((n) => pct(n, g.starsRuns)),
+          dawnDist: g.starsDawn.map((n) => pct(n, g.starsDawnRuns)),
+          mean: round(g.stars.reduce((sum, n, i) => sum + n * (i + 1), 0) / g.starsRuns, 2),
+          barMean: percentiles(g.barMeans),
+        }
+      : null;
+  const bookings: BookingStat[] = content.bookingOrder
+    .filter((id) => g.bookings.has(id))
+    .map((id) => {
+      const b = g.bookings.get(id)!;
+      return { id, runs: b.runs, pct: pct(b.runs, runs), dawnPct: pct(b.won, b.runs), meanStars: b.runs ? round(b.stars / b.runs, 2) : 0 };
+    });
+
   return {
     policy: g.policy,
     runs,
+    stars,
+    bookings,
     days: percentiles(g.days),
     score: percentiles(g.scores),
     estMinutes: percentiles(g.minutes),
@@ -1373,7 +1459,66 @@ function buildNightTargets(report: Omit<Report, 'targets'>): Target[] {
   return targets;
 }
 
+/** The hotel's targets (B1–B6); see HOTEL.md "Targets" and BALANCE.md "The hotel". */
+function buildHotelTargets(report: Omit<Report, 'targets'>): Target[] {
+  const h = report.policies.heuristic;
+  const r = report.policies.random;
+  const targets: Target[] = [];
+  const na = (id: string, label: string, detail = 'heuristic policy not run'): Target => ({ id, label, status: 'N/A', value: '—', detail });
+  const kindPct = (p: PolicyReport, kind: string) => p.kinds.find((k) => k.kind === kind)?.pct ?? 0;
+  const fallDetail = (p: PolicyReport) =>
+    p.endings
+      .filter((e) => e.kind === 'removed')
+      .map((e) => `${e.id} ${e.pct}%`)
+      .join(', ') || 'no falls';
+
+  const b1 = `B1 Careful (heuristic) bot reaches 6:00 on ${HOTEL_DAWN_BAND[0]}–${HOTEL_DAWN_BAND[1]}% of nights`;
+  if (!h) targets.push(na('hotel_dawn', b1));
+  else targets.push({ id: 'hotel_dawn', label: b1, status: h.winRate >= HOTEL_DAWN_BAND[0] && h.winRate <= HOTEL_DAWN_BAND[1] ? 'PASS' : 'FAIL', value: `${h.winRate}%`, detail: `${kindPct(h, 'removed')}% fell: ${fallDetail(h)}` });
+
+  const b2 = `B2 Random bot reaches 6:00 on ${HOTEL_RANDOM_DAWN_BAND[0]}–${HOTEL_RANDOM_DAWN_BAND[1]}% of nights`;
+  if (!r) targets.push(na('hotel_random_dawn', b2, 'random policy not run'));
+  else targets.push({ id: 'hotel_random_dawn', label: b2, status: r.winRate >= HOTEL_RANDOM_DAWN_BAND[0] && r.winRate <= HOTEL_RANDOM_DAWN_BAND[1] ? 'PASS' : 'FAIL', value: `${r.winRate}%`, detail: `${kindPct(r, 'removed')}% fell: ${fallDetail(r)}` });
+
+  const b3 = `B3 Careful bot's stars at 6:00 roughly ${HOTEL_STARS_TARGET.join('/')} from one to five (each within ±${HOTEL_STARS_TOLERANCE} points)`;
+  if (!h || !h.stars) targets.push(na('hotel_stars', b3));
+  else {
+    const dist = h.stars.dawnDist.map((d) => Math.round(d));
+    const off = dist.map((d, i) => Math.abs(d - HOTEL_STARS_TARGET[i]));
+    targets.push({ id: 'hotel_stars', label: b3, status: off.every((o) => o <= HOTEL_STARS_TOLERANCE) ? 'PASS' : 'FAIL', value: dist.join('/'), detail: `all nights ${h.stars.dist.map((d) => Math.round(d)).join('/')}, mean ${h.stars.mean} stars; worst band off by ${Math.max(...off)} points` });
+  }
+
+  const b4 = `B4 No single review in more than ${HOTEL_TOP_REVIEW_MAX}% of the careful bot's nights`;
+  if (!h) targets.push(na('hotel_variety', b4));
+  else targets.push({ id: 'hotel_variety', label: b4, status: h.topEndingShare <= HOTEL_TOP_REVIEW_MAX ? 'PASS' : 'FAIL', value: `${h.topEnding ?? '—'} ${h.topEndingShare}%`, detail: `${h.endings.length} distinct reviews` });
+
+  const b5 = `B5 Median night is the full card count and at most ${HOTEL_MINUTES_MAX} minutes at ${NIGHT_SECONDS_PER_CARD} s a card`;
+  if (!h) targets.push(na('hotel_pace', b5));
+  else {
+    const rollsPerNight = h.runs ? h.rolls / h.runs : 0;
+    const mins = (h.avgCards * NIGHT_SECONDS_PER_CARD + rollsPerNight * 4) / 60;
+    targets.push({ id: 'hotel_pace', label: b5, status: mins <= HOTEL_MINUTES_MAX ? 'PASS' : 'FAIL', value: `${mins.toFixed(1)} min`, detail: `${h.avgCards} cards and ${rollsPerNight.toFixed(1)} rolls per night` });
+  }
+
+  const b6 = 'B6 Every Booking reaches 6:00 at least once on every bot run';
+  const policies = report.policyOrder.filter((p) => p !== 'all' && report.policies[p]);
+  if (policies.length === 0) targets.push(na('hotel_bookings', b6, 'no policy run'));
+  else {
+    const missing: string[] = [];
+    let total = 0;
+    for (const p of policies) {
+      for (const b of report.policies[p].bookings) {
+        total++;
+        if (b.dawnPct <= 0) missing.push(`${b.id} (${p})`);
+      }
+    }
+    targets.push({ id: 'hotel_bookings', label: b6, status: total === 0 ? 'N/A' : missing.length === 0 ? 'PASS' : 'FAIL', value: `${total - missing.length}/${total}`, detail: missing.length ? `never reached 6:00: ${missing.join(', ')}` : policies.map((p) => `${p}: ${report.policies[p].bookings.map((b) => `${b.id} ${b.dawnPct}%`).join(', ')}`).join('; ') });
+  }
+  return targets;
+}
+
 function buildTargets(report: Omit<Report, 'targets'>): Target[] {
+  if (report.meta.voice === 'hotel') return buildHotelTargets(report);
   if (report.meta.mode === 'daily' || report.meta.mode === 'night') return buildNightTargets(report);
   const h = report.policies.heuristic;
   const targets: Target[] = [];
@@ -1515,6 +1660,7 @@ export function simulate(content: Content, opts: SimulateOptions): Report {
       seats,
       policies: policies.map((p) => p.name),
       actNames: content.acts.map((a) => a.name),
+      voice: content.voice,
       finalTarget: target,
       brokeGameThreshold: threshold,
       content: {
@@ -1569,7 +1715,14 @@ function policySection(actNames: readonly string[], r: PolicyReport): string {
   out.push(`- Near-miss rate: ${fmtRate(r.nearMissRate)} (${r.nearMisses} / ${r.rolls} rolls)`);
   out.push(`- Average peak escalation: ${r.avgPeakEscalation}; false alarms per run: ${r.falseAlarmsPerRun}`);
   out.push(`- Top ending share: **${r.topEndingShare}%**${r.topEnding ? ` (${r.topEnding})` : ''}`);
+  if (r.stars) out.push(`- Stars (one to five): **${r.stars.dist.map((d) => Math.round(d)).join('/')}** over all nights, ${r.stars.dawnDist.map((d) => Math.round(d)).join('/')} among nights that reached 6:00, mean ${r.stars.mean}; the four bars' mean at the end: median ${r.stars.barMean.median}, p10 ${r.stars.barMean.p10}, p90 ${r.stars.barMean.p90}`);
   out.push('');
+  if (r.bookings.length) {
+    out.push(`### Bookings (${r.policy})`);
+    out.push('');
+    out.push(table(['Booking', 'Nights', '%', 'Reached 6:00 %', 'Mean stars'], r.bookings.map((b) => [b.id, b.runs, b.pct, b.dawnPct, b.meanStars])));
+    out.push('');
+  }
   out.push(`### Endings (${r.policy})`);
   out.push('');
   out.push('The first ending reached (a continuation into endless does not change it).');
