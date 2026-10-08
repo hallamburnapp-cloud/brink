@@ -24,6 +24,7 @@ export function HotelHome() {
   const rec = played ? todaysReview() : null;
   const [countdown, setCountdown] = useState(fmtCountdown(msUntilNextDaily()));
   const [pick, setPick] = useState(false);
+  const [seed, setSeed] = useState('');
   useEffect(() => {
     const id = setInterval(() => setCountdown(fmtCountdown(msUntilNextDaily())), 30000);
     return () => clearInterval(id);
@@ -149,12 +150,22 @@ export function HotelHome() {
               CHOOSE THE NIGHT
             </button>
             {pick && (
-              <div class="mt-2 grid grid-cols-2 gap-1.5">
-                {c.bookingOrder.map((id) => (
-                  <button key={id} class="btn py-2 text-sm" onClick={() => startBooking(id)}>
-                    {c.bookings[id].name}
-                  </button>
-                ))}
+              <div class="mt-2">
+                <input
+                  class="mono w-full rounded-sm border border-paper/20 bg-transparent px-3 py-2 text-sm text-paper placeholder:text-mute/60"
+                  placeholder="a seed to send along (optional)"
+                  value={seed}
+                  onInput={(e) => setSeed((e.target as HTMLInputElement).value)}
+                  aria-label="Seed"
+                />
+                <div class="mt-2 grid grid-cols-2 gap-1.5">
+                  {c.bookingOrder.map((id) => (
+                    <button key={id} class="btn py-2 text-sm" onClick={() => startBooking(id, seed.trim() || undefined)}>
+                      {c.bookings[id].name}
+                    </button>
+                  ))}
+                </div>
+                <div class="mono mt-2 text-[10px] tracking-[0.14em] text-mute">THE SAME SEED AND BOOKING GIVE THE SAME NIGHT TO ANYONE WITH THE PLATE</div>
               </div>
             )}
           </>

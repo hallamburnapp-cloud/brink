@@ -77,3 +77,22 @@ groups were committed as they landed from then on, so a second restart could los
 two files' worth of work. Lesson kept in the workflow itself: every group validates and
 saves file by file, never in one write at the end.
 
+## B-007 Tag push refused (open)
+
+`git push origin v0.3.0-night` fails with "fatal: the remote end hung up unexpectedly" while
+pushes of `main` to the same remote succeed, repeatedly and after retries with backoff. The
+tag exists locally and the commit it points at is on `main`, so nothing is lost; the crisis
+game is also kept as the `content-crisis/` pack. Retry the tag push from a different
+network, or create the tag on GitHub from the commit (`e08e530`'s parent, the last 0.3.0
+commit) if it still refuses.
+
+## B-008 The playtest harness has no hotel mode (open)
+
+`tools/playtest.ts --game night` reads the five dials and the dawn screen of the crisis
+night. The hotel's desk has four bars, a reply line and a review, so the harness's
+decision styles cannot play it yet. `tools/smoke/hotel.ts` plays the first night and
+tonight through the real screens (alternating and right-handed taps, screenshots, the
+share text) and `e2e/hotel.spec.ts` covers the loop; a `--game hotel` mode that reads the
+bar fills and chips, and a careful style that tilts to protect the lowest bar, is the next
+tool job. The simulator's careful bot is the balance reference until then.
+

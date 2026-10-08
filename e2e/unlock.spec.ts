@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { webcrypto } from 'node:crypto';
 
@@ -15,12 +15,22 @@ async function signToken(payload: object): Promise<string> {
   return `brink1.${payloadB64}.${b64url(new Uint8Array(sig))}`;
 }
 
-test.describe('Unlock flow with a stubbed Worker', () => {
-  test('Night after night is locked, then unlocked after the Stripe redirect', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByRole('button', { name: /^Unlock/ })).toBeVisible();
-    await page.getByRole('button', { name: /^Unlock/ }).click();
+/** Home shows the plate only after the first open: start the practice night, answer one card, come home. */
+async function pastTheFirstOpen(page: Page): Promise<void> {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Clock in' }).click();
+  await page.getByRole('button', { name: /^Right:/ }).click();
+  await page.getByRole('button', { name: /^Home/ }).first().click();
+  await expect(page.getByText(/PRACTICE NIGHT/)).toBeVisible();
+}
+
+test.describe('The Brass Plate with a stubbed Worker', () => {
+  test('the plate is locked, then on the desk after the Stripe redirect', async ({ page }) => {
+    await pastTheFirstOpen(page);
+    await expect(page.getByText('THE BRASS PLATE', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: /^Unlock · / }).click();
     await expect(page.getByText(/ONE-TIME PURCHASE/)).toBeVisible();
+    await expect(page.getByText(/Choose the night you work/)).toBeVisible();
     await expect(page.getByRole('link', { name: /^Unlock for/ })).toHaveAttribute('href', /stripe/);
 
     const token = await signToken({ sub: 'a'.repeat(64), plan: 'endless', iat: Math.floor(Date.now() / 1000), v: 1 });
@@ -32,27 +42,21 @@ test.describe('Unlock flow with a stubbed Worker', () => {
     });
 
     await page.goto('/unlocked?session_id=cs_test_123');
-    await expect(page.getByText(/Night after night is yours/)).toBeVisible();
+    await expect(page.getByText(/The plate is on the desk/)).toBeVisible();
     await page.getByRole('button', { name: 'Continue' }).click();
-    // Night after night now playable: Play starts another night at once, the seat picker offers Expert
-    const nightAfterNight = page.locator('section').filter({ hasText: 'NIGHT AFTER NIGHT' });
-    await expect(nightAfterNight.getByRole('button', { name: 'Play' })).toBeVisible();
-    await nightAfterNight.getByRole('button', { name: 'CHOOSE A SEAT OR SEED' }).click();
-    await expect(page.getByText('Take a seat')).toBeVisible();
-    await page.getByRole('button', { name: /Start the night as/ }).click();
-    const intro = page.getByRole('dialog', { name: 'How this works' });
-    if (await intro.isVisible({ timeout: 2000 }).catch(() => false)) await intro.getByRole('button').click();
+
+    // With the plate: choose the night you work; the chosen Booking is on the card's footer.
+    await expect(page.getByRole('button', { name: /^Unlock · / })).toHaveCount(0);
+    await page.getByRole('button', { name: 'CHOOSE THE NIGHT' }).click();
+    await page.getByRole('button', { name: 'The Wedding' }).click();
     await expect(page.getByRole('group', { name: /Card from/ })).toBeVisible();
-    await expect(page.getByText('THE NIGHT')).toBeVisible();
+    await expect(page.getByText('THE WEDDING', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('PRACTICE', { exact: true })).toBeVisible();
 
-    // Token survives reload
+    // The token survives a reload.
     await page.goto('/');
-    await expect(page.locator('section').filter({ hasText: 'NIGHT AFTER NIGHT' }).getByRole('button', { name: 'Play' })).toBeVisible();
-
-    // Expert is there for those who want the numbers
-    await page.getByRole('button', { name: 'EXPERT' }).click();
-    await page.getByRole('tab', { name: 'EXPERT' }).click();
-    await expect(page.getByRole('button', { name: /Pick up the phone as/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'CHOOSE THE NIGHT' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Unlock · / })).toHaveCount(0);
   });
 
   test('a tampered token is rejected', async ({ page }) => {
@@ -62,11 +66,11 @@ test.describe('Unlock flow with a stubbed Worker', () => {
     await expect(page.getByText(/did not check out/)).toBeVisible();
   });
 
-  test('restore by email unlocks', async ({ page }) => {
+  test('restore by email puts the plate back', async ({ page }) => {
     const token = await signToken({ sub: 'c'.repeat(64), plan: 'endless', iat: Math.floor(Date.now() / 1000), v: 1 });
     await page.route('http://unlock.test/**', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ token }) }));
-    await page.goto('/');
-    await page.getByRole('button', { name: /^Unlock/ }).click();
+    await pastTheFirstOpen(page);
+    await page.getByRole('button', { name: /^Unlock · / }).click();
     await page.getByPlaceholder('email used at checkout').fill('buyer@example.com');
     await page.getByRole('button', { name: 'Restore' }).click();
     await expect(page.getByText(/Restored/)).toBeVisible();

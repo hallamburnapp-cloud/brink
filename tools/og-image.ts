@@ -183,6 +183,10 @@ export function buildOgSvg(daily: Daily, opts: OgOptions = {}): string {
       ? `Tonight #${daily.number} · ${opts.label ?? seat.name} · ${formatDate(daily.date)}`
       : 'The same night for everyone · One attempt · About two minutes';
 
+  // A long tagline breaks at its first full stop so it never runs into the gauge.
+  const tagline = opts.tagline ?? "It's 3am. The phone is ringing.";
+  const stop = tagline.indexOf('. ');
+  const taglineLines = tagline.length > 34 && stop > 0 ? [tagline.slice(0, stop + 1), tagline.slice(stop + 2)] : [tagline];
   const serif = `'Liberation Serif', 'DejaVu Serif', Georgia, 'Times New Roman', serif`;
   const mono = `'DejaVu Sans Mono', 'Liberation Mono', Menlo, Consolas, monospace`;
 
@@ -211,8 +215,8 @@ export function buildOgSvg(daily: Daily, opts: OgOptions = {}): string {
     // Copy.
     `<text x="72" y="300" font-family="${serif}" font-size="210" font-weight="bold" fill="${OFF_WHITE}" letter-spacing="14">${esc(BRAND.name)}</text>`,
     `<rect x="76" y="330" width="120" height="3" fill="${accent}"/>`,
-    `<text x="76" y="392" font-family="${mono}" font-size="34" fill="${MUTED}">${esc(opts.tagline ?? "It's 3am. The phone is ringing.")}</text>`,
-    `<text x="76" y="452" font-family="${mono}" font-size="26" fill="${accent}" letter-spacing="1">${esc(meta)}</text>`,
+    ...taglineLines.map((line, i) => `<text x="76" y="${392 + i * 42}" font-family="${mono}" font-size="34" fill="${MUTED}">${esc(line)}</text>`),
+    `<text x="76" y="${452 + (taglineLines.length - 1) * 42}" font-family="${mono}" font-size="26" fill="${accent}" letter-spacing="1">${esc(meta)}</text>`,
     `<text x="76" y="${HEIGHT - 44}" font-family="${mono}" font-size="18" fill="${MUTED}" fill-opacity="0.7" letter-spacing="3">${esc(opts.footer ?? 'KEEP FIVE DIALS OFF THE EDGES · MAKE IT TO DAWN')}</text>`,
     `</svg>`,
   ].join('\n');

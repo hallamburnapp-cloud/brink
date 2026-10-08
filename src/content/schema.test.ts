@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { join } from 'node:path';
 import { compileContent, cardSchema, type RawContent } from './schema';
@@ -54,9 +55,15 @@ describe('card schema', () => {
   });
 });
 
-describe('shipped pieces, seats, speakers and rules', () => {
-  it('compile without schema errors', () => {
-    const { raw, issues } = loadRaw(join(process.cwd(), 'content'));
+/** The two shipped packs, wherever they currently live: the hotel is `content/` once the packs have swapped. */
+function packDir(...candidates: string[]): string {
+  for (const c of candidates) if (existsSync(join(process.cwd(), c))) return join(process.cwd(), c);
+  return join(process.cwd(), candidates[candidates.length - 1]);
+}
+
+describe('shipped packs compile without schema errors', () => {
+  it('the crisis pack: pieces, three seats, five acts', () => {
+    const { raw, issues } = loadRaw(packDir('content-crisis', 'content'));
     expect(issues).toEqual([]);
     const compiled = compileContent(raw);
     const nonCard = compiled.issues.filter((i) => !i.where.startsWith('card') && !i.where.startsWith('cards/'));
@@ -64,6 +71,31 @@ describe('shipped pieces, seats, speakers and rules', () => {
     expect(compiled.content.pieceOrder.length).toBeGreaterThanOrEqual(36);
     expect(Object.keys(compiled.content.seats)).toHaveLength(3);
     expect(compiled.content.acts).toHaveLength(5);
+    expect(compiled.content.voice).toBe('crisis');
+  });
+  it('the hotel pack: one seat, twelve Bookings, one-sided bars, reviews with stars', () => {
+    const dir = packDir('content-hotel', 'content');
+    const { raw, issues } = loadRaw(dir);
+    expect(issues).toEqual([]);
+    const compiled = compileContent(raw);
+    if (compiled.content.voice !== 'hotel') return; // before the packs swapped and without content-hotel: nothing to check
+    expect(compiled.issues).toEqual([]);
+    expect(Object.keys(compiled.content.seats)).toHaveLength(1);
+    expect(compiled.content.bookingOrder.length).toBeGreaterThanOrEqual(12);
+    expect(compiled.content.night.oneSided).toBe(true);
+    expect(compiled.content.night.useEscalation).toBe(false);
+    expect(compiled.content.night.cards).toBe(18);
+    for (const id of compiled.content.bookingOrder) {
+      const b = compiled.content.bookings[id];
+      for (const cid of [b.opener, ...b.beats.map((x) => x.card), b.head.card]) expect(compiled.content.cards[cid], `${id}: ${cid}`).toBeDefined();
+      const reviews = Object.values(compiled.content.endings).filter((e) => e.conditions?.flags_all?.includes(`booking:${id}`) && e.trigger.type === 'run_end');
+      expect(reviews.length, `${id} reviews`).toBeGreaterThanOrEqual(3);
+      for (const r of reviews) {
+        expect(r.stars, `${r.id} stars`).toBeGreaterThanOrEqual(1);
+        expect(r.quote, `${r.id} quote`).toBeTruthy();
+        expect(r.byline && compiled.content.speakers[r.byline], `${r.id} byline`).toBeTruthy();
+      }
+    }
   });
   it('validator flags a dangling follow-up, an unsettable flag and a forbidden word', () => {
     const { content } = compileContent(
