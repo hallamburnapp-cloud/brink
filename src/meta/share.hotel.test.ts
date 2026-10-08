@@ -100,11 +100,11 @@ describe('the hotel share text', () => {
 
 describe('stars and falls', () => {
   const m = (guests: number, staff: number, building: number, money: number) => ({ meters: { public: guests, military: staff, allies: building, economy: money, escalation: 0 } });
-  it('bands the mean of the four bars (BALANCE.md: a careful night ends near 27) and makes any empty bar one star', () => {
-    expect(starsFor(m(40, 40, 36, 36))).toBe(5);
-    expect(starsFor(m(34, 34, 30, 30))).toBe(4);
-    expect(starsFor(m(26, 26, 24, 24))).toBe(3);
-    expect(starsFor(m(20, 20, 18, 18))).toBe(2);
+  it('bands the mean of the four bars (BALANCE.md: a careful night ends near 30) and makes any empty bar one star', () => {
+    expect(starsFor(m(44, 44, 38, 38))).toBe(5);
+    expect(starsFor(m(36, 36, 32, 32))).toBe(4);
+    expect(starsFor(m(29, 29, 25, 25))).toBe(3);
+    expect(starsFor(m(23, 23, 19, 19))).toBe(2);
     expect(starsFor(m(10, 10, 10, 10))).toBe(1);
     expect(starsFor(m(100, 100, 100, 0))).toBe(1);
   });

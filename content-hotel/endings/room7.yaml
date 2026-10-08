@@ -1,0 +1,112 @@
+# THE MAN WHO ISN'T HERE at 6:00 — what gets written about a guest who wasn't there.
+# The star bands are unconditional; the review above them reads the flag the head sets
+# when the two men are introduced and the umbrella comes out.
+
+- id: room7_review_umbrella
+  name: The Umbrella
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:room7, room7:introduced], stars: { min: 4 } }
+  priority: 45
+  stars: 5
+  byline: room7
+  quote: "A man sat in your lobby from three to six to hand me an umbrella. I don't own an umbrella."
+  text: >-
+    At six the Day Manager walks in with her own pen and finds a man in a good coat asleep
+    in the lobby and the guest in 7 at the desk, holding an umbrella he does not remember
+    owning. The Porter has a theory, and for once it is the right one.
+
+
+    Room 7 pays for the sandwich in cash and writes five stars on the back of the receipt,
+    unsigned. The umbrella he leaves at the desk, for the next man who isn't here.
+  moment_label: "The moment the umbrella came out"
+  compendium: "Six o'clock, the two men introduced at last, and an umbrella nobody owns. Five stars, unsigned."
+  emoji: "☂️"
+
+- id: room7_review_five
+  name: Nobody, Underlined
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:room7], stars: { min: 4 } }
+  priority: 40
+  stars: 5
+  byline: room7
+  quote: "I was never here. The service, while I wasn't, was excellent."
+  text: >-
+    At six the Day Manager walks in with her own pen, reads the register, which says 7 is
+    empty, and looks in 7, which is also empty, because he left by a door of his choosing.
+    The man in the good coat has gone too, with an umbrella under his arm that was not his.
+
+
+    A review arrives at the desk at nine, in an envelope, in cash, unsigned. Five stars.
+    The Porter files it in the Guest Book under 'nobody', and underlines it.
+  moment_label: "The moment the register was right"
+  compendium: "Six o'clock, 7 empty on the page and empty in fact, and five stars from nobody at all."
+  emoji: "🗝️"
+
+- id: room7_review_three
+  name: Two Rules About Lobbies
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:room7], stars: { min: 3, max: 3 } }
+  priority: 40
+  stars: 3
+  byline: room12
+  quote: "A man waited in my lobby all night and I asked his name. Nobody else thought to."
+  text: >-
+    At six the man in the good coat is still in the lobby, the guest in 7 is still in 7, and
+    the register has been written in, rubbed out and written in again, so that it now says
+    'nobody' in three different hands.
+
+
+    Room 12 writes three stars on the card by the lift, under a new rule about waiting and
+    a second new rule about names. "Both reasonable," she adds, "and both, it turns out,
+    needed."
+  moment_label: "The moment she added the second rule"
+  compendium: "Six o'clock, both men still in the lobby, and two new rules by the lift. Three stars."
+  emoji: "📇"
+
+- id: room7_review_two
+  name: The Plate Outside 7
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:room7], stars: { max: 2 } }
+  priority: 40
+  stars: 2
+  byline: daymanager
+  quote: "The register says nobody was in 7. The sandwich plate outside 7 disagrees."
+  text: >-
+    At six the Day Manager walks in with her own pen, reads the register, reads the board,
+    reads the plate outside 7, and says "right" in the voice she keeps for arithmetic. The
+    man in the good coat has gone. The Porter has a theory, and the theory is that he was
+    never here either.
+
+
+    Two stars, in her hand, on the register itself, on the page for 7. The Owner rings at
+    seven to ask why an empty room has a review.
+  moment_label: "The moment she read the plate"
+  compendium: "Six o'clock by a whisker, a register nobody believes, and two stars written on it. Hers."
+  emoji: "🍽️"
+
+# ---- The fall this Booking suggests: the guests take 7's advice, and the register is finally right
+
+- id: room7_fall_guests
+  name: Nobody Was Ever Here
+  kind: removed
+  trigger: { type: meter, key: public, at: 0 }
+  conditions: { flags_all: [booking:room7] }
+  priority: 30
+  stars: 1
+  byline: porter
+  quote: "By six the register agreed with everybody. Nobody had ever been here."
+  text: >-
+    They go the way the guest in 7 wanted to go: by the kitchen, in ones and twos, keys on
+    the desk and their names, at their request, left off the register. The man in the good
+    coat holds the door for each of them and asks nobody anything.
+
+
+    At six the Day Manager arrives at a hotel the register says is empty, and for once the
+    register is right. One star, from the Porter, who has a theory and would rather not say.
+  moment_label: "The moment the register was right"
+  compendium: "The guests left by the kitchen and asked to be left off the register. One star, from the Porter."
+  emoji: "📖"

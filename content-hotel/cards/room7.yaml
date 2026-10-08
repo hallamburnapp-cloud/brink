@@ -1,0 +1,224 @@
+# THE MAN WHO ISN'T HERE — the Booking's spine. Opener at 3:00, three beats, the head in the
+# five o'clock hour. Room 7 has paid in cash and would like the register to agree he never
+# arrived; a man in a good coat is in the lobby, waiting politely, and asking for nothing.
+# The night is about whether a building whose whole job is to write down who is where can
+# be persuaded not to. The man in the coat is returning an umbrella. Nobody asks him till six.
+# Bars: public = GUESTS, military = STAFF, allies = THE BUILDING, economy = MONEY.
+# Regards: trust_primary = the Owner's patience, trust_secondary = Room 7's goodwill (he is
+# tonight's lead guest), intel = the Critic's opinion, commitment = your promises.
+# Flags set here: room7:blank, room7:written, room7:coat_asked, room7:coat_staying,
+# room7:coat_tea, room7:sandwich_billed, room7:sandwich_free, room7:majestic_denied,
+# room7:cases_here, room7:kitchen_gone, room7:yard, room7:introduced, room7:till,
+# room7:refunded, room7:coat_named, room7:twelve_waits, room7:coat_is_7, room7:board_fixed,
+# room7:shoes_lost. (The pool's cab card sets room7:left on its own; it is not read here.)
+
+# ---- The spine (seated by the Booking; no conditions, no weight)
+
+- id: room7_01_register
+  arc: room7
+  advisor: room7
+  acts: [1, 1]
+  tags: [room7, desk, money]
+  text: >-
+    I've paid for 7 in cash and would be grateful if the register agreed I never arrived.
+    The man in the good coat in your lobby is nothing to do with me.
+  left:
+    text: Leave 7 blank. Take the cash
+    reply: "The Porter writes 'nobody' in 7, in pencil, and underlines it so it's official."
+    effects: { economy: 10, military: -8, trust_secondary: 8, commitment: 6 }
+    tags: [money, staff]
+    set: [room7:blank]
+  right:
+    text: Write him in. House rules
+    reply: "'Of course,' he says, and asks if the register has a page for people who mind."
+    effects: { military: 8, public: -8, trust_secondary: -8 }
+    tags: [staff, guests]
+    set: [room7:written]
+
+- id: room7_02_coat
+  arc: room7
+  advisor: doorman
+  acts: [1, 1]
+  tags: [room7, door, guests]
+  text: >-
+    The man in the good coat has sat in the lobby since three and asked for nothing, not
+    even the time. In 1991 that was how it started.
+  left:
+    text: Ask him his business
+    effects: {}
+    tags: [guests]
+    odds:
+      label: He answers
+      base: 0.5
+      tags: []
+      success:
+        text: "'Waiting for a gentleman,' he says. 'He'll know what for.' Then he asks the Doorman, kindly, if he'd like to sit down."
+        effects: { public: 8, military: 8 }
+        set: [room7:coat_asked]
+      failure:
+        text: "'Just waiting,' he says, and takes the coat off and folds it, which in 1991 was the sign they were staying."
+        effects: { public: -8, military: -8 }
+        set: [room7:coat_staying]
+  right:
+    text: Tea. Let him wait
+    reply: "He takes the tea and thanks the Doorman by name. Nobody told him the name."
+    effects: { public: 8, military: -8 }
+    tags: [guests, staff]
+    set: [room7:coat_tea]
+
+- id: room7_03_sandwich
+  arc: room7
+  advisor: chef
+  acts: [2, 2]
+  tags: [room7, kitchen, staff]
+  text: >-
+    A sandwich has gone up to 7, which I'm told is empty. I'm not saying the night manager
+    is feeding a room with nobody in it; I'm saying somebody is.
+  left:
+    text: Charge the sandwich to 7
+    reply: "'To 7,' he says. The ticket now says an empty room owes four pounds fifty."
+    effects: { economy: 8, military: -8, trust_secondary: -6 }
+    tags: [money, staff]
+    set: [room7:sandwich_billed]
+  right:
+    text: On the house. Say nothing
+    reply: "'Nothing,' he agrees, and sends up a pickle too, for the man who isn't there."
+    effects: { economy: -8, military: 8, trust_secondary: 10 }
+    tags: [money, staff]
+    set: [room7:sandwich_free]
+
+- id: room7_04_cases
+  arc: room7
+  advisor: majestic
+  acts: [3, 3]
+  tags: [room7, majestic]
+  text: >-
+    "The Majestic has two cases, paid in cash, and no gentleman, and wondered if the
+    gentleman had come to you." A pause, then: "As a courtesy."
+  left:
+    text: No gentleman here either
+    reply: "'Of course.' A pause long enough to write down. 'Courtesies are remembered.'"
+    effects: { public: -8, military: 8, trust_secondary: 10 }
+    tags: [guests, staff, majestic]
+    set: [room7:majestic_denied]
+  right:
+    text: Send the Porter for the cases
+    reply: "Two cases cross the square. The Majestic bills the crossing, as a courtesy."
+    effects: { economy: -10, public: 8, trust_secondary: -8 }
+    tags: [money, guests, majestic]
+    set: [room7:cases_here]
+
+- id: room7_05_kitchen
+  arc: room7
+  advisor: room7
+  acts: [3, 3]
+  minutes: 20
+  timer: 10
+  timeout: left
+  tags: [room7, kitchen, guests]
+  text: >-
+    The man in the coat is still in your lobby at twenty to six, and so am I. I'd like to
+    leave by the kitchen, and for that not to have happened either.
+  left:
+    text: Kitchen door. Now
+    effects: {}
+    tags: [guests]
+    odds:
+      label: Nobody sees
+      base: 0.55
+      tags: [guest]
+      success:
+        text: "He goes out past the Chef. 'Nobody came through here,' the Chef tells the fridge, 'and somebody should write that down.'"
+        effects: { economy: 10, military: -8, trust_secondary: 12 }
+        set: [room7:kitchen_gone]
+      failure:
+        text: "He goes out through the kitchen into the yard. The man in the coat is in the yard, having had the same idea."
+        effects: { public: -10, military: -8, trust_secondary: -10 }
+        set: [room7:yard]
+  right:
+    text: Introduce them
+    reply: "He stands, holds out an umbrella, and says, 'From your cab, sir. Since three.'"
+    effects: { public: 10, military: 8, trust_secondary: -8, commitment: -6 }
+    tags: [guests, staff]
+    set: [room7:introduced]
+
+# ---- Tied to the Booking: only once THE MAN WHO ISN'T HERE is on
+
+- id: room7_x_owner
+  arc: room7
+  advisor: owner
+  acts: [2, 3]
+  weight: 1.5
+  conditions: { flags_all: [booking:room7, room7:blank] }
+  tags: [room7, owner, money]
+  text: >-
+    I'm told 7 paid cash and the register says 7 is empty. An empty room that pays is a new
+    idea to me, and I'm doing the sum on it now.
+  left:
+    text: The cash goes in the till
+    reply: "'In the till.' A pause while a room that isn't there is added to a sum that is."
+    effects: { economy: 10, military: -8, trust_primary: 8 }
+    tags: [money, owner]
+    set: [room7:till]
+  right:
+    text: Give it back. He's not here
+    reply: "'Back,' he says, in the voice of a man watching a sum walk out of the building."
+    effects: { economy: -12, public: 8, trust_primary: -8, trust_secondary: 10 }
+    tags: [money, guests, owner]
+    set: [room7:refunded]
+
+- id: room7_x_room12
+  arc: room7
+  advisor: room12
+  acts: [2, 3]
+  weight: 2
+  conditions: { flags_all: [booking:room7] }
+  tags: [room7, lobby, rules]
+  text: >-
+    There is a man in the lobby who is not a guest. The rule is no waiting in the lobby, I
+    wrote it, and I am going to ask him his name.
+  left:
+    text: Let her ask
+    effects: {}
+    tags: [guests]
+    odds:
+      label: He tells her
+      base: 0.5
+      tags: []
+      success:
+        text: "He stands and gives a name, which she writes on the card by the lift under the rule, as an exception."
+        effects: { public: 10, military: 8 }
+        set: [room7:coat_named]
+      failure:
+        text: "He says 'I'd rather not,' very politely, and she sits down opposite him to wait, which is now a rule."
+        effects: { public: -10, military: -8 }
+        set: [room7:twelve_waits]
+  right:
+    text: Tell her he's the guest in 7
+    reply: "'Room 7,' she says, and writes it by the lift. Two men in 7 now, and neither is."
+    effects: { public: 8, military: -8, commitment: -8 }
+    tags: [guests, staff, promise]
+    set: [room7:coat_is_7]
+
+- id: room7_x_porter
+  arc: room7
+  advisor: porter
+  acts: [1, 3]
+  weight: 1.5
+  conditions: { flags_all: [booking:room7, room7:blank] }
+  tags: [room7, desk, staff]
+  text: >-
+    The board says 7 is empty, the key is out, and there are shoes outside the door. I have
+    a theory, and the theory is that 7 is not empty.
+  left:
+    text: Fix the board. 7 is taken
+    reply: "He moves the peg to 7, then back, then looks at you for a ruling on the shoes."
+    effects: { military: 8, public: -8, trust_secondary: -8 }
+    tags: [staff, guests]
+    set: [room7:board_fixed]
+  right:
+    text: The board is right. Hide the shoes
+    reply: "The shoes go into lost property under 'nowhere'. He has a theory about that too."
+    effects: { military: -8, public: 8, trust_secondary: 8 }
+    tags: [staff, guests]
+    set: [room7:shoes_lost]

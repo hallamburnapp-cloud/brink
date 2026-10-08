@@ -22,7 +22,7 @@
     set: [alarm:brigade_called]
   right:
     text: Send the Porter up with the key
-    reply: "He goes up with the key, the big torch and a towel, in that order."
+    reply: "He takes the key, the torch and a towel. 'The towel's for either,' he says."
     effects: { military: -8, allies: -4, trust_primary: 6 }
     tags: [staff, building]
     set: [alarm:porter_up]
@@ -135,7 +135,7 @@
     set: [majestic:refused]
   right:
     text: Send over anyone who asks
-    reply: "Three go across in dressing gowns. Across the square, three lights come on."
+    reply: "Three go over in dressing gowns. Across the square, three lights come on."
     effects: { public: 8, economy: -10, trust_primary: -6 }
     tags: [guests, money]
     set: [alarm:sent_to_majestic, majestic:owed]
@@ -163,7 +163,7 @@
         effects: { public: 14, military: 8, trust_secondary: 10 }
         set: [alarm:serenade]
       failure:
-        text: "It is four songs. Room 12 comes down with the card from by the lift and adds a line to it."
+        text: "Four songs. During the third, Room 12 unpins the card by the lift and adds a line to it."
         effects: { public: -10, allies: -8, trust_secondary: -4 }
         set: [alarm:four_songs]
   right:
@@ -187,7 +187,7 @@
     not saying who hasn't reset it; I'm saying somebody hasn't.
   left:
     text: Reset the gas. Sign for it
-    reply: "The gas comes back with a thump. He signs nothing, and nods at the fridge."
+    reply: "The gas comes back with a thump. 'Somebody's reset it,' he says, to the pan."
     effects: { military: 10, allies: -8 }
     tags: [staff, building]
     set: [alarm:gas_reset]
@@ -242,7 +242,7 @@
     hotel to arrange. I file at nine, and I came for the pillows.
   left:
     text: Breakfast in bed. On the house
-    reply: "She orders the lot, and asks for it quietly, and writes down how long it takes."
+    reply: "She orders the whole left side of the menu and writes down when she asked."
     effects: { economy: -10, public: 8, intel: 8 }
     tags: [money, guests, critic]
   right:

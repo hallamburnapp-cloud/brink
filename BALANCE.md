@@ -548,5 +548,27 @@ the Dog Show's sneezing judge, the Inspector's salmon, the Band's encore likewis
 Booking's mean over both sides now sits in −1.6..+2.7. Result: careful dawn **80.1%**
 (Flood 63%, Alarm 69%, Dog Show 68%, Swan 73%, Wedding 93%), random **12.8%**, stars at
 6:00 **5/18/36/29/13**, top review 7.9%, 2.2 minutes, 24/24 Bookings. Five of six pass;
-B2 is three points under the band. The last pool file (pool B) is still landing; the
-final cell is chosen in H-5 on the finished pack.
+B2 is three points under the band.
+
+### Iteration H-5 — the finished pack (2,000 nights a bot)
+
+The second pool file (24 more regulars, 126 in all) and the comedy-editing pass landed, and
+`rules.night.speaker_cooldown` (0.2: whoever spoke last is unlikely to ring again straight
+away, D-094's companion) went in. The random bot's dawn rate rose to the band on its own
+(more regulars means a kinder draw) and the careful bot's end mean moved up three points
+(p10 20, p50 30, p90 39), which pushed the stars at 6:00 to 3/14/33/34/16: too many fours.
+The bands moved up three with it, to **41/34/27/21**, and the bar colours with them (good
+41, low 21, danger 12), so a colour still means the same thing as a star.
+
+| Target | Result |
+| --- | --- |
+| B1 Careful bot reaches 6:00 on 75–90% | **PASS** 84.5% (15.5% fell: money 7.2%, guests 2.9%, staff 1.5%, the Bookings' own falls the rest) |
+| B2 Random bot reaches 6:00 on 15–25% | **PASS** 15.6% (money 41%, staff 17%, guests 12%) |
+| B3 Careful stars at 6:00 roughly 5/25/40/20/10 | **PASS** 8/20/38/26/8 (all nights 23/17/32/22/7, mean 2.73) |
+| B4 No review above 15% | **PASS** top review 7.2% (fall_money); 58 distinct reviews |
+| B5 Eighteen cards, ≤ 2.5 minutes | **PASS** 18.15 cards, 2.2 minutes, 1.6 rolls a night |
+| B6 Every Booking reaches 6:00 on both bots | **PASS** 24/24; careful by Booking: Wedding 97%, Band 97%, Lift 94%, Snow 94%, Room 7 93%, Inspector 92%, Critic 81%, Power Cut 80%, Alarm 79%, Swan 79%, Dog Show 73%, Flood 72% |
+
+The spread between the kindest and the hardest Booking is 25 points. That is the shape of
+"some nights are harder" and it is left alone; a Booking under 65% on the careful bot would
+be the next thing to soften. The report is `docs/sim-report-hotel.md`.

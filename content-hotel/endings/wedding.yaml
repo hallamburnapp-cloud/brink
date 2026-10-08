@@ -1,0 +1,109 @@
+# THE WEDDING at 6:00 — what the Bride's Mother (or whoever got to the pen first) writes.
+# The star bands are unconditional; the cake review above them reads a flag the Chef's card sets.
+
+- id: review_wedding_cake
+  name: Cake for Breakfast
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:wedding, wedding:cake_eaten], stars: { min: 4 } }
+  priority: 45
+  stars: 5
+  byline: bride_mother
+  quote: "They served my daughter's cake at breakfast. It was, I am told, a tradition."
+  text: >-
+    At six the cake is sixty slices on sixty plates, and the Chef is standing beside them
+    with the look of a man who has made a decision and would now like the credit. The
+    Bride's Mother comes down at ten past, and stops.
+
+
+    "A tradition," she says, and takes the smallest slice, and the pen, and writes five
+    stars, and under them: "I will be asking about the eggs."
+  moment_label: "The moment she took the smallest slice"
+  compendium: "Six o'clock and the wedding cake was breakfast. The Bride's Mother called it a tradition, in pen."
+  emoji: "🎂"
+
+- id: review_wedding_five
+  name: Item One, Ticked
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:wedding], stars: { min: 4 } }
+  priority: 40
+  stars: 5
+  byline: bride_mother
+  quote: "No eggs at three; eggs at seven. I have ticked it, and I do not tick lightly."
+  text: >-
+    At six the Day Manager walks in with her own pen and finds the Bride's Mother at the
+    desk with hers, going down the list a last time. Item one has a tick. The groom is
+    asleep in 214 and the bridesmaid in 204, which is the correct arrangement.
+
+
+    Five stars, in pen, and under them: "The one thing I asked, and they did it." The Chef
+    reads it over your shoulder and says nothing, which is his review.
+  moment_label: "The moment item one got its tick"
+  compendium: "Six o'clock, the list ticked to the end, and the Bride's Mother gave up the pen."
+  emoji: "🥚"
+
+- id: review_wedding_three
+  name: See Me
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:wedding], stars: { min: 3, max: 3 } }
+  priority: 40
+  stars: 3
+  byline: room12
+  quote: "There was singing. There was a rule. There were, eventually, eggs of a kind."
+  text: >-
+    At six the groom is asleep in the lobby armchair in a hired suit, the Chef has made
+    something for sixty that is round and not an egg, and the Bride's Mother has crossed
+    out item one and written "see me" beside it.
+
+
+    Room 12 writes three stars on the back of the card by the lift, which she has taken down
+    to add a rule about pianos. "Reasonable," she writes, "in the circumstances."
+  moment_label: "The moment she wrote 'see me'"
+  compendium: "Six o'clock, the list half ticked, a groom in the armchair, and a new rule about pianos."
+  emoji: "🎹"
+
+- id: review_wedding_two
+  name: The Wrong Window
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:wedding], stars: { max: 2 } }
+  priority: 40
+  stars: 2
+  byline: critic
+  quote: "He sang under my window. The bride is in 214. I am in 212, and I file at nine."
+  text: >-
+    At six the hotel is open, which the Owner says like an achievement and the Day Manager
+    like a question. Sixty come down at seven to pancakes, the groom is asleep on the
+    stairs, and the Bride's Mother has not sat down since three.
+
+
+    The Critic files at nine. Two stars, a paragraph on the pillows, and one sentence about
+    a groom at the wrong window that The Majestic will quote, as a courtesy.
+  moment_label: "The moment he sang at the wrong window"
+  compendium: "Six o'clock by a whisker, sixty down to pancakes, and a review that leads with the groom."
+  emoji: "🎤"
+
+# ---- The fall this Booking suggests: the wedding walks
+
+- id: fall_wedding_guests
+  name: Breakfast Across the Square
+  kind: removed
+  trigger: { type: meter, key: public, at: 0 }
+  conditions: { flags_all: [booking:wedding] }
+  priority: 30
+  stars: 1
+  byline: bride_mother
+  quote: "We had breakfast at The Majestic. They had eggs."
+  text: >-
+    She does not shout. She goes down the list once more, folds it, and leads sixty people
+    across the square in their coats, the groom last, still humming. The Majestic has its
+    doors open and a man at each one.
+
+
+    "As a courtesy," says their night manager, when you ring. "Courtesies are remembered."
+    One star, in pen, and under it the one thing she asked.
+  moment_label: "The moment she folded the list"
+  compendium: "The wedding walked across the square to The Majestic. One star, and they had eggs."
+  emoji: "🚪"

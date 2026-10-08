@@ -1,0 +1,109 @@
+# THE POWER CUT at 6:00 — what Room 220 (or whoever got to the pen first) writes.
+# The star bands are unconditional; the torch review above them reads the flag his beat sets.
+
+- id: review_power_cut_torch
+  name: The Torch Came Back
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:power_cut, power_cut:torch_borrowed], stars: { min: 4 } }
+  priority: 45
+  stars: 5
+  byline: room220
+  quote: "They borrowed my torch for the stairs. I have never been so politely robbed."
+  text: >-
+    At six the lights are on in every wing at once, which the Handyman calls showing off,
+    and Room 220 is at the desk to collect his torch. It comes back with the Porter's
+    thanks and a theory about dogs.
+
+
+    He switches it on, to check, and off, to be fair. Five stars, in pen, and under them:
+    "They asked." You go home in the first daylight, which costs nothing.
+  moment_label: "The moment he lent the torch"
+  compendium: "Six o'clock, every light on, and Room 220 got his torch back with thanks. Five stars, for asking."
+  emoji: "🔦"
+
+- id: review_power_cut_five
+  name: The Complaint Is Withdrawn
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:power_cut], stars: { min: 4 } }
+  priority: 40
+  stars: 5
+  byline: room220
+  quote: "The lights went at three and the lift with them. I had a list. By six they had ticked it."
+  text: >-
+    At six the lights are on in every wing, the lift says "two" to the Day Manager as she
+    walks in, which she takes personally, and the fish are back in their tank, looking at
+    nothing, as before.
+
+
+    Room 220 comes down with the torch off and the list folded. Five stars, in pen, by the
+    window where the light is. "The complaint," he says, "is withdrawn. Mostly."
+  moment_label: "The moment the lift said two"
+  compendium: "Six o'clock, every light on, the fish in their tank, and Room 220 withdrew the complaint. Mostly."
+  emoji: "💡"
+
+- id: review_power_cut_three
+  name: A Line About Torches
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:power_cut], stars: { min: 3, max: 3 } }
+  priority: 40
+  stars: 3
+  byline: room12
+  quote: "There is a card by the lift about power cuts. Nobody read it. I have added a line."
+  text: >-
+    At six half the lights are on, which the Handyman calls progress and the Day Manager
+    calls half. The lift goes up, in the sense that it does not go down, and the fish are,
+    as far as anyone can tell, still fish.
+
+
+    Room 12 writes three stars on the back of the card by the lift, which she has taken
+    down to add a line about torches. "Adequate," she writes, "in the dark."
+  moment_label: "The moment she added a line"
+  compendium: "Six o'clock, half the lights on, the fish still fish, and a new line on the card by the lift."
+  emoji: "🕯️"
+
+- id: review_power_cut_two
+  name: By Phone Light
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:power_cut], stars: { max: 2 } }
+  priority: 40
+  stars: 2
+  byline: critic
+  quote: "I wrote the whole night by the light of my phone. The pillows never came up. The lift did."
+  text: >-
+    At six the hotel is open, which the Owner says like a sum that came out and the Day
+    Manager like one that did not. The east wing is still dark, and Room 220 is reading
+    her his list from item one, by torch.
+
+
+    The Critic files at nine, from a lit room across the square, lent as a courtesy. Two
+    stars, a paragraph on the dark, and one sentence about a dog that everyone will quote.
+  moment_label: "The moment the torch came out"
+  compendium: "Six o'clock by a whisker, the east wing still dark, and a review written by phone light."
+  emoji: "📱"
+
+# ---- The fall this Booking suggests: the dark takes the building
+
+- id: fall_power_cut_building
+  name: Torches Up the Drive
+  kind: removed
+  trigger: { type: meter, key: allies, at: 0 }
+  conditions: { flags_all: [booking:power_cut] }
+  priority: 30
+  stars: 1
+  byline: room220
+  quote: "The fire brigade arrived with torches. I had thought mine was the only one."
+  text: >-
+    It is the candles, in the end, or the fuse, or the cable across the square; the fire
+    brigade do not say, and the Handyman has three theories and keeps them. The guests go
+    onto the lawn in blankets, in the dark, and the Doorman tells them about 1991.
+
+
+    Room 220 reads his list to a fire officer, who writes it down. One star, by torchlight,
+    and under it: "I did say six."
+  moment_label: "The moment the torches came up the drive"
+  compendium: "The building gave up in the dark and the fire brigade closed it. One star, read out by torch."
+  emoji: "🚒"

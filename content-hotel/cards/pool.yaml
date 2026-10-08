@@ -5,6 +5,8 @@
   advisor: chef
   acts: [1, 2]
   weight: 1.5
+  # The Wedding's whole premise is the eggs; this card stays in the drawer on that night.
+  conditions: { flags_none: [booking:wedding] }
   tags: [kitchen, staff]
   text: >-
     Sixty down for breakfast and there are no eggs. I'm not saying the night manager forgot

@@ -1,0 +1,12 @@
+# THE ALARM — the panel says fire in Room 9. Room 9 is singing and will not answer.
+- id: alarm
+  name: The Alarm
+  lead: room9
+  opener: alarm_01_panel
+  beats:
+    - { card: alarm_02_door, slot: [4, 6] }
+    - { card: alarm_05_owner, slot: [9, 11] }
+    - { card: alarm_06_majestic, slot: [13, 14] }
+  head: { card: alarm_07_serenade, slot: [15, 17] }
+  teaser: "The panel says fire in Room 9. Room 9 is singing."
+  weight: 1

@@ -1,0 +1,92 @@
+# THE ALARM at 6:00 — three reviews by star band, and the one fall this Booking suggests.
+# Flags the Booking sets: alarm:brigade_called / alarm:porter_up (opener), alarm:went_in /
+# alarm:evacuated (beat one), alarm:cake or alarm:toaster (the truth), alarm:owner_told /
+# alarm:told_drill, alarm:sent_to_majestic, alarm:serenade / alarm:four_songs / alarm:hummed.
+
+- id: review_alarm_five
+  name: The Bell and the Song
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:alarm], stars: { min: 4 } }
+  priority: 40
+  stars: 5
+  byline: room9
+  quote: "There was a bell at three and singing until six, and the hotel was lovely about both."
+  text: >-
+    At six the Day Manager walks in with her own pen and finds the panel quiet, the Porter
+    asleep upright, and Room 9 in the lobby in a row, eleven of them, waiting to say sorry
+    to a hotel.
+
+
+    The review comes on the back of a sash. Five stars, one for each verse, Room 9 says,
+    though there were more verses than that. Across the square, The Majestic turns its
+    lights off, one floor at a time.
+  moment_label: "The moment the panel went quiet"
+  compendium: "Six o'clock with everything high, the panel quiet and eleven guests in a row to say sorry."
+  emoji: "🔔"
+
+- id: review_alarm_three
+  name: A Line on the Card
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:alarm], stars: { min: 3, max: 3 } }
+  priority: 40
+  stars: 3
+  byline: room12
+  quote: "There was a bell, and singing, and I have added a line to the card by the lift."
+  text: >-
+    At six the panel has stopped saying 9, mostly, the Chef has made something that needed
+    no gas, and the Day Manager says "right" in the voice she keeps for nights that were
+    nearly fine.
+
+
+    Room 12 writes the review on the card by the lift, under the new line, which covers
+    toasters and cakes and does not distinguish. Three stars. The Porter has a theory about
+    the third.
+  moment_label: "The moment it was nearly a fire"
+  compendium: "Six o'clock in the middle, the panel mostly quiet, and a new line on the card by the lift."
+  emoji: "🍞"
+
+- id: review_alarm_two
+  name: Woken Twice
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:alarm], stars: { max: 2 } }
+  priority: 40
+  stars: 2
+  byline: critic
+  quote: "Woken by a bell at three and by the apology at six. I came for the pillows."
+  text: >-
+    At six the hotel is open, which the Owner says on the phone as a figure and the Day
+    Manager says as a question. The panel is quiet because the Handyman has done something
+    to it he would rather not describe.
+
+
+    The Critic files at nine. Two stars, a paragraph on the pillows, and one sentence about
+    Room 9 that Room 9 will have framed.
+  moment_label: "The moment the bell stopped"
+  compendium: "Six o'clock by a whisker, everything low, and a review that leads with the bell."
+  emoji: "🔕"
+
+# ---- The fall this Booking suggests: the guests went out when the bell rang and kept going.
+
+- id: fall_alarm_carpark
+  name: The Car Park
+  kind: removed
+  trigger: { type: meter, key: public, at: 0 }
+  conditions: { flags_all: [booking:alarm] }
+  priority: 30
+  stars: 1
+  byline: doorman
+  quote: "They went out when the bell rang and kept going. 1991 was like this, but warmer."
+  text: >-
+    They go out when the bell rings, as the sign says to, and stand in the car park in
+    dressing gowns, and then, one by one, they go and stand somewhere else. The Doorman
+    holds the door for each of them, because that is the job.
+
+
+    Across the square The Majestic's lights come on, a floor at a time, as a courtesy. The
+    Day Manager arrives to a full car park and an empty hotel. One star.
+  moment_label: "The moment the car park filled"
+  compendium: "The guests went out when the bell rang and did not come back in. One star, and a full car park."
+  emoji: "🚗"

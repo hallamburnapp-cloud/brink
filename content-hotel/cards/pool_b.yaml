@@ -1,0 +1,510 @@
+# POOL B — cards for any night that react to what the player has done.
+# Memory callbacks (memory:* flags survive into the next night), low-bar and high-bar cards,
+# The Majestic's courtesies, Room 12's rules, the Doorman's warnings, and the regulars after hours.
+# Bars: public = GUESTS, military = STAFF, allies = THE BUILDING, economy = MONEY.
+# Regards: trust_primary = the Owner's patience, trust_secondary = tonight's lead guest's goodwill,
+# intel = the Critic's opinion, commitment = your promises.
+# Memory flags this file sets: memory:rule_added (Room 12 wrote a rule in your name),
+# memory:majestic_favour (you accepted a courtesy from across the square).
+
+# ---- Memory callbacks: last night, remembered
+
+- id: pb_chef_soup_home
+  advisor: chef
+  acts: [1, 3]
+  weight: 2
+  conditions: { flags_all: [memory:ate_the_soup] }
+  tags: [kitchen, staff, memory]
+  text: >-
+    I hear there was soup last night, at home, from a pan. I'm not saying the night manager
+    doesn't trust this kitchen; I'm saying somebody doesn't.
+  left:
+    text: Ask him for soup. Now
+    reply: "A bowl arrives in four minutes. He watches you eat it, and nods at the bowl."
+    effects: { military: 10, economy: -8 }
+    tags: [staff, money]
+  right:
+    text: Change the subject. The eggs
+    reply: "'The eggs,' he says, 'are fine. Somebody counted them.' He does not say who."
+    effects: { military: -8, public: 8 }
+    tags: [staff, guests]
+
+- id: pb_barman_flask
+  advisor: barman
+  acts: [2, 3]
+  weight: 2
+  conditions: { flags_all: [memory:skipped_the_soup] }
+  tags: [lounge, memory]
+  text: >-
+    A taxi has delivered a flask to the lounge with a note from your house. The note says
+    "since you won't come to it", and the driver wants paying.
+  left:
+    text: Pay the taxi. Drink the soup
+    reply: "Eleven pounds, four miles, one flask. He puts it on the top shelf by the brandy."
+    effects: { economy: -8, military: 10, commitment: 6 }
+    tags: [money, staff]
+  right:
+    text: Send it back. Don't pay
+    reply: "The flask goes back, unpaid. Your phone lights up before the taxi has turned."
+    effects: { economy: 8, military: -8, commitment: -8 }
+    tags: [money, staff]
+
+- id: pb_room12_new_rule
+  advisor: room12
+  acts: [1, 3]
+  weight: 2
+  conditions: { flags_all: [memory:rule_added] }
+  tags: [guests, rules, memory]
+  text: >-
+    There is a new rule on the card by the lift, from last night, in my handwriting, with your
+    name under it. Room 118 is reading it to a Labrador.
+  left:
+    text: Enforce it. It's the rule
+    reply: "The Labrador takes the stairs. Room 118 takes the lift, alone, and says nothing."
+    effects: { public: -8, allies: 8 }
+    tags: [guests, building]
+    set: [room12:obeyed]
+  right:
+    text: Rules are for the day shift
+    reply: "'The day shift,' she says, and underlines your name twice, with her own pen."
+    effects: { public: 10, military: -8 }
+    tags: [guests, staff]
+    set: [room12:crossed]
+
+- id: pb_majestic_remembered
+  advisor: majestic
+  acts: [1, 3]
+  weight: 2
+  conditions: { flags_all: [memory:majestic_favour] }
+  tags: [majestic, memory]
+  text: >-
+    "The Majestic recalls a courtesy from last night, and tonight has nine guests and no hot
+    water." A pause, then: "Courtesies are remembered."
+  left:
+    text: Take the nine. Nine rooms
+    reply: "Nine cross the square in dressing gowns. The Owner, told, does a sum aloud."
+    effects: { public: -10, economy: 10, trust_primary: 6 }
+    tags: [guests, money, owner]
+    set: [majestic:owed]
+  right:
+    text: Decline. We're full
+    reply: "'Full.' A pause long enough to be minuted. 'Then it is closed.' It is not."
+    effects: { public: 8, economy: -8, commitment: -8 }
+    tags: [guests, promise]
+    set: [majestic:refused]
+
+- id: pb_partner_soup_again
+  advisor: partner
+  acts: [2, 2]
+  weight: 2
+  conditions: { flags_all: [memory:ate_the_soup] }
+  tags: [partner, memory]
+  text: >-
+    You ate the soup last night, so there's soup again, which I want you to understand as
+    encouragement. The bed is where you left it.
+  left:
+    text: Eat the soup. Ten minutes
+    reply: "Ten minutes, two bowls. You hear the cat decide it likes you."
+    effects: { military: 10, public: -8, commitment: 6 }
+    tags: [staff]
+    set: [memory:ate_the_soup]
+  right:
+    text: Not tonight. Send a heart
+    reply: "A heart comes back. Then: 'The cat's on your side.' Then: 'Of the bed.'"
+    effects: { military: -8, public: 8, commitment: -6 }
+    tags: [guests]
+    set: [memory:skipped_the_soup]
+
+# ---- A bar on the floor
+
+- id: pb_housekeeper_grey
+  advisor: housekeeper
+  acts: [1, 3]
+  weight: 2
+  minutes: 20
+  conditions: { values: { military: { max: 25 } } }
+  tags: [staff, low]
+  text: >-
+    The staff have gone the colour of the third-floor carpet, which is grey. The Porter has sat
+    down on the stairs, and we have seen where that goes.
+  left:
+    text: Tea. Everyone. Fifteen minutes
+    reply: "Eleven teas. The Porter stands up. 'There,' she says, as if she'd mended him."
+    effects: { military: 14, public: -8, economy: -8 }
+    tags: [staff, guests, money]
+  right:
+    text: Open the Owner's biscuits
+    reply: "The good biscuits go round. 'He'll count them,' she says, and takes two."
+    effects: { military: 10, economy: -10, trust_primary: -6 }
+    tags: [staff, money, owner]
+
+- id: pb_owner_till
+  advisor: owner
+  acts: [1, 3]
+  weight: 2
+  conditions: { values: { economy: { max: 25 } } }
+  tags: [owner, money, low]
+  text: >-
+    I can see the till from here, and here is abroad, and the till is mostly a drawer. Tell
+    me there is a reason, and that the reason costs nothing.
+  left:
+    text: Charge the minibars. All of them
+    reply: "Every minibar is billed. Somewhere upstairs a guest wakes up owing for peanuts."
+    effects: { economy: 14, public: -10, trust_primary: 6 }
+    tags: [money, guests, owner]
+  right:
+    text: Ask him to send money
+    reply: "'Send.' A pause while he converts it. 'Fine. It comes out of the fountain.'"
+    effects: { economy: 10, trust_primary: -12 }
+    tags: [money, owner]
+
+# ---- A bar at the top
+
+- id: pb_events_ballroom_full
+  advisor: events
+  acts: [1, 3]
+  weight: 2
+  conditions: { values: { public: { min: 85 } } }
+  tags: [ballroom, guests, high]
+  text: >-
+    Every guest in the building is awake, happy, and in the ballroom, and nobody booked a
+    ballroom. This is a moment, and it is wearing slippers.
+  left:
+    text: Let it run. Lights up
+    reply: "The chandelier comes up. Forty people in slippers applaud a chandelier."
+    effects: { public: 8, economy: -10 }
+    tags: [guests, money]
+  right:
+    text: Bed. All of them. Kindly
+    reply: "'Kindly,' she says, and claps twice. Forty people go up as if they'd meant to."
+    effects: { public: -10, military: 8, allies: 8 }
+    tags: [guests, staff, building]
+
+- id: pb_doorman_quiet
+  advisor: doorman
+  acts: [1, 3]
+  weight: 2
+  conditions: { values: { allies: { min: 85 } } }
+  tags: [building, high]
+  text: >-
+    The building hasn't made a sound in an hour. It was this quiet in 1991, and the Duke was
+    already in the lift by the time anyone noticed.
+  left:
+    text: Walk the floors. Check
+    reply: "Four floors, nothing. On the fifth the lift opens for you, unasked, and waits."
+    effects: { military: -8, allies: 8 }
+    tags: [staff, building]
+  right:
+    text: Enjoy it. Sit down
+    reply: "You sit. The Doorman stays standing, which is how he enjoys things."
+    effects: { military: 10, allies: -8 }
+    tags: [staff, building]
+
+# ---- The Majestic, by phone, a beat late
+
+- id: pb_majestic_towels
+  advisor: majestic
+  acts: [1, 3]
+  tags: [majestic, linen]
+  text: >-
+    "The Majestic has heard you are short of towels, and has forty, warm, which it could send
+    across the square." A pause, then: "As a courtesy."
+  left:
+    text: Accept. Forty towels
+    reply: "Forty towels cross the square in a trolley. The trolley has their name on it."
+    effects: { public: 10, trust_primary: -8 }
+    tags: [guests, owner]
+    set: [memory:majestic_favour, majestic:owed]
+  right:
+    text: Decline. We have towels
+    reply: "'Of course.' The line stays open just long enough to hear 310 ask for a towel."
+    effects: { public: -10, military: 8 }
+    tags: [guests, staff]
+    set: [majestic:refused]
+
+- id: pb_majestic_guest
+  advisor: majestic
+  acts: [1, 3]
+  tags: [majestic, guests]
+  text: >-
+    "One of your guests is in our lobby in your dressing gown, asking for 310, and we have
+    given her tea." A pause, then: "The tea is a courtesy."
+  left:
+    text: Fetch her. Send the Porter
+    reply: "The Porter comes back with the guest, the gown and a cup. 'They said keep it.'"
+    effects: { public: 10, military: -8, commitment: -6 }
+    tags: [guests, staff, promise]
+    set: [memory:majestic_favour, majestic:owed]
+  right:
+    text: Let her stay. Bill us
+    reply: "'Bill you.' You hear a pen. 'For the room, the tea, and the gown, which stays.'"
+    effects: { economy: -10, public: 8, trust_primary: -8 }
+    tags: [money, guests, owner]
+
+- id: pb_majestic_bread
+  advisor: majestic
+  acts: [1, 3]
+  tags: [majestic, kitchen]
+  text: >-
+    "The Majestic's bread van is at your door by mistake, and the driver would like to know
+    whose bread it is." A pause, then: "Ours, we feel."
+  left:
+    text: Sign for it. Promise to settle
+    reply: "Sixty loaves, signed for. 'Settle.' A pause. 'The Majestic will note the date.'"
+    effects: { public: 10, economy: -8, commitment: 8 }
+    tags: [guests, money, promise]
+    set: [majestic:owed]
+  right:
+    text: Send it across the square
+    reply: "'Of course.' A pause. 'Courtesies are remembered, and so, it seems, is bread.'"
+    effects: { public: -8, trust_primary: 8 }
+    tags: [guests, owner]
+    set: [majestic:refused]
+
+# ---- Room 12, resident since 1987
+
+- id: pb_room12_towel_lift
+  advisor: room12
+  acts: [1, 3]
+  tags: [guests, rules]
+  text: >-
+    A man is in the lift in a towel. The rule is dressed in the lift, which is not on the card
+    by the lift, because in 1987 it did not need to be.
+  left:
+    text: Write it on the card. Tonight
+    reply: "She writes it in pen, in capitals, and puts your name where the date should go."
+    effects: { public: -8, allies: 8 }
+    tags: [guests, building]
+    set: [memory:rule_added, room12:obeyed]
+  right:
+    text: Find the man a dressing gown
+    reply: "The man takes the gown and the lift. 'Kind,' she says, 'is not a rule.'"
+    effects: { public: 10, economy: -8 }
+    tags: [guests, money]
+    set: [room12:crossed]
+
+# ---- The Doorman, who remembers 1991
+
+- id: pb_doorman_taxis
+  advisor: doorman
+  acts: [1, 3]
+  tags: [door, guests]
+  text: >-
+    There are three taxis outside and nobody ordered them. In 1991 three taxis came for nobody,
+    and by six they were full.
+  left:
+    text: Send them away
+    reply: "They go. One driver says he'll be back at six regardless, 'for the usual'."
+    effects: { public: 8, economy: -8 }
+    tags: [guests, money]
+  right:
+    text: Ask who they're for
+    reply: "'Room 9,' says the first. 'Room 9,' says the second. The third just smiles."
+    effects: { public: -8, economy: 8 }
+    tags: [guests, money]
+
+# ---- The Concierge, who knows
+
+- id: pb_concierge_who_knows
+  advisor: concierge
+  acts: [1, 3]
+  tags: [desk, critic]
+  text: >-
+    Four people know what happened on the second floor. Three are staff, and the fourth is the
+    Critic in 212, who heard it from her bath.
+  left:
+    text: Go up. Tell her yourself
+    reply: "She listens, and asks one question, which is about the pillows."
+    effects: { public: 8, military: -8, intel: 10 }
+    tags: [guests, staff, critic]
+  right:
+    text: Make it three. Talk to the staff
+    reply: "'Three,' he says. 'For now. The second floor has thin walls and a parrot.'"
+    effects: { military: 8, intel: -8 }
+    tags: [staff, critic]
+
+- id: pb_concierge_owner_knows
+  advisor: concierge
+  acts: [1, 3]
+  tags: [desk, owner]
+  text: >-
+    The Owner knows. One source, and the source is the Owner, who rang me to say he knows,
+    and to ask what it is he knows.
+  left:
+    text: Ring him. Tell him first
+    reply: "He listens. 'Right.' Then the sum, aloud, in a currency you don't recognise."
+    effects: { economy: -8, trust_primary: 10 }
+    tags: [money, owner]
+  right:
+    text: Let him wonder
+    reply: "He rings twice more. 'Nothing,' says the Concierge. 'He's narrowing it down.'"
+    effects: { economy: 8, trust_primary: -10 }
+    tags: [money, owner]
+
+# ---- The Barman, after last orders
+
+- id: pb_barman_locked
+  advisor: barman
+  acts: [2, 3]
+  tags: [lounge, guests]
+  text: >-
+    The lounge is locked from the inside and there's a light under the door. Last orders was
+    an hour ago, and so, by the sound of it, was the key.
+  left:
+    text: Knock. Give them a minute
+    reply: "A minute. Then the door, and three guests holding their glasses like evidence."
+    effects: { public: 8, economy: -8 }
+    tags: [guests, money]
+  right:
+    text: Use the master key. Now
+    reply: "The key turns. Two guests, a chessboard, and every bottle exactly where it was."
+    effects: { public: -8, military: 8 }
+    tags: [guests, staff]
+
+# ---- The Handyman, on the intercom
+
+- id: pb_handyman_hot_water
+  advisor: handyman
+  acts: [1, 3]
+  tags: [building, boiler]
+  text: >-
+    The hot water's gone the way it goes before it comes back, which is cold. I can reset it
+    from down here, or we can wait for it to feel better.
+  left:
+    text: Reset it
+    effects: {}
+    tags: [building]
+    odds:
+      label: It comes back
+      base: 0.6
+      tags: []
+      success:
+        text: "A clank, a sigh, and the pipes warm from the bottom up. 'There,' he says, as if he'd said something."
+        effects: { allies: 10, public: 8 }
+      failure:
+        text: "A clank, a sigh, nothing. 'It's thinking about it,' he says, and goes quiet to let it think."
+        effects: { allies: -10, public: -8 }
+        set: [pb:water_thinking]
+  right:
+    text: Wait for it to feel better
+    reply: "'Right.' At the desk, the phone starts, floor by floor, from the top."
+    effects: { public: -10, allies: 8 }
+    tags: [guests, building]
+
+- id: pb_handyman_east_wing
+  advisor: handyman
+  acts: [1, 3]
+  tags: [building, lift]
+  text: >-
+    The east wing lights are doing the thing where they dim when the lift moves. It's not a
+    fault, it's more of a mood, and it passes by six.
+  left:
+    text: Stop the lift. Lights first
+    reply: "The lift stops. The lights come up like morning. Three guests take the stairs."
+    effects: { allies: 8, public: -8 }
+    tags: [building, guests]
+    set: [lift:off]
+  right:
+    text: Let the mood pass
+    reply: "'Mood,' he agrees. The lobby dims and brightens. A guest asks if it's a disco."
+    effects: { allies: -8, military: 8 }
+    tags: [building, staff]
+
+# ---- The Events Manager and the ballroom
+
+- id: pb_events_chairs
+  advisor: events
+  acts: [1, 3]
+  tags: [ballroom, staff]
+  text: >-
+    There are two hundred chairs in the ballroom and the booking at ten is for forty. Two
+    hundred chairs is a statement, and forty is a moment.
+  left:
+    text: Stack them. Now
+    reply: "A hundred and sixty chairs, four staff and a lift with opinions. Done by six."
+    effects: { military: -10, public: 8 }
+    tags: [staff, guests]
+  right:
+    text: Leave them. Forty will feel chosen
+    reply: "'Chosen,' she writes down. The forty go in the middle, like a secret."
+    effects: { public: -8, military: 8 }
+    tags: [guests, staff]
+
+# ---- Your Chef
+
+- id: pb_chef_fridge_door
+  advisor: chef
+  acts: [1, 3]
+  tags: [kitchen, money]
+  text: >-
+    The walk-in fridge has been left open and the butter has opinions now. I'm not saying who
+    left it; I'm saying the door was found that way.
+  left:
+    text: Throw it out. Order fresh
+    reply: "Forty pounds of butter in a bin. He salutes it, briefly, and rings the dairy."
+    effects: { economy: -12, public: 8 }
+    tags: [money, guests]
+  right:
+    text: It's fine. Use it
+    reply: "'Fine.' He says it the way other people say 'noted', and gets the small pan."
+    effects: { economy: 8, public: -10 }
+    tags: [money, guests]
+
+# ---- The Night Porter, the lift and the dog
+
+- id: pb_porter_lift_basement
+  advisor: porter
+  acts: [1, 3]
+  tags: [lift, building]
+  text: >-
+    The lift has gone to the basement on its own and won't come up. I have a theory, and the
+    theory is that it has heard about the stairs.
+  left:
+    text: Go down. Talk to it
+    reply: "Ten minutes later the lift comes up with him in it. He won't say what he said."
+    effects: { allies: 8, military: -8 }
+    tags: [building, staff]
+  right:
+    text: Call the lift people. Pay
+    reply: "They can come at seven. The lift hears this and comes up by itself. He notes it."
+    effects: { economy: -10, allies: 10 }
+    tags: [money, building]
+
+- id: pb_porter_dog_shoe
+  advisor: porter
+  acts: [1, 3]
+  tags: [guests, critic]
+  text: >-
+    The Labrador from 118 is at the desk and has brought a shoe, which is not from 118. I have
+    a theory about the shoe, and it involves the Critic.
+  left:
+    text: Take the shoe up to 212
+    reply: "212 opens the door, takes the shoe, looks at the dog, and writes something down."
+    effects: { public: 8, intel: -8 }
+    tags: [guests, critic]
+  right:
+    text: Leave it. The dog can keep it
+    reply: "The dog keeps the shoe. At six a guest comes down in one shoe, very reasonably."
+    effects: { public: -8, military: 8 }
+    tags: [guests, staff]
+    set: [dog:shoe]
+
+# ---- The Day Manager, texting
+
+- id: pb_daymanager_faces
+  advisor: daymanager
+  acts: [2, 3]
+  tags: [daymanager]
+  text: >-
+    A text: "Who is writing the review tonight, so I can be in the lobby with the right face
+    at six." She has four faces, and you have seen three.
+  left:
+    text: "Reply: 212, the Critic"
+    reply: "'Good,' she writes. 'I have a face for her.' Then: 'Has she seen the dog?'"
+    effects: { public: 8, commitment: -6 }
+    tags: [guests, promise]
+  right:
+    text: Don't answer. Not yet
+    reply: "No reply. Four minutes later the Owner texts you: 'Who is writing the review?'"
+    effects: { military: 8, trust_primary: -8 }
+    tags: [staff, owner]

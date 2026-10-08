@@ -1,0 +1,224 @@
+# THE CRITIC — the Booking's spine. Opener at 3:00, three beats, the head in the five o'clock hour.
+# The Critic in 212 has checked in under a false name, a man has come to the desk asking for her
+# by the real one, and she files at nine. The man turns out to be her editor, who wants the piece
+# at six; the night is about whether the hotel can keep a name to itself.
+# Bars: public = GUESTS, military = STAFF, allies = THE BUILDING, economy = MONEY.
+# Regards: trust_primary = the Owner's patience, trust_secondary = the Critic's goodwill (she is
+# tonight's lead guest), intel = the Critic's opinion, commitment = your promises.
+# Flags set here: critic_check_in:denied, critic_check_in:rang, critic_check_in:four_cooks,
+# critic_check_in:normal_service, critic_check_in:man_waits, critic_check_in:man_gone,
+# critic_check_in:man_read_register, critic_check_in:editor_up, critic_check_in:editor_fed,
+# critic_check_in:false_name_bill, critic_check_in:laughed, critic_check_in:spelled,
+# critic_check_in:majestic_courtesy, critic_check_in:man_at_majestic, critic_check_in:cab_back,
+# critic_check_in:plain_towels, critic_check_in:good_towels, critic_check_in:cake, critic_check_in:no_cake.
+
+# ---- The spine (seated by the Booking; no conditions, no weight)
+
+- id: critic_check_in_01_desk
+  arc: critic_check_in
+  advisor: concierge
+  acts: [1, 1]
+  tags: [critic, desk, guests]
+  text: >-
+    The Critic in 212 is booked under a name that isn't hers, and a man at the desk wants
+    her by the one that is. He has flowers and, worse, a folder.
+  left:
+    text: No such guest. Send him off
+    reply: "He leaves the flowers. The card says 'sorry'. One source, says the Concierge."
+    effects: { public: 10, military: -8, intel: 6 }
+    tags: [guests, critic]
+    set: [critic_check_in:denied]
+  right:
+    text: Ring 212. Let her decide
+    reply: "A silence from 212, then: 'Which name did he use? And is he in the brown coat?'"
+    effects: { public: -8, military: 8, intel: -4, trust_secondary: 4 }
+    tags: [staff, critic]
+    set: [critic_check_in:rang]
+
+- id: critic_check_in_02_four_cooks
+  arc: critic_check_in
+  advisor: chef
+  acts: [1, 1]
+  tags: [critic, kitchen, staff]
+  text: >-
+    Somebody has told the kitchen 212 is a critic, and there are now four cooks on one pot of
+    tea. I'm not saying who told them; I'm saying somebody did.
+  left:
+    text: Four cooks. Let them
+    reply: "The tea goes up with a rose on it. The rose comes back down with a note: 'No.'"
+    effects: { military: -10, economy: -8, intel: 6 }
+    tags: [staff, money, critic]
+    set: [critic_check_in:four_cooks]
+  right:
+    text: One cook. Nobody knows anything
+    reply: "'Nobody knows anything,' he agrees, and sends up the tea he sends everyone."
+    effects: { military: 10, public: -8, intel: -4 }
+    tags: [staff, guests]
+    set: [critic_check_in:normal_service]
+
+- id: critic_check_in_03_chair
+  arc: critic_check_in
+  advisor: doorman
+  acts: [2, 2]
+  timer: 10
+  timeout: right
+  tags: [critic, door, guests]
+  text: >-
+    The man is back, with a folding chair, to wait in the lobby till she comes down. In 1991 a
+    man did that for nine days and we gave him a room.
+  left:
+    text: Tea for him. Let him wait
+    reply: "He takes the tea and says her real name to the lobby, like a toast. Twice."
+    effects: { public: -8, military: 8, intel: -6 }
+    tags: [guests, staff]
+    set: [critic_check_in:man_waits]
+  right:
+    text: Tell him she's checked out
+    effects: {}
+    tags: [guests]
+    odds:
+      label: He believes it
+      base: 0.5
+      tags: []
+      success:
+        text: "He folds the chair and leaves the flowers with the Doorman, who has had flowers before, in 1991."
+        effects: { public: 10, military: 8 }
+        set: [critic_check_in:man_gone]
+      failure:
+        text: "He reads the register upside down, finds 212, and sits. The chair, the Doorman notes, is a good chair."
+        effects: { public: -10, intel: -8 }
+        set: [critic_check_in:man_read_register]
+
+- id: critic_check_in_04_editor
+  arc: critic_check_in
+  advisor: critic
+  acts: [3, 3]
+  tags: [critic, guests]
+  text: >-
+    The man in your lobby is my editor, and he wants the piece at six, not nine. I came here
+    to write about your pillows and have not yet lain on one.
+  left:
+    text: Send him up to 212
+    reply: "'Up,' she says. A door shuts on two, and the lift, for once, has no opinion."
+    effects: { public: -10, military: 8, intel: -8 }
+    tags: [guests, staff, critic]
+    set: [critic_check_in:editor_up]
+  right:
+    text: Keep him down. Feed him
+    reply: "He eats the omelette the kitchen built for her and says, to nobody, 'Oh.'"
+    effects: { economy: -10, public: 8, intel: 8, trust_secondary: 6 }
+    tags: [money, guests, critic]
+    set: [critic_check_in:editor_fed]
+
+- id: critic_check_in_05_bill
+  arc: critic_check_in
+  advisor: porter
+  acts: [3, 3]
+  minutes: 20
+  tags: [critic, desk, money]
+  text: >-
+    212 comes down at half past five with her bag, and her editor is asleep, which is a mercy.
+    She wants the bill, and to know which name is on it.
+  left:
+    text: The name she gave. No questions
+    reply: "She signs the false name in a practised hand and tips with a nought on the end."
+    effects: { economy: 10, intel: 10, trust_primary: -8 }
+    tags: [money, critic]
+    set: [critic_check_in:false_name_bill]
+  right:
+    text: Her real name. The Owner insists
+    effects: {}
+    tags: [owner, critic]
+    odds:
+      label: She laughs
+      base: 0.5
+      tags: [critic]
+      success:
+        text: "She laughs, once, signs it, and writes on the receipt, for the Owner: 'The pillows were excellent.'"
+        effects: { public: 10, trust_primary: 8, intel: 6 }
+        set: [critic_check_in:laughed]
+      failure:
+        text: "She reads it twice, pays it to the penny, and asks the Porter how you spell your name."
+        effects: { public: -10, intel: -10, trust_primary: 6 }
+        set: [critic_check_in:spelled]
+
+# ---- Tied to the Booking: only once THE CRITIC is on
+
+- id: critic_check_in_x_majestic
+  arc: critic_check_in
+  advisor: majestic
+  acts: [2, 3]
+  weight: 2
+  conditions: { flags_all: [booking:critic_check_in] }
+  tags: [critic, majestic]
+  text: >-
+    "The Majestic has had a gentleman asking for a lady by name, and has told him she is with
+    you." A pause, then: "As a courtesy."
+  left:
+    text: Thank them. Say nothing
+    reply: "'Of course. Courtesies are remembered.' You hear this one being written down."
+    effects: { public: -10, trust_primary: 4 }
+    tags: [guests, majestic]
+    set: [critic_check_in:majestic_courtesy]
+  right:
+    text: Send him back. In our cab
+    effects: {}
+    tags: [guests, money]
+    odds:
+      label: They take him
+      base: 0.5
+      tags: []
+      success:
+        text: "A pause. 'Certainly.' He gets a sea view and a bill, and asks their desk for her every hour, on the hour."
+        effects: { public: 10, economy: -8 }
+        set: [critic_check_in:man_at_majestic]
+      failure:
+        text: "'The Majestic is, at present, fully booked.' It always is. The cab brings him back and charges both ways."
+        effects: { public: -8, economy: -10 }
+        set: [critic_check_in:cab_back]
+
+- id: critic_check_in_x_towels
+  arc: critic_check_in
+  advisor: housekeeper
+  acts: [1, 3]
+  weight: 1.5
+  conditions: { flags_all: [booking:critic_check_in] }
+  tags: [critic, linen, guests]
+  text: >-
+    The good towels are in 212, the ones we keep for the Owner's mother, and 210's have gone
+    to make room. 210 has noticed.
+  left:
+    text: Swap them back. Quietly
+    reply: "Two towels pass on the second-floor landing. Neither guest sees. Room 12 does."
+    effects: { military: -8, public: 8, intel: -4 }
+    tags: [staff, guests]
+    set: [critic_check_in:plain_towels]
+  right:
+    text: Leave them. 212 counts
+    reply: "'Counts,' she says. 'We said that once, about a Duke.' 210 gets a biscuit."
+    effects: { public: -10, intel: 8, trust_secondary: 4 }
+    tags: [guests, critic]
+    set: [critic_check_in:good_towels]
+
+- id: critic_check_in_x_cake
+  arc: critic_check_in
+  advisor: owner
+  acts: [2, 2]
+  weight: 1.5
+  conditions: { flags_all: [booking:critic_check_in] }
+  tags: [critic, owner, money]
+  text: >-
+    I'm told there's a critic in 212 and the kitchen is baking her a cake. A cake costs money,
+    a bad review costs more, and I've done the sum.
+  left:
+    text: Let them bake. Whatever she wants
+    reply: "'Whatever she wants,' he repeats. You can hear the sum being done again, slower."
+    effects: { economy: -12, intel: 8, trust_primary: -8 }
+    tags: [money, critic]
+    set: [critic_check_in:cake]
+  right:
+    text: No cake. Normal service
+    reply: "'Good. Charge for the sea view.' At this hour the sea is a noise. He knows it."
+    effects: { economy: 8, military: -8, trust_primary: 8, intel: -6 }
+    tags: [money, staff, owner]
+    set: [critic_check_in:no_cake]

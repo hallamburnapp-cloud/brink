@@ -1,0 +1,196 @@
+# THE LIFT — the Booking's spine. Opener at 3:00, three beats, the head in the five o'clock hour.
+# The lift is stuck between three and four with a dog, a bride and the Owner's Nephew, who is on
+# the phone to his uncle about whose fault it is. The blame arrives before the facts; the facts
+# arrive at half past five, in the Owner's own handwriting.
+# Bars: public = GUESTS, military = STAFF, allies = THE BUILDING, economy = MONEY.
+# Regards: trust_primary = the Owner's patience, trust_secondary = the Nephew's goodwill,
+# intel = the Critic's opinion, commitment = your promises.
+# Flags: lift:doors_talked, lift:owner_first, lift:dog_out, lift:charger, lift:phone_dead,
+#        lift:blamed_handyman, lift:took_blame, lift:blamed_dog, lift:nobodys_fault,
+#        lift:freed_paid, lift:owner_paid, lift:still_stuck, lift:room12_informed,
+#        lift:sandwiches, lift:party_sent, room12:obeyed, room12:crossed, majestic:refused, majestic:owed.
+
+# ---- The spine (seated by the Booking; no conditions, no weight)
+
+- id: lift_01_between
+  arc: lift
+  advisor: porter
+  acts: [1, 1]
+  tags: [lift, guests]
+  text: >-
+    The lift is stuck between three and four with a dog, a bride and the Owner's Nephew.
+    He's rung his uncle, and the word he keeps using is 'whose'.
+  left:
+    text: Talk to them through the doors
+    reply: "The bride is fine. The dog is fine. The Nephew asks how you spell your name."
+    effects: { public: 10, military: -8, trust_secondary: 6 }
+    tags: [guests, staff]
+    set: [lift:doors_talked]
+  right:
+    text: Ring the Owner. Your version first
+    reply: "First ring. 'My nephew says it's the Handyman. Is it?' 'Not yet,' you say."
+    effects: { military: 8, public: -8, trust_primary: 8 }
+    tags: [staff, owner]
+    set: [lift:owner_first]
+
+- id: lift_02_gap
+  arc: lift
+  advisor: handyman
+  acts: [1, 1]
+  tags: [lift, building]
+  text: >-
+    I can get the doors open a hand's width on three, which is room for a dog, a phone
+    charger or a sandwich. Not, as such, a bride.
+  left:
+    text: Dog out, charger in
+    reply: "The dog comes through like a letter. So does the charger. The call goes on."
+    effects: { public: 10, trust_primary: -8, trust_secondary: 6 }
+    tags: [guests, owner]
+    set: [lift:dog_out, lift:charger]
+  right:
+    text: Sandwiches. No charger
+    reply: "Three sandwiches go in. At four percent the phone dies, halfway through 'whose'."
+    effects: { military: -8, public: 8, trust_primary: 8, trust_secondary: -6 }
+    tags: [staff, guests]
+    set: [lift:phone_dead]
+
+- id: lift_03_a_name
+  arc: lift
+  advisor: owner
+  acts: [2, 2]
+  timer: 10
+  timeout: right
+  tags: [lift, owner]
+  text: >-
+    My nephew has rung me eleven times from inside a lift, and on the eleventh he asked me
+    whose fault it was. I would like a name, not a department.
+  left:
+    text: The Handyman. The brake
+    reply: "'Right,' he says, and you hear him write it down. He never writes things down."
+    effects: { military: -12, public: 8, trust_primary: 8 }
+    tags: [staff, guests, owner]
+    set: [lift:blamed_handyman]
+  right:
+    text: Mine. For tonight
+    reply: "A quiet sum, then: 'Yours. Tonight. The rest we discuss at nine.'"
+    effects: { military: 10, public: -8, trust_primary: -10, commitment: 8 }
+    tags: [staff, promise]
+    set: [lift:took_blame]
+
+- id: lift_04_the_dog
+  arc: lift
+  advisor: nephew
+  acts: [3, 3]
+  tags: [lift, guests]
+  text: >-
+    Two hours in, the bride has taught the dog to sit, and I've had time to think. I've come
+    round to it being the dog, and I'd like that written down.
+  left:
+    text: Write it down. The dog
+    reply: "You write 'the dog'. It sits. 'That proves nothing,' says the bride."
+    effects: { military: 8, public: -8, trust_secondary: 10 }
+    tags: [staff, guests, guest]
+    set: [lift:blamed_dog]
+  right:
+    text: It's the lift. Nobody's fault
+    reply: "'Nobody's,' he says, tasting the word, not liking it. The bride says thank you."
+    effects: { public: 10, trust_secondary: -10, trust_primary: -6 }
+    tags: [guests, guest]
+    set: [lift:nobodys_fault]
+
+- id: lift_05_service_book
+  arc: lift
+  advisor: handyman
+  acts: [3, 3]
+  minutes: 20
+  tags: [lift, building, owner, money]
+  text: >-
+    The lift people want three hundred pounds, and I've found the service book. The last entry is in the Owner's handwriting and says 'not this year'.
+  left:
+    text: Pay them. Out by six
+    reply: "Eleven minutes. The doors open on three: dog, bride, then a hand with a phone."
+    effects: { economy: -16, public: 12, allies: 8, trust_primary: -6 }
+    tags: [money, guests, building]
+    set: [lift:freed_paid]
+  right:
+    text: Read him his own handwriting
+    effects: {}
+    tags: [owner, building]
+    odds:
+      label: He laughs
+      base: 0.5
+      tags: [owner]
+      success:
+        text: "A silence with a sum in it. Then one laugh. 'Pay them. Put it down as a present from me.'"
+        effects: { public: 12, allies: 8, economy: 8, trust_primary: 8 }
+        set: [lift:owner_paid]
+      failure:
+        text: "'Not this year,' he reads back. 'Still isn't.' The lift people leave, and the lift stays where it is."
+        effects: { public: -14, allies: -8, trust_primary: -10 }
+        set: [lift:still_stuck]
+
+# ---- Tied to the Booking (drawn by weight once the Lift is on)
+
+- id: lift_x_room12_informed
+  advisor: room12
+  acts: [1, 3]
+  weight: 1.5
+  conditions: { flags_all: [booking:lift] }
+  tags: [lift, rules, guests]
+  text: >-
+    The card by the lift says if the lift stops, inform Room 12. I wrote that line, nobody has done it, so I have come down in my coat to be informed.
+  left:
+    text: Inform her. All of it
+    reply: "She listens to all of it and says 'a dog' twice, the second time towards 118."
+    effects: { public: 8, military: -8 }
+    tags: [guests, staff]
+    set: [lift:room12_informed, room12:obeyed]
+  right:
+    text: Not now. Back to bed
+    reply: "'Bed,' she says, and sits down on the stairs by the lift to wait, in her coat."
+    effects: { public: -10, allies: 8 }
+    tags: [guests, building]
+    set: [room12:crossed]
+
+- id: lift_x_majestic_mirror
+  advisor: majestic
+  acts: [2, 3]
+  weight: 2
+  conditions: { flags_all: [booking:lift] }
+  tags: [lift, majestic, guests]
+  text: >-
+    "The Majestic hears your lift has stopped with a bride in it, and ours is working, with
+    a mirror." A pause, then: "As a courtesy."
+  left:
+    text: Thank them. Ours is fine
+    reply: "'Of course.' Across the square, their lift goes up and down, lit, for nobody."
+    effects: { military: 8, public: -8 }
+    tags: [staff, guests]
+    set: [majestic:refused]
+  right:
+    text: Send the wedding party over
+    reply: "Nine cross in dressing gowns. Their night manager counts them in, and writes."
+    effects: { public: 10, economy: -10 }
+    tags: [guests, money, majestic]
+    set: [lift:party_sent, majestic:owed]
+
+- id: lift_x_chef_sandwiches
+  advisor: chef
+  acts: [1, 2]
+  weight: 1.5
+  conditions: { flags_all: [booking:lift] }
+  tags: [lift, kitchen, staff]
+  text: >-
+    The Porter has asked for three sandwiches 'for the lift'. I'm not saying the night manager
+    has started feeding the building; I'm saying somebody has.
+  left:
+    text: Three. One for the dog
+    reply: "Three go up. He cuts the dog's into triangles. Nobody asked; nobody mentions it."
+    effects: { public: 8, military: -8, economy: -8 }
+    tags: [guests, staff, money]
+    set: [lift:sandwiches]
+  right:
+    text: Nobody's eating. Stand down
+    reply: "'Nobody,' he says, and makes three anyway. Somebody, it turns out, was hungry."
+    effects: { military: 10, public: -8 }
+    tags: [staff, guests]

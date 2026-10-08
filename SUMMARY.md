@@ -25,7 +25,7 @@ about: a swan in the bath, sixty for breakfast and no eggs, a critic who is not 
 
 | Area | Delivered |
 | --- | --- |
-| The pack (`content/`) | Twelve Bookings (The Swan, The Wedding, The Alarm, The Critic, The Power Cut, The Inspector, The Flood, The Lift, The Band, The Man Who Isn't Here, The Snow, The Dog Show), each a night with a shape: an opener at 3:00, three beats, a head in the five o'clock hour, three tied cards; a pool of regulars for any hour; four comedy cards for a full bar; a review in five bands per Booking, four falls; a cast of fourteen with names in the Guest Book and roles on the cards. Written by machine to a validator-enforced contract, then a comedy-editing pass; strict validation 0 errors, 0 warnings |
+| The pack (`content/`, 163 cards, 61 endings) | Twelve Bookings (The Swan, The Wedding, The Alarm, The Critic, The Power Cut, The Inspector, The Flood, The Lift, The Band, The Man Who Isn't Here, The Snow, The Dog Show), each a night with a shape: an opener at 3:00, three beats, a head in the five o'clock hour, three tied cards; a pool of regulars for any hour; four comedy cards for a full bar; a review in five bands per Booking, four falls; a cast of fourteen with names in the Guest Book and roles on the cards. Written by machine to a validator-enforced contract, then a comedy-editing pass; strict validation 0 errors, 0 warnings |
 | The rules (`rules.night`) | Eighteen cards of ten minutes; four one-sided bars (a bar fails only at 0; 100 clamps and seats a comedy card); no escalation; the night wears every bar down 1.5 a card (`drift`); whoever spoke last is unlikely to ring again straight away (`speaker_cooldown`); a gentler first night |
 | Engine (`src/engine`) | Content packs (`BRINK_CONTENT_DIR`); Bookings pinned into the queue at run start and replicated for Home's "tomorrow"; reviews banded by the stars (`starsFor`); the reply line on every choice and every roll's outcome; memory flags between nights; the clock on the cards' minutes. 329 unit tests including replay determinism |
 | Screens (`src/ui`) | Home in three states (CLOCK IN; TONIGHT with the Booking's name and teaser, ANSWER IT or pick the phone back up at the clock it was left; today's review with SHARE and tomorrow's Booking); the Desk (HOME, the clock, the bell, four bars with ghost previews and arrows, the reply line, the card with the Booking and the time, two choices with chips); the Review (stars, byline, headline, quote, two paragraphs, the stamp on a night that ended early, the moment, one row and the bars, Copy result / Share image, tomorrow, AGAIN, the plate slip); the Guest Book (reviews by Booking as pages, blank until earned; the nights that ended early; the Archive); the plate's purchase screen; About, Settings, Privacy |
@@ -50,12 +50,12 @@ day, one attempt. Nothing on screen is a number but the clock.
 
 | Target | Result |
 | --- | --- |
-| B1 Careful bot reaches 6:00 on 75–90% of nights | see BALANCE.md H-5 |
-| B2 Random bot reaches 6:00 on 15–25% | see BALANCE.md H-5 |
-| B3 Careful bot's stars at 6:00 roughly 5/25/40/20/10 | see BALANCE.md H-5 |
-| B4 No single review above 15% | see BALANCE.md H-5 |
-| B5 Median night the full eighteen cards, ≤ 2.5 minutes | see BALANCE.md H-5 |
-| B6 Every Booking reaches 6:00 on both bots | see BALANCE.md H-5 |
+| B1 Careful bot reaches 6:00 on 75–90% of nights | **PASS** 84.5% |
+| B2 Random bot reaches 6:00 on 15–25% | **PASS** 15.6% |
+| B3 Careful bot's stars at 6:00 roughly 5/25/40/20/10 | **PASS** 8/20/38/26/8 |
+| B4 No single review above 15% | **PASS** 7.2%, 58 distinct reviews |
+| B5 Median night the full eighteen cards, ≤ 2.5 minutes | **PASS** 18 cards, 2.2 minutes |
+| B6 Every Booking reaches 6:00 on both bots | **PASS** 24/24 (careful: Wedding 97% … Flood 72%) |
 
 The finding that mattered: the cards as written were a fair trade, so nobody could lose
 (careful 100%, random 90%). One rule, the night wearing every bar down a little per card,

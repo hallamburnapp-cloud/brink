@@ -1,0 +1,13 @@
+# THE FLOOD — a tap in 310, then the ceiling of 210, then the ballroom.
+# Room 310 describes the water like the weather and wants it in writing.
+- id: flood
+  name: The Flood
+  lead: room310
+  opener: flood_01_tap
+  beats:
+    - { card: flood_02_ceiling, slot: [4, 6] }
+    - { card: flood_03_ballroom, slot: [9, 11] }
+    - { card: flood_04_in_writing, slot: [13, 14] }
+  head: { card: flood_05_wedding, slot: [15, 17] }
+  teaser: "A tap in 310, then the ceiling of 210, then the ballroom."
+  weight: 1

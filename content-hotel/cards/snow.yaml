@@ -1,0 +1,199 @@
+# THE SNOW — the Booking's spine. Opener at 3:00, three beats, the head in the five o'clock hour.
+# The cliff road is shut, a coach of forty-one cannot arrive and has, the bread van is a rumour,
+# and the Doorman remembers the snow of 1991. Nobody can leave; by six the plough comes up the
+# road with the bread van behind it, which turns out to exist.
+# Bars: public = GUESTS, military = STAFF, allies = THE BUILDING, economy = MONEY.
+# Regards: trust_primary = the Owner's patience, trust_secondary = the Coach Driver's goodwill,
+# intel = the Critic's opinion, commitment = your promises.
+# Flags: snow:coach_in, snow:coach_out, snow:baked, snow:porridge, snow:majestic_loaves,
+#        snow:found_forty_one, snow:forty, snow:paid, snow:the_glove, snow:on_the_house,
+#        snow:towels, snow:blankets, snow:corridors, snow:van_found, snow:van_lost,
+#        majestic:owed, majestic:refused, room12:obeyed, room12:crossed.
+
+# ---- The spine (seated by the Booking; no conditions, no weight)
+
+- id: snow_01_cliff_road
+  arc: snow
+  advisor: doorman
+  acts: [1, 1]
+  tags: [snow, guests]
+  text: >-
+    The cliff road is shut by snow, and a coach has come up it anyway. Forty-one aboard, no
+    booking, and the last time this happened it was 1991.
+  left:
+    text: Take them in. The ballroom
+    reply: "Forty-one come in stamping. 'Sixty, in 1991,' says the Doorman, to the snow."
+    effects: { economy: 10, military: -10, trust_secondary: 8 }
+    tags: [money, staff]
+    set: [snow:coach_in]
+  right:
+    text: No rooms. Tea out to the coach
+    reply: "Forty-one teas go out on a trolley. The driver counts the cups back in, twice."
+    effects: { military: -8, allies: 8, trust_secondary: -8 }
+    tags: [staff, building]
+    set: [snow:coach_out]
+
+- id: snow_02_bread_van
+  arc: snow
+  advisor: chef
+  acts: [1, 1]
+  tags: [snow, kitchen, staff]
+  text: >-
+    The bread van is 'on its way', a direction, not a time. I'm not saying the night manager
+    promised the coach breakfast; I'm saying somebody did.
+  left:
+    text: Bake. Wake the kitchen
+    reply: "The kitchen wakes. Bread by five, and the Chef has stopped speaking to the oven."
+    effects: { military: -10, public: 10, economy: -8 }
+    tags: [staff, guests, money]
+    set: [snow:baked]
+  right:
+    text: Porridge. There are always oats
+    reply: "'Oats,' he says, and fetches the big pan, which is for soup and knows it."
+    effects: { military: 8, public: -10, economy: 8 }
+    tags: [staff, guests, money]
+    set: [snow:porridge]
+
+- id: snow_03_majestic_loaves
+  arc: snow
+  advisor: majestic
+  acts: [2, 2]
+  tags: [snow, majestic]
+  text: >-
+    "The Majestic is fully booked, as ever, but has forty loaves and no coach, and understands
+    you have the reverse." A pause, then: "As a courtesy."
+  left:
+    text: Take the loaves. Owe them
+    reply: "Forty loaves cross the square on a luggage trolley. 'Remembered,' says the line."
+    effects: { public: 10, economy: -8, commitment: 6 }
+    tags: [guests, money, majestic]
+    set: [snow:majestic_loaves, majestic:owed]
+  right:
+    text: Thank them. We'll manage
+    reply: "'Of course.' Across the square, every window of The Majestic is lit, and warm."
+    effects: { military: 8, public: -8 }
+    tags: [staff, guests]
+    set: [majestic:refused]
+
+- id: snow_04_headcount
+  arc: snow
+  advisor: coachdriver
+  acts: [3, 3]
+  timer: 10
+  timeout: right
+  tags: [snow, guests, lift]
+  text: >-
+    I've counted forty-one all night and now I make it forty. Your lift has gone up to the
+    fourth floor with its light on, and nobody pressed anything.
+  left:
+    text: Send the Porter up. Count again
+    reply: "Fourth floor, one passenger, asleep. The lift lets her out, then goes up again."
+    effects: { military: -8, public: 8, trust_secondary: 10 }
+    tags: [staff, guests, guest]
+    set: [snow:found_forty_one]
+  right:
+    text: Forty is close enough. Breakfast
+    reply: "'Close enough,' he says, and looks at the coach, which has forty-one seats."
+    effects: { military: 8, public: -8, trust_secondary: -10 }
+    tags: [staff, guests, guest]
+    set: [snow:forty]
+
+- id: snow_05_the_sum
+  arc: snow
+  advisor: owner
+  acts: [3, 3]
+  minutes: 20
+  tags: [snow, owner, money]
+  text: >-
+    I hear forty-one people are at my hotel who never booked, and that the kitchen's lit. I'd
+    like a number before six, and I'd like it to be a large one.
+  left:
+    text: Charge them. Full rate
+    effects: {}
+    tags: [money, guest, owner]
+    odds:
+      label: They pay
+      base: 0.55
+      tags: [guest]
+      success:
+        text: "The driver passes his cap down the coach. It comes back with four hundred and ten pounds and a glove."
+        effects: { economy: 14, public: -8, trust_primary: 10 }
+        set: [snow:paid]
+      failure:
+        text: "The driver passes his cap down the coach. It comes back with a glove. The Owner does the sum aloud."
+        effects: { public: -12, military: -8, trust_primary: -10, trust_secondary: -8 }
+        set: [snow:the_glove]
+  right:
+    text: Nothing. Snow is snow
+    reply: "An audible sum. 'Snow is snow,' he says. 'Forty-one times nothing is nothing.'"
+    effects: { public: 12, economy: -10, trust_primary: -10, trust_secondary: 8 }
+    tags: [guests, money, owner]
+    set: [snow:on_the_house]
+
+# ---- Tied to the Booking (drawn by weight once the Snow is on)
+
+- id: snow_x_doorman_duke
+  advisor: doorman
+  acts: [1, 2]
+  weight: 1.5
+  conditions: { flags_all: [booking:snow] }
+  tags: [snow, door, guests]
+  text: >-
+    In 1991 the snow kept a Duke here three nights, and he left owing for a towel. I mention
+    it because the coach driver has just asked about towels.
+  left:
+    text: Towels. Forty-one
+    reply: "Forty-one towels. The Doorman writes the number in his book, under 'Duke'."
+    effects: { public: 10, economy: -8 }
+    tags: [guests, money]
+    set: [snow:towels]
+  right:
+    text: Blankets from the store. No towels
+    reply: "Blankets, from the box marked 1991. They are warm, and they smell of 1991."
+    effects: { economy: 8, public: -8 }
+    tags: [money, guests]
+    set: [snow:blankets]
+
+- id: snow_x_room12_ballroom
+  advisor: room12
+  acts: [2, 3]
+  weight: 2
+  conditions: { flags_all: [booking:snow, snow:coach_in] }
+  tags: [snow, rules, guests]
+  text: >-
+    There are forty-one strangers asleep in the ballroom, and the rule is no sleeping in the
+    ballroom. I know, because I wrote it, after the Duke.
+  left:
+    text: They stay. It's snowing
+    reply: "'Snowing,' she repeats, as if you had arranged it, and goes to amend the card."
+    effects: { public: 10, allies: -8, trust_secondary: 6 }
+    tags: [guests, building]
+    set: [room12:crossed]
+  right:
+    text: Move them to the corridors
+    reply: "Forty-one into the corridors. Room 12 steps over nine of them to say thank you."
+    effects: { public: -10, allies: 8 }
+    tags: [guests, building]
+    set: [room12:obeyed, snow:corridors]
+
+- id: snow_x_porter_van
+  advisor: porter
+  acts: [2, 3]
+  weight: 1.5
+  conditions: { flags_all: [booking:snow] }
+  tags: [snow, kitchen, building]
+  text: >-
+    There's a van on the cliff road with its lights on, not moving, and my theory is bread.
+    The Handyman has a theory too, and his is a ditch.
+  left:
+    text: Send the Handyman with a rope
+    reply: "The rope holds. Forty loaves, and a baker who has heard the word 'rumour'."
+    effects: { public: 10, military: -8 }
+    tags: [guests, staff]
+    set: [snow:van_found]
+  right:
+    text: Leave it. Vans find their way
+    reply: "The lights stay where they are. Then they go out, which is not arriving."
+    effects: { military: 8, public: -8 }
+    tags: [staff, guests]
+    set: [snow:van_lost]

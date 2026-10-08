@@ -1,0 +1,111 @@
+# THE CRITIC at 6:00 — what the Critic (or whoever got to the pen first) writes.
+# The star bands are unconditional; the review above them reads the flag the head's roll sets.
+
+- id: critic_check_in_review_laughed
+  name: Under Protest
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:critic_check_in, critic_check_in:laughed], stars: { min: 4 } }
+  priority: 45
+  stars: 5
+  byline: critic
+  quote: "They billed me under my own name and I laughed. I do not laugh. Five stars, under protest."
+  text: >-
+    At six the Day Manager walks in with her own pen and finds the Critic at the desk with a
+    receipt, reading it as if it were a menu. Her editor is asleep in the good chair. The Porter
+    has a theory about the chair and is keeping it.
+
+
+    She files at nine, under her own name, about the pillows, which she has finally lain on.
+    Five stars, and one line about a night desk that asked her what she was called, and meant it.
+  moment_label: "The moment she laughed, once"
+  compendium: "Six o'clock, the real name on the bill, and a critic who laughed. Five stars, under protest."
+  emoji: "🖋️"
+
+- id: critic_check_in_review_five
+  name: The Pillows
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:critic_check_in], stars: { min: 4 } }
+  priority: 40
+  stars: 5
+  byline: critic
+  quote: "I arrived under one name and left under the other. In between, pillows. Excellent."
+  text: >-
+    At six the Day Manager walks in with her own pen and finds a folding chair in the lobby,
+    folded, and a man asleep across two armchairs with a folder on his chest. Nobody at the
+    desk says the Critic's name. The desk is the part that counts.
+
+
+    She files at nine, about the pillows, which is what she came for. Five stars, and a line
+    about a hotel that can keep a name to itself, which The Majestic will read twice.
+  moment_label: "The moment nobody said her name"
+  compendium: "Six o'clock, the chair folded, the name kept, and a review about the pillows. Five stars."
+  emoji: "🛏️"
+
+- id: critic_check_in_review_three
+  name: A Rule About Chairs
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:critic_check_in], stars: { min: 3, max: 3 } }
+  priority: 40
+  stars: 3
+  byline: room12
+  quote: "A lady with two names, a man with a chair, and no rule about either. There is now."
+  text: >-
+    At six the man is still in the chair, awake now, and the Critic is in the lift, going up
+    and down because she cannot decide which floor she is pretending to be on. The lift has
+    views on this.
+
+
+    Room 12 writes three stars on the back of the card by the lift, which she has taken down
+    to add a rule about folding chairs and a rule about names. "Both reasonable," she writes,
+    "in the circumstances."
+  moment_label: "The moment she took the card down"
+  compendium: "Six o'clock, the chair still in the lobby, and a new rule by the lift about names. Three stars."
+  emoji: "🪑"
+
+- id: critic_check_in_review_two
+  name: Everyone Knew
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:critic_check_in], stars: { max: 2 } }
+  priority: 40
+  stars: 2
+  byline: critic
+  quote: "Every member of staff knew my name by four. I never got as far as the pillows."
+  text: >-
+    At six the hotel is open, which the Owner says on the phone as an achievement and the Day
+    Manager as a question. The Chef has made the Critic a cake she did not ask for, and the
+    man in the chair has eaten most of it.
+
+
+    She files at nine, under her own name, since everybody knows it anyway. Two stars, a
+    paragraph about discretion, and nothing at all about the pillows, which she never reached.
+  moment_label: "The moment the kitchen said her name"
+  compendium: "Six o'clock by a whisker, a cake nobody ordered, and a review with her real name on it. Two stars."
+  emoji: "🗞️"
+
+# ---- The fall this Booking suggests: the Critic checks out, and the lobby follows her
+
+- id: critic_check_in_fall_guests
+  name: Checked Out Under Both Names
+  kind: removed
+  trigger: { type: meter, key: public, at: 0 }
+  conditions: { flags_all: [booking:critic_check_in] }
+  priority: 30
+  stars: 1
+  byline: critic
+  quote: "I checked out under both names. The Majestic had a room, as a courtesy."
+  text: >-
+    She comes down at the worst moment with her bag packed and her editor behind her carrying
+    the chair, and settles the bill under both names, one above the other, so there is no
+    mistake about who is leaving.
+
+
+    The lobby empties behind her, in ones and twos. Across the square The Majestic
+    has its doors open and a man at each one. "As a courtesy," says their night manager, when
+    you ring. One star, under her own name.
+  moment_label: "The moment she signed twice"
+  compendium: "The Critic walked out under both names and the lobby followed. One star, from across the square."
+  emoji: "🏷️"

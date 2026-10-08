@@ -1,0 +1,13 @@
+# THE SNOW — nobody can leave, a coach of forty-one cannot arrive and has, the bread van is a
+# rumour, and the Doorman remembers the snow of 1991.
+- id: snow
+  name: The Snow
+  lead: coachdriver
+  opener: snow_01_cliff_road
+  beats:
+    - { card: snow_02_bread_van, slot: [4, 6] }
+    - { card: snow_03_majestic_loaves, slot: [9, 11] }
+    - { card: snow_04_headcount, slot: [13, 14] }
+  head: { card: snow_05_the_sum, slot: [15, 17] }
+  teaser: "Nobody can leave, a coach of forty-one has arrived anyway, and the bread van is a rumour."
+  weight: 1

@@ -1,0 +1,110 @@
+# THE INSPECTOR at 6:00 — what the Inspector (or whoever got to the pen first) writes.
+# The star bands are unconditional; the review above them reads the flag the head sets when
+# you give him your word instead of the lights.
+
+- id: review_inspector_word
+  name: On the Manager's Word
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:inspector, inspector:word], stars: { min: 4 } }
+  priority: 45
+  stars: 5
+  byline: inspector
+  quote: "I ticked the cellar on the manager's word, then went down at six anyway. The word held."
+  text: >-
+    At six the Day Manager walks in with her own pen and finds the Inspector at the desk with
+    his. Every box is ticked, and under one of them it says "on the manager's word", in a hand
+    that has never trusted anyone.
+
+
+    He goes down to the cellar anyway, with the Day Manager and the lights on. The crates are
+    square, the Barman is upright, and he writes one word beside the tick: "held". Five stars.
+  moment_label: "The moment he underlined 'word'"
+  compendium: "Six o'clock, every box ticked, one of them on your word alone. He checked. The word held."
+  emoji: "✒️"
+
+- id: review_inspector_five
+  name: With the Lights On
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:inspector], stars: { min: 4 } }
+  priority: 40
+  stars: 5
+  byline: inspector
+  quote: "I came at three, which people prefer. I saw everything with the lights on. No notes."
+  text: >-
+    At six the Day Manager walks in with her own pen and finds every light in the hotel on and
+    the Inspector at the desk, finished, which he says people prefer. The Chef has made him an
+    omelette he did not ask for and is watching him eat it.
+
+
+    The form has no notes. He says that has happened once before, in 1991, and the Doorman says
+    he remembers. Five stars, in a ruled hand, and the lights go off one wing at a time.
+  moment_label: "The moment the form had no notes"
+  compendium: "Six o'clock, every light on, every box ticked and no notes. The Inspector preferred it."
+  emoji: "🔦"
+
+- id: review_inspector_three
+  name: Noted, By Torch
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:inspector], stars: { min: 3, max: 3 } }
+  priority: 40
+  stars: 3
+  byline: room12
+  quote: "An inspector came at three and saw the cellar by torch. The rule about torches is new."
+  text: >-
+    At six the Inspector is at the desk with the form, most of it ticked and one box with a
+    sentence beside it instead, and the Day Manager says "right" in the voice she keeps for
+    nights that were nearly fine. The Barman is awake, which is something.
+
+
+    Room 12 writes three stars on the back of the card by the lift, which she has taken down
+    to add a rule about inspections before nine. "Thorough," she writes, "in places."
+  moment_label: "The moment he wrote a sentence instead of a tick"
+  compendium: "Six o'clock, most boxes ticked, one sentence where a tick should be, and a new rule by the lift."
+  emoji: "📋"
+
+- id: review_inspector_two
+  name: He Preferred It Early
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:inspector], stars: { max: 2 } }
+  priority: 40
+  stars: 2
+  byline: critic
+  quote: "An inspector arrived at three and found the salmon before I did. I file at nine."
+  text: >-
+    At six the hotel is open, which the Owner says like an achievement and the Day Manager like
+    a question. The Inspector left at half past five, which he said people prefer, with a form
+    that is mostly sentences, and the lights in the east wing are still on.
+
+
+    The Critic files at nine. Two stars, a paragraph on the pillows, and one sentence about an
+    inspector with a torch that The Majestic will quote, as a courtesy.
+  moment_label: "The moment he left early as well"
+  compendium: "Six o'clock by a whisker, a form full of sentences, and a review that leads with the torch."
+  emoji: "🕯️"
+
+# ---- The fall this Booking suggests: the staff walk out of a very clean kitchen
+
+- id: fall_inspector_staff
+  name: The Kitchen, With Nobody In It
+  kind: removed
+  trigger: { type: meter, key: military, at: 0 }
+  conditions: { flags_all: [booking:inspector] }
+  priority: 30
+  stars: 1
+  byline: chef
+  quote: "He wanted the kitchen with the lights on. He got it. We were not in it."
+  text: >-
+    The Chef goes first, as he does, coat on and the salmon under his arm, and says "somebody"
+    once at the door, to nobody in particular. The Barman follows from the cellar, the Porter
+    from the stairs, and the Handyman says goodbye on the intercom, like weather.
+
+
+    The Inspector walks the empty kitchen with the lights on and ticks every box, because it
+    is very clean. One star, and a form that says so.
+  moment_label: "The moment the Chef took the salmon"
+  compendium: "The staff walked out with an inspector in the kitchen. Very clean, very empty, one star."
+  emoji: "🧥"

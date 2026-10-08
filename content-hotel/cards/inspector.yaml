@@ -63,17 +63,17 @@
   acts: [2, 2]
   tags: [inspector, cellar]
   text: >-
-    I had said nine; I find I can finish at six, which people prefer, if I see the cellar now.
-    I understand someone is asleep in it.
+    I can finish at six, not nine, which people prefer, if I see the cellar now. I gather
+    someone is asleep in it, which I would also like to see.
   left:
-    text: The cellar. Wake whoever it is
+    text: Wake whoever it is. Now
     reply: "The Barman wakes on the brandy crates and asks the Inspector if he's a resident."
     effects: { military: -10, public: 8, trust_secondary: 8 }
     tags: [staff, guests]
     set: [inspector:cellar_shown]
   right:
-    text: The cellar at six. Not before
-    reply: "'Six.' He writes it down and draws a line under it, and then a second line."
+    text: Not before six. He sleeps
+    reply: "'Six.' He writes it down and draws two lines under it. The second one is slower."
     effects: { military: 8, public: -8, trust_secondary: -10, commitment: -8 }
     tags: [staff, promise]
     set: [inspector:cellar_six]
@@ -88,7 +88,7 @@
     on for him. Is he paying for the electricity?
   left:
     text: Lights off behind him
-    reply: "The east wing goes dark behind him. He switches to the torch without a word."
+    reply: "The east wing goes dark behind him. The torch comes on, and so does the pen."
     effects: { economy: 10, public: -8, trust_primary: 8, trust_secondary: -10 }
     tags: [money, owner]
     set: [inspector:lights_off]
@@ -174,7 +174,7 @@
     set: [inspector:card_room12]
   right:
     text: The hotel did. Officially
-    reply: "'The hotel,' she repeats, and goes to find a pen, and adds a rule about that."
+    reply: "'The hotel,' she repeats, and finds a pen. The card gains a rule about honesty."
     effects: { military: 8, public: -8, trust_secondary: -6 }
     tags: [staff, guests]
     set: [inspector:card_hotel]

@@ -1,0 +1,110 @@
+# THE DOG SHOW at 6:00 — what the Secretary (or whoever got to the pen first) writes.
+# The star bands are unconditional; the Porter's review above them reads the flag the head's roll sets.
+
+- id: review_dogshow_porter
+  name: Best in Show
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:dogshow, dogshow:porter_best], stars: { min: 4 } }
+  priority: 45
+  stars: 5
+  byline: dogshow_secretary
+  quote: "Best in Show went to the Night Porter. The dogs took it well. The whippet did not."
+  text: >-
+    At six the Day Manager walks in with her own pen and finds forty-one dogs sitting in a
+    ring on the good carpet, and the Porter in the middle of them with a rosette the size of
+    a saucer, standing very straight.
+
+
+    "Best in Show," says the Secretary, and writes five stars, and under them,
+    "Temperament." The judge sneezes once, for form. The Porter has a theory about why he
+    won, and keeps it.
+  moment_label: "The moment the Porter stood very straight"
+  compendium: "Six o'clock, forty-one dogs in a ring and the Porter Best in Show. Five stars from the Secretary."
+  emoji: "🏵️"
+
+- id: review_dogshow_five
+  name: A Rosette for Everything
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:dogshow], stars: { min: 4 } }
+  priority: 40
+  stars: 5
+  byline: dogshow_secretary
+  quote: "Forty-one dogs, one lift, no complaints from the dogs. Your Porter won Temperament."
+  text: >-
+    At six the Day Manager walks in with her own pen, steps over a spaniel, which she notes,
+    and picks up a rosette, which she reads. It says TEMPERAMENT. The Porter asks for it
+    back, politely, and gets it.
+
+
+    The Secretary writes five stars at the desk, in the hand she uses for a schedule, and
+    under them: "The judge slept, eventually. The dogs were a credit. So, I suppose, were you."
+  moment_label: "The moment the Porter asked for it back"
+  compendium: "Six o'clock with the dogs asleep, the judge asleep, and a rosette on the Porter. Five stars."
+  emoji: "🐕"
+
+- id: review_dogshow_three
+  name: No Dogs in the Lift
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:dogshow], stars: { min: 3, max: 3 } }
+  priority: 40
+  stars: 3
+  byline: room12
+  quote: "No dogs in the lift. It was not a rule when they arrived. It is on the card now."
+  text: >-
+    At six the judge is asleep in a lobby chair with the whippet from 204 asleep on him, and
+    the Day Manager says "right" in the voice she keeps for nights that were nearly fine. The
+    lift goes up with nobody in it and comes down with a dog.
+
+
+    Room 12 writes three stars on the back of the card by the lift, which she has taken down
+    to add a line about dogs. "The dogs were reasonable," she writes. "The lift was not."
+  moment_label: "The moment the lift came down with a dog"
+  compendium: "Six o'clock, the judge asleep under a whippet, and a new line on the card by the lift about dogs."
+  emoji: "🛗"
+
+- id: review_dogshow_two
+  name: The Dalmatian in 212
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:dogshow], stars: { max: 2 } }
+  priority: 40
+  stars: 2
+  byline: critic
+  quote: "I came for the pillows. A Dalmatian slept on them, so I am writing about the Dalmatian."
+  text: >-
+    At six the hotel is open, which the Owner says as if it were an achievement and the Day
+    Manager as if it were a question. Thirty-nine dogs are in the lobby, two are in the lift,
+    and the judge in 118 has not stopped sneezing.
+
+
+    The Critic files at nine. Two stars, a paragraph about the pillows, and one sentence
+    about a Dalmatian in 212 that The Majestic will read aloud, as a courtesy.
+  moment_label: "The moment the Dalmatian found 212"
+  compendium: "Six o'clock by a whisker, thirty-nine dogs in the lobby, and a review that leads with a Dalmatian."
+  emoji: "🐾"
+
+# ---- The fall this Booking suggests: the lift, with eleven dogs in it, and then everything else
+
+- id: fall_dogshow_building
+  name: The Dogs Came Out First
+  kind: removed
+  trigger: { type: meter, key: allies, at: 0 }
+  conditions: { flags_all: [booking:dogshow] }
+  priority: 30
+  stars: 1
+  byline: doorman
+  quote: "The fire brigade got the dogs out of the lift first. We felt that was the right order."
+  text: >-
+    The lift gives up between the second floor and the third with eleven dogs in it, and the
+    building gives up in sympathy: the boiler, the terrace lights, a ceiling in the east wing,
+    in that order. The fire brigade come for the dogs and stay.
+
+
+    They put the guests on the lawn in blankets and the dogs on the guests, and the Doorman
+    tells them about 1991, when it was a Duke. One star, a form, and a rosette for the ladder.
+  moment_label: "The moment the ladder got a rosette"
+  compendium: "The lift stopped with eleven dogs in it and the building followed. One star, and the dogs came out first."
+  emoji: "🪜"

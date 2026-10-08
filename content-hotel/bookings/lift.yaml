@@ -1,0 +1,13 @@
+# THE LIFT — stuck between three and four with a dog, a bride and the Owner's Nephew, who is on
+# the phone to his uncle about whose fault it is.
+- id: lift
+  name: The Lift
+  lead: nephew
+  opener: lift_01_between
+  beats:
+    - { card: lift_02_gap, slot: [4, 6] }
+    - { card: lift_03_a_name, slot: [9, 11] }
+    - { card: lift_04_the_dog, slot: [13, 14] }
+  head: { card: lift_05_service_book, slot: [15, 17] }
+  teaser: "The lift is stuck between three and four with a dog, a bride and the Owner's nephew."
+  weight: 1

@@ -1,0 +1,110 @@
+# THE LIFT at 6:00 — what the Owner's Nephew (or whoever got to the pen first) writes.
+# The star bands are unconditional; the review above them reads the flag the Owner's beat sets.
+
+- id: review_lift_took_blame
+  name: He Said It Was His Fault
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:lift, lift:took_blame], stars: { min: 4 } }
+  priority: 45
+  stars: 5
+  byline: nephew
+  quote: "Two hours in a lift. The night manager took the blame. It wasn't theirs. I've checked."
+  text: >-
+    At six the lift is on the ground floor with its doors open, which the Handyman calls a
+    statement, and the dog is asleep in it. The bride has gone up to take the dress off and
+    come down to put it on again for seven.
+
+
+    The Nephew writes the review on the back of the service book, open at the Owner's page.
+    Five stars, and one arrow, from the words 'took the blame' to his uncle's handwriting.
+    You go home.
+  moment_label: "The moment you said 'mine'"
+  compendium: "Six o'clock, the lift down and open, and the Nephew wrote five stars for the one who took the blame."
+  emoji: "🛗"
+
+- id: review_lift_five
+  name: The Dog Was the Best of Us
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:lift], stars: { min: 4 } }
+  priority: 40
+  stars: 5
+  byline: nephew
+  quote: "Two hours in a lift with a dog and a bride. The dog was the best of us, and I include me."
+  text: >-
+    At six the lift is on the ground floor with its doors open, which the Handyman calls a
+    statement, and the dog is asleep in it. The bride has gone up to take the dress off and
+    come down to put it on again for seven.
+
+
+    The Nephew writes the review at the desk, in pen, with the Day Manager at his shoulder. Five stars, and one line about whose fault it was, which he has crossed out.
+    You go home. The cat has your side.
+  moment_label: "The moment the doors opened on three"
+  compendium: "Six o'clock, the lift down and open, the dog asleep in it. The Nephew gave five stars and crossed a line out."
+  emoji: "🛗"
+
+- id: review_lift_three
+  name: Informed, Eventually
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:lift], stars: { min: 3, max: 3 } }
+  priority: 40
+  stars: 3
+  byline: room12
+  quote: "The lift stopped for two hours. The card says to inform me. I have added 'promptly'."
+  text: >-
+    At six the lift goes up, in the sense that it is not between floors, and the Nephew is
+    in the lobby telling the Day Manager whose fault it was, which she writes down with her
+    own pen and does not read back.
+
+
+    Room 12 writes three stars on the back of the card by the lift, which she has taken down
+    to add a word. "Adequate," she writes, "between floors." The dog, she notes, was polite.
+  moment_label: "The moment she added a word"
+  compendium: "Six o'clock, the lift moving, the Nephew still explaining, and a new word on the card by the lift."
+  emoji: "📝"
+
+- id: review_lift_two
+  name: Still Between Floors
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:lift], stars: { max: 2 } }
+  priority: 40
+  stars: 2
+  byline: critic
+  quote: "I came to write about the pillows. I have written about a lift, a dog and a nephew."
+  text: >-
+    At six the hotel is open, which the Owner says like a sum that came out and the Day
+    Manager like one that did not. The lift is where it was, between three and four, and
+    the Nephew is explaining whose fault that is through a hand's width of door.
+
+
+    The Critic files at nine. Two stars, a paragraph on the stairs, and one sentence about
+    a dog that everyone will quote and nobody at the desk will enjoy.
+  moment_label: "The moment the lift people left"
+  compendium: "Six o'clock by a whisker, the lift still stuck, and a review that leads with the dog."
+  emoji: "🐕"
+
+# ---- The fall this Booking suggests: the fire brigade cut the lift open
+
+- id: fall_lift_building
+  name: Cut Open
+  kind: removed
+  trigger: { type: meter, key: allies, at: 0 }
+  conditions: { flags_all: [booking:lift] }
+  priority: 30
+  stars: 1
+  byline: nephew
+  quote: "The fire brigade took four minutes. The hotel took two hours. My uncle has both numbers."
+  text: >-
+    It is the lift, in the end, and then everything the lift was holding up: the fire brigade
+    cut the doors open on three, and the Handyman watches from the stairs and says nothing,
+    which is the loud kind of nothing. The dog gets out first and goes to the lawn.
+
+
+    The Nephew rings his uncle from the lawn, in a blanket, with a working phone. One star,
+    and the word "whose", and the Doorman telling a fire officer about 1991.
+  moment_label: "The moment the doors came off"
+  compendium: "The fire brigade cut the lift open and closed the hotel. One star, by phone, from the lawn."
+  emoji: "🚒"

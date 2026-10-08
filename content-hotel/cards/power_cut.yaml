@@ -1,0 +1,208 @@
+# THE POWER CUT — the Booking's spine. Opener at 3:00, three beats, the head in the five o'clock hour.
+# The lights go in the east wing, then the lift, then the fish tank. Room 220 has a torch and
+# a complaint he is saving for six.
+# Bars: public = GUESTS, military = STAFF, allies = THE BUILDING, economy = MONEY.
+# Regards: trust_primary = the Owner's patience, trust_secondary = Room 220's goodwill,
+# intel = the Critic's opinion, commitment = your promises.
+# Flags: power_cut:candles, power_cut:electrician, power_cut:lift_freed, power_cut:lift_stuck,
+#        power_cut:list_read, power_cut:torch_borrowed, power_cut:fish_bucket, power_cut:fish_left,
+#        power_cut:lights_on, power_cut:paid, power_cut:handyman_fixed, power_cut:all_dark,
+#        power_cut:majestic_cable, majestic:owed, majestic:refused, chef:cold_breakfast,
+#        room12:obeyed, room12:crossed.
+
+# ---- The spine (seated by the Booking; no conditions, no weight)
+
+- id: power_cut_01_east_wing
+  arc: power_cut
+  advisor: porter
+  acts: [1, 1]
+  tags: [power_cut, building]
+  text: >-
+    The east wing is dark from 201 to 240. Room 220 has rung down to say he has a torch
+    and a complaint, and he is saving the complaint for six.
+  left:
+    text: Candles. One for every room
+    reply: "Forty candles go up. Room 220 declines his, and notes the time by torch."
+    effects: { public: 10, economy: -8, trust_secondary: -4 }
+    tags: [guests, money]
+    set: [power_cut:candles]
+  right:
+    text: Ring the electrician. Night rate
+    reply: "He names a price, then adds 'plus the call-out', then 'cash', then 'about five'."
+    effects: { economy: -12, allies: 8 }
+    tags: [money, building]
+    set: [power_cut:electrician]
+
+- id: power_cut_02_lift
+  arc: power_cut
+  advisor: handyman
+  acts: [1, 2]
+  tags: [power_cut, lift, building]
+  text: >-
+    The lift went with the lights, between two and three, with the Labrador from 118 in
+    it. He's calm; the Porter is reading to him through the doors.
+  left:
+    text: Wind it down by hand
+    effects: {}
+    tags: [building]
+    odds:
+      label: It moves
+      base: 0.6
+      tags: []
+      success:
+        text: "Eleven turns of the handle. The doors open on two, and the dog walks out like a man leaving a meeting."
+        effects: { allies: 10, public: 8 }
+        set: [power_cut:lift_freed]
+      failure:
+        text: "The handle turns and the lift does not. The dog lies down, which the Handyman says is the right response."
+        effects: { allies: -10, military: -8 }
+        set: [power_cut:lift_stuck]
+  right:
+    text: Leave him. The fuse first
+    reply: "The Porter sits on the landing with a biscuit and a theory. 118 sleeps on."
+    effects: { military: -10, allies: 8 }
+    tags: [staff, building]
+    set: [power_cut:lift_stuck]
+
+- id: power_cut_03_torch
+  arc: power_cut
+  advisor: room220
+  acts: [2, 2]
+  tags: [power_cut, guests]
+  text: >-
+    I have come down with my torch to say I am not complaining yet. I am saving it for
+    six, and I'd like you to see how long the list is.
+  left:
+    text: Read the list. Start at one
+    reply: "Item one: 'Nobody asked.' You have now. He ticks it by torch, almost kindly."
+    effects: { public: 8, military: -8, trust_secondary: 10 }
+    tags: [guests, staff]
+    set: [power_cut:list_read]
+  right:
+    text: Borrow the torch. For the stairs
+    reply: "He hands it over and writes that down. The Porter now has a torch and a theory."
+    effects: { military: 10, public: -8, trust_secondary: -10 }
+    tags: [staff, guests]
+    set: [power_cut:torch_borrowed]
+
+- id: power_cut_04_fish
+  arc: power_cut
+  advisor: barman
+  acts: [3, 3]
+  timer: 10
+  timeout: right
+  tags: [power_cut, lounge, building]
+  text: >-
+    The pump in the lounge tank stopped with the lights, and by my reckoning the fish have
+    an hour of air. I have offered them a straw.
+  left:
+    text: Fish in the ice bucket
+    reply: "Eleven fish in the ice bucket. The Barman lays a napkin over it, out of respect."
+    effects: { allies: 8, military: -8 }
+    tags: [building, staff]
+    set: [power_cut:fish_bucket]
+  right:
+    text: Leave them. Fish are tough
+    reply: "'Tough,' he says, and pours himself one, and after a moment one for the tank."
+    effects: { allies: -10, military: 8 }
+    tags: [building, staff]
+    set: [power_cut:fish_left]
+
+- id: power_cut_05_fuse
+  arc: power_cut
+  advisor: owner
+  acts: [3, 3]
+  minutes: 20
+  tags: [power_cut, owner, money]
+  text: >-
+    An electrician is at the door wanting four hundred pounds to turn one fuse. I have done
+    the sum, and it comes to a hundred pounds a minute.
+  left:
+    text: Pay him. Lights by six
+    reply: "Four minutes. Every light at once, and the lift says 'two' to an empty corridor."
+    effects: { economy: -16, public: 12, allies: 10, trust_primary: -8 }
+    tags: [money, guests, building]
+    set: [power_cut:lights_on, power_cut:paid]
+  right:
+    text: Send him off. The Handyman tries
+    effects: {}
+    tags: [owner, building]
+    odds:
+      label: It holds
+      base: 0.55
+      tags: [owner]
+      success:
+        text: "One hit. The east wing comes back floor by floor, and the Owner says 'good' like a man finding change."
+        effects: { allies: 10, public: 10, economy: 8, trust_primary: 10 }
+        set: [power_cut:lights_on, power_cut:handyman_fixed]
+      failure:
+        text: "A bang, a smell, and the west wing goes too. The Owner says nothing, which is the expensive kind of nothing."
+        effects: { allies: -14, public: -12, trust_primary: -8 }
+        set: [power_cut:all_dark]
+
+# ---- Tied to the Booking (drawn by weight once the Power Cut is on)
+
+- id: power_cut_x_chef_fridge
+  advisor: chef
+  acts: [1, 2]
+  weight: 2
+  conditions: { flags_all: [booking:power_cut] }
+  tags: [power_cut, kitchen, staff]
+  text: >-
+    The fridge has stopped with sixty breakfasts in it, getting warmer. I'm not saying the
+    night manager bought the cheap fuse; I'm saying somebody did.
+  left:
+    text: Carry it down to the cellar
+    reply: "Sixty breakfasts go down in relays. The Chef counts fifty-nine and says nothing."
+    effects: { economy: 10, military: -10 }
+    tags: [money, staff]
+  right:
+    text: Cook it all now. Serve it cold
+    reply: "'Cold,' he says, once, and makes sixty of something better cold, out of spite."
+    effects: { economy: -8, military: 8, public: -8 }
+    tags: [money, staff, guests]
+    set: [chef:cold_breakfast]
+
+- id: power_cut_x_majestic_cable
+  advisor: majestic
+  acts: [2, 3]
+  weight: 2
+  conditions: { flags_all: [booking:power_cut] }
+  tags: [power_cut, majestic, building]
+  text: >-
+    "The Majestic has noticed your east wing from across the square, and we have a
+    generator and a long cable." A pause, then: "As a courtesy."
+  left:
+    text: Take the cable. Say thank you
+    reply: "Borrowed light fills the lobby. Across the square, somebody writes it down."
+    effects: { allies: 12, public: 8, trust_primary: -6 }
+    tags: [building, guests, owner]
+    set: [power_cut:majestic_cable, majestic:owed]
+  right:
+    text: No thank you. We manage
+    reply: "'Quite.' Across the square, a light comes on in every window, all at once."
+    effects: { public: -8, military: 10 }
+    tags: [guests, staff]
+    set: [majestic:refused]
+
+- id: power_cut_x_room12_card
+  advisor: room12
+  acts: [1, 3]
+  weight: 1.5
+  conditions: { flags_all: [booking:power_cut] }
+  tags: [power_cut, rules, guests]
+  text: >-
+    The card by the lift says what to do in a power cut. I wrote it, nobody can read it in
+    the dark, so I have come down to read it to you.
+  left:
+    text: Listen. All of it
+    reply: "Item three is 'inform Room 12'. She allows that this has, in a sense, been done."
+    effects: { public: 8, military: -8 }
+    tags: [guests, staff]
+    set: [room12:obeyed]
+  right:
+    text: Not now. Give her a candle
+    reply: "She takes the candle and reads the card to the Porter instead. He takes notes."
+    effects: { public: -10, allies: 8 }
+    tags: [guests, building]
+    set: [room12:crossed]

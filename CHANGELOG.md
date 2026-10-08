@@ -36,7 +36,7 @@ eighteen cards of ten minutes, four bars, a review at 6:00, the same night for e
 
 ### Balance (BALANCE.md "The hotel")
 - B1–B6 in the simulator for `voice: hotel`, with stars, the bars' end mean and each Booking's dawn rate in the report; a sweep tool over drift, scale and start; a per-Booking economics report.
-- Drift 1.5, costs ×1.4, start 65/60; star bands 38/31/24/18 and bar colours good 38 / low 24 / danger 12, read from where a careful night ends.
+- Drift 1.5, costs ×1.4, start 65/60, a speaker cooldown of 0.2; star bands 41/34/27/21 and bar colours good 41 / low 21 / danger 12, read from where a careful night ends. All six targets pass at 2,000 nights a bot (BALANCE.md H-5).
 
 ### Tooling and tests
 - `tools/smoke/hotel.ts` plays the first night and tonight through the real screens with screenshots; `e2e/hotel.spec.ts` covers the loop on a phone; unit tests for the strip, the share text, the stars, the falls and the Guest Book.

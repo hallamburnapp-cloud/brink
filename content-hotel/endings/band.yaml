@@ -1,0 +1,110 @@
+# THE BAND at 6:00 — what the Bandleader (or whoever got to the pen first) writes.
+# The star bands are unconditional; the review above them reads the flag the head sets when
+# the hotel books the band for the summer.
+
+- id: review_band_booked
+  name: Booked, At Last
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:band, band:booked], stars: { min: 4 } }
+  priority: 45
+  stars: 5
+  byline: bandleader
+  quote: "Nobody booked us. Then, at twenty to six, somebody did. We will bring the harp."
+  text: >-
+    At six the Day Manager walks in with her own pen and is played in, which has not
+    happened before, and she stops in the doorway and does not know what to do with her
+    face. The trumpet holds the note until she sits down.
+
+
+    Five stars on the back of a set list, and under them a date in the summer, in drum pen.
+    The Porter has a theory about who booked them the first time. He is keeping it.
+  moment_label: "The moment she was played in"
+  compendium: "Six o'clock, the band booked for the summer in drum pen, and the Day Manager played in."
+  emoji: "🎺"
+
+- id: review_band_five
+  name: Nobody Booked Them
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:band], stars: { min: 4 } }
+  priority: 40
+  stars: 5
+  byline: bandleader
+  quote: "Nobody booked us and they let us finish. Lovely floor. It moved, but with us."
+  text: >-
+    At six the ballroom is eleven guests in dressing gowns, Room 12 in her coat, and a band
+    packing up in the order they arrived. The Day Manager walks in and the trumpet, out of
+    habit, plays her a chord.
+
+
+    Five stars on the back of a set list. Nobody says who booked them. The Porter has a
+    theory and keeps it, and you go home, and the cat has your side.
+  moment_label: "The moment the trumpet played her a chord"
+  compendium: "Six o'clock with the ballroom still full and a band nobody booked packing up like guests."
+  emoji: "🎷"
+
+- id: review_band_three
+  name: A Rule About Brass
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:band], stars: { min: 3, max: 3 } }
+  priority: 40
+  stars: 3
+  byline: room12
+  quote: "There was a band at this hour. There is a rule about that. I have written it larger."
+  text: >-
+    At six the band has gone the way bands go, in a van, with a sandwich each from the Chef,
+    who says somebody will pay for the bread. The ballroom floor is a foot lower in the
+    middle, which the Handyman calls weather.
+
+
+    Room 12 writes three stars on the card by the lift, under a rule she has just added
+    about brass. "Very good," she writes, "which is not the point."
+  moment_label: "The moment she added a rule about brass"
+  compendium: "Six o'clock, the band gone in a van, a foot off the ballroom floor, and a new rule by the lift."
+  emoji: "🎼"
+
+- id: review_band_two
+  name: Under the Pillows
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:band], stars: { max: 2 } }
+  priority: 40
+  stars: 2
+  byline: critic
+  quote: "The pillows were fine. I know because I was under them. I could still hear the band."
+  text: >-
+    At six the hotel is open, which the Owner says like an achievement and the Day Manager
+    like a question. The band has gone, unpaid, playing, and the square is still humming
+    the last one.
+
+
+    The Critic files at nine. Two stars, a paragraph on the pillows, and a line about a
+    saxophone that The Majestic will quote, as a courtesy.
+  moment_label: "The moment the band left playing"
+  compendium: "Six o'clock by a whisker, the band gone unpaid, and a review that leads with the saxophone."
+  emoji: "🎻"
+
+# ---- The fall this Booking suggests: the ballroom floor goes
+
+- id: fall_band_building
+  name: The Floor Went
+  kind: removed
+  trigger: { type: meter, key: allies, at: 0 }
+  conditions: { flags_all: [booking:band] }
+  priority: 30
+  stars: 1
+  byline: doorman
+  quote: "The floor went in 1991 as well. Not as far. Not with a band on it."
+  text: >-
+    It is the chandelier first, keeping time, then the plaster, then the floor, a foot and
+    then two, with the band still playing because the band has not noticed. The Doorman
+    says "1991" and nobody asks.
+
+
+    The fire brigade are very nice about it and put the dancers on the lawn in blankets,
+    where the band finishes the set. One star, a form, and an encore.
+  moment_label: "The moment the chandelier kept time"
+  compendium: "The ballroom floor went under a band nobody booked. One star, blankets on the lawn, and an encore."
+  emoji: "🕳️"

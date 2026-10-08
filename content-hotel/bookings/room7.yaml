@@ -1,0 +1,13 @@
+# THE MAN WHO ISN'T HERE — Room 7 pays cash and would like the register to agree he never
+# arrived. A man in a good coat is in the lobby, waiting politely.
+- id: room7
+  name: The Man Who Isn't Here
+  lead: room7
+  opener: room7_01_register
+  beats:
+    - { card: room7_02_coat, slot: [4, 6] }
+    - { card: room7_03_sandwich, slot: [9, 11] }
+    - { card: room7_04_cases, slot: [13, 14] }
+  head: { card: room7_05_kitchen, slot: [15, 17] }
+  teaser: "Room 7 has paid in cash and would like the register to agree he never arrived."
+  weight: 1

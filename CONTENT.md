@@ -626,7 +626,7 @@ The bars start at 65/65/65/60 and the night costs each of them 1.5 a card by its
 same size on different bars; a Booking's spine may lean negative (the situation costs
 something) but no spine card should tax both answers by more than 4 across the four bars
 (`npx tsx tools/booking-nets.ts` prints every Booking's numbers). The star bands are
-38/31/24/18 on the mean of the four bars at 6:00.
+41/34/27/21 on the mean of the four bars at 6:00.
 
 ### Checklist for a new Booking
 

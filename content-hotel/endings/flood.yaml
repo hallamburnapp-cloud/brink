@@ -1,0 +1,110 @@
+# THE FLOOD at 6:00 — what Room 310 (or whoever got to the pen first) writes.
+# The star bands are unconditional; the letter review above them reads the flag her beat sets.
+
+- id: review_flood_ours
+  name: In Writing
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:flood, flood:ours], stars: { min: 4 } }
+  priority: 45
+  stars: 5
+  byline: room310
+  quote: "Three floors of water, and at the end a letter saying it was theirs. I have framed it."
+  text: >-
+    At six the ballroom is dry enough to dance on, if you don't mind a note, and the Day
+    Manager finds the letter on the desk before she finds you. She reads it with her own pen
+    out, and puts the pen away.
+
+
+    Room 310 comes down in her coat for the second time. Five stars, in writing, with the
+    time. "Clearing," she says, of the morning, and means it kindly.
+  moment_label: "The moment you signed it"
+  compendium: "Six o'clock, the ballroom dry, and a letter at the desk saying whose fault it was. Five stars, in writing."
+  emoji: "📝"
+
+- id: review_flood_five
+  name: Steady, Turning Clear
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:flood], stars: { min: 4 } }
+  priority: 40
+  stars: 5
+  byline: room310
+  quote: "Steady, turning heavy, turning clear by six. They wrote it all down, with the time."
+  text: >-
+    At six the ballroom floor is dry, if you take the Handyman's word for dry, and the tap
+    from 310 is on the desk in a bag, like evidence. The Day Manager steps round the
+    sandbags with her own pen and says nothing, which is new.
+
+
+    Room 310 comes down in her coat and asks for the time, for the record. Five stars,
+    dated. "I'd describe it," she says, "as clearing."
+  moment_label: "The moment the tap stopped"
+  compendium: "Six o'clock, three floors wet and then dry, and Room 310 described the morning as clearing. Five stars."
+  emoji: "🚰"
+
+- id: review_flood_three
+  name: A Rule About Taps
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:flood], stars: { min: 3, max: 3 } }
+  priority: 40
+  stars: 3
+  byline: room12
+  quote: "Water through three floors and a wedding at eleven. There is now a rule about taps. Mine."
+  text: >-
+    At six the ballroom is damp rather than wet, which the Events Manager calls a moment and
+    the Day Manager calls damp. The lift has an opinion about the water and will not go below
+    two. The Porter has a theory.
+
+
+    Room 12 writes three stars on the back of the card by the lift, which she has taken down,
+    and dried, to add a rule about taps. "Adequate," she writes. "Wet."
+  moment_label: "The moment she added the rule"
+  compendium: "Six o'clock, the ballroom damp, the lift refusing the ground floor, and a new rule about taps by the lift."
+  emoji: "🪣"
+
+- id: review_flood_two
+  name: The Pillows Were Floating
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:flood], stars: { max: 2 } }
+  priority: 40
+  stars: 2
+  byline: critic
+  quote: "I came to write about the pillows. By four the pillows were in the ballroom, floating."
+  text: >-
+    At six the hotel is open, which the Owner says like a sum that came out and the Day
+    Manager says from the doorway, in boots. The ballroom has a tide line. The wedding has
+    heard.
+
+
+    The Critic files at nine, from the lobby, in a chair she has moved to the one dry corner.
+    Two stars, a paragraph on the drip, and one sentence about the pillows that everyone
+    will quote.
+  moment_label: "The moment the drip kept time"
+  compendium: "Six o'clock by a whisker, a tide line in the ballroom, and a review that leads with the pillows."
+  emoji: "🌧️"
+
+# ---- The fall this Booking suggests: the water takes the building
+
+- id: fall_flood_building
+  name: Heavy, Turning Closed
+  kind: removed
+  trigger: { type: meter, key: allies, at: 0 }
+  conditions: { flags_all: [booking:flood] }
+  priority: 30
+  stars: 1
+  byline: room310
+  quote: "I described it to the fire brigade as heavy, turning closed. They wrote that down."
+  text: >-
+    It is the tap, in the end, or the ceiling, or the inch in the ballroom that became two;
+    the fire brigade do not say, and the Handyman calls it a front and leaves it there. The
+    guests go onto the lawn in blankets, and the lawn is wet too.
+
+
+    Room 310 reads her account to a fire officer, who writes it down, which pleases her. One
+    star, in writing, with the time.
+  moment_label: "The moment the ballroom floor gave"
+  compendium: "The water took the building and the fire brigade closed it. One star, dictated to a fire officer, with the time."
+  emoji: "🌊"

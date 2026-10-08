@@ -1,0 +1,13 @@
+# THE INSPECTOR — early, which he finds people prefer; the kitchen, the cellar and whoever is
+# asleep in it, with the lights on.
+- id: inspector
+  name: The Inspector
+  lead: inspector
+  opener: inspector_01_early
+  beats:
+    - { card: inspector_02_salmon, slot: [4, 6] }
+    - { card: inspector_03_cellar, slot: [9, 11] }
+    - { card: inspector_04_owner, slot: [13, 14] }
+  head: { card: inspector_05_word, slot: [15, 17] }
+  teaser: "The Inspector is early, which he finds people prefer."
+  weight: 1

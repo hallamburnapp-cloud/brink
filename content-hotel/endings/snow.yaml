@@ -1,0 +1,111 @@
+# THE SNOW at 6:00 — what the Coach Driver (or whoever got to the pen first) writes.
+# The star bands are unconditional; the review above them reads the flag the head sets.
+
+- id: review_snow_on_the_house
+  name: Snow Is Snow
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:snow, snow:on_the_house], stars: { min: 4 } }
+  priority: 45
+  stars: 5
+  byline: coachdriver
+  quote: "Forty-one of us, no booking, no bill. 'Snow is snow,' the desk said. I wrote it down."
+  text: >-
+    At six the plough comes up the cliff road with the bread van behind it, which turns out to
+    exist, and the Doorman says "in 1991 it was two ploughs", to the sea. The Owner rings to
+    check the sum, and laughs, once.
+
+
+    The Coach Driver counts forty-one onto the coach, then again, because he can, and leaves
+    the review on the dashboard under a pound coin. Five stars, and three words.
+  moment_label: "The moment you said snow is snow"
+  compendium: "Six o'clock, the road open, forty-one counted onto the coach and nobody charged a penny. Five stars, and a pound."
+  emoji: "❄️"
+
+- id: review_snow_five
+  name: All Forty-One
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:snow], stars: { min: 4 } }
+  priority: 40
+  stars: 5
+  byline: coachdriver
+  quote: "Snowed in with forty-one. All counted at six, and fed. I'd get stuck here again."
+  text: >-
+    At six the plough comes up the cliff road with the bread van behind it, which turns out to
+    exist, and the Doorman says "in 1991 it was two ploughs", to the sea. The Day Manager walks
+    in past the coach and asks, pen out, who they are.
+
+
+    The Coach Driver counts forty-one onto the coach, then again, because he can, and leaves
+    the review on the dashboard under a pound coin. Five stars. You go home. The cat has your
+    side.
+  moment_label: "The moment the plough came up the road"
+  compendium: "Six o'clock, the road open, forty-one counted onto the coach and breakfast behind them. The Snow's best night."
+  emoji: "🚌"
+
+- id: review_snow_three
+  name: Except Snow
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:snow], stars: { min: 3, max: 3 } }
+  priority: 40
+  stars: 3
+  byline: room12
+  quote: "Forty-one strangers and a rumour of bread. The rules held, mostly. I have added a line."
+  text: >-
+    At six the road is open in the sense that the plough has been through once, and the coach
+    is warming up in the car park with forty-one aboard, or forty, depending on who is counting.
+    The Chef has made something and will not say from what.
+
+
+    Room 12 writes three stars on the card by the lift, which she has brought down for the
+    purpose, and adds a line under the rule about the ballroom. "Except snow," it says. "Once."
+  moment_label: "The moment she added a line"
+  compendium: "Six o'clock, the road nearly open, the coach nearly counted, and a new line on the card by the lift."
+  emoji: "🧣"
+
+- id: review_snow_two
+  name: Nobody Could Leave
+  kind: survival
+  trigger: { type: run_end }
+  conditions: { flags_all: [booking:snow], stars: { max: 2 } }
+  priority: 40
+  stars: 2
+  byline: critic
+  quote: "Snowed in. Nobody could leave, and I include breakfast."
+  text: >-
+    At six the hotel is open, which the Owner says like a sum that has come out and the Day
+    Manager like one she will be checking. The coach is in the car park with its engine
+    running, the bread van is still a rumour, and so, in the ballroom, is heat.
+
+
+    The Critic files at nine. Two stars, a paragraph about the Doorman and 1991, and one
+    sentence about breakfast that everyone will quote and nobody at the desk will enjoy.
+  moment_label: "The moment the bread stayed a rumour"
+  compendium: "Six o'clock by a whisker, the road shut, the bread a rumour, and a review that leads with breakfast."
+  emoji: "🥣"
+
+# ---- The fall this Booking suggests: a walkout, in snow, across the square
+
+- id: fall_snow_guests
+  name: Walkout, Into the Snow
+  kind: removed
+  trigger: { type: meter, key: public, at: 0 }
+  conditions: { flags_all: [booking:snow] }
+  priority: 30
+  stars: 1
+  byline: coachdriver
+  quote: "We walked out across the square in the snow. The Majestic took us, as a courtesy."
+  text: >-
+    They go in ones and twos and then as a lobby, coats over nightclothes, out into snow that
+    has shut the road to everything with wheels, and across the square. The Majestic is fully
+    booked, as ever, and takes them all, as a courtesy.
+
+
+    The Coach Driver counts them over, because he counts. One star, written on the back of a
+    timetable the snow has not read, and under it, in another hand: "Courtesies are
+    remembered."
+  moment_label: "The moment the first guest crossed the square"
+  compendium: "The guests walked out into the snow and across the square. One star, and The Majestic took them in."
+  emoji: "🧳"

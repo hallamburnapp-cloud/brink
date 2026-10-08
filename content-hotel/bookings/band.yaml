@@ -1,0 +1,13 @@
+# THE BAND — a band is playing in the ballroom that nobody booked, they are very good,
+# and the guests are starting to dance.
+- id: band
+  name: The Band
+  lead: bandleader
+  opener: band_01_ballroom
+  beats:
+    - { card: band_02_brass, slot: [4, 6] }
+    - { card: band_03_majestic, slot: [9, 11] }
+    - { card: band_04_room12, slot: [13, 14] }
+  head: { card: band_05_encore, slot: [15, 17] }
+  teaser: "A band is in the ballroom that nobody booked, and they are very good."
+  weight: 1

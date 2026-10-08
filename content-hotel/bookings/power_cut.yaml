@@ -1,0 +1,13 @@
+# THE POWER CUT — the lights go in the east wing, then the lift, then the fish tank.
+# Room 220 has a torch and a complaint he is saving for six.
+- id: power_cut
+  name: The Power Cut
+  lead: room220
+  opener: power_cut_01_east_wing
+  beats:
+    - { card: power_cut_02_lift, slot: [4, 6] }
+    - { card: power_cut_03_torch, slot: [9, 11] }
+    - { card: power_cut_04_fish, slot: [13, 14] }
+  head: { card: power_cut_05_fuse, slot: [15, 17] }
+  teaser: "The lights go in the east wing, then the lift, then the fish tank."
+  weight: 1

@@ -1,0 +1,499 @@
+# THE POOL, A — twenty-four regulars for any night. Eight an hour: the three o'clock hour
+# (acts [1,1]), the four o'clock hour (acts [2,2]), the five o'clock hour (acts [3,3]).
+# Bars: public = GUESTS, military = STAFF, allies = THE BUILDING, economy = MONEY.
+# Regards: trust_primary = the Owner's patience, intel = the Critic's opinion,
+# commitment = your promises. Every card stands alone; no Booking flags.
+
+# ---- The three o'clock hour
+
+- id: pa_3_porter_phone
+  advisor: porter
+  acts: [1, 1]
+  weight: 1
+  tags: [desk, guests]
+  text: >-
+    Room 207 has rung the desk eleven times since three and said nothing each time. My
+    theory is a cat on the receiver, and I would like it to be a cat.
+  left:
+    text: Go up and knock
+    reply: "A cat, sitting on the phone. The guest is asleep and has not been consulted."
+    effects: { military: -8, public: 8 }
+    tags: [staff, guests]
+  right:
+    text: Unplug 207 at the switchboard
+    reply: "Quiet. Twelve minutes later 207 rings from the corridor phone, and says nothing."
+    effects: { public: -8, military: 8 }
+    tags: [guests, staff]
+    set: [pa:207_unplugged]
+
+- id: pa_3_chef_fridge
+  advisor: chef
+  acts: [1, 1]
+  weight: 1
+  tags: [kitchen, staff]
+  text: >-
+    Somebody has left the walk-in open and the butter is now a liquid with a history. I'm
+    not naming the somebody; I don't need to.
+  left:
+    text: Buy ice. Bag everything
+    reply: "Nine bags. The Porter has a theory about who did it; the Chef has an eyebrow."
+    effects: { economy: -10, military: 8 }
+    tags: [money, staff]
+  right:
+    text: Cook it. All of it. Now
+    reply: "By four there is a terrine. Nobody ordered a terrine. There is a terrine."
+    effects: { military: -10, economy: 8 }
+    tags: [staff, money]
+    set: [pa:terrine]
+
+- id: pa_3_barman_shelf
+  advisor: barman
+  acts: [1, 1]
+  weight: 1
+  tags: [drinks, money]
+  text: >-
+    A lady in the snug has ordered one of everything on the top shelf, in order, left to
+    right. She is at the gin, which is halfway.
+  left:
+    text: Stop her at the gin
+    reply: "'Halfway,' she says, 'is a sad place to stop.' She tips as if it weren't."
+    effects: { public: -8, military: 8 }
+    tags: [guests, staff]
+  right:
+    text: Let her finish the shelf
+    reply: "She reaches the end at four, salutes the shelf, and asks for a room with a bath."
+    effects: { economy: 12, military: -8 }
+    tags: [money, staff]
+    set: [pa:shelf_finished]
+
+- id: pa_3_housekeeper_pillow
+  advisor: housekeeper
+  acts: [1, 1]
+  weight: 1
+  tags: [guests, linen]
+  text: >-
+    Room 305 would like a sixth pillow, because the other five are wrong in a way she can
+    hear. We have pillows; we don't have that pillow.
+  left:
+    text: Send up every pillow we have
+    reply: "Fourteen go up. She keeps the first; the Porter sleeps on the other thirteen."
+    effects: { public: 10, military: -8 }
+    tags: [guests, staff]
+  right:
+    text: Five is the limit. Say so
+    reply: "'Five,' she says, 'then.' We can hear her hearing them until four."
+    effects: { public: -8, military: 8 }
+    tags: [guests, staff]
+
+- id: pa_3_doorman_parcel
+  advisor: doorman
+  acts: [1, 1]
+  weight: 1
+  tags: [door, guests]
+  text: >-
+    A gentleman in a dinner jacket has asked me to hold a parcel until six and not to look
+    at it. In 1991 a man asked me the same, and that was the piano.
+  left:
+    text: Hold it. Don't look
+    reply: "It ticks under the coat rail. He says it's a clock, as it was in 1991."
+    effects: { public: 8, allies: -8 }
+    tags: [guests, building]
+    set: [pa:parcel_held]
+  right:
+    text: Open it. Politely
+    reply: "A cake with a name on it that isn't his. He asks you, very nicely, to forget it."
+    effects: { public: -8, military: 8 }
+    tags: [guests, staff]
+
+- id: pa_3_room12_hum
+  advisor: room12
+  acts: [1, 1]
+  weight: 1
+  tags: [lift, rules]
+  text: >-
+    The lift is stopped on the second floor with its doors open, humming. The card says
+    no humming after ten, and the lift was present when I wrote it.
+  left:
+    text: Send the Handyman up
+    reply: "He listens, nods, and says it does that when it's cold. It stops when he leaves."
+    effects: { allies: 8, military: -8 }
+    tags: [building, staff]
+  right:
+    text: It's a lift. It hums
+    reply: "'It hums,' she says, and writes the time on the card by the lift, now a log."
+    effects: { military: 8, public: -8 }
+    tags: [staff, guests]
+    set: [pa:room12_logging]
+
+- id: pa_3_concierge_key
+  advisor: concierge
+  acts: [1, 1]
+  weight: 1
+  tags: [desk, building]
+  text: >-
+    A guest has handed in the key to Room 300, and we do not have a Room 300. Three sources
+    agree on this, and all three are the floor plan.
+  left:
+    text: Take the key. Say thank you
+    reply: "He goes up. The lift stops between three and four. One source: the lift."
+    effects: { public: 8, allies: -8 }
+    tags: [guests, building]
+    set: [pa:key_300]
+  right:
+    text: Ask him where he slept
+    reply: "'300,' he says, pointing up. Up is the roof. He has clearly slept very well."
+    effects: { military: -8, allies: 8 }
+    tags: [staff, building]
+
+- id: pa_3_events_banner
+  advisor: events
+  acts: [1, 1]
+  weight: 1
+  tags: [ballroom, guests]
+  text: >-
+    There is a conference at nine in the ballroom and the banner says WELCOME in a language
+    I don't have. It is a moment, and I'd like to know whose.
+  left:
+    text: Hang it. It says welcome
+    reply: "The Concierge reads it in passing. 'Welcome,' he confirms. 'Broadly. To a ship.'"
+    effects: { public: 8, military: -8 }
+    tags: [guests, staff]
+  right:
+    text: Take it down. Plain banner
+    reply: "'Plain,' she says, as if you'd asked for the sea in beige. The old one goes up."
+    effects: { public: -8, economy: 8 }
+    tags: [guests, money]
+
+# ---- The four o'clock hour
+
+- id: pa_4_partner_cat
+  advisor: partner
+  acts: [2, 2]
+  weight: 1
+  tags: [partner]
+  text: >-
+    The cat has been sick on your side, which I report as a neutral party. The bed is still
+    here, in case you've forgotten what one looks like.
+  left:
+    text: Ring home. Two minutes
+    reply: "Two minutes becomes nine. You hear the cat. The cat sounds unrepentant."
+    effects: { military: 8, public: -8, commitment: 6 }
+    tags: [staff]
+    set: [memory:rang_home]
+  right:
+    text: "Text back: nearly done"
+    reply: "'Nearly' comes back with a question mark, and then a photo of the kitchen clock."
+    effects: { public: 8, military: -8, commitment: -6 }
+    tags: [guests]
+    set: [memory:said_nearly]
+
+- id: pa_4_partner_fridge
+  advisor: partner
+  acts: [2, 2]
+  weight: 1
+  tags: [partner]
+  text: >-
+    I've put the soup back in the fridge, which I want you to understand as a decision and
+    not a mood. The bed sends its regards.
+  left:
+    text: Promise to be home by half six
+    reply: "'Half six.' Then: 'I've written it on the fridge, next to the other ones.'"
+    effects: { military: 8, public: -8, commitment: 8 }
+    tags: [staff, promise]
+    set: [promise:home_half_six]
+  right:
+    text: Send a photo of the lobby
+    reply: "'Who's the man in the hat,' comes back. You look up. You hadn't noticed the hat."
+    effects: { public: 8, military: -8 }
+    tags: [guests]
+    set: [pa:man_in_hat]
+
+- id: pa_4_daymanager_ballroom
+  advisor: daymanager
+  acts: [2, 2]
+  weight: 1
+  tags: [daymanager]
+  text: >-
+    A text: "Awake, not because of you, and is the ballroom still a ballroom?" She has
+    asked about nothing else, which is how she asks about everything.
+  left:
+    text: Send her a photo of the ballroom
+    reply: "Ninety seconds of tidying first. Then three dots: 'Why is the chandelier lower.'"
+    effects: { military: -8, public: 8 }
+    tags: [staff, guests]
+  right:
+    text: "Reply: go back to sleep"
+    reply: "'I was never asleep,' she writes, which you suspect is her entire method."
+    effects: { military: 8, trust_primary: -6 }
+    tags: [staff]
+    set: [pa:daymanager_awake]
+
+- id: pa_4_owner_round
+  advisor: owner
+  acts: [2, 2]
+  weight: 1
+  tags: [owner, money]
+  text: >-
+    It's lunchtime here, so I've been reading the till from abroad. It shows a round on the
+    house an hour ago, and I would like a name to go with it.
+  left:
+    text: Say it was yours
+    reply: "'Yours.' A pause while he multiplies something. 'Then it comes out of yours.'"
+    effects: { military: 8, economy: 8, trust_primary: -8 }
+    tags: [staff, money, owner]
+  right:
+    text: Name the Barman
+    reply: "'The Barman.' You hear him write it down, in capitals, abroad."
+    effects: { military: -10, economy: 8, trust_primary: 8 }
+    tags: [staff, money, owner]
+    set: [pa:barman_named]
+
+- id: pa_4_majestic_light
+  advisor: majestic
+  acts: [2, 2]
+  weight: 1
+  tags: [majestic, building]
+  text: >-
+    "The Majestic notes that your car park light is shining into our Bridal Suite." A
+    pause, then: "We mention it as a courtesy."
+  left:
+    text: Turn it off. Apologise
+    reply: "'Noted.' A pause. 'The apology, that is. The light we had already noted.'"
+    effects: { allies: -8, economy: 8 }
+    tags: [building, money]
+  right:
+    text: Leave it. It's our car park
+    reply: "'Of course.' A longer pause. 'Courtesies are remembered. So are lights.'"
+    effects: { public: 8, allies: 8, economy: -8 }
+    tags: [guests, building]
+    set: [pa:majestic_light]
+
+- id: pa_4_handyman_lift
+  advisor: handyman
+  acts: [2, 2]
+  weight: 1
+  tags: [lift, building]
+  text: >-
+    The lift's gone up to the fifth floor on its own and nobody rang for it. It does that
+    when the weather turns, so I'd leave it where it's happy.
+  left:
+    text: Bring it down. Now
+    effects: {}
+    tags: [building]
+    odds:
+      label: It comes down
+      base: 0.6
+      tags: []
+      success:
+        text: "It comes down slowly and the doors open on nobody. He says 'see', as if that proved something."
+        effects: { allies: 8, public: 8 }
+      failure:
+        text: "It gets to the third floor and stays there, humming. 'Sulking,' he says, and goes back to the boiler."
+        effects: { allies: -10, public: -8 }
+        set: [pa:lift_sulking]
+  right:
+    text: Leave it where it's happy
+    reply: "'Right you are.' A guest presses the lobby button twice. The lift stays happy."
+    effects: { allies: 8, public: -8 }
+    tags: [building, guests]
+
+- id: pa_4_chef_kippers
+  advisor: chef
+  acts: [2, 2]
+  weight: 1
+  tags: [kitchen, money]
+  text: >-
+    The order says forty-two kippers, and we have a tin of sardines and the Owner's
+    opinion of kippers. Somebody wrote forty-two, and it wasn't me.
+  left:
+    text: Ring the fish man. Pay the hour
+    reply: "He answers as if he was expecting you, which is the worst thing about fish men."
+    effects: { economy: -12, public: 8 }
+    tags: [money, guests]
+  right:
+    text: Cross out the kippers
+    reply: "He crosses out 'kippers' and writes 'kippers' under it, smaller, for the record."
+    effects: { public: -8, military: 8 }
+    tags: [guests, staff]
+    set: [pa:no_kippers]
+
+- id: pa_4_barman_sea
+  advisor: barman
+  acts: [2, 2]
+  weight: 1
+  tags: [guests, terrace]
+  text: >-
+    A guest has come down in a dressing gown to ask how far it is to the sea. It's forty
+    yards and down, and he's holding a towel like a man who means it.
+  left:
+    text: Walk him to the terrace rail
+    reply: "He looks at the sea, which looks back, and asks instead for a hot chocolate."
+    effects: { public: 10, military: -8 }
+    tags: [guests, staff]
+  right:
+    text: Lock the terrace door
+    reply: "Eight lengths of the lobby carpet instead, in the towel, at a stroll. He's fine."
+    effects: { public: -8, allies: 8 }
+    tags: [guests, building]
+
+# ---- The five o'clock hour
+
+- id: pa_5_daymanager_pen
+  advisor: daymanager
+  acts: [3, 3]
+  weight: 1
+  tags: [daymanager]
+  text: >-
+    A text: "Leaving now, and I've brought my own pen." Then a photograph of the pen,
+    which is red, on a table, with nothing else in the picture.
+  left:
+    text: Tidy the desk for her
+    reply: "The desk is tidied. Then the drawer. Then, for reasons nobody gives, the Porter."
+    effects: { military: -8, public: 8, trust_primary: 6 }
+    tags: [staff, guests]
+  right:
+    text: "Reply: red is a strong choice"
+    reply: "'It's for the parts that matter,' she writes. Then: 'There will be parts.'"
+    effects: { military: 8, trust_primary: -8 }
+    tags: [staff]
+    set: [pa:red_pen]
+
+- id: pa_5_chef_toast
+  advisor: chef
+  acts: [3, 3]
+  weight: 1
+  tags: [kitchen, guests]
+  text: >-
+    The first guest is down, in slippers, asking for just toast. There is no just toast;
+    there is toast, and then there is what comes after.
+  left:
+    text: Just toast. You make it
+    reply: "You make the toast. The Chef watches you the way a surgeon watches a plumber."
+    effects: { public: 10, military: -8 }
+    tags: [guests, staff]
+    set: [pa:made_toast]
+  right:
+    text: Full breakfast. On the house
+    reply: "She eats the lot, says 'I only wanted toast' twice, and tips for the toast."
+    effects: { public: 12, economy: -10 }
+    tags: [guests, money]
+
+- id: pa_5_porter_coats
+  advisor: porter
+  acts: [3, 3]
+  weight: 1
+  tags: [guests, desk]
+  text: >-
+    Three guests are in the lobby in coats, and it isn't six. The board says none of them
+    is leaving, and all of them are from the fourth floor.
+  left:
+    text: Ask what's wrong with the fourth
+    reply: "'Nothing's wrong. It's just very awake up there.' The other two nod, in time."
+    effects: { military: -8, public: 8 }
+    tags: [staff, guests]
+    set: [pa:fourth_awake]
+  right:
+    text: Coffee. Ask nothing
+    reply: "Three coffees. By six they're laughing, and one has rebooked, 'but lower down'."
+    effects: { public: 10, economy: -8 }
+    tags: [guests, money]
+
+- id: pa_5_housekeeper_laundry
+  advisor: housekeeper
+  acts: [3, 3]
+  weight: 1
+  tags: [linen, majestic]
+  text: >-
+    The laundry has come back and it is somebody else's. Two hundred sheets with a crest on
+    them that is not ours, and the crest is a very large M.
+  left:
+    text: Make the beds. Say nothing
+    reply: "Two hundred beds. Nobody mentions the M. The Critic in 212 photographs one."
+    effects: { public: 8, military: -10, intel: -6 }
+    tags: [guests, staff, critic]
+    set: [pa:majestic_sheets]
+  right:
+    text: Send it back. The beds wait
+    reply: "'Ours arrived an hour ago,' says The Majestic. 'We meant to say. As a courtesy.'"
+    effects: { public: -10, military: 8 }
+    tags: [guests, staff]
+
+- id: pa_5_owner_taxi
+  advisor: owner
+  acts: [3, 3]
+  weight: 1
+  tags: [owner, money]
+  text: >-
+    I've done the night in my head: nine rooms, two rounds, one taxi. Tell me the taxi was
+    for a guest.
+  left:
+    text: It was for a guest
+    reply: "'Good.' You hear him divide something by something. 'Which guest.'"
+    effects: { economy: -10, trust_primary: 6 }
+    tags: [money, owner]
+  right:
+    text: It was for the Chef
+    reply: "A sum-shaped silence. 'Then the Chef owes me a taxi, and I'll have it in eggs.'"
+    effects: { military: -8, economy: 8 }
+    tags: [staff, money]
+    set: [pa:chef_owes_taxi]
+
+- id: pa_5_majestic_breakfast
+  advisor: majestic
+  acts: [3, 3]
+  weight: 1
+  tags: [majestic, guests]
+  text: >-
+    "The Majestic is serving breakfast now, for those of your guests who are already
+    awake." A pause, then: "We say this as a courtesy."
+  left:
+    text: Open our dining room now
+    reply: "The Chef says 'now' once. A door closes in the kitchen that was already closed."
+    effects: { public: 10, military: -10, economy: -8 }
+    tags: [guests, staff, money]
+  right:
+    text: Let them go. Wish them well
+    reply: "Four cross the square. Three come back: The Majestic's eggs were 'formal'."
+    effects: { public: -8, economy: 8 }
+    tags: [guests, money]
+    set: [pa:majestic_breakfast]
+
+- id: pa_5_doorman_awning
+  advisor: doorman
+  acts: [3, 3]
+  weight: 1
+  tags: [door, building]
+  text: >-
+    It's getting light, and in 1991 that is when the trouble started, with the milk and
+    the awning. I'd like to lower the awning now, as a precaution.
+  left:
+    text: Lower the awning
+    reply: "The awning comes down and takes a gull with it. The gull is fine, and says so."
+    effects: { allies: 8, military: -8 }
+    tags: [building, staff]
+  right:
+    text: Leave it. It's an awning
+    reply: "'It was an awning in 1991,' he says, and stands under it anyway, as a witness."
+    effects: { allies: -8, military: 8 }
+    tags: [building, staff]
+    set: [pa:awning_up]
+
+- id: pa_5_handyman_baths
+  advisor: handyman
+  acts: [3, 3]
+  weight: 1
+  tags: [boiler, building]
+  text: >-
+    Hot water's back, and I'd like it on the record that I don't know why. Forty rooms will
+    run a bath at six, and the boiler knows that as well as I do.
+  left:
+    text: Slip a note under every door
+    reply: "Forty notes. Thirty-nine baths run at six anyway; 118 reads the note to the dog."
+    effects: { military: -8, allies: 8 }
+    tags: [staff, building]
+  right:
+    text: Say nothing. Let them bathe
+    reply: "At six the boiler takes forty baths and says one word. He declines to repeat it."
+    effects: { allies: -10, public: 8 }
+    tags: [building, guests]
+    set: [pa:forty_baths]

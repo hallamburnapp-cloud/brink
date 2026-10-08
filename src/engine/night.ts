@@ -60,10 +60,10 @@ export const BARS: readonly Exclude<MeterKey, 'escalation'>[] = ['public', 'mili
 /**
  * Where a bar reads as good, low and in danger, and where the stars band. The night's economy
  * drains the bars (BALANCE.md "The hotel"): a careful night ends with the four bars' mean around
- * 27 of 100, so "good" is 38 and up, not half. Bars, strip cells and stars all read from here.
+ * 30 of 100, so "good" is 41 and up, not half. Bars, strip cells and stars all read from here.
  */
-export const BAR_BANDS = { good: 38, low: 24, danger: 12 } as const;
-export const STAR_BANDS: readonly [number, number, number, number] = [38, 31, 24, 18];
+export const BAR_BANDS = { good: 41, low: 21, danger: 12 } as const;
+export const STAR_BANDS: readonly [number, number, number, number] = [41, 34, 27, 21];
 
 /** Minutes of the clock the night has used: the sum of the played cards' `minutes` (default rules.night.minutes). */
 export function elapsedMinutes(content: Content, state: Pick<RunState, 'history'>): number {

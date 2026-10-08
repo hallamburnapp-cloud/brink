@@ -1,0 +1,13 @@
+# THE WEDDING — sixty for breakfast and no eggs, a groom singing to the wrong person,
+# and the Bride's Mother's list, which she has had since the engagement.
+- id: wedding
+  name: The Wedding
+  lead: bride_mother
+  opener: wedding_01_list
+  beats:
+    - { card: wedding_02_groom_bar, slot: [4, 6] }
+    - { card: wedding_03_majestic_eggs, slot: [9, 11] }
+    - { card: wedding_04_window, slot: [13, 14] }
+  head: { card: wedding_05_tick, slot: [15, 17] }
+  teaser: "Sixty for breakfast, no eggs, and the Bride's Mother has a list."
+  weight: 1

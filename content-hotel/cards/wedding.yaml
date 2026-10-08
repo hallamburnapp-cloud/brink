@@ -1,0 +1,200 @@
+# THE WEDDING — the Booking's spine. Opener at 3:00, three beats, the head in the five o'clock hour.
+# Sixty for breakfast and no eggs, a groom singing to the wrong person, and the Bride's Mother's list.
+# Bars: public = GUESTS, military = STAFF, allies = THE BUILDING, economy = MONEY.
+# Regards: trust_primary = the Owner's patience, trust_secondary = the Bride's Mother's goodwill,
+# intel = the Critic's opinion, commitment = your promises.
+# Flags set here: wedding:eggs_promised, wedding:pancakes, wedding:groom_bed, wedding:groom_sang,
+# wedding:majestic_eggs, majestic:owed, majestic:refused, wedding:serenade, wedding:coffee,
+# wedding:ticked, wedding:unticked, wedding:kitchen, wedding:cake_kept, wedding:cake_eaten,
+# wedding:table_moved, wedding:table_nine, wedding:bar_charged, wedding:bar_free.
+
+# ---- The spine (seated by the Booking; no conditions, no weight)
+
+- id: wedding_01_list
+  arc: wedding
+  advisor: bride_mother
+  acts: [1, 1]
+  tags: [wedding, guests]
+  text: >-
+    I have a list; I have had it since the engagement. Item one is sixty for breakfast
+    at seven, with eggs, and your Chef has just said "somebody" to me.
+  left:
+    text: Promise eggs at seven
+    reply: "No tick. 'I tick things when I see them,' she says, and she keeps the pen."
+    effects: { public: 10, economy: -8, trust_secondary: 6, commitment: -8 }
+    tags: [guests, promise]
+    set: [wedding:eggs_promised]
+  right:
+    text: Offer pancakes. For sixty
+    reply: "'Pancakes.' She writes it under item one, in the hand people use for a will."
+    effects: { public: -10, military: 8, trust_secondary: -6 }
+    tags: [guests, staff]
+    set: [wedding:pancakes]
+
+- id: wedding_02_groom_bar
+  arc: wedding
+  advisor: barman
+  acts: [1, 3]
+  timer: 10
+  timeout: right
+  tags: [wedding, bar]
+  text: >-
+    The groom is at the piano, singing to the bridesmaid from 204. The bride is in 214,
+    which is two floors up and, in a sense, further.
+  left:
+    text: Close the bar. Walk him up
+    reply: "He goes up singing. On the stairs he changes the name in the song, twice."
+    effects: { military: 8, public: -8, trust_secondary: 6 }
+    tags: [staff, guests]
+    set: [wedding:groom_bed]
+  right:
+    text: Let him finish the song
+    reply: "He finishes. The bridesmaid applauds. Room 12 writes down the time."
+    effects: { public: 10, military: -8, trust_secondary: -8 }
+    tags: [guests]
+    set: [wedding:groom_sang]
+
+- id: wedding_03_majestic_eggs
+  arc: wedding
+  advisor: majestic
+  acts: [2, 2]
+  tags: [wedding, majestic]
+  text: >-
+    "The Majestic hears you are short of eggs for a wedding, and has five dozen to spare."
+    A pause, then: "As a courtesy."
+  left:
+    text: Take the eggs. Thank them
+    reply: "Five dozen, boxed, their name on the lid. The Chef turns the lid to the wall."
+    effects: { public: 12, military: -10 }
+    tags: [guests, majestic]
+    set: [wedding:majestic_eggs, majestic:owed]
+  right:
+    text: Decline. Our eggs, our problem
+    reply: "'Of course. Courtesies are remembered.' So, you suspect, are refusals."
+    effects: { public: -8, military: 10 }
+    tags: [staff]
+    set: [majestic:refused]
+
+- id: wedding_04_window
+  arc: wedding
+  advisor: room12
+  acts: [3, 3]
+  tags: [wedding, rules]
+  text: >-
+    A young man in a hired suit is singing under my window, which is not the window he
+    wants. The bride is in 214; I am in 12, and I wrote the rule.
+  left:
+    text: Point him at 214
+    reply: "He finds 214. The bride listens, shuts the window, and he takes it as a yes."
+    effects: { public: 10, allies: -8, trust_secondary: 6 }
+    tags: [guests, building]
+    set: [wedding:serenade]
+  right:
+    text: Bring him in. Black coffee
+    reply: "Two coffees and the whole story. The Porter has a theory, and the theory is 204."
+    effects: { military: -10, allies: 8, trust_secondary: 4 }
+    tags: [staff, building]
+    set: [wedding:coffee]
+
+- id: wedding_05_tick
+  arc: wedding
+  advisor: bride_mother
+  acts: [3, 3]
+  minutes: 20
+  tags: [wedding, guests]
+  text: >-
+    Twenty to six, and the list has one item left, which is you. Sixty come down at seven;
+    I would like the word "eggs" from somebody who means it.
+  left:
+    text: Say it. Eggs at seven
+    effects: {}
+    tags: [guests, promise]
+    odds:
+      label: She believes you
+      base: 0.55
+      tags: [guest, promise]
+      success:
+        text: "She ticks it. One tick, after fourteen months of list, and she lets you keep the pen."
+        effects: { public: 12, economy: -8, trust_secondary: 10 }
+        set: [wedding:ticked]
+      failure:
+        text: "'Mm.' She writes something beside item one that is not a tick. The Chef, passing, says somebody will manage."
+        effects: { public: -10, military: -8, trust_secondary: -8, commitment: -6 }
+        set: [wedding:unticked]
+  right:
+    text: Show her the kitchen. All of it
+    reply: "She looks at the big pan for some time. 'Pancakes,' she says. 'For sixty. Well.'"
+    effects: { military: 8, public: -8, trust_secondary: -4 }
+    tags: [staff, guests]
+    set: [wedding:kitchen]
+
+# ---- Tied to the Booking (drawn by weight once the Wedding is on)
+
+- id: wedding_x_chef_cake
+  arc: wedding
+  advisor: chef
+  acts: [1, 2]
+  weight: 2
+  conditions: { flags_all: [booking:wedding] }
+  tags: [wedding, kitchen, staff]
+  text: >-
+    The only eggs in this building are the forty-eight inside the wedding cake in my fridge.
+    I'm not saying who ordered a cake and no eggs; somebody did.
+  left:
+    text: Nobody touches the cake
+    reply: "'Nobody,' he agrees, and puts the knife back where he can see it."
+    effects: { military: 8, public: -8, commitment: -6 }
+    tags: [staff]
+    set: [wedding:cake_kept]
+  right:
+    text: Cake for breakfast. Tradition
+    reply: "'Tradition.' He cuts sixty slices with the care of a man who will be blamed."
+    effects: { public: 8, military: 8, trust_secondary: -12 }
+    tags: [guests, staff]
+    set: [wedding:cake_eaten]
+
+- id: wedding_x_table_nine
+  arc: wedding
+  advisor: events
+  acts: [1, 3]
+  weight: 1.5
+  conditions: { flags_all: [booking:wedding] }
+  tags: [wedding, ballroom]
+  text: >-
+    The Bride's Mother has moved the groom's mother to table nine, by the kitchen door, in
+    pen. A seating plan is a moment, and this is the wrong one.
+  left:
+    text: Move her back. Say nothing
+    reply: "Table two again, in pencil. The Events Manager keeps the pen as evidence."
+    effects: { public: 8, trust_secondary: -8 }
+    tags: [guests]
+    set: [wedding:table_moved]
+  right:
+    text: Her list. Leave table nine
+    reply: "'Nine. By the door.' She gives it the tallest vase, which is the apology."
+    effects: { public: -8, military: 8, trust_secondary: 8 }
+    tags: [staff]
+    set: [wedding:table_nine]
+
+- id: wedding_x_owner_songs
+  arc: wedding
+  advisor: owner
+  acts: [2, 3]
+  weight: 2
+  conditions: { flags_all: [booking:wedding, wedding:groom_sang] }
+  tags: [wedding, owner, money]
+  text: >-
+    I'm told a groom sang four songs in my bar, and I'd like to know if it was open or shut
+    while he sang. One of those answers has a number in it.
+  left:
+    text: Open. Charge him per song
+    reply: "'Good.' Down the line, something is multiplied by four."
+    effects: { economy: 12, public: -8, trust_primary: 8 }
+    tags: [money, owner]
+    set: [wedding:bar_charged]
+  right:
+    text: Shut. His night, on the house
+    reply: "A silence with a sum in it. 'How many songs,' he says, 'roughly.'"
+    effects: { economy: -10, public: 10, trust_primary: -8 }
+    tags: [guests, owner]
+    set: [wedding:bar_free]

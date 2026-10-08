@@ -1,0 +1,13 @@
+# THE CRITIC — the Critic in 212 has checked in under a false name, a man has come to the
+# desk asking for her by the real one, and she files at nine.
+- id: critic_check_in
+  name: The Critic
+  lead: critic
+  opener: critic_check_in_01_desk
+  beats:
+    - { card: critic_check_in_02_four_cooks, slot: [4, 6] }
+    - { card: critic_check_in_03_chair, slot: [9, 11] }
+    - { card: critic_check_in_04_editor, slot: [13, 14] }
+  head: { card: critic_check_in_05_bill, slot: [15, 17] }
+  teaser: "The Critic in 212 is not called that, and a man at the desk is asking for her by name."
+  weight: 1

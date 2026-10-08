@@ -86,9 +86,9 @@ percentage joins the word. The result is always one of three: 🌅 Dawn, 🌑 Fe
 
 The hotel keeps the navy, the paper and the type, and adds one colour: **brass**
 (`--color-brass: #c9a24a`, `--color-brass-ink: #8a6b22` on paper). Brass is the hotel's
-"good": a bar at 38 or above, the stars, the Booking's name on Home, the file-tab band and
+"good": a bar at 41 or above, the stars, the Booking's name on Home, the file-tab band and
 the letterhead of the share card, the plate. Red stays for a bar in danger (12 or below) and
-the stamp on a night that ended early; amber for a bar that is low (24 or below). The bands
+the stamp on a night that ended early; amber for a bar that is low (21 or below). The bands
 live in one place (`BAR_BANDS`, `STAR_BANDS` in `src/engine/night.ts`) and the desk, the
 strip and the share card read from it, so a colour means the same thing everywhere.
 

@@ -70,7 +70,7 @@
     set: [dogshow:judge_penthouse]
   right:
     text: Dogs to the ballroom. All of them
-    reply: "Forty-one dogs under the chandelier. The Events Manager calls it a moment."
+    reply: "Forty-one dogs sit under the chandelier as if told to. Nobody told them."
     effects: { military: -10, allies: 10, public: -8, trust_secondary: -8 }
     tags: [staff, building]
     set: [dogshow:dogs_ballroom]
@@ -165,7 +165,7 @@
     open for a dog; I'm saying somebody did, and the dog was tall.
   left:
     text: Wake the butcher. Pay double
-    reply: "The butcher answers on the sixth ring and asks how many dogs. You say forty-one."
+    reply: "The butcher asks who for. 'Forty-one dogs and a judge.' He bills for forty-two."
     effects: { economy: -12, public: 8 }
     tags: [money, guests]
     set: [dogshow:butcher]
@@ -188,7 +188,7 @@
     dogs in it." A pause, then: "As a courtesy."
   left:
     text: Send him across. With thanks
-    reply: "He crosses the square and stops sneezing at the kerb. 'Remembered,' it says."
+    reply: "Halfway across the square, he stops sneezing. 'Remembered,' says the line."
     effects: { public: 8, military: 8, trust_secondary: -10 }
     tags: [guests, majestic]
     set: [dogshow:judge_majestic, majestic:owed]

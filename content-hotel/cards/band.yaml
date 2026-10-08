@@ -22,7 +22,7 @@
     did, and the trumpet said "you did", which I'd like to dispute.
   left:
     text: Stop them. Lights up
-    reply: "'Noted.' He counts them back in, quieter. A guest on the stairs says 'oh, good'."
+    reply: "They stop mid-chord. A guest on the stairs says 'oh'. The trumpet: 'you did.'"
     effects: { military: 8, public: -10, trust_secondary: -8 }
     tags: [staff, guests]
     set: [band:stopped]
@@ -118,7 +118,7 @@
         effects: { economy: -8, public: 12, trust_primary: -6, commitment: 8 }
         set: [band:booked]
       failure:
-        text: "'The summer is The Majestic's,' he says, kindly, and packs the trumpets. Eleven dancers watch him do it."
+        text: "'The summer is The Majestic's,' he says, kindly. 'They rang. As a courtesy.' Eleven dancers watch him pack."
         effects: { public: -8, trust_secondary: -6 }
         set: [band:majestic_summer]
   right:
@@ -148,7 +148,7 @@
     set: [band:bar_open]
   right:
     text: Nobody's paying. Nobody booked
-    reply: "He does the sum anyway, out loud. It comes to four hundred; he says it twice."
+    reply: "A silence with numbers in it. 'Four hundred,' he says, and then again, slower."
     effects: { military: 8, trust_primary: -8 }
     tags: [staff, owner]
     set: [band:unpaid_owner]
@@ -187,7 +187,7 @@
   tags: [band, building]
   text: >-
     The chandelier is keeping time, which it shouldn't, and the ballroom plaster is
-    from 1931. I can cut its power now, or you can trust the plaster.
+    1931. I can cut the ballroom power, or you can trust the plaster.
   left:
     text: Cut the power. Now
     reply: "Dark. The band plays on by ear, which they can, and the dancing slows to a sway."

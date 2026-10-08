@@ -1,0 +1,12 @@
+# THE DOG SHOW — Forty-one dogs, one lift, a judge in 118 with allergies, and a rosette for everything.
+- id: dogshow
+  name: The Dog Show
+  lead: dogshow_secretary
+  opener: dogshow_01_forty_one
+  beats:
+    - { card: dogshow_02_lift, slot: [4, 6] }
+    - { card: dogshow_03_sneezing, slot: [9, 11] }
+    - { card: dogshow_04_rosettes, slot: [13, 14] }
+  head: { card: dogshow_05_best_in_show, slot: [15, 17] }
+  teaser: "Forty-one dogs, one lift, and a judge in 118 with allergies."
+  weight: 1
