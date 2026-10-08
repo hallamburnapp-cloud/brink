@@ -175,15 +175,16 @@ export function boot(): void {
   const saved = load<{ state: RunState; meta: RunMeta } | null>(RUN_KEY, null);
   hasSavedRun.value = !!saved && saved.state.v === 2 && saved.state.phase !== 'ended';
   savedRunMode.value = hasSavedRun.value && saved ? saved.meta.mode : null;
-  if (typeof window !== 'undefined') {
-    // The first entry is Home. Without a state on it, the first screen change would replace it and
-    // the phone's back button from the very first night would leave the app instead of coming home.
-    if (history.state === null) history.replaceState({ screen: 'home' }, '', location.pathname);
-    window.addEventListener('popstate', onPopState);
-  }
   if (typeof location !== 'undefined') {
     if (location.pathname === '/privacy') screen.value = 'privacy';
     else if (location.pathname === '/unlocked') screen.value = 'unlocked';
+  }
+  if (typeof window !== 'undefined') {
+    // The first entry carries its screen. Without a state on it, the first screen change would replace
+    // it and the phone's back button from the very first night would leave the app instead of coming
+    // home. The query string stays (the unlock page reads its session id from it).
+    if (history.state === null) history.replaceState({ screen: screen.value }, '', location.pathname + location.search);
+    window.addEventListener('popstate', onPopState);
   }
   if (typeof document !== 'undefined') {
     const unlock = () => audio.unlock();

@@ -25,7 +25,11 @@ jobs:
       - run: npm run content:validate
         env:
           BRINK_VOICE: strict
+      - run: npm run content:validate:crisis
+        env:
+          BRINK_VOICE: strict
       - run: npm run sim:smoke
+      - run: npm run sim:smoke:crisis
       - run: npm run sim:smoke:night
 
   build:
