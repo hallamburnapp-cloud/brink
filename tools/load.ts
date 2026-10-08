@@ -1,4 +1,4 @@
-/** Filesystem loader: content/**.yaml → RawContent → Content (node only). */
+/** Filesystem loader: a pack directory (content/ by default, the hotel) → RawContent → Content (node only). */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import yaml from 'js-yaml';
