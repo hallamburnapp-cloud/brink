@@ -507,6 +507,8 @@ export interface NightRules {
   firstNightScale: number;
   /** The night wears on: every answered card costs each of the four bars this much, scaled by the difficulty; 0 = off. */
   drift: number;
+  /** Weight multiplier on a pool card whose speaker spoke last; 1 = off. */
+  speakerCooldown: number;
 }
 
 export interface BookingDef {

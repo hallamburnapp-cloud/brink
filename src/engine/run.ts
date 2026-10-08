@@ -988,11 +988,15 @@ function drawNext(content: Content, state: RunState, rng: Rng, events: RunEvent[
   const ctx: ModContext = { pieces, act, difficulty: difficultyDef(content, state.difficulty) };
   const ids: string[] = [];
   const weights: number[] = [];
+  // The hotel: whoever spoke last is unlikely to ring again straight away (rules.night.speaker_cooldown).
+  const cooldown = state.ruleset === 'simple' ? content.night.speakerCooldown : 1;
+  const lastSpeaker = cooldown < 1 && state.history.length ? content.cards[state.history[state.history.length - 1].card]?.advisor : undefined;
   for (const id of content.cardOrder) {
     const card = content.cards[id];
     if (!eligible(content, state, card, pieces)) continue;
     let w = resolveWeight(card.weight, card.id, card.tags, ctx, !!card.warning);
     if (card.arc && !arcs.has(card.arc) && arcs.size >= MAX_ACTIVE_ARCS) w *= 0.25;
+    if (lastSpeaker !== undefined && card.advisor === lastSpeaker) w *= cooldown;
     if (w <= 0) continue;
     ids.push(id);
     weights.push(w);

@@ -423,6 +423,8 @@ const nightSchema = z
     first_night_scale: z.number().min(0.3).max(1).default(1),
     /** The night wears on: every answered card costs each of the four bars this much (0 = off). */
     drift: z.number().min(0).max(10).default(0),
+    /** Weight multiplier on a pool card whose speaker spoke last (1 = off; the hotel uses 0.2 so nobody rings twice in a row). */
+    speaker_cooldown: z.number().min(0).max(1).default(1),
   })
   .strict();
 
@@ -711,7 +713,7 @@ export function compileContent(raw: RawContent): { content: Content; issues: Con
   let acts: ActDef[] = [];
   let nightActs: ActDef[] = [];
   let difficulties: DifficultyDef[] = [];
-  let night: NightRules = { minutes: 7, oneSided: false, useEscalation: true, fullCards: {}, firstNightScale: 1, drift: 0 };
+  let night: NightRules = { minutes: 7, oneSided: false, useEscalation: true, fullCards: {}, firstNightScale: 1, drift: 0, speakerCooldown: 1 };
   let voice: 'crisis' | 'hotel' = 'crisis';
   const rr = rulesFileSchema.safeParse(raw.rules.item);
   if (!rr.success) err(raw.rules.file, fmtZod(rr.error));
@@ -722,7 +724,7 @@ export function compileContent(raw: RawContent): { content: Content; issues: Con
     voice = rr.data.voice;
     if (rr.data.night) {
       const n = rr.data.night;
-      night = { cards: n.cards, minutes: n.minutes, oneSided: n.one_sided, useEscalation: n.use_escalation, fullCards: (n.full_cards ?? {}) as NightRules['fullCards'], firstNightScale: n.first_night_scale, drift: n.drift };
+      night = { cards: n.cards, minutes: n.minutes, oneSided: n.one_sided, useEscalation: n.use_escalation, fullCards: (n.full_cards ?? {}) as NightRules['fullCards'], firstNightScale: n.first_night_scale, drift: n.drift, speakerCooldown: n.speaker_cooldown };
     }
   }
 

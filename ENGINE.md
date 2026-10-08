@@ -232,8 +232,10 @@ selects the validator's contract and the screens.
   danger term in the odds, no nuclear ending), `first_night_scale` (0.85 on difficulty 1),
   `drift` (every answered card costs each of the four bars this much, scaled by the
   difficulty's `effect_scale`; applied after the card's effects and the Expert drifts,
-  before the thresholds are checked). `thresholdTrigger` reads `oneSided` and
-  `useEscalation`; `crisisDanger` is gated on `useEscalation`.
+  before the thresholds are checked), `speaker_cooldown` (a weight multiplier on a pool
+  card whose speaker spoke last; 0.2 in the hotel, so the Majestic does not ring twice in
+  a row). `thresholdTrigger` reads `oneSided` and `useEscalation`; `crisisDanger` is gated
+  on `useEscalation`.
 - **Bookings** (`Content.bookings`, `BookingDef`): at `createRun` for the simple ruleset,
   `seatBooking` draws one by weight (or takes `RunOptions.booking`), sets `booking:<id>`
   and pins its cards into the queue by slot: the opener at slot 1, each beat at a slot
