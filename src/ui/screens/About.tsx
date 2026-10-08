@@ -12,14 +12,14 @@ export function About() {
       </header>
       <article class="paper serif space-y-3 rounded-md p-5 text-[16px] leading-relaxed text-ink">
         <h2 class="serif text-2xl font-semibold">How the night works</h2>
-        <p>It is 3am and the phone is ringing. You lead a country in a crisis that will not wait for morning. Each card is someone at your door with a problem and two ways to answer it. Swipe, or tap a choice.</p>
+        <p>It is 3am at The Brink and the phone is ringing. You are the Night Manager of a hotel that is not quite coping. Each card is someone at the desk with a problem and two ways to answer it. Swipe, or tap a choice, and the hotel answers back in one line.</p>
         <p>
-          Five dials: <span class="mono text-[13px]">PEOPLE · ARMY · ALLIES · MONEY · DANGER</span>. If any of the first four hits the edge, you are out. If danger fills, everyone is.
+          Four bars: <span class="mono text-[13px]">GUESTS · STAFF · MONEY · THE BUILDING</span>. If any of them reaches the floor, the night is over. The night wears them down by itself; what you choose decides where they end.
         </p>
-        <p>Every card moves the clock seven minutes. Reach 6:00 and the night is yours. The last call of the night is the crisis, and it comes with odds.</p>
-        <p>Tonight is the same for everyone. One attempt. Your result is a strip you can paste anywhere without giving the night away.</p>
-        <p>Night after night unlocks any night on any seat, seeds you can share, and Expert mode, which puts the numbers back on.</p>
-        <p class="mono text-[11px] text-ink-2/70">{BRAND.copyright} All persons, states and events are fictional.</p>
+        <p>Every card is ten minutes of the clock. At 6:00 the Day Manager walks in and a guest writes your review: one star to five, with the line everyone quotes.</p>
+        <p>Tonight is the same for everyone. One attempt. Your result is the Booking, the stars, one row of squares and the quote, and you can paste it anywhere without giving the night away. Practice nights are free and nobody reads those reviews but you.</p>
+        <p>The Brass Plate lets you choose the night you work, opens every page of the Guest Book, works any past Tonight again, and puts a badge on the reviews you share.</p>
+        <p class="mono text-[11px] text-ink-2/70">{BRAND.copyright} The hotel, its staff and its guests are fictional.</p>
       </article>
     </div>
   );

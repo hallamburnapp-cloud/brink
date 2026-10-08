@@ -109,6 +109,13 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 export interface OgOptions {
   /** 'daily' prints "Daily #N · Seat · date"; 'fallback' is undated for the committed PNG. */
   variant?: 'daily' | 'fallback';
+  /** The hotel: tonight's Booking in place of the seat, brass in place of the seat's accent, the gauge relabelled. */
+  label?: string;
+  accent?: string;
+  gaugeLabel?: string;
+  gaugeValue?: string;
+  tagline?: string;
+  footer?: string;
 }
 
 /** Gauge reading for the day, 0..1, kept in the tense upper band so the needle always looks like trouble. */
@@ -120,7 +127,7 @@ export function gaugeLevel(daily: Daily): number {
 export function buildOgSvg(daily: Daily, opts: OgOptions = {}): string {
   const variant = opts.variant ?? 'daily';
   const seat = SEAT_META[daily.seat];
-  const accent = variant === 'daily' ? seat.accent : '#e03b3b';
+  const accent = opts.accent ?? (variant === 'daily' ? seat.accent : '#e03b3b');
   const random = rng(daily.number);
 
   // Procedural scanlines: 1px every 4px, opacity jittered per line so the texture is never a flat pattern.
@@ -173,8 +180,8 @@ export function buildOgSvg(daily: Daily, opts: OgOptions = {}): string {
 
   const meta =
     variant === 'daily'
-      ? `Tonight #${daily.number} · ${seat.name} · ${formatDate(daily.date)}`
-      : 'The same night for everyone · The seat rotates with the date';
+      ? `Tonight #${daily.number} · ${opts.label ?? seat.name} · ${formatDate(daily.date)}`
+      : 'The same night for everyone · One attempt · About two minutes';
 
   const serif = `'Liberation Serif', 'DejaVu Serif', Georgia, 'Times New Roman', serif`;
   const mono = `'DejaVu Sans Mono', 'Liberation Mono', Menlo, Consolas, monospace`;
@@ -199,14 +206,14 @@ export function buildOgSvg(daily: Daily, opts: OgOptions = {}): string {
     `<line x1="${nbx.toFixed(2)}" y1="${nby.toFixed(2)}" x2="${nx.toFixed(2)}" y2="${ny.toFixed(2)}" stroke="${OFF_WHITE}" stroke-width="4" stroke-linecap="round"/>`,
     `<circle cx="${gx}" cy="${gy}" r="9" fill="${OFF_WHITE}"/>`,
     `<circle cx="${gx}" cy="${gy}" r="4" fill="${NAVY}"/>`,
-    `<text x="${gx}" y="${gy + 78}" font-family="${mono}" font-size="20" fill="${MUTED}" text-anchor="middle" letter-spacing="4">DANGER</text>`,
-    `<text x="${gx}" y="${gy + 118}" font-family="${mono}" font-size="34" font-weight="bold" fill="${accent}" text-anchor="middle">${pct}%</text>`,
+    `<text x="${gx}" y="${gy + 78}" font-family="${mono}" font-size="20" fill="${MUTED}" text-anchor="middle" letter-spacing="4">${esc(opts.gaugeLabel ?? 'DANGER')}</text>`,
+    `<text x="${gx}" y="${gy + 118}" font-family="${mono}" font-size="34" font-weight="bold" fill="${accent}" text-anchor="middle">${esc(opts.gaugeValue ?? `${pct}%`)}</text>`,
     // Copy.
     `<text x="72" y="300" font-family="${serif}" font-size="210" font-weight="bold" fill="${OFF_WHITE}" letter-spacing="14">${esc(BRAND.name)}</text>`,
     `<rect x="76" y="330" width="120" height="3" fill="${accent}"/>`,
-    `<text x="76" y="392" font-family="${mono}" font-size="34" fill="${MUTED}">It's 3am. The phone is ringing.</text>`,
+    `<text x="76" y="392" font-family="${mono}" font-size="34" fill="${MUTED}">${esc(opts.tagline ?? "It's 3am. The phone is ringing.")}</text>`,
     `<text x="76" y="452" font-family="${mono}" font-size="26" fill="${accent}" letter-spacing="1">${esc(meta)}</text>`,
-    `<text x="76" y="${HEIGHT - 44}" font-family="${mono}" font-size="18" fill="${MUTED}" fill-opacity="0.7" letter-spacing="3">KEEP FIVE DIALS OFF THE EDGES · MAKE IT TO DAWN</text>`,
+    `<text x="76" y="${HEIGHT - 44}" font-family="${mono}" font-size="18" fill="${MUTED}" fill-opacity="0.7" letter-spacing="3">${esc(opts.footer ?? 'KEEP FIVE DIALS OFF THE EDGES · MAKE IT TO DAWN')}</text>`,
     `</svg>`,
   ].join('\n');
 }
@@ -236,12 +243,37 @@ export interface OgResult {
   bytes: number;
 }
 
-export async function generateOgImage(opts: { date?: Date; out?: string; writeSvg?: boolean; variant?: 'daily' | 'fallback' } = {}): Promise<OgResult> {
+/**
+ * What the pack says tonight is. The hotel names the Booking and paints in brass; a crisis pack
+ * keeps the seat. Never throws: a pack that fails to load leaves the crisis defaults.
+ */
+export async function packOptions(daily: Daily): Promise<OgOptions> {
+  try {
+    const [{ loadContent }, { bookingForSeed }] = await Promise.all([import('./load'), import('../src/engine/run')]);
+    const { content } = loadContent();
+    if (content.voice !== 'hotel') return {};
+    const seats = Object.keys(content.seats);
+    const seatId = (seats.length === 1 ? seats[0] : daily.seat) as keyof typeof content.seats;
+    const booking = bookingForSeed(content, `daily-${daily.iso}`, seatId, 5);
+    return {
+      label: booking ? booking.name.toUpperCase() : (content.seats[seatId]?.name ?? 'The Brink'),
+      accent: '#c9a24a',
+      gaugeLabel: 'THE NIGHT',
+      gaugeValue: '3:00',
+      tagline: BRAND.tagline,
+      footer: 'KEEP FOUR BARS OFF THE FLOOR UNTIL 6:00 · A GUEST WRITES YOUR REVIEW',
+    };
+  } catch {
+    return {};
+  }
+}
+
+export async function generateOgImage(opts: { date?: Date; out?: string; writeSvg?: boolean; variant?: 'daily' | 'fallback'; pack?: OgOptions } = {}): Promise<OgResult> {
   const daily = dailyFor(opts.date ?? new Date());
   const out = resolve(opts.out ?? join(PUBLIC_DIR, 'og-image.png'));
   const svgOut = out.replace(/\.png$/i, '.svg');
   mkdirSync(resolve(out, '..'), { recursive: true });
-  const svg = buildOgSvg(daily, { variant: opts.variant });
+  const svg = buildOgSvg(daily, { ...(opts.pack ?? {}), variant: opts.variant });
 
   const resvg = await loadResvg();
   let method: OgResult['method'];
@@ -298,8 +330,9 @@ async function main() {
     if (r.method !== 'resvg') console.warn('[og] note: resvg was unavailable, so the fallback PNG has no text');
   }
 
-  const r = await generateOgImage({ date, out: arg('--out'), writeSvg });
-  const seat = SEAT_META[r.daily.seat].name;
+  const pack = await packOptions(dailyFor(date));
+  const r = await generateOgImage({ date, out: arg('--out'), writeSvg, pack });
+  const seat = pack.label ?? SEAT_META[r.daily.seat].name;
   console.log(`[og] Daily #${r.daily.number} · ${seat} · ${r.daily.iso}${dateArg ? '  (fixed by --date)' : '  (UTC today)'}`);
   switch (r.method) {
     case 'resvg':

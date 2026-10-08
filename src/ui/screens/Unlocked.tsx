@@ -17,12 +17,12 @@ export function Unlocked() {
   return (
     <div class="flex flex-1 flex-col gap-4 rise pt-10">
       <div class="paper rounded-md p-5 text-ink">
-        <div class="mono text-[11px] tracking-[0.3em] text-ink-2/70">NIGHT AFTER NIGHT</div>
+        <div class="mono text-[11px] tracking-[0.3em] text-ink-2/70">THE BRASS PLATE</div>
         {status === 'working' && <h2 class="serif mt-1 text-2xl font-semibold">Confirming your purchase…</h2>}
         {(status === 'unlocked' || status === 'already') && (
           <>
-            <h2 class="serif mt-1 text-2xl font-semibold">Night after night is yours.</h2>
-            <p class="serif mt-2 text-[15px]">Any night, any seat, any seed, and Expert mode. The token is stored in this browser; if you play from the home-screen app or another device, use Restore there with the same email.</p>
+            <h2 class="serif mt-1 text-2xl font-semibold">The plate is on the desk.</h2>
+            <p class="serif mt-2 text-[15px]">Choose the night you work, read every page of the Guest Book, work any past Tonight again, and wear the badge on your reviews. The token is stored in this browser; if you play from the home-screen app or another device, use Restore there with the same email.</p>
           </>
         )}
         {status === 'invalid' && (

@@ -4,7 +4,7 @@
  */
 export const BRAND = {
   name: 'BRINK',
-  tagline: "It's 3am. The phone is ringing. Every choice might be the one that ends the world.",
+  tagline: "It's 3am at The Brink. The phone is ringing.",
   copyright: '© Hallam Burnapp. All rights reserved.',
   url: (import.meta as any).env?.VITE_PUBLIC_URL ?? 'https://brink.example',
   supportEmail: (import.meta as any).env?.VITE_SUPPORT_EMAIL ?? '',

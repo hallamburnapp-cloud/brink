@@ -580,6 +580,66 @@ Endings use them for flavour: a nuclear ending with `flags_all: [accident:fatal,
 is the rogue-commander war; a stand-down with `flags_none: [peak:50]` is minimal deterrence. Prefer
 `flags_any` and keep a lower-priority sibling so every ending kind stays reachable.
 
+## 10. The hotel pack (`content/`, `voice: hotel`)
+
+The hotel is a second pack on the same schema with a few additions (HOTEL.md is the
+design; this is the shape). The crisis packs live in `content-crisis/` and run with
+`BRINK_CONTENT_DIR=content-crisis`.
+
+### Files
+
+```
+content/
+  rules.yaml          voice: hotel · acts (Expert, unused) · night: { cards, minutes, one_sided, use_escalation, first_night_scale, drift, full_cards, acts } · difficulties
+  seats/brink.yaml    one seat: The Brink (id republic), meters 65/65/65/60, no pieces
+  speakers.yaml       the cast by role (name shown only in the Guest Book), plus the lead guests
+  bookings/<id>.yaml  one Booking: id, name, lead, opener, beats [{card, slot:[a,b]}], head {card, slot}, teaser, weight
+  cards/<id>.yaml     the Booking's spine (no weight, no conditions) and its tied cards (weight, flags_all: [booking:<id>])
+  cards/pool*.yaml    regulars for any night, by hour (acts [1,1] / [2,2] / [3,3]); the four full_* comedy cards at weight 0
+  endings/<id>.yaml   the Booking's reviews (kind survival, trigger run_end, conditions { flags_all: [booking:<id>], stars: {min|max} })
+  endings/reviews.yaml the falls (kind removed, trigger meter at 0) and the engine's fallbacks
+```
+
+### Additions to the schema
+
+| Field | Where | Meaning |
+| --- | --- | --- |
+| `reply` (2–110 chars; the hotel's lint says ≤ 80) | choice | The world's one-line answer, shown under the bars after the choice. Required on every side of a hotel card; odds cards show their outcome `text` instead |
+| `minutes` (1–30) | card | Minutes of the clock this card takes (default `night.minutes`); the head card says 20 |
+| `stars: { min, max }` | conditions | The night's stars so far; how a review picks its band |
+| `stars`, `byline`, `quote` (4–120) | ending | The review as shown and shared; `byline` is a speaker id and the screen prints the role |
+| `night.cards`, `minutes`, `one_sided`, `use_escalation`, `first_night_scale`, `drift`, `full_cards` | rules | The pack's rules (ENGINE.md §13) |
+| `bookings/*.yaml` | new | Bookings; `slot` windows are 1-based card positions of an 18-card night |
+
+### The voice contract (`voice: hotel`, enforced; `BRINK_VOICE=strict` makes it errors)
+
+Card text ≤ 150 characters and two sentences; choices ≤ 34; a `reply` ≤ 80 on every plain
+side; outcomes ≤ 120; roles on cards, never names; no weekday, "tomorrow", "midnight" or
+"last night" words (everything happens tonight; the regulars' memory is a flag, not a
+date); every visible move between 8 and 25 so a chip can name it; no roll carries an
+ending; no `escalation` effects; no third sentence hiding in a semicolon.
+
+### The economics (BALANCE.md "The hotel")
+
+The bars start at 65/65/65/60 and the night costs each of them 1.5 a card by itself
+(`drift`), with the cards' moves scaled ×1.4. A fair card pairs a gain and a loss of the
+same size on different bars; a Booking's spine may lean negative (the situation costs
+something) but no spine card should tax both answers by more than 4 across the four bars
+(`npx tsx tools/booking-nets.ts` prints every Booking's numbers). The star bands are
+38/31/24/18 on the mean of the four bars at 6:00.
+
+### Checklist for a new Booking
+
+1. `bookings/<id>.yaml` with five spine cards: opener (slot 1, the lead guest or the
+   Porter), three beats in windows [4,6] / [9,11] / [13,14], the head in [15,17] with
+   `minutes: 20` and, if anything in the night rolls, the one roll.
+2. Three tied cards at weight 2 with `flags_all: [booking:<id>]`, one per hour.
+3. Five reviews: a five-star band (`stars: {min: 4}`), a three (`{min: 3, max: 3}`), a two
+   (`{max: 2}`), and up to two flag-specific ones above them (priority 45) that read what
+   the head's roll set; a one-star fall of the Booking's own if its disaster is specific.
+4. `BRINK_VOICE=strict npm run content:validate`, then `npx tsx tools/booking-nets.ts` and
+   `npm run sim -- --mode night --runs 1000`: the Booking's careful dawn rate within 65–95%.
+
 ## 8. Checklist before you commit a file
 
 - `npm run content:validate` passes with no errors (warnings are advice).

@@ -219,7 +219,50 @@ The simple ruleset is the same engine with most of it switched off:
 Everything else (drawing, follow-ups, timers, warnings, hidden values, endings, the
 moment, determinism) is unchanged, so a night replays from its seed like any run.
 
-## 13. Determinism
+## 13. The hotel (a pack's rules on the simple ruleset)
+
+The hotel (HOTEL.md) is the simple ruleset with a pack that sets its own rules. Nothing
+in the engine knows which game it is playing; `Content.voice` (`'crisis' | 'hotel'`) only
+selects the validator's contract and the screens.
+
+- **`rules.night`** (`Content.night`, `NightRules`): `cards` (a fixed count, 18), `minutes`
+  of the clock per card (10; a card may say its own `minutes`), `one_sided` (a bar fails
+  only at 0; 100 is clamped and seats the bar's `full_cards` comedy card with the flag
+  `full:<bar>` and a `full` event), `use_escalation: false` (no fifth meter on screen, no
+  danger term in the odds, no nuclear ending), `first_night_scale` (0.85 on difficulty 1),
+  `drift` (every answered card costs each of the four bars this much, scaled by the
+  difficulty's `effect_scale`; applied after the card's effects and the Expert drifts,
+  before the thresholds are checked). `thresholdTrigger` reads `oneSided` and
+  `useEscalation`; `crisisDanger` is gated on `useEscalation`.
+- **Bookings** (`Content.bookings`, `BookingDef`): at `createRun` for the simple ruleset,
+  `seatBooking` draws one by weight (or takes `RunOptions.booking`), sets `booking:<id>`
+  and pins its cards into the queue by slot: the opener at slot 1, each beat at a slot
+  drawn inside its `[min, max]` window, the head inside its window (15–17 of 18). Pinned
+  cards are `queue.push({ card, in: slot − 1 })`, so they interleave with the pool draws
+  and the engine's follow-ups exactly as any queued card. `bookingForSeed` replicates the
+  first draw from `"${seed}|${seat}|${difficulty}"` without creating a run, so Home can
+  name tonight's and tomorrow's Booking. `RunState.booking` holds the id.
+- **Reviews**: endings with `stars`, `byline` (a speaker id) and `quote`. `ConditionDef.stars`
+  is a range on `starsFor(state)`: the mean of the four bars banded by `STAR_BANDS`
+  (38/31/24/18), one star on any bar at 0. The hotel's `run_end` endings are reviews; its
+  meter endings at 0 are the falls (kind `removed`), stamped on screen by `FALL_STAMP`.
+- **The reply** (`RunEvent` `reply`): after a plain choice the engine emits
+  `{ type: 'reply', text, speaker }` from `ChoiceDef.reply` (templated); after an odds roll
+  it emits the outcome's `text` with `outcome: 'success' | 'failure'`. The store holds the
+  line for 1.1 s (0.4 s under reduced motion) and shows it until the next decision.
+- **Memory**: `RunOptions.flags` seeds flags into a new run; the store passes the `memory:*`
+  flags the last night set (at most eight, `brink.memory`), so a regular can remember the
+  soup. The validator treats `booking:`, `full:` and `memory:` as engine prefixes.
+- **The clock**: `shiftClock` is 3:00 plus the sum of the played cards' `minutes`, so a
+  20-minute head card moves it twenty minutes and the eighteenth card lands on 6:00 exactly.
+  `elapsedMinutes` is the same sum.
+- **Targets**: `voice: 'hotel'` switches the simulator to B1–B6 (`buildHotelTargets`),
+  which read `RunSummary.stars`, `barMean` and `booking`.
+
+The crisis packs (`content-crisis/`) still run §12 unchanged: `one_sided: false`,
+`use_escalation: true`, no Bookings, no drift.
+
+## 14. Determinism
 
 `RunState` is plain JSON. The RNG (xoshiro128**) is seeded from `"${seed}|${seat}|${difficulty}"`
 and its state lives in the run. Nothing in the engine reads the clock or `Math.random`.
