@@ -1,0 +1,202 @@
+# THE BAND — the Booking's spine. Opener at 3:00, three beats, the head in the five o'clock hour.
+# Nine musicians in the ballroom that nobody booked, who say the hotel booked them, and who
+# are very good, which is the problem. Shape quarried from proxy_incident: people nobody sent,
+# acting in your name, and every move brings more of them.
+# Bars: public = GUESTS, military = STAFF, allies = THE BUILDING, economy = MONEY.
+# Regards: trust_primary = the Owner's patience, trust_secondary = the Bandleader's goodwill,
+# intel = the Critic's opinion, commitment = your promises.
+# Flags set here: band:stopped, band:playing, band:brass, band:no_brass, band:wedding_came,
+# band:denied, majestic:refused, band:room12_rule, band:room12_danced, band:booked,
+# band:majestic_summer, band:paid, band:bar_open, band:unpaid_owner, band:critic_down,
+# band:critic_moved, band:power_cut, band:plaster.
+
+# ---- The spine (seated by the Booking; no conditions, no weight)
+
+- id: band_01_ballroom
+  arc: band
+  advisor: porter
+  acts: [1, 1]
+  tags: [band, guests]
+  text: >-
+    There is a band in the ballroom, nine of them, and nobody booked a band. I asked who
+    did, and the trumpet said "you did", which I'd like to dispute.
+  left:
+    text: Stop them. Lights up
+    reply: "'Noted.' He counts them back in, quieter. A guest on the stairs says 'oh, good'."
+    effects: { military: 8, public: -10, trust_secondary: -8 }
+    tags: [staff, guests]
+    set: [band:stopped]
+  right:
+    text: Let them finish the set
+    reply: "Six songs left in the set. The Porter writes them on the board, under the rooms."
+    effects: { public: 10, allies: -8, trust_secondary: 8 }
+    tags: [guests, building]
+    set: [band:playing]
+
+- id: band_02_brass
+  arc: band
+  advisor: bandleader
+  acts: [1, 3]
+  tags: [band, guests]
+  text: >-
+    That was the first set; the second is louder, that's how sets work. The brass are in
+    a van outside and eleven guests are dancing in dressing gowns.
+  left:
+    text: Let the brass in
+    reply: "Four trombones come in through the kitchen. The Chef says somebody ordered them."
+    effects: { public: 12, allies: -10, trust_secondary: 8 }
+    tags: [guests, building]
+    set: [band:brass]
+  right:
+    text: Strings only. The van stays shut
+    reply: "'Strings.' He nods at the van. Its lights go off, and it does not leave."
+    effects: { public: -8, military: 8, trust_secondary: -6 }
+    tags: [guests, staff]
+    set: [band:no_brass]
+
+- id: band_03_majestic
+  arc: band
+  advisor: majestic
+  acts: [2, 2]
+  tags: [band, majestic]
+  text: >-
+    "The Majestic can hear a band, and our wedding has a harp and would like to know why."
+    A pause, then: "As a courtesy, is it ours?"
+  left:
+    text: Lend them the band. One set
+    reply: "They cross the square playing. They come back the same way, with the wedding."
+    effects: { public: 12, allies: -10, military: -8 }
+    tags: [guests, majestic]
+    set: [band:wedding_came]
+  right:
+    text: There is no band
+    reply: "'No band.' A trombone disagrees. 'Of course,' says The Majestic. 'Remembered.'"
+    effects: { military: 8, economy: 8, intel: -8 }
+    tags: [staff, money]
+    set: [band:denied, majestic:refused]
+
+- id: band_04_room12
+  arc: band
+  advisor: room12
+  acts: [3, 3]
+  tags: [band, rules]
+  text: >-
+    The rule is no dancing at this hour; I wrote it in 1991, after the last band. I came
+    down in my coat to say so, and a trombone has asked me to dance.
+  left:
+    text: Stop the dancing. Rule's a rule
+    reply: "The floor clears. She goes up, and on the second landing she is heard humming."
+    effects: { public: -10, allies: 8 }
+    tags: [guests, building]
+    set: [band:room12_rule]
+  right:
+    text: Tell her to say yes
+    reply: "She dances once, correctly, and goes up. The card by the lift gains a footnote."
+    effects: { public: 12, allies: -8, trust_secondary: 6 }
+    tags: [guests]
+    set: [band:room12_danced]
+
+- id: band_05_encore
+  arc: band
+  advisor: bandleader
+  acts: [3, 3]
+  minutes: 20
+  tags: [band, guests]
+  text: >-
+    That was the encore; there's no second one, that's what the word means. Nobody
+    booked us, so nobody owes us, unless the hotel wants us for the summer.
+  left:
+    text: Book them. For the summer
+    effects: {}
+    tags: [guests, promise]
+    odds:
+      label: He says yes
+      base: 0.55
+      tags: [guest]
+      success:
+        text: "He writes the date on a drum skin and signs it. 'Booked,' he says, and plays one more, which is not an encore."
+        effects: { economy: -8, public: 12, trust_primary: -6, commitment: 8 }
+        set: [band:booked]
+      failure:
+        text: "'The summer is The Majestic's,' he says, kindly, and packs the trumpets. Eleven dancers watch him do it."
+        effects: { public: -8, trust_secondary: -6 }
+        set: [band:majestic_summer]
+  right:
+    text: Pay them for tonight. In cash
+    reply: "Four hundred from the till, counted twice. Somewhere abroad, the Owner stirs."
+    effects: { economy: -14, public: 8, trust_secondary: 8 }
+    tags: [money, guests]
+    set: [band:paid]
+
+# ---- Tied to the Booking (drawn by weight once the Band is on)
+
+- id: band_x_owner_sum
+  arc: band
+  advisor: owner
+  acts: [1, 2]
+  weight: 2
+  conditions: { flags_all: [booking:band] }
+  tags: [band, owner, money]
+  text: >-
+    I can hear a trumpet down the phone, and I'm abroad. Who is paying a band at this
+    hour, and if it's me, tell me now so I can do the sum sitting down.
+  left:
+    text: Open the bar. It pays its way
+    reply: "The bar reopens. 'Last orders,' says the Barman, 'is a direction of travel.'"
+    effects: { economy: 12, military: -8, trust_primary: 6 }
+    tags: [money, staff]
+    set: [band:bar_open]
+  right:
+    text: Nobody's paying. Nobody booked
+    reply: "He does the sum anyway, out loud. It comes to four hundred; he says it twice."
+    effects: { military: 8, trust_primary: -8 }
+    tags: [staff, owner]
+    set: [band:unpaid_owner]
+
+- id: band_x_critic_sax
+  arc: band
+  advisor: critic
+  acts: [1, 3]
+  weight: 1.5
+  conditions: { flags_all: [booking:band] }
+  tags: [band, critic, guests]
+  text: >-
+    I'm in 212, over the ballroom, and the band is very good, which is the
+    problem. I came to write about the pillows and I am writing about a saxophone.
+  left:
+    text: Bring her down. Front table
+    reply: "She comes down in a coat and dances with the Doorman, who mentions 1991 twice."
+    effects: { public: 10, economy: -8, intel: 8 }
+    tags: [guests, money, critic]
+    set: [band:critic_down]
+  right:
+    text: Move her to the quiet wing
+    reply: "She moves to 320. The saxophone, faintly, through two floors, finds her anyway."
+    effects: { public: -8, military: -8, intel: -6 }
+    tags: [guests, staff, critic]
+    set: [band:critic_moved]
+
+- id: band_x_handyman_plaster
+  arc: band
+  advisor: handyman
+  acts: [2, 3]
+  weight: 1.5
+  timer: 10
+  timeout: right
+  conditions: { flags_all: [booking:band] }
+  tags: [band, building]
+  text: >-
+    The chandelier is keeping time, which it shouldn't, and the ballroom plaster is
+    from 1931. I can cut its power now, or you can trust the plaster.
+  left:
+    text: Cut the power. Now
+    reply: "Dark. The band plays on by ear, which they can, and the dancing slows to a sway."
+    effects: { allies: 10, public: -12, trust_secondary: -8 }
+    tags: [building, guests]
+    set: [band:power_cut]
+  right:
+    text: Trust the plaster
+    reply: "'Right,' he says. A fleck of 1931 lands on a trombone. The trombone plays on."
+    effects: { allies: -12, public: 8 }
+    tags: [building, guests]
+    set: [band:plaster]

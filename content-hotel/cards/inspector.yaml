@@ -1,0 +1,203 @@
+# THE INSPECTOR — the Booking's spine. Opener at 3:00, three beats, the head in the five o'clock hour.
+# The Inspector is early, which he finds people prefer, and would like the kitchen, the cellar and
+# whoever is asleep in it, with the lights on. Shape quarried from the ultimatum: a deadline that
+# moves (nine, then six, then twenty to six) and a line you draw in public (your word, in writing).
+# Bars: public = GUESTS, military = STAFF, allies = THE BUILDING, economy = MONEY.
+# Regards: trust_primary = the Owner's patience, trust_secondary = the Inspector's goodwill,
+# intel = the Critic's opinion, commitment = your promises.
+# Flags set here: inspector:kitchen_now, inspector:six_promised, inspector:salmon_binned,
+# inspector:salmon_resting, inspector:cellar_shown, inspector:cellar_six, inspector:lights_off,
+# inspector:lights_on, inspector:passed, inspector:failed, inspector:word, inspector:tea_black,
+# majestic:owed, majestic:refused, inspector:card_room12, inspector:card_hotel,
+# inspector:boiler_honest, inspector:boiler_dodged.
+
+# ---- The spine (seated by the Booking; no conditions, no weight)
+
+- id: inspector_01_early
+  arc: inspector
+  advisor: inspector
+  acts: [1, 1]
+  tags: [inspector, guests]
+  text: >-
+    I am the inspector booked for nine, and it is three, which I find people prefer. I would
+    like the kitchen first, with the lights on.
+  left:
+    text: Kitchen now. Lights on
+    reply: "The Chef meets him at the kitchen door in an apron and a silence."
+    effects: { military: -10, public: 8, trust_secondary: 8 }
+    tags: [staff, guests]
+    set: [inspector:kitchen_now]
+  right:
+    text: Tea first. The kitchen at six
+    reply: "'Six.' He writes it down, underlines it, and turns the page so you can see."
+    effects: { military: 8, public: -8, trust_secondary: -6, commitment: -8 }
+    tags: [staff, promise]
+    set: [inspector:six_promised]
+
+- id: inspector_02_salmon
+  arc: inspector
+  advisor: chef
+  acts: [1, 1]
+  timer: 10
+  timeout: right
+  tags: [inspector, kitchen, staff]
+  text: >-
+    The Inspector has found my kitchen on his own and has a torch on the fridge. I'm not saying
+    who left the salmon out; I'm saying somebody did.
+  left:
+    text: Bin the salmon. In front of him
+    reply: "The salmon goes in the bin. The Chef salutes it. The Inspector writes 'prompt'."
+    effects: { economy: -10, military: -4, trust_secondary: 10 }
+    tags: [money, staff]
+    set: [inspector:salmon_binned]
+  right:
+    text: It's resting. Say so
+    reply: "'Resting.' He writes the word down, and the time, and asks since when."
+    effects: { military: 8, public: -8, trust_secondary: -8 }
+    tags: [staff, guests]
+    set: [inspector:salmon_resting]
+
+- id: inspector_03_cellar
+  arc: inspector
+  advisor: inspector
+  acts: [2, 2]
+  tags: [inspector, cellar]
+  text: >-
+    I had said nine; I find I can finish at six, which people prefer, if I see the cellar now.
+    I understand someone is asleep in it.
+  left:
+    text: The cellar. Wake whoever it is
+    reply: "The Barman wakes on the brandy crates and asks the Inspector if he's a resident."
+    effects: { military: -10, public: 8, trust_secondary: 8 }
+    tags: [staff, guests]
+    set: [inspector:cellar_shown]
+  right:
+    text: The cellar at six. Not before
+    reply: "'Six.' He writes it down and draws a line under it, and then a second line."
+    effects: { military: 8, public: -8, trust_secondary: -10, commitment: -8 }
+    tags: [staff, promise]
+    set: [inspector:cellar_six]
+
+- id: inspector_04_owner
+  arc: inspector
+  advisor: owner
+  acts: [3, 3]
+  tags: [inspector, owner, money]
+  text: >-
+    An inspector in my hotel at this hour, which I'm told is early, and every light in the east wing
+    on for him. Is he paying for the electricity?
+  left:
+    text: Lights off behind him
+    reply: "The east wing goes dark behind him. He switches to the torch without a word."
+    effects: { economy: 10, public: -8, trust_primary: 8, trust_secondary: -10 }
+    tags: [money, owner]
+    set: [inspector:lights_off]
+  right:
+    text: Leave them on. He's counting
+    reply: "'Counting.' A pause, and you can hear him do the same sum, slower, from abroad."
+    effects: { economy: -10, public: 8, trust_primary: -8, trust_secondary: 6 }
+    tags: [guests, owner]
+    set: [inspector:lights_on]
+
+- id: inspector_05_word
+  arc: inspector
+  advisor: inspector
+  acts: [3, 3]
+  minutes: 20
+  tags: [inspector, cellar, promise]
+  text: >-
+    Twenty to six, and one box left: the cellar, with the lights on, which is not the same as a
+    torch. Your word would do, in writing.
+  left:
+    text: Lights on. Take him down
+    effects: {}
+    tags: [guests, building]
+    odds:
+      label: It passes
+      base: 0.55
+      tags: [guest]
+      success:
+        text: "The lights come on. The crates are square, the floor is swept, and the Barman is upright, reciting vintages."
+        effects: { public: 10, allies: 8, trust_secondary: 10 }
+        set: [inspector:passed]
+      failure:
+        text: "The lights come on, and so does the Barman, who asks the Inspector what he's having and writes it in the book."
+        effects: { public: -10, allies: -8, trust_secondary: -8 }
+        set: [inspector:failed]
+  right:
+    text: My word. In writing
+    reply: "He ticks it, writes 'on the manager's word' beneath, and underlines 'word'."
+    effects: { military: 8, allies: -8, commitment: -10, trust_secondary: -6 }
+    tags: [staff, promise]
+    set: [inspector:word]
+
+# ---- Tied to the Booking (drawn by weight once the Inspector is on)
+
+- id: inspector_x_majestic
+  arc: inspector
+  advisor: majestic
+  acts: [2, 3]
+  weight: 2
+  conditions: { flags_all: [booking:inspector] }
+  tags: [inspector, majestic]
+  text: >-
+    "The Majestic has had your inspector, and he likes the cellar shown before he asks, with his
+    tea black." A pause, then: "As a courtesy."
+  left:
+    text: Thank them. Black tea
+    reply: "'Of course.' A pause. 'Courtesies are remembered. So, we find, are inspectors.'"
+    effects: { public: 8, military: -8, trust_secondary: 8 }
+    tags: [guests, majestic]
+    set: [majestic:owed, inspector:tea_black]
+  right:
+    text: We know our own cellar
+    reply: "'Of course.' Then, lightly: 'He also likes the lights on. But you knew that.'"
+    effects: { military: 10, public: -8 }
+    tags: [staff]
+    set: [majestic:refused]
+
+- id: inspector_x_room12
+  arc: inspector
+  advisor: room12
+  acts: [1, 3]
+  weight: 1.5
+  conditions: { flags_all: [booking:inspector] }
+  tags: [inspector, rules, guests]
+  text: >-
+    There is a man in the lobby with a torch, reading the card by the lift. He has asked who
+    wrote it, and I would like to know what you told him.
+  left:
+    text: You did. In 1991
+    reply: "'Good.' She goes to stand by the card in case he has questions. He has several."
+    effects: { public: 10, military: -8, trust_secondary: 6 }
+    tags: [guests, staff]
+    set: [inspector:card_room12]
+  right:
+    text: The hotel did. Officially
+    reply: "'The hotel,' she repeats, and goes to find a pen, and adds a rule about that."
+    effects: { military: 8, public: -8, trust_secondary: -6 }
+    tags: [staff, guests]
+    set: [inspector:card_hotel]
+
+- id: inspector_x_boiler
+  arc: inspector
+  advisor: handyman
+  acts: [1, 2]
+  weight: 1.5
+  conditions: { flags_all: [booking:inspector] }
+  tags: [inspector, building, boiler]
+  text: >-
+    There's a man in my boiler room asking the boiler questions. I've told him it's weather, and
+    he's written down 'weather' and asked for the forecast.
+  left:
+    text: Give him the forecast. Honestly
+    reply: "'Hot water till five, ish.' The Inspector writes 'ish' and asks how it is spelt."
+    effects: { allies: -10, military: 8, trust_secondary: 8 }
+    tags: [building, staff]
+    set: [inspector:boiler_honest]
+  right:
+    text: Show him the lift instead
+    reply: "The lift takes them to the wrong floor, twice, and he writes down both floors."
+    effects: { allies: 8, public: -8, trust_secondary: -6 }
+    tags: [building, guests]
+    set: [inspector:boiler_dodged]

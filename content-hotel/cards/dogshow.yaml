@@ -1,0 +1,200 @@
+# THE DOG SHOW — the Booking's spine. Opener at 3:00, three beats, the head in the five o'clock hour.
+# Forty-one dogs, one lift, a judge in 118 with allergies, and a rosette for everything, including the Porter.
+# Bars: public = GUESTS, military = STAFF, allies = THE BUILDING, economy = MONEY.
+# Regards: trust_primary = the Owner's patience, trust_secondary = the Dog Show Secretary's goodwill,
+# intel = the Critic's opinion, commitment = your promises.
+# Flags set here: dogshow:floor_cleared, dogshow:judge_stays, dogshow:lift_stopped, dogshow:porter_rode,
+# dogshow:judge_penthouse, dogshow:dogs_ballroom, dogshow:lobby_show, dogshow:ballroom_promised,
+# dogshow:whippet_won, dogshow:porter_best, dogshow:porter_refused, dogshow:per_dog, dogshow:flat_rate,
+# dogshow:butcher, dogshow:no_sausages, dogshow:judge_majestic, majestic:owed, majestic:refused, lift:off.
+
+# ---- The spine (seated by the Booking; no conditions, no weight)
+
+- id: dogshow_01_forty_one
+  arc: dogshow
+  advisor: dogshow_secretary
+  acts: [1, 1]
+  tags: [dogshow, guests]
+  text: >-
+    Forty-one dogs are checked in, one to a room, and the judge in 118 is allergic to
+    dogs. He would like a floor with no dogs on it by four.
+  left:
+    text: Clear the first floor. Nine rooms
+    reply: "Nine rooms move up. The judge sneezes anyway; the carpet, he says, remembers."
+    effects: { public: -10, military: -8, trust_secondary: 10 }
+    tags: [guests, staff]
+    set: [dogshow:floor_cleared]
+  right:
+    text: Tablets. He stays in 118
+    reply: "'He has tablets,' she says, 'and views. The tablets don't touch the views.'"
+    effects: { public: 8, military: 8, trust_secondary: -8 }
+    tags: [guests, staff]
+    set: [dogshow:judge_stays]
+
+- id: dogshow_02_lift
+  arc: dogshow
+  advisor: porter
+  acts: [1, 3]
+  timer: 10
+  timeout: right
+  tags: [dogshow, lift]
+  text: >-
+    Eleven dogs are in the lift, going up and down, and none of them pressed anything.
+    Every time the doors open, a guest meets more dogs than before.
+  left:
+    text: Stop the lift. Stairs all night
+    reply: "It stops at two. The eleven sit down, as if two were where they'd been going."
+    effects: { military: -10, allies: 8 }
+    tags: [staff, building]
+    set: [dogshow:lift_stopped, lift:off]
+  right:
+    text: Ride it. Hand them back one by one
+    reply: "He hands back nine. The other two, he says, are not ours, and he has a theory."
+    effects: { public: 10, military: -10 }
+    tags: [guests, staff]
+    set: [dogshow:porter_rode]
+
+- id: dogshow_03_sneezing
+  arc: dogshow
+  advisor: housekeeper
+  acts: [2, 2]
+  tags: [dogshow, guests]
+  text: >-
+    The judge in 118 is sneezing and Room 120 is counting, aloud, through the wall. We have
+    changed his pillows twice; the pillows are not the problem.
+  left:
+    text: The Penthouse. Tissues. No dogs
+    reply: "He takes the tissues up. A spaniel goes too, unnoticed, for three floors."
+    effects: { economy: -10, public: 10, trust_secondary: 6 }
+    tags: [money, guests]
+    set: [dogshow:judge_penthouse]
+  right:
+    text: Dogs to the ballroom. All of them
+    reply: "Forty-one dogs under the chandelier. The Events Manager calls it a moment."
+    effects: { military: -10, allies: 10, public: -8, trust_secondary: -8 }
+    tags: [staff, building]
+    set: [dogshow:dogs_ballroom]
+
+- id: dogshow_04_rosettes
+  arc: dogshow
+  advisor: dogshow_secretary
+  acts: [3, 3]
+  tags: [dogshow, guests]
+  text: >-
+    The judge can't sleep, so we're judging now, in the lobby, in dressing gowns. There's a
+    rosette for everything, and your Porter has won Temperament.
+  left:
+    text: The lobby's yours. Lights on
+    reply: "Forty-one dogs in a ring on the good carpet. The Porter stands very straight."
+    effects: { public: 12, economy: -8, trust_secondary: 8 }
+    tags: [guests, money]
+    set: [dogshow:lobby_show]
+  right:
+    text: Not the lobby. The ballroom at six
+    reply: "'Six.' She writes it on a rosette and pins it to your lapel for the Day Manager."
+    effects: { public: -8, military: 8, trust_secondary: -8, commitment: -8 }
+    tags: [staff, promise]
+    set: [dogshow:ballroom_promised]
+
+- id: dogshow_05_best_in_show
+  arc: dogshow
+  advisor: porter
+  acts: [3, 3]
+  minutes: 20
+  tags: [dogshow, staff]
+  text: >-
+    Best in Show is between a whippet from 204 and me, on a technicality nobody can find.
+    The judge wants a ruling from management, and I did not enter.
+  left:
+    text: The whippet. Rules are rules
+    reply: "The whippet wins. The Porter applauds, which the Secretary says is Temperament."
+    effects: { public: 10, military: -8, trust_secondary: 10 }
+    tags: [guests]
+    set: [dogshow:whippet_won]
+  right:
+    text: The Porter. Best in Show
+    effects: {}
+    tags: [staff, guest]
+    odds:
+      label: The judge agrees
+      base: 0.55
+      tags: [guest]
+      success:
+        text: "He pins it on, sneezes, and says it is the first clear decision he has made all night."
+        effects: { public: 12, military: 12, trust_secondary: -6 }
+        set: [dogshow:porter_best]
+      failure:
+        text: "'A Porter is not a dog,' he says, with regret. Forty-one owners agree, loudly, and he sneezes."
+        effects: { public: -12, military: 8, trust_secondary: -10 }
+        set: [dogshow:porter_refused]
+
+# ---- Tied to the Booking (drawn by weight once the Dog Show is on)
+
+- id: dogshow_x_owner_rate
+  arc: dogshow
+  advisor: owner
+  acts: [2, 3]
+  weight: 2
+  conditions: { flags_all: [booking:dogshow] }
+  tags: [dogshow, owner, money]
+  text: >-
+    I'm told there are forty-one dogs in my hotel on a flat rate. I'd like the rate, and
+    I'd like to know who said the word "flat".
+  left:
+    text: Twelve pounds a dog. Per night
+    reply: "'Twelve.' You hear him multiply. 'Four hundred and ninety-two,' he says. 'Good.'"
+    effects: { economy: 12, public: -10, trust_primary: 8, trust_secondary: -8 }
+    tags: [money, owner]
+    set: [dogshow:per_dog]
+  right:
+    text: Flat rate. The Secretary's deal
+    reply: "A silence with a sum in it. 'Forty-one,' he says, 'divided by one. I see.'"
+    effects: { economy: -8, public: 8, trust_primary: -10, trust_secondary: 6 }
+    tags: [guests, owner]
+    set: [dogshow:flat_rate]
+
+- id: dogshow_x_chef_sausages
+  arc: dogshow
+  advisor: chef
+  acts: [1, 2]
+  weight: 1.5
+  conditions: { flags_all: [booking:dogshow] }
+  tags: [dogshow, kitchen, staff]
+  text: >-
+    The breakfast sausages are gone and the cold room is open. I'm not saying who left it
+    open for a dog; I'm saying somebody did, and the dog was tall.
+  left:
+    text: Wake the butcher. Pay double
+    reply: "The butcher answers on the sixth ring and asks how many dogs. You say forty-one."
+    effects: { economy: -12, public: 8 }
+    tags: [money, guests]
+    set: [dogshow:butcher]
+  right:
+    text: No sausages. Blame the dog
+    reply: "'The dog,' he says, approving, and writes 'somebody' on the board, underlined."
+    effects: { public: -8, military: 8, trust_secondary: -6 }
+    tags: [guests, staff]
+    set: [dogshow:no_sausages]
+
+- id: dogshow_x_majestic_judge
+  arc: dogshow
+  advisor: majestic
+  acts: [2, 2]
+  weight: 2
+  conditions: { flags_all: [booking:dogshow, dogshow:judge_stays] }
+  tags: [dogshow, majestic]
+  text: >-
+    "The Majestic hears your judge is allergic to your guests, and has a quiet room with no
+    dogs in it." A pause, then: "As a courtesy."
+  left:
+    text: Send him across. With thanks
+    reply: "He crosses the square and stops sneezing at the kerb. 'Remembered,' it says."
+    effects: { public: 8, military: 8, trust_secondary: -10 }
+    tags: [guests, majestic]
+    set: [dogshow:judge_majestic, majestic:owed]
+  right:
+    text: Our judge. Our sneezing
+    reply: "'Of course.' The pause after is the length of a note being made."
+    effects: { public: -8, military: 8, trust_secondary: 8 }
+    tags: [staff]
+    set: [majestic:refused]

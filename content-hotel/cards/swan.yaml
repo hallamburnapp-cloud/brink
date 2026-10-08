@@ -41,7 +41,7 @@
   right:
     text: Open the terrace doors
     reply: "It walks to the terrace, looks at the sea, and decides against it."
-    effects: { public: -8, allies: -8 }
+    effects: { public: -8, allies: -4, military: 8 }
     tags: [guests]
     set: [swan:terrace]
 

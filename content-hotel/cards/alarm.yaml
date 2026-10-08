@@ -1,0 +1,252 @@
+# THE ALARM — the Booking's spine. The panel says fire in Room 9. Room 9 is singing.
+# Last time it was toast in 3B; the time before that, it was a fire.
+# Bars: public = GUESTS, military = STAFF, allies = THE BUILDING, economy = MONEY.
+# Regards: trust_primary = the Owner's patience, trust_secondary = Room 9's goodwill,
+# intel = the Critic's opinion, commitment = your promises.
+# The warning (beat one) decides the truth on draw: alarm_03_cake is the real fire,
+# alarm_04_toaster is the false alarm. Both set alarm:cake / alarm:toaster for the reviews.
+
+- id: alarm_01_panel
+  arc: alarm
+  advisor: porter
+  acts: [1, 1]
+  tags: [alarm, building]
+  text: >-
+    The panel says fire in Room 9, and Room 9 is singing too loudly to hear a door. Last
+    time it was toast in 3B; the time before, it was a fire.
+  left:
+    text: Ring the brigade now
+    reply: "'On our way,' says a calm voice. 'Is this the hotel with the toast?'"
+    effects: { economy: -12, allies: 10, trust_primary: -6 }
+    tags: [money, building]
+    set: [alarm:brigade_called]
+  right:
+    text: Send the Porter up with the key
+    reply: "He goes up with the key, the big torch and a towel, in that order."
+    effects: { military: -8, allies: -4, trust_primary: 6 }
+    tags: [staff, building]
+    set: [alarm:porter_up]
+
+- id: alarm_02_door
+  arc: alarm
+  advisor: housekeeper
+  acts: [1, 1]
+  timer: 10
+  timeout: right
+  tags: [alarm, warning, guests]
+  warning: { true_follow: alarm_03_cake, false_follow: alarm_04_toaster, in: 0 }
+  note: Beat one, the warning. The truth is rolled on draw; the follow-up is the next card.
+  text: >-
+    We are outside 9 with the key, and something is coming under the door, smoke or steam.
+    They have started the chorus again, which is the loud part.
+  left:
+    text: Use the key. Go in
+    reply: "The key turns. Eleven faces turn with it, on the same note."
+    effects: { military: -8, public: 8, trust_secondary: -6 }
+    tags: [staff, guests]
+    set: [alarm:went_in]
+  right:
+    text: Pull the alarm. Everybody out
+    reply: "Two hundred people in the car park in dressing gowns, learning the chorus."
+    effects: { public: -14, allies: 10, military: 8 }
+    tags: [guests, building, staff]
+    set: [alarm:evacuated]
+
+- id: alarm_03_cake
+  arc: alarm
+  advisor: room9
+  acts: [1, 2]
+  tags: [alarm, guests]
+  note: True branch of alarm_02_door. A small real fire, out, nobody hurt.
+  text: >-
+    The cake had sparklers and the bedspread had the cake. It's out now, mostly, and we
+    did stop singing for it, which we'd like noted.
+  left:
+    text: A new room. Nothing said
+    reply: "They move to the ballroom and give the chandelier the second verse."
+    effects: { public: 10, economy: -10, trust_secondary: 8 }
+    tags: [guests, money]
+    set: [alarm:cake, alarm:cake_forgiven]
+  right:
+    text: Bill them for the bedspread
+    reply: "Eleven of them sign the bill, carefully. Eleven signatures, all the same name."
+    effects: { economy: 10, public: -8, trust_secondary: -8 }
+    tags: [money, guests]
+    set: [alarm:cake, alarm:cake_billed]
+
+- id: alarm_04_toaster
+  arc: alarm
+  advisor: porter
+  acts: [1, 2]
+  tags: [alarm, guests]
+  note: False branch of alarm_02_door. Toast again, from a toaster nobody knew was in the building.
+  text: >-
+    No fire, only a toaster Room 9 brought from home, with eleven slices going at once. I
+    have a theory about 3B now as well.
+  left:
+    text: Confiscate the toaster
+    reply: "They hand it over like a trophy. It is, they explain, a wedding present."
+    effects: { allies: 10, public: -8, trust_secondary: -8 }
+    tags: [building, guests]
+    set: [alarm:toaster, alarm:toaster_taken]
+  right:
+    text: Let them finish the toast
+    reply: "The toast finishes. The panel, which has not been told, goes off again at once."
+    effects: { public: 10, allies: -8, trust_secondary: 6 }
+    tags: [guests, building]
+    set: [alarm:toaster, alarm:toaster_stays]
+
+- id: alarm_05_owner
+  arc: alarm
+  advisor: owner
+  acts: [2, 2]
+  tags: [alarm, owner, money]
+  note: Beat two. Works whether the fire was real or toast; the Owner only hears the cost.
+  text: >-
+    The panel rings me before it rings you, and it rings me abroad, at a rate. Was there a
+    fire, and if there wasn't, what have I paid for?
+  left:
+    text: Tell him. All of it
+    reply: "A long silence, which is a sum, and then: 'Was anyone hurt? Good. Was anything?'"
+    effects: { economy: -10, military: 8, trust_primary: 8 }
+    tags: [money, staff, owner]
+    set: [alarm:owner_told]
+  right:
+    text: Say it was a drill
+    reply: "'A drill,' he says. 'At this hour.' You can hear him writing it down."
+    effects: { economy: 8, public: -8, trust_primary: -8, commitment: 8 }
+    tags: [money, promise, owner]
+    set: [alarm:told_drill]
+
+- id: alarm_06_majestic
+  arc: alarm
+  advisor: majestic
+  acts: [3, 3]
+  tags: [alarm, majestic]
+  note: Beat three. The rival heard the bell.
+  text: >-
+    "The Majestic heard your bell across the square and has beds for any guest who no
+    longer feels safe." A pause, then: "As a courtesy."
+  left:
+    text: Thank them. Nobody is leaving
+    reply: "'Of course.' A pause. 'Courtesies are remembered, and so, we find, are bells.'"
+    effects: { public: -8, military: 8 }
+    tags: [staff, majestic]
+    set: [majestic:refused]
+  right:
+    text: Send over anyone who asks
+    reply: "Three go across in dressing gowns. Across the square, three lights come on."
+    effects: { public: 8, economy: -10, trust_primary: -6 }
+    tags: [guests, money]
+    set: [alarm:sent_to_majestic, majestic:owed]
+
+- id: alarm_07_serenade
+  arc: alarm
+  advisor: room9
+  acts: [3, 3]
+  minutes: 20
+  tags: [alarm, guests]
+  note: The head. Room 9's goodwill (the beats moved it) drives the odds.
+  text: >-
+    We'd like to apologise to the hotel, as a song, in the lobby at six, when there's an
+    audience. It's short, and there are eleven of us.
+  left:
+    text: Let them sing. One song
+    effects: {}
+    tags: [guests]
+    odds:
+      label: It's lovely
+      base: 0.55
+      tags: [guest]
+      success:
+        text: "Eleven voices in the lobby at six, in tune, and the Day Manager stands in the door with her pen down."
+        effects: { public: 14, military: 8, trust_secondary: 10 }
+        set: [alarm:serenade]
+      failure:
+        text: "It is four songs. Room 12 comes down with the card from by the lift and adds a line to it."
+        effects: { public: -10, allies: -8, trust_secondary: -4 }
+        set: [alarm:four_songs]
+  right:
+    text: No. The card by the lift
+    reply: "'Fair,' says Room 9, and hums it instead, all eleven, all the way up the stairs."
+    effects: { public: -8, military: 10, trust_secondary: -8 }
+    tags: [staff, rules]
+    set: [alarm:hummed]
+
+# ---- Cards that only come out when THE ALARM is tonight's Booking
+
+- id: alarm_x_chef_gas
+  arc: alarm
+  advisor: chef
+  acts: [1, 2]
+  weight: 2
+  conditions: { flags_all: [booking:alarm] }
+  tags: [alarm, kitchen, staff]
+  text: >-
+    The panel has cut my gas, which it does, and sixty are down for breakfast at seven. I'm
+    not saying who hasn't reset it; I'm saying somebody hasn't.
+  left:
+    text: Reset the gas. Sign for it
+    reply: "The gas comes back with a thump. He signs nothing, and nods at the fridge."
+    effects: { military: 10, allies: -8 }
+    tags: [staff, building]
+    set: [alarm:gas_reset]
+  right:
+    text: No gas till the all-clear
+    reply: "'Continental,' he says, once, and goes to find a knife big enough for a melon."
+    effects: { military: -10, public: -8, allies: 8 }
+    tags: [staff, guests, building]
+    set: [chef:continental]
+
+- id: alarm_x_handyman_panel
+  arc: alarm
+  advisor: handyman
+  acts: [1, 3]
+  weight: 1.5
+  conditions: { flags_all: [booking:alarm] }
+  tags: [alarm, building]
+  text: >-
+    The panel is still saying 9 on and off, the way it said 3B all that wet week. I can
+    pull its fuse, or you can hear it every eleven minutes till six.
+  left:
+    text: Pull the fuse
+    effects: {}
+    tags: [building]
+    odds:
+      label: It stays quiet
+      base: 0.6
+      tags: []
+      success:
+        text: "Silence. He waits for the panel to object, and it doesn't, and he doesn't trust that either."
+        effects: { allies: 8, military: 8 }
+        set: [alarm:fuse_pulled]
+      failure:
+        text: "The panel goes quiet. So does the lift, which was on the same fuse, with the Doorman in it."
+        effects: { allies: -12, public: -8 }
+        set: [alarm:fuse_pulled, lift:off]
+  right:
+    text: Leave it. We'll listen
+    reply: "'Eleven minutes,' he says, and the panel, as if to help, goes off at once."
+    effects: { public: -8, military: -8, allies: 8 }
+    tags: [guests, staff, building]
+
+- id: alarm_x_critic_bell
+  arc: alarm
+  advisor: critic
+  acts: [2, 3]
+  weight: 1.5
+  conditions: { flags_all: [booking:alarm] }
+  tags: [alarm, critic, guests]
+  text: >-
+    I was woken at three by a bell and have been awake since, which is a hard thing for a
+    hotel to arrange. I file at nine, and I came for the pillows.
+  left:
+    text: Breakfast in bed. On the house
+    reply: "She orders the lot, and asks for it quietly, and writes down how long it takes."
+    effects: { economy: -10, public: 8, intel: 8 }
+    tags: [money, guests, critic]
+  right:
+    text: Earplugs and an apology
+    reply: "She takes the earplugs and asks for the apology again, slower, for the piece."
+    effects: { public: -8, military: 8, intel: -8 }
+    tags: [guests, staff, critic]

@@ -1,0 +1,196 @@
+# THE FLOOD — the Booking's spine. Opener at 3:00, three beats, the head in the five o'clock hour.
+# A tap in 310, then the ceiling of 210, then the ballroom. Room 310 describes the water like
+# the weather and wants it in writing, with the time.
+# Bars: public = GUESTS, military = STAFF, allies = THE BUILDING, economy = MONEY.
+# Regards: trust_primary = the Owner's patience, trust_secondary = Room 310's goodwill,
+# intel = the Critic's opinion, commitment = your promises.
+# Flags: flood:stopcock, flood:in_writing, flood:210_moved, flood:210_buckets, flood:sandbags,
+#        flood:cellar, flood:ours, flood:blamed_tap, flood:pumped, flood:ballroom_closed,
+#        flood:wedding_majestic, flood:kitchen_umbrellas, flood:critic_moved, flood:wine_up,
+#        flood:wine_left, majestic:owed.
+
+# ---- The spine (seated by the Booking; no conditions, no weight)
+
+- id: flood_01_tap
+  arc: flood
+  advisor: room310
+  acts: [1, 1]
+  tags: [flood, guests, building]
+  text: >-
+    The hot tap in 310 has come off in my hand, and the water is what I'd call steady,
+    turning heavy. I'd like that in writing, with the time.
+  left:
+    text: Stopcock. Send the Handyman
+    reply: "The stopcock is under a card by the lift. He turns it; the tap slows to a sulk."
+    effects: { allies: 10, military: -8, trust_secondary: -6 }
+    tags: [building, staff]
+    set: [flood:stopcock]
+  right:
+    text: Write it down. Twelve towels
+    reply: "'Steady, turning heavy,' you write, and she signs it. Twelve towels go up."
+    effects: { public: 10, allies: -10, trust_secondary: 8, commitment: 6 }
+    tags: [guests, promise]
+    set: [flood:in_writing]
+
+- id: flood_02_ceiling
+  arc: flood
+  advisor: housekeeper
+  acts: [1, 1]
+  tags: [flood, guests, building]
+  text: >-
+    The ceiling of 210 is letting 310's bath through, first in drops and now not in drops.
+    We gave the gentleman an umbrella, and he has opened it.
+  left:
+    text: Move 210 up. The Penthouse
+    reply: "210 goes up, umbrella still open, in case. The ceiling waits until he has gone."
+    effects: { public: 10, economy: -8, allies: -4 }
+    tags: [guests, money]
+    set: [flood:210_moved]
+  right:
+    text: Buckets. He stays under it
+    reply: "Three buckets and one umbrella. He reads under it and calls the rate 'brisk'."
+    effects: { allies: 10, public: -8, military: -4 }
+    tags: [building, guests]
+    set: [flood:210_buckets]
+
+- id: flood_03_ballroom
+  arc: flood
+  advisor: handyman
+  acts: [2, 2]
+  timer: 10
+  timeout: right
+  tags: [flood, ballroom, building]
+  text: >-
+    The water's reached the ballroom by the back stairs, which is downhill, which I did say.
+    It's an inch, with more behind it; I'd call it a front.
+  left:
+    text: Sandbags. Every pair of hands
+    reply: "Forty sandbags, eleven staff, one inch held at the door. The Chef carries two."
+    effects: { allies: 12, military: -12 }
+    tags: [building, staff]
+    set: [flood:sandbags]
+  right:
+    text: Let it find its level
+    reply: "'Level,' he says, like a forecast. It finds the cellar. Nobody tells the Barman."
+    effects: { military: 8, allies: -8, economy: -4 }
+    tags: [staff, building]
+    set: [flood:cellar]
+
+- id: flood_04_in_writing
+  arc: flood
+  advisor: room310
+  acts: [3, 3]
+  tags: [flood, guests, promise]
+  text: >-
+    I'd describe 310 as clearing now, and I have come down in my coat for the letter. The
+    letter should say whose fault it was.
+  left:
+    text: Ours. Sign it
+    reply: "She reads it twice and puts it in her handbag like a cheque. 'I shan't need it.'"
+    effects: { public: 10, economy: -8, trust_secondary: 12, trust_primary: -8, commitment: 8 }
+    tags: [guests, promise, owner]
+    set: [flood:ours]
+  right:
+    text: The tap's. Act of God
+    reply: "'God did not fit the tap,' she says, and writes that down herself, timed."
+    effects: { public: -10, economy: 8, trust_secondary: -10 }
+    tags: [guests, money]
+    set: [flood:blamed_tap]
+
+- id: flood_05_wedding
+  arc: flood
+  advisor: owner
+  acts: [3, 3]
+  minutes: 20
+  tags: [flood, owner, ballroom, money]
+  text: >-
+    There is an inch of Room 310 on my ballroom floor and a wedding on it at eleven. I have
+    done the sum, and the sum is under water too.
+  left:
+    text: Ring the fire brigade. Pumps
+    effects: {}
+    tags: [owner, building]
+    odds:
+      label: They come quietly
+      base: 0.6
+      tags: [owner]
+      success:
+        text: "Two engines, no sirens, as a favour. Dry by six, and the Doorman tells them about 1991."
+        effects: { allies: 12, public: 8, economy: 8, trust_primary: 8 }
+        set: [flood:pumped]
+      failure:
+        text: "Sirens, a form, and a man who closes the ballroom until somebody has looked at it. The Owner does a sum aloud."
+        effects: { allies: -10, economy: -14, public: -8, trust_primary: -8 }
+        set: [flood:ballroom_closed]
+  right:
+    text: Move the wedding to The Majestic
+    reply: "'As a courtesy,' says The Majestic. 'Courtesies are remembered.' Abroad, a sum."
+    effects: { economy: -14, public: 10, trust_primary: -10 }
+    tags: [money, guests, majestic]
+    set: [flood:wedding_majestic, majestic:owed]
+
+# ---- Tied to the Booking (drawn by weight once the Flood is on)
+
+- id: flood_x_chef_ceiling
+  advisor: chef
+  acts: [1, 2]
+  weight: 2
+  conditions: { flags_all: [booking:flood] }
+  tags: [flood, kitchen, staff]
+  text: >-
+    Water is coming through the kitchen ceiling onto sixty breakfasts. I'm not saying the
+    night manager left a tap on in 310; I'm saying somebody did.
+  left:
+    text: Breakfast in the lounge. Move it
+    reply: "Sixty breakfasts cross the lobby in relays. The Barman charges the Chef corkage."
+    effects: { public: 10, military: -10 }
+    tags: [guests, staff]
+  right:
+    text: Umbrellas over the range
+    reply: "Three umbrellas over the range. He says 'umbrellas' once and never again."
+    effects: { economy: 8, military: -8, public: -8 }
+    tags: [money, staff, guests]
+    set: [flood:kitchen_umbrellas]
+
+- id: flood_x_critic_drip
+  advisor: critic
+  acts: [2, 3]
+  weight: 1.5
+  conditions: { flags_all: [booking:flood] }
+  tags: [flood, critic, guests]
+  text: >-
+    There is a drip over my bed in 212 keeping time, and the time it keeps is the time I'd
+    be asleep. I file at nine, and I may file about the drip.
+  left:
+    text: Move her to 410. Dry, with a view
+    reply: "She takes the key and asks, mildly, what 310 did to deserve her. You don't say."
+    effects: { public: 10, intel: 8, military: -8 }
+    tags: [guests, critic, staff]
+    set: [flood:critic_moved]
+  right:
+    text: A bucket and the good brandy
+    reply: "The bucket goes on the bed. She sleeps in the chair, writing. The drip keeps on."
+    effects: { military: 8, public: -8, economy: -8, intel: -6 }
+    tags: [staff, guests, money]
+
+- id: flood_x_porter_cellar
+  advisor: porter
+  acts: [2, 3]
+  weight: 1.5
+  conditions: { flags_all: [booking:flood] }
+  tags: [flood, cellar, building]
+  text: >-
+    The water went from 310 to 210 and from 210 to the ballroom, and I have a theory about
+    where it goes next. The theory is the cellar, and the wine.
+  left:
+    text: Bring the wine up. All of it
+    reply: "Two hundred bottles come up two at a time in the Barman's arms, each counted."
+    effects: { economy: 10, military: -10 }
+    tags: [money, staff]
+    set: [flood:wine_up]
+  right:
+    text: Wine keeps. Leave it
+    reply: "'It floats,' he says, pleased. 'My second theory.' The Barman goes down to look."
+    effects: { military: 8, economy: -10, allies: -8 }
+    tags: [staff, money, building]
+    set: [flood:wine_left]
