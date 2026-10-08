@@ -77,15 +77,20 @@ groups were committed as they landed from then on, so a second restart could los
 two files' worth of work. Lesson kept in the workflow itself: every group validates and
 saves file by file, never in one write at the end.
 
-## B-007 Tag push refused (resolved 2026-10-08)
+## B-007 Tag push refused (open)
 
 `git push origin v0.3.0-night` fails with "fatal: the remote end hung up unexpectedly" while
 pushes of `main` to the same remote succeed, repeatedly and after retries with backoff. The
 tag exists locally and the commit it points at is on `main`, so nothing is lost; the crisis
 game is also kept as the `content-crisis/` pack. Retry the tag push from a different
 network, or create the tag on GitHub from the commit (`e08e530`'s parent, the last 0.3.0
-commit) if it still refuses. Resolved: the push went through on the day's last retry, and
-`git ls-remote` shows `refs/tags/v0.3.0-night` on the remote.
+commit) if it still refuses. Retried on 2026-10-08: the tag push still hangs up (`main`
+pushes fine; `git push` then prints "Everything up-to-date" although `git ls-remote` shows
+no tags), and creating the ref through the GitHub API is refused by this environment's
+proxy (write access to `git/refs` is not permitted). Nothing is lost: the tag's commit,
+`e98dd23`, is on `main`, and the crisis game is the `content-crisis/` pack. To finish it,
+on GitHub: Releases → Draft a new release → Choose a tag → type `v0.3.0-night` → Target:
+commit `e98dd23` → publish (or save as draft). One minute.
 
 ## B-008 The playtest harness has no hotel mode (open)
 
