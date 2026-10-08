@@ -12,6 +12,56 @@ Styles: **dove** takes the calmer line and buys de-escalation; **hawk** takes th
 firmer line and buys leverage; **balanced** reads the preview dots and protects the
 lowest meter; **gambler** takes every roll it can and the higher leverage.
 
+## The hotel
+
+`npx tsx tools/playtest.ts --game hotel --style <careful|bold|balanced|gambler> --booking "<name>" --seed <seed> --static`
+plays the hotel the way a person sees it: the first open (CLOCK IN, one card, Home), the
+plate's night picker with a seed, then the chosen Booking: the four bar fills, the ghost
+segment under a hovering thumb, the odds as a word, the clock. **Careful** protects the
+lowest bar and refuses rolls, **bold** takes the bigger gain, **balanced** reads the ghosts
+without a lean, **gambler** likes a roll. They are cruder than the simulator's careful bot
+(BALANCE.md "The hotel"), which weighs the same ghosts. Transcripts (with every reply
+line), share cards and screenshots are under `docs/playtests/hotel/`; the screen walk
+(`tools/smoke/hotel.ts`: first open, the desk, Home from the desk, tonight picked back up,
+the review, the Guest Book) is under `docs/playtests/hotel/shots/`.
+
+| Run | Booking | Style | Result | Review | Cards | Rolls |
+| --- | --- | --- | --- | --- | --- | --- |
+| HOTEL-CAREFUL-1 | The Swan | careful | 🌅 6:00 · ★★☆☆☆ | 🫗 There Was a Swan — "There was a swan. Nobody told me there would be a swan." (the Critic in 212) | 18 | 0 |
+| HOTEL-BAL-1 | The Wedding | balanced | 🌅 6:00 · ★★★★☆ | 🎂 Cake for Breakfast — "They served my daughter's cake at breakfast. It was, I am told, a tradition." (the Bride's Mother) | 18 | 0 |
+| HOTEL-BOLD-1 | The Dog Show | bold | 🌅 6:00 · ★★★★★ | 🐕 A Rosette for Everything — "Forty-one dogs, one lift, no complaints from the dogs. Your Porter won Temperament." (the Secretary) | 18 | 0 |
+| HOTEL-GAMB-1 | The Lift | gambler | 🌅 6:00 · ★★★★☆ | 🛗 He Said It Was His Fault — "Two hours in a lift. The night manager took the blame. It wasn't theirs. I've checked." (the Owner's Nephew) | 18 | 3 |
+| smoke, first night | The Swan | alternating taps | 🌑 4:30 · ★☆☆☆☆ | Walkout — "We left before breakfast. So, I gather, did the swan." | 8 | 0 |
+| smoke, tonight #11 | The Dog Show | right-hand taps | 🌑 5:30 · ★☆☆☆☆ | The Staff Walked — "I left first. I took the ladle." | 15 | 0 |
+
+### What the six nights say
+
+- **Every night that reached 6:00 was eighteen cards and landed on 6:00.** The first
+  harness pass on the day found a nineteen-card night ending at 6:10 (a Booking's head
+  took twenty minutes and a card queued after the last act was still dealt); D-100 fixed
+  both, and these runs are on the fixed build.
+- **A thumb falls; attention reaches dawn.** The two smoke runs tap without reading and fall
+  at 4:30 and 5:30; all four styled runs reach 6:00. The careful style's two stars on The
+  Swan against the bold style's five on The Dog Show is the crudeness of the harness (the
+  bold style takes the bigger gain, which on the hotel's bars is often the right answer),
+  not a reading of the Bookings; the simulator's careful bot has the Swan at 79% dawn and
+  the Dog Show at 73%.
+- **The replies are the comedy, and they land.** "'No swan,' says the Owner, as a swan
+  crosses the lobby behind him." "'Tradition.' He cuts sixty slices with the care of a man
+  who will be blamed." "He takes the tissues up. A spaniel goes too, unnoticed, for three
+  floors." The transcript reads as a night, not as a log; that is what the reply line was for.
+- **The share text says the night in four lines.** `BRINK #11 · THE DOG SHOW · ★☆☆☆☆` /
+  `🟩🟩🟩🟩🟨🟧🟧🟧🟥 🌑 5:30` / the Chef's line / the link. A fall is a review too, and the
+  row shows where the night went wrong without saying what the card was.
+- **The clock is the only number on screen**, on every screenshot: the desk, the review,
+  Home, the Guest Book. The bars, the chips, the stars and the strip are colour and glyphs.
+
+### What to do with this
+
+The runs are a machine's. Protocol P (RISKS.md) with the two hotel questions, "what did
+you do that earned those stars?" and "which line made you smile?", is the next test. The
+comedy brief (`docs/comedy-brief.md`) is where a human pass should start.
+
 ## The night
 
 `npx tsx tools/playtest.ts --game night --style <dove|hawk|balanced|gambler> --seat <seat> --seed <seed> --static`
