@@ -6,7 +6,12 @@
  *
  *   tsx tools/playtest.ts --style dove|hawk|balanced|gambler --seat republic --seed ABC --out playtest-output
  *   tsx tools/playtest.ts --game night --style balanced --seat republic --seed ABC   (the night: five dials, the clock, no numbers)
+ *   tsx tools/playtest.ts --game hotel --style careful --booking "The Flood" --seed ABC   (the hotel: four bars, the reply, a review)
  *   … --static   serves dist/ with `vite preview` (run `npm run build` first) so content edits cannot reload the page mid-run
+ *   … --dist dist-hotel   with --static, serve another build directory
+ *
+ * Hotel styles: careful (protects the lowest bar), bold (takes the gain), balanced, gambler (likes a roll);
+ * dove/hawk are read as careful/bold.
  */
 import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
@@ -28,10 +33,17 @@ const seed = args.get('seed') ?? `PT-${style.toUpperCase()}-${Math.floor(Math.ra
 const outDir = args.get('out') ?? 'playtest-output';
 const port = Number(args.get('port') ?? 4175);
 const difficulty = args.get('defcon') ?? '5';
-/** 'night' drives the simple ruleset (the redesign); 'expert' the long game with the numbers on. */
-const game = (args.get('game') ?? 'expert') as 'night' | 'expert';
+/** 'night' drives the simple ruleset (the redesign); 'expert' the long game with the numbers on; 'hotel' the night desk. */
+const game = (args.get('game') ?? 'expert') as 'night' | 'expert' | 'hotel';
 /** --static serves the built dist/ (vite preview) instead of the dev server: no content hot reload can interrupt the run. */
 const isStatic = args.has('static');
+const distDir = args.get('dist') ?? 'dist';
+/** The hotel: the Booking to work, by its display name (needs the plate, which the harness's build has open). */
+const booking = args.get('booking') ?? 'The Swan';
+/** The hotel's styles map onto the four: careful = dove, bold = hawk. */
+const hotelStyle = (args.get('style') ?? 'balanced') as string;
+const careful = style === 'dove' || hotelStyle === 'careful';
+const bold = style === 'hawk' || hotelStyle === 'bold';
 
 const DOVE_WORDS = /talk|wait|call|pause|stand down|offer|hotline|ask|listen|withdraw|open|share|apolog|invite|delay|hold off|de-?escalat|quiet|back.?channel|accept|agree|restrain|reassur|publish|disclose|second radar/i;
 /** Either ending screen: the dawn screen ("Copy result") or the Expert ending ("Replay this seed"). */
@@ -41,7 +53,7 @@ const HAWK_WORDS = /strike|mobilis|board|deploy|send|refuse|reject|escalat|launc
 function startVite(): Promise<ChildProcess> {
   return new Promise((resolve, reject) => {
     // Its own process group, so the whole npx → vite tree can be killed at the end and the port freed for the next run.
-    const viteArgs = isStatic ? ['vite', 'preview', '--port', String(port), '--strictPort'] : ['vite', '--port', String(port), '--strictPort'];
+    const viteArgs = isStatic ? ['vite', 'preview', '--outDir', distDir, '--port', String(port), '--strictPort'] : ['vite', '--port', String(port), '--strictPort'];
     const child = spawn('npx', viteArgs, { cwd: process.cwd(), env: { ...process.env, VITE_ANALYTICS: 'off', VITE_PAYWALL: 'false' }, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
     let ready = false;
     const onData = (b: Buffer) => {
@@ -105,18 +117,54 @@ async function readCard(page: Page): Promise<Reading | null> {
       if (m) meters[keys[i]] = Math.round(Number(m[1]));
     }
   }
+  if (game === 'hotel') {
+    // The four bars, read as widths, in the desk's order: GUESTS, STAFF, MONEY, THE BUILDING.
+    const fills = await page.locator('.bar-fill').all();
+    const keys = ['public', 'military', 'economy', 'allies'];
+    for (let i = 0; i < fills.length && i < keys.length; i++) {
+      const h = (await fills[i].getAttribute('style')) ?? '';
+      const m = h.match(/width:\s*([\d.]+)%/);
+      if (m) meters[keys[i]] = Math.round(Number(m[1]));
+    }
+  }
   const act = (await card.locator('.mono').last().innerText().catch(() => '')) ?? '';
   const timer = await page.getByRole('timer').isVisible().catch(() => false);
   return { speaker: speaker.replace('Card from ', ''), text, left: left ?? '', right: right ?? '', leftOdds: odds(left), rightOdds: odds(right), meters, act, timer };
 }
 
 /** Read the preview dots by hovering a choice: returns per-meter sign (+1 good / −1 bad / 0 none) and rough magnitude. */
-async function previewFor(page: Page, side: 'left' | 'right'): Promise<{ score: number; hidden: boolean }> {
+async function previewFor(page: Page, side: 'left' | 'right', meters: Record<string, number> = {}): Promise<{ score: number; hidden: boolean }> {
   const btn = page.getByRole('button', { name: side === 'left' ? /^Left:/ : /^Right:/ });
   await btn.hover().catch(() => {});
   await page.waitForTimeout(60);
   let score = 0;
   let hidden = false;
+  if (game === 'hotel') {
+    // The ghost segments on the bars: where this answer would leave each bar. A loss on a low bar
+    // counts double for the careful style; a gain on a low bar counts double for everyone.
+    const keys = ['public', 'military', 'economy', 'allies'];
+    const bars = page.locator('.bar');
+    const n = await bars.count();
+    for (let i = 0; i < n && i < keys.length; i++) {
+      const bar = bars.nth(i);
+      if ((await bar.locator('text=?').count().catch(() => 0)) > 0) {
+        hidden = true;
+        score -= 4;
+      }
+      const ghosts = await bar.locator('.bar-ghost').all();
+      for (const g of ghosts) {
+        const st = (await g.getAttribute('style')) ?? '';
+        const w = Number(st.match(/width:\s*([\d.]+)%/)?.[1] ?? 0);
+        if (!w) continue;
+        const good = /green/.test(st);
+        const mag = w >= 18 ? 3 : w >= 10 ? 2 : 1;
+        const low = (meters[keys[i]] ?? 50) <= 30;
+        score += (good ? 1 : -1) * mag * (low ? (good || careful ? 2 : 1) : 1);
+      }
+    }
+    await page.mouse.move(5, 5);
+    return { score, hidden };
+  }
   const previews = page.locator('.meter-preview, .dial-preview');
   const n = await previews.count();
   for (let i = 0; i < n; i++) {
@@ -154,8 +202,22 @@ function edgeRisk(meters: Record<string, number>): number {
 
 async function decide(page: Page, r: Reading): Promise<'left' | 'right'> {
   const wordScore = (s: string) => (DOVE_WORDS.test(s) ? 1 : 0) - (HAWK_WORDS.test(s) ? 1 : 0);
-  const l = await previewFor(page, 'left');
-  const rr = await previewFor(page, 'right');
+  const l = await previewFor(page, 'left', r.meters);
+  const rr = await previewFor(page, 'right', r.meters);
+  if (game === 'hotel') {
+    // No words to lean on: the bars decide. Bold takes the bigger gain, gambler likes a roll, careful avoids one.
+    let left = l.score;
+    let right = rr.score;
+    const oddsAdj = (o: number | null) => (o === null ? 0 : style === 'gambler' || hotelStyle === 'gambler' ? 3 : careful ? -3 : o >= 60 ? 1 : -1);
+    left += oddsAdj(r.leftOdds);
+    right += oddsAdj(r.rightOdds);
+    if (bold) {
+      if (l.score > 0) left += 2;
+      if (rr.score > 0) right += 2;
+    }
+    if (left === right) return Math.random() < 0.5 ? 'left' : 'right';
+    return left > right ? 'left' : 'right';
+  }
   const esc = r.meters.escalation ?? 0;
   let left = l.score;
   let right = rr.score;
@@ -203,10 +265,11 @@ async function main() {
     } catch {}
   }, allUnlocks);
   const page = await context.newPage();
-  const log: string[] = [`# Playtest — ${game === 'night' ? 'the night' : 'Expert'}, style ${style}, seat ${seat}, seed ${seed}${game === 'expert' ? `, DEFCON ${difficulty}` : ''}`, '', `Started ${new Date().toISOString()}`, ''];
+  const styleName = game === 'hotel' ? hotelStyle : style;
+  const log: string[] = [`# Playtest — ${game === 'night' ? 'the night' : game === 'hotel' ? `the hotel, ${booking}` : 'Expert'}, style ${styleName}, ${game === 'hotel' ? '' : `seat ${seat}, `}seed ${seed}${game === 'expert' ? `, DEFCON ${difficulty}` : ''}`, '', `Started ${new Date().toISOString()}`, ''];
   const shots: string[] = [];
   const shot = async (name: string) => {
-    const file = join(outDir, `${style}-${seed}-${String(shots.length + 1).padStart(2, '0')}-${name}.png`);
+    const file = join(outDir, `${styleName}-${seed}-${String(shots.length + 1).padStart(2, '0')}-${name}.png`);
     await page.screenshot({ path: file, fullPage: false }).catch(() => {});
     shots.push(file);
   };
@@ -214,16 +277,34 @@ async function main() {
     await page.goto(`http://localhost:${port}/`);
     await page.getByRole('heading', { name: 'BRINK' }).waitFor();
     await shot('home');
+    if (game === 'hotel') {
+      // The first open is one button; answer one card of the practice night, come home, then choose the Booking and the seed.
+      const clockIn = page.getByRole('button', { name: 'Clock in' });
+      if (await clockIn.isVisible().catch(() => false)) {
+        await clockIn.click();
+        await page.getByRole('button', { name: /^Right:/ }).click();
+        await page.waitForTimeout(300);
+        await page.getByRole('button', { name: /^Home/ }).first().click();
+        await page.getByText(/PRACTICE NIGHT/).waitFor();
+      }
+      await page.getByRole('button', { name: 'CHOOSE THE NIGHT' }).click();
+      await page.getByLabel('Seed').fill(seed);
+      await shot('choose');
+      await page.getByRole('button', { name: booking, exact: true }).click();
+      await page.getByRole('button', { name: /^Right:/ }).waitFor();
+    }
     const nightAfterNight = page.locator('section').filter({ hasText: 'NIGHT AFTER NIGHT' });
-    await nightAfterNight.getByRole('button', { name: game === 'night' ? 'CHOOSE A SEAT OR SEED' : 'EXPERT' }).click();
-    await page.getByText('Take a seat').waitFor();
-    if (game === 'expert') await page.getByRole('tab', { name: 'EXPERT' }).click();
-    const seatName = seat === 'republic' ? 'The Republic' : seat === 'federation' ? 'The Federation' : 'The Coalition';
-    await page.getByRole('button', { name: new RegExp(seatName) }).first().click();
-    if (game === 'expert') await page.getByRole('button', { name: difficulty, exact: true }).click().catch(() => {});
-    await page.getByPlaceholder(/.+/).first().fill(seed);
-    await shot('seat');
-    await page.getByRole('button', { name: game === 'night' ? /Start the night as/ : /Pick up the phone as/ }).click();
+    if (game !== 'hotel') {
+      await nightAfterNight.getByRole('button', { name: game === 'night' ? 'CHOOSE A SEAT OR SEED' : 'EXPERT' }).click();
+      await page.getByText('Take a seat').waitFor();
+      if (game === 'expert') await page.getByRole('tab', { name: 'EXPERT' }).click();
+      const seatName = seat === 'republic' ? 'The Republic' : seat === 'federation' ? 'The Federation' : 'The Coalition';
+      await page.getByRole('button', { name: new RegExp(seatName) }).first().click();
+      if (game === 'expert') await page.getByRole('button', { name: difficulty, exact: true }).click().catch(() => {});
+      await page.getByPlaceholder(/.+/).first().fill(seed);
+      await shot('seat');
+      await page.getByRole('button', { name: game === 'night' ? /Start the night as/ : /Pick up the phone as/ }).click();
+    }
     // First-run standing orders
     const intro = page.getByRole('dialog', { name: 'How this works' });
     if (await intro.isVisible({ timeout: 1500 }).catch(() => false)) {
@@ -232,6 +313,7 @@ async function main() {
     }
 
     let step = 0;
+    let cards = 0;
     let lastAct = '';
     let timers = 0;
     let rolls = 0;
@@ -289,7 +371,14 @@ async function main() {
         await page.waitForTimeout(250);
         continue;
       }
-      if (game === 'night') {
+      if (game === 'hotel') {
+        if (step === 1 || step % 5 === 1) await shot('card');
+        const hour = r.act.match(/^(\d):/)?.[1] ?? '';
+        if (hour && hour !== lastAct) {
+          log.push(`## ${hour} o'clock`, '');
+          lastAct = hour;
+        }
+      } else if (game === 'night') {
         const crisis = /THE CRISIS/.test(r.act);
         if (step === 1) await shot('card');
         if (crisis && !/THE CRISIS/.test(lastAct)) {
@@ -310,20 +399,28 @@ async function main() {
         }
       }
       if (r.timer) timers++;
+      cards++;
       const side = await decide(page, r);
       const m = r.meters;
-      const clockNote = game === 'night' ? `${r.act.replace(/\s*THE CRISIS\s*/i, '').trim()} · ` : '';
+      const clockNote = game === 'night' || game === 'hotel' ? `${r.act.replace(/\s*THE CRISIS\s*/i, '').trim()} · ` : '';
       log.push(
         `**${r.speaker}** — ${r.text}`,
         `- ${side === 'left' ? '**→** ' : ''}${r.left.replace(/^Left: /, '')}`,
         `- ${side === 'right' ? '**→** ' : ''}${r.right.replace(/^Right: /, '')}`,
-        `- ${clockNote}${game === 'night' ? 'dials' : 'meters'} before: P${m.public} M${m.military} A${m.allies} E${m.economy} ESC${m.escalation}${r.timer ? ' · ⏱ timer' : ''}`,
+        game === 'hotel'
+          ? `- ${clockNote}bars before: GUESTS ${m.public} · STAFF ${m.military} · MONEY ${m.economy} · BUILDING ${m.allies}${r.timer ? ' · ⏱ timer' : ''}`
+          : `- ${clockNote}${game === 'night' ? 'dials' : 'meters'} before: P${m.public} M${m.military} A${m.allies} E${m.economy} ESC${m.escalation}${r.timer ? ' · ⏱ timer' : ''}`,
         '',
       );
       const btn = page.getByRole('button', { name: side === 'left' ? /^Left:/ : /^Right:/ });
       await btn.click({ timeout: 5000 }).catch(() => {});
       // The tally shows the score; wait for it to clear so the next card is readable.
       await page.waitForTimeout(500);
+      if (game === 'hotel') {
+        // The hotel answers back: keep the reply line in the transcript.
+        const reply = await page.locator('.reply-line').first().innerText().catch(() => '');
+        if (reply) log.push(`> ↩ ${reply.replace(/\n+/g, ' ')}`, '');
+      }
       const tallyBox = page.getByLabel(/^Leverage \d+/);
       if (await tallyBox.isVisible().catch(() => false)) {
         const scored = await tallyBox.innerText().catch(() => '');
@@ -333,19 +430,23 @@ async function main() {
       }
     }
     await page.getByRole('button', { name: ENDED }).first().waitFor({ timeout: 20_000 });
-    await shot('ending');
+    await shot(game === 'hotel' ? 'review' : 'ending');
     const endingName = await page.locator('h2.serif').first().innerText().catch(() => '?');
-    const days = game === 'night' ? await page.getByText(/DAWN|FELL AT/).first().innerText().catch(() => '') : await page.getByText(/DAYS IN OFFICE/).innerText().catch(() => '');
+    const days = game === 'night' || game === 'hotel' ? await page.getByText(/DAWN|FELL AT/).first().innerText().catch(() => '') : await page.getByText(/DAYS IN OFFICE/).innerText().catch(() => '');
     const endingText = await page.locator('section .serif.space-y-3').first().innerText().catch(() => '');
-    const moment = game === 'night' ? await page.getByLabel('The moment').innerText().catch(() => '') : await page.locator('section.paper-dark').first().innerText().catch(() => '');
-    log.push(`# ENDING: ${endingName}`, '', days, '', endingText, '', `**Moment:** ${moment.replace(/\n+/g, ' · ')}`, '', `Cards ${step}, rolls ${rolls}, timed cards ${timers}`, '', 'Screenshots:', ...shots.map((s) => `- ${s}`));
+    const moment = game === 'night' || game === 'hotel' ? await page.getByLabel('The moment').innerText().catch(() => '') : await page.locator('section.paper-dark').first().innerText().catch(() => '');
+    if (game === 'hotel') {
+      const stars = await page.getByRole('img', { name: /out of five/ }).first().getAttribute('aria-label').catch(() => '');
+      const quote = await page.locator('blockquote').first().innerText().catch(() => '');
+      log.push(`# REVIEW: ${endingName}`, '', `**${stars}** · ${days}`, '', quote.replace(/\n+/g, ' '), '', endingText, '', `**Moment:** ${moment.replace(/\n+/g, ' · ')}`, '', `Cards ${cards}, rolls ${rolls}, timed cards ${timers}`, '', 'Screenshots:', ...shots.map((s) => `- ${s}`));
+    } else log.push(`# ENDING: ${endingName}`, '', days, '', endingText, '', `**Moment:** ${moment.replace(/\n+/g, ' · ')}`, '', `Cards ${cards}, rolls ${rolls}, timed cards ${timers}`, '', 'Screenshots:', ...shots.map((s) => `- ${s}`));
     const img = page.locator('img[alt="Share card"]');
-    if (await img.isVisible().catch(() => false)) await img.screenshot({ path: join(outDir, `${style}-${seed}-share.png`) }).catch(() => {});
+    if (await img.isVisible().catch(() => false)) await img.screenshot({ path: join(outDir, `${styleName}-${seed}-share.png`) }).catch(() => {});
   } catch (e) {
     log.push('', `ERROR: ${(e as Error).message}`);
     await shot('error');
   } finally {
-    const file = join(outDir, `${style}-${seed}.md`);
+    const file = join(outDir, `${styleName}-${seed}.md`);
     writeFileSync(file, log.join('\n'));
     console.log(`transcript → ${file}`);
     await browser.close();

@@ -50,7 +50,7 @@ export function Desk() {
         <Bars state={s} preview={null} hiddenCosts={[]} applied={lastApplied.value} />
         {r && (
           <div class="reply-line serif min-h-[40px] text-[15px] leading-snug text-paper/90">
-            <span class="mono mr-2 text-[9px] tracking-[0.16em] text-mute">{replySpeaker.toUpperCase()}</span>
+            <span class="mono mr-2 text-[9px] tracking-[0.16em] text-mute">{replySpeaker.toUpperCase()}</span>{' '}
             {r.text}
           </div>
         )}
@@ -101,7 +101,7 @@ export function Desk() {
       <div class="min-h-[40px]" aria-live="polite">
         {r ? (
           <div key={s.cardsPlayed} class="reply-line serif text-[15px] leading-snug text-paper/90">
-            <span class="mono mr-2 text-[9px] tracking-[0.16em] text-mute">{replySpeaker.toUpperCase()}</span>
+            <span class="mono mr-2 text-[9px] tracking-[0.16em] text-mute">{replySpeaker.toUpperCase()}</span>{' '}
             {r.text}
           </div>
         ) : firstNight && s.cardsPlayed < 2 ? (
