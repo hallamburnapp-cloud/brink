@@ -101,7 +101,6 @@
   arc: flood
   advisor: owner
   acts: [3, 3]
-  minutes: 20
   tags: [flood, owner, ballroom, money]
   text: >-
     There is an inch of Room 310 on my ballroom floor and a wedding on it at eleven. I have

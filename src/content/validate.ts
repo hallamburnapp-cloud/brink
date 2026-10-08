@@ -382,6 +382,11 @@ export function validateContent(content: Content): ContentIssue[] {
     const nightCards = content.night.cards ?? content.nightActs.reduce((n, a) => n + a.cards, 0);
     if (!cards[b.opener]) err(where, `opener "${b.opener}" does not exist`);
     else if (cards[b.opener].conditions) err(where, `opener "${b.opener}" has conditions; the opener is always card one`);
+    for (const cid of [b.opener, ...b.beats.map((x) => x.card), b.head.card]) {
+      const c = cards[cid];
+      if (c && c.minutes !== undefined && content.night.cards !== undefined && c.minutes !== content.night.minutes)
+        warn(where, `"${cid}" takes ${c.minutes} minutes; a night of ${content.night.cards} cards lands on 6:00 only when every card takes ${content.night.minutes}`);
+    }
     if (!content.speakers[b.lead]) err(where, `lead "${b.lead}" is not a speaker`);
     const pins = [...b.beats.map((x, i) => ({ ...x, label: `beat ${i + 1}` })), { ...b.head, label: 'head' }];
     let last = 1;

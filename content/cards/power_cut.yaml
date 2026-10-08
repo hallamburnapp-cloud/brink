@@ -112,7 +112,6 @@
   arc: power_cut
   advisor: owner
   acts: [3, 3]
-  minutes: 20
   tags: [power_cut, owner, money]
   text: >-
     An electrician is at the door wanting four hundred pounds to turn one fuse. I have done

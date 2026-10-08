@@ -631,8 +631,9 @@ something) but no spine card should tax both answers by more than 4 across the f
 ### Checklist for a new Booking
 
 1. `bookings/<id>.yaml` with five spine cards: opener (slot 1, the lead guest or the
-   Porter), three beats in windows [4,6] / [9,11] / [13,14], the head in [15,17] with
-   `minutes: 20` and, if anything in the night rolls, the one roll.
+   Porter), three beats in windows [4,6] / [9,11] / [13,14], the head in [15,17] with, if
+   anything in the night rolls, the one roll. Every card takes ten minutes (the validator
+   warns otherwise): eighteen cards land on 6:00.
 2. Three tied cards at weight 2 with `flags_all: [booking:<id>]`, one per hour.
 3. Five reviews: a five-star band (`stars: {min: 4}`), a three (`{min: 3, max: 3}`), a two
    (`{max: 2}`), and up to two flag-specific ones above them (priority 45) that read what

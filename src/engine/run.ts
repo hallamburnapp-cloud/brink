@@ -948,6 +948,14 @@ function drawNext(content: Content, state: RunState, rng: Rng, events: RunEvent[
   const pieces = heldPieces(content, state);
   const act = actDef(content, state.act, state.ruleset);
 
+  // The hotel: the night is exactly `night.cards` cards and the clock lands on 6:00. Nothing
+  // queued is presented after the last card; the night ends and the review is written.
+  if (isSimple(state) && content.night.cards !== undefined && state.cardsPlayed >= content.night.cards && !state.flashpoint) {
+    state.act = Math.max(state.act, actsFor(content, state).length);
+    finishAct(content, state, rng, events);
+    return;
+  }
+
   // Queued follow-ups that are due come first, in order. Inside a flashpoint,
   // ordinary follow-ups stay in the queue (untouched) until it is over.
   for (let i = 0; i < state.queue.length; i++) {

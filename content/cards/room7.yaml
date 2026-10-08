@@ -112,7 +112,6 @@
   arc: room7
   advisor: room7
   acts: [3, 3]
-  minutes: 20
   timer: 10
   timeout: left
   tags: [room7, kitchen, guests]

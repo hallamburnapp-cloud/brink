@@ -50,11 +50,11 @@ day, one attempt. Nothing on screen is a number but the clock.
 
 | Target | Result |
 | --- | --- |
-| B1 Careful bot reaches 6:00 on 75–90% of nights | **PASS** 84.5% |
-| B2 Random bot reaches 6:00 on 15–25% | **PASS** 15.6% |
-| B3 Careful bot's stars at 6:00 roughly 5/25/40/20/10 | **PASS** 8/20/38/26/8 |
-| B4 No single review above 15% | **PASS** 7.2%, 58 distinct reviews |
-| B5 Median night the full eighteen cards, ≤ 2.5 minutes | **PASS** 18 cards, 2.2 minutes |
+| B1 Careful bot reaches 6:00 on 75–90% of nights | **PASS** 86.3% |
+| B2 Random bot reaches 6:00 on 15–25% | **PASS** 17.9% |
+| B3 Careful bot's stars at 6:00 roughly 5/25/40/20/10 | **PASS** 6/20/37/28/9 |
+| B4 No single review above 15% | **PASS** 6.5%, 58 distinct reviews |
+| B5 The full eighteen cards, ≤ 2.5 minutes | **PASS** 18 cards, 2.2 minutes |
 | B6 Every Booking reaches 6:00 on both bots | **PASS** 24/24 (careful: Wedding 97% … Flood 72%) |
 
 The finding that mattered: the cards as written were a fair trade, so nobody could lose

@@ -102,7 +102,6 @@
   arc: lift
   advisor: handyman
   acts: [3, 3]
-  minutes: 20
   tags: [lift, building, owner, money]
   text: >-
     The lift people want three hundred pounds, and I've found the service book. The last entry is in the Owner's handwriting and says 'not this year'.

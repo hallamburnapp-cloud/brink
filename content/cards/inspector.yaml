@@ -103,7 +103,6 @@
   arc: inspector
   advisor: inspector
   acts: [3, 3]
-  minutes: 20
   tags: [inspector, cellar, promise]
   text: >-
     Twenty to six, and one box left: the cellar, with the lights on, which is not the same as a

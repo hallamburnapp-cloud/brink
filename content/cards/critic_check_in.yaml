@@ -114,7 +114,6 @@
   arc: critic_check_in
   advisor: porter
   acts: [3, 3]
-  minutes: 20
   tags: [critic, desk, money]
   text: >-
     212 comes down at half past five with her bag, and her editor is asleep, which is a mercy.

@@ -100,7 +100,6 @@
   arc: dogshow
   advisor: porter
   acts: [3, 3]
-  minutes: 20
   tags: [dogshow, staff]
   text: >-
     Best in Show is between a whippet from 204 and me, on a technicality nobody can find.

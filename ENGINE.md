@@ -255,9 +255,11 @@ selects the validator's contract and the screens.
 - **Memory**: `RunOptions.flags` seeds flags into a new run; the store passes the `memory:*`
   flags the last night set (at most eight, `brink.memory`), so a regular can remember the
   soup. The validator treats `booking:`, `full:` and `memory:` as engine prefixes.
-- **The clock**: `shiftClock` is 3:00 plus the sum of the played cards' `minutes`, so a
-  20-minute head card moves it twenty minutes and the eighteenth card lands on 6:00 exactly.
-  `elapsedMinutes` is the same sum.
+- **The clock**: `shiftClock` is 3:00 plus the sum of the played cards' `minutes` (every
+  hotel card takes ten, so the eighteenth lands on 6:00 exactly; the validator warns when a
+  Booking's card would push the clock past six). `drawNext` ends the night at `night.cards`
+  whatever is still queued, so a comedy card seated on the last card never shows and the
+  night is never nineteen cards. `elapsedMinutes` is the same sum.
 - **Targets**: `voice: 'hotel'` switches the simulator to B1–B6 (`buildHotelTargets`),
   which read `RunSummary.stars`, `barMean` and `booking`.
 

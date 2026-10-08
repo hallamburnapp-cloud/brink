@@ -144,7 +144,6 @@
   arc: alarm
   advisor: room9
   acts: [3, 3]
-  minutes: 20
   tags: [alarm, guests]
   note: The head. Room 9's goodwill (the beats moved it) drives the odds.
   text: >-
