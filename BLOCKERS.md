@@ -77,14 +77,15 @@ groups were committed as they landed from then on, so a second restart could los
 two files' worth of work. Lesson kept in the workflow itself: every group validates and
 saves file by file, never in one write at the end.
 
-## B-007 Tag push refused (open)
+## B-007 Tag push refused (resolved 2026-10-08)
 
 `git push origin v0.3.0-night` fails with "fatal: the remote end hung up unexpectedly" while
 pushes of `main` to the same remote succeed, repeatedly and after retries with backoff. The
 tag exists locally and the commit it points at is on `main`, so nothing is lost; the crisis
 game is also kept as the `content-crisis/` pack. Retry the tag push from a different
 network, or create the tag on GitHub from the commit (`e08e530`'s parent, the last 0.3.0
-commit) if it still refuses.
+commit) if it still refuses. Resolved: the push went through on the day's last retry, and
+`git ls-remote` shows `refs/tags/v0.3.0-night` on the remote.
 
 ## B-008 The playtest harness has no hotel mode (open)
 
