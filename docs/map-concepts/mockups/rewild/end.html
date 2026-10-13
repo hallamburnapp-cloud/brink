@@ -1,0 +1,160 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=390">
+<title>REWILD — win</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+:root{--cream:#F4EFE4;--ink:#22302A;--wild:#3E9B5F;--forest:#2F7D4F;--leaf:#8FD694;--asphalt:#4A4C50;--gold:#F2B33D;--muted:#6B6B5E}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:390px;height:844px;overflow:hidden;background:#78919B;font-family:'Alegreya Sans',sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+#map{position:absolute;left:0;top:0;width:390px;height:844px}
+.abs{position:absolute}
+.paper{background:rgba(244,239,228,.95);border:1px solid rgba(34,48,42,.12);box-shadow:0 12px 30px -10px rgba(14,26,30,.45),0 2px 6px rgba(14,26,30,.10),inset 0 1px 0 rgba(255,255,255,.7);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.status{left:0;top:0;width:390px;height:47px;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:4px 26px 0 36px}
+.status .t{font:800 16px/1 'Alegreya Sans';text-shadow:0 1px 2px rgba(0,0,0,.18)}
+.status .r{display:flex;gap:6px;align-items:center}
+#head{left:16px;top:52px;width:358px;height:94px;border-radius:18px;padding:11px 18px 0}
+#head h1{font:600 24px/27px 'Alegreya';letter-spacing:-.1px;color:var(--ink)}
+#head .sub{margin-top:2px;font:500 14px/17px 'Alegreya Sans';color:#4F5A50}
+#head .meta{margin-top:4px;font:500 12px/14px 'Alegreya Sans';color:var(--muted);letter-spacing:.2px;display:flex;align-items:center;gap:6px}
+#head .meta i{width:3px;height:3px;border-radius:2px;background:#9A9A8C;display:inline-block}
+#head .crest{position:absolute;right:16px;top:16px}
+#replay{left:147px;top:572px;width:96px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:7px;font:700 13.5px/1 'Alegreya Sans'}
+#card{left:16px;top:610px;width:358px;height:116px;border-radius:16px}
+#card > svg{position:absolute;left:0;top:0}
+#facts{position:absolute;left:14px;top:62px;right:12px}
+#facts .f{display:flex;align-items:center;gap:8px;font:500 13px/16px 'Alegreya Sans';color:var(--ink);height:16px}
+#facts .f + .f{margin-top:1px}
+#facts .ic{width:16px;display:flex;justify-content:center}
+#rule{position:absolute;left:14px;right:14px;top:56px;height:1px;background:rgba(34,48,42,.10)}
+#new{left:16px;top:736px;width:286px;height:50px;border-radius:25px;background:radial-gradient(120% 140% at 30% 0%,#52B072 0%,#3E9B5F 55%,#33895A 100%);color:#fff;font:700 16px/50px 'Alegreya Sans';text-align:center;letter-spacing:.2px;box-shadow:0 10px 20px -8px rgba(20,60,36,.6),inset 0 1px 0 rgba(255,255,255,.3),inset 0 -3px 6px rgba(0,40,20,.2)}
+#share{left:322px;top:735px;width:52px;height:52px;border-radius:26px;display:flex;align-items:center;justify-content:center}
+#same{left:0;width:390px;top:794px;height:20px;text-align:center;font:700 14px/20px 'Alegreya Sans';color:#F4EFE4;text-shadow:0 1px 3px rgba(10,30,30,.45)}
+#same span{border-bottom:1px solid rgba(244,239,228,.5);padding-bottom:1px}
+#home{left:128px;top:830px;width:134px;height:5px;border-radius:3px;background:rgba(244,239,228,.85)}
+</style></head>
+<body>
+<canvas id="map" width="780" height="1688"></canvas>
+<div class="abs status"><span class="t">9:41</span><span class="r" id="sicons"></span></div>
+
+<div id="head" class="abs paper">
+  <h1>The world is green again.</h1>
+  <div class="sub">The cities are still here.<br>They just stopped fighting.</div>
+  <div class="meta">2 years, 3 months <i></i> Forest <i></i> Normal</div>
+  <div class="crest" id="crest"></div>
+</div>
+
+<div id="replay" class="abs paper"><span id="pl"></span>Replay</div>
+
+<div id="card" class="abs paper">
+  <svg id="tlsvg" width="358" height="58" viewBox="0 0 358 58"></svg>
+  <div id="rule"></div>
+  <div id="facts">
+    <div class="f"><span class="ic" id="fi1"></span><span>You rusted all 6 Works. Brannoch fell first.</span></div>
+    <div class="f"><span class="ic" id="fi2"></span><span>3 Great Trees. The Clearing woke in Year 1.</span></div>
+    <div class="f"><span class="ic" id="fi3"></span><span>The North Reach held out longest.</span></div>
+  </div>
+</div>
+
+<div id="new" class="abs">New game</div>
+<div id="share" class="abs paper"><span id="sh"></span></div>
+<div id="same" class="abs"><span>Same world, same start</span></div>
+<div id="home" class="abs"></div>
+
+<script src="icons.js"></script>
+<script src="world.js"></script>
+<script src="sprites.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+$('sicons').innerHTML = RWI.signal() + RWI.wifi() + RWI.battery();
+$('pl').innerHTML = RWI.play('#22302A', 12);
+$('sh').innerHTML = RWI.share('#2F7D4F', 23);
+$('fi1').innerHTML = RWI.chimney('#A0522D', 13);
+$('fi2').innerHTML = RWI.tree('#2F7D4F', 13);
+$('fi3').innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14"><path d="M1 12l4.2-7 2.4 3.6L9.4 6 13 12z" fill="#8FAE8C"/><path d="M5.2 5l1.2 2-1.2.8-1-.8z M9.4 6l.9 1.3-.9.5-.8-.5z" fill="#F4EFE4"/></svg>`;
+// a small laurel crest in the header
+$('crest').innerHTML = `<svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#3E9B5F"/><circle cx="20" cy="20" r="18" fill="none" stroke="#2F7D4F" stroke-width="1.5"/><circle cx="20" cy="20" r="14.5" fill="none" stroke="rgba(244,239,228,.35)" stroke-width="1"/>${RWI.sprout('#fff', 22).replace('<svg ', '<svg x="9" y="8.5" ')}</svg>`;
+
+// ---- timeline: you against the Clearing, Year 1 to the win ----
+(function () {
+  const X0 = 16, X1 = 262, YT = 9, YB = 41;
+  const xAt = t => X0 + (X1 - X0) * t;
+  // the game ran 2 years 3 months: t = 0 is the start of Year 1, t = 1 is the win
+  const WAKE = 0.25, FALLS = [0.36, 0.47, 0.545, 0.63, 0.705, 0.79], TREES = [0.12, 0.33, 0.58];
+  // the Clearing's road grows only while Works run: steep with six, flat once the last one rusts
+  const grey = t => { if (t <= WAKE) return 0; let v = 0, run = 6, last = WAKE; for (const f of FALLS) { const e = Math.min(t, f); if (e > last) v += (e - last) * run; if (t <= f) return v * K; last = f; run--; } return (v + (t - last) * 0.12) * K; };
+  let K = 1; { let v = 0, run = 6, last = WAKE; for (const f of FALLS) { v += (f - last) * run; last = f; run--; } K = 0.5 / v; }
+  // you: slow while hidden, quicker with each Great Tree, then the wild closes in
+  const green = t => 0.04 + 0.96 * (1 - Math.pow(1 - t, 1.55));
+  const pt = (t, v) => [xAt(t), YB - (YB - YT) * v];
+  const curve = (f, a, b) => { let d = ''; for (let i = 0; i <= 80; i++) { const t = a + (b - a) * i / 80; const p = pt(t, f(t)); d += (i ? 'L' : 'M') + p[0].toFixed(2) + ' ' + p[1].toFixed(2); } return d; };
+  const gp = curve(green, 0, 1), rp = curve(grey, WAKE, 1), ge = pt(1, green(1)), re = pt(1, grey(1));
+  let svg = `<defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3E9B5F" stop-opacity=".22"/><stop offset="1" stop-color="#3E9B5F" stop-opacity="0"/></linearGradient></defs>`;
+  [[0, 'Year 1'], [1 / 2.25, 'Year 2'], [2 / 2.25, 'Year 3']].forEach(([t, l], i) => {
+    svg += `<path d="M${xAt(t)} ${YT - 3}V${YB}" stroke="rgba(34,48,42,.09)" stroke-dasharray="2 3"/>`;
+    svg += `<text x="${xAt(t)}" y="${YB + 12}" text-anchor="${i ? 'middle' : 'start'}" font-family="Alegreya Sans" font-size="10.5" font-weight="500" fill="#6B6B5E">${l}</text>`;
+  });
+  svg += `<path d="M${X0} ${YB}H${X1}" stroke="rgba(34,48,42,.16)"/>`;
+  svg += `<path d="${gp} L${ge[0]} ${YB} L${X0} ${YB}Z" fill="url(#ga)"/>`;
+  svg += `<path d="M${X0} ${YB - 0.5}H${xAt(WAKE)}" stroke="#8A8C90" stroke-width="1.6" stroke-dasharray="1.5 3" stroke-linecap="round"/>`;
+  svg += `<path d="${rp}" fill="none" stroke="#4A4C50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+  svg += `<path d="${gp}" fill="none" stroke="#3E9B5F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`;
+  const icon = (str, x, y, s) => str.replace('<svg ', `<svg x="${x - s / 2}" y="${y - s / 2}" `);
+  { const p = pt(WAKE, 0); svg += `<circle cx="${p[0]}" cy="${p[1] - 1}" r="6.5" fill="#F4EFE4" stroke="#4A4C50" stroke-width="1.1"/>` + icon(RWI.eye('#4A4C50', 10), p[0], p[1] - 1, 10); }
+  FALLS.forEach(t => { const p = pt(t, grey(t)); svg += `<circle cx="${p[0]}" cy="${p[1]}" r="5.2" fill="#F4EFE4" stroke="#A0522D" stroke-width="1.1"/>` + icon(RWI.chimney('#A0522D', 7.5), p[0], p[1], 7.5); });
+  TREES.forEach(t => { const p = pt(t, green(t)); svg += `<circle cx="${p[0]}" cy="${p[1]}" r="5.8" fill="#F4EFE4" stroke="#2F7D4F" stroke-width="1.1"/>` + icon(RWI.tree('#2F7D4F', 9), p[0], p[1], 9); });
+  svg += `<circle cx="${ge[0]}" cy="${ge[1]}" r="4.4" fill="#F4EBD3" stroke="#3E9B5F" stroke-width="2"/>`;
+  svg += `<text x="${ge[0] + 9}" y="${ge[1] + 4}" font-family="Alegreya Sans" font-size="12" font-weight="700" fill="#2F7D4F">You</text>`;
+  svg += `<circle cx="${re[0]}" cy="${re[1]}" r="2.6" fill="#4A4C50"/>`;
+  svg += `<text x="${re[0] + 9}" y="${re[1] + 4}" font-family="Alegreya Sans" font-size="12" font-weight="700" fill="#4A4C50">The Clearing</text>`;
+  $('tlsvg').innerHTML = svg;
+})();
+
+// ---- the final world: the same painting as in play, every region turned ----
+const ALL = RW.REG.map(r => r.i);
+async function go() {
+  await Promise.all(["600 24px 'Alegreya'", "500 14px 'Alegreya Sans'", "700 14px 'Alegreya Sans'", "700 10px 'Alegreya Sans'"].map(f => document.fonts.load(f)));
+  const cv = $('map'); const ctx = cv.getContext('2d');
+  const S = 0.78, oy = 155, ox = 195 - 185 * S;
+  const hx = RW.hex;
+  const info = RW.paintWorld({ canvas: cv, dpr: 2, s: S, ox, oy, state: { turned: ALL, creep: {}, blobs: [], fringe: {} },
+    sea: { near: hx('#829BA3'), deep: hx('#78919B'), wave: hx('#A3B7BD'), shallow: hx('#93AFB2') }, borders: 0.75 });
+  ctx.setTransform(2, 0, 0, 2, 0, 0);
+  const T = (x, y) => info.toCss(x, y);
+  // the same painterly finish as in play
+  { const bc = document.createElement('canvas'); bc.width = cv.width; bc.height = cv.height; const b = bc.getContext('2d'); b.filter = `blur(${6 * S}px)`; b.drawImage(cv, 0, 0);
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'soft-light'; ctx.globalAlpha = 0.24; ctx.drawImage(bc, 0, 0); ctx.restore();
+    const c = T(60, 180); const lg = ctx.createRadialGradient(c[0], c[1], 20 * S, c[0], c[1], 520 * S); lg.addColorStop(0, 'rgba(255,244,214,0.20)'); lg.addColorStop(1, 'rgba(255,244,214,0)');
+    ctx.save(); ctx.globalCompositeOperation = 'soft-light'; ctx.fillStyle = lg; ctx.fillRect(0, 0, 390, 844); ctx.restore(); }
+  RWS.drawRivers(ctx, info, {});
+  // dusk: a light warm wash, capped low so the greens stay at full strength
+  RWS.drawDusk(ctx, 390, 844, 0.15);
+  // night across the right third: every city there glows teal
+  const NC = { cx: 1158, cy: 434, R: 900, soft: 14, y0: 90, y1: 800, fade: 40 };
+  const NF = RWS.drawNight(ctx, info, NC, { shadow: 0.47, teal: 0.85, bloom: 0.5 });
+  RWS.drawRivers(ctx, info, { night: NF, emissive: true });
+  // every Works rusted and overgrown
+  [[244, 222], [124, 334], [176, 362], [318, 296], [334, 512], [277, 628]].forEach(([x, y]) => RWS.withNight(ctx, info, NF(x, y) * 0.7, o => RWS.drawWorks(o, ...T(x, y), 0.82, 'rust', { halo: 1.3 })));
+  // a great tree at every city: three kinds
+  const kindOf = R => {
+    const h = RW.hash2(R.i, 7, 3);
+    if (R.c === 0 || ['Rime', 'Last Light', 'Furrow'].includes(R.name)) return ['tall', 'conifer'];
+    if (R.c === 3) return h < 0.75 ? ['acacia', 'savanna'] : ['oak', 'savanna'];
+    if (R.c === 2) return h < 0.35 ? ['tall', 'leaf'] : ['oak', 'leaf'];
+    return h < 0.25 ? ['tall', 'leaf'] : ['oak', 'leaf'];
+  };
+  [...RW.REG].sort((a, b) => a.y - b.y).forEach(R => {
+    const [kind, pal] = kindOf(R); const sc = 0.85 + 0.3 * RW.hash2(R.i, 11, 5); const nf = NF(R.x, R.y);
+    const p = T(R.x + 1, R.y + 2.5);
+    RWS.withNight(ctx, info, nf * 0.55, o => RWS.drawGreatTree(o, p[0], p[1], 22 * sc, { seed: R.i + 3, kind, pal }),
+      nf > 0.3 ? (o => RWS.drawGreatTree(o, p[0], p[1], 22 * sc, { seed: R.i + 3, kind, pal, rim: 'rgba(95,242,200,0.6)', rimOnly: true })) : null);
+  });
+  // every city's lights, softened to teal: a small cluster round each great tree, brightest where it is night
+  RW.REG.forEach(R => RWS.drawCity(ctx, info, R, { turned: true, night: Math.max(0.4, NF(R.x, R.y)), phase: 'glow', sc: 1.5, ringOut: true }));
+  // a gentle vignette keeps the eye on the world
+  const vg = ctx.createRadialGradient(195, 380, 190, 195, 400, 560); vg.addColorStop(0, 'rgba(10,20,30,0)'); vg.addColorStop(1, 'rgba(10,20,30,0.16)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, 390, 844);
+  window.__ready = true;
+}
+go().catch(e => console.error(e.stack));
+</script>
+</body></html>

@@ -1,0 +1,136 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Neverspring</title>
+<meta name="viewport" content="width=390, initial-scale=1">
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="ui.css">
+<style>
+.mark { left: 0; width: 390px; top: 49px; display: flex; justify-content: center; }
+.title { left: 0; width: 390px; top: 76px; text-align: center; font: 600 28px/34px var(--serif); color: var(--snow); letter-spacing: -0.2px; text-shadow: 0 0 24px rgba(127, 214, 232, 0.25); }
+.sub { left: 0; width: 390px; top: 114px; text-align: center; font: 400 14px/20px var(--sans); color: var(--text); letter-spacing: 0.1px; }
+.replay { left: 143px; top: 488px; width: 104px; height: 32px; border-radius: 16px; background: var(--panel); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; gap: 7px; font: 600 13px/1 var(--sans); color: var(--snow); letter-spacing: 0.2px; backdrop-filter: blur(8px); }
+.tl { left: 16px; top: 532px; width: 358px; height: 80px; border-radius: 14px; }
+.facts { left: 16px; top: 624px; width: 358px; height: 66px; }
+.thumb { position: absolute; left: 0; top: 1px; width: 64px; height: 64px; border-radius: 16px; background: radial-gradient(circle at 50% 45%, #16304A, #0F1E2E 70%); border: 1px solid var(--border); overflow: hidden; }
+.facts ul { position: absolute; left: 76px; top: 0; list-style: none; }
+.facts li { font: 400 13px/22px var(--sans); color: var(--radio); white-space: nowrap; letter-spacing: 0; }
+.newwinter { left: 16px; top: 704px; width: 286px; height: 52px; border-radius: 26px; background: linear-gradient(180deg, #FFFFFF, #EAF4FB 60%, #D8E9F5); display: grid; place-items: center; font: 600 16px/1 var(--sans); color: var(--ink); letter-spacing: 0.1px; box-shadow: 0 10px 26px rgba(156, 201, 232, 0.22), inset 0 -2px 0 rgba(120, 160, 196, 0.25); }
+.sharebtn { left: 322px; top: 704px; width: 52px; height: 52px; border-radius: 50%; background: var(--btn); border: 1px solid var(--border); display: grid; place-items: center; }
+.same { left: 0; width: 390px; top: 770px; text-align: center; font: 500 14px/20px var(--sans); color: var(--frost); letter-spacing: 0.1px; }
+.same span { border-bottom: 1px solid rgba(156, 201, 232, 0.35); padding-bottom: 1px; }
+</style>
+</head>
+<body class="phone">
+<canvas id="cv"></canvas>
+<div id="ui">
+  <div id="sb"></div>
+  <div class="mark" id="mark"></div>
+  <div class="title">It is quiet everywhere.</div>
+  <div class="sub">Your winter froze all 40 lands in Year 6.</div>
+  <div class="replay"><span id="play"></span>Replay</div>
+  <div class="panel tl"><svg id="tl" width="358" height="80"></svg></div>
+  <div class="facts">
+    <div class="thumb"><canvas id="th" style="width:64px;height:64px"></canvas></div>
+    <ul>
+      <li>You cut 4 fuel lines. The Narrows mattered most.</li>
+      <li>The world noticed you in Year 2.</li>
+      <li>The Furnace got three-quarters built.</li>
+    </ul>
+  </div>
+  <div class="newwinter">New winter</div>
+  <div class="sharebtn" id="share"></div>
+  <div class="same"><span>Same world, same start</span></div>
+  <div class="home"></div>
+</div>
+<script src="world.js"></script><script src="overlays.js"></script><script src="icons.js"></script><script src="scene.js"></script><script src="flake.js"></script>
+<script>
+const I = NSI;
+document.getElementById('sb').outerHTML = I.statusBar();
+document.getElementById('play').innerHTML = I.play(11, '#F2F7FB');
+document.getElementById('share').innerHTML = I.share(22, '#C9D6E2');
+document.getElementById('mark').innerHTML = I.wordmark(15);
+
+// timeline: the white line (lands frozen) with its soft fill, the thinner amber line (the Furnace) stalling below it
+(function () {
+  const svg = document.getElementById('tl'); const x0 = 24, x1 = 318, yT = 14, yB = 50;
+  const X = t => x0 + (x1 - x0) * t; const Y = v => yB - (yB - yT) * v;
+  let s = '';
+  s += `<defs><linearGradient id="wf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F2F7FB" stop-opacity=".34"/><stop offset=".7" stop-color="#9CC9E8" stop-opacity=".08"/><stop offset="1" stop-color="#9CC9E8" stop-opacity="0"/></linearGradient>
+  <filter id="gw" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter></defs>`;
+  for (let i = 0; i < 6; i++) { const x = X(i / 5); s += `<line x1="${x}" y1="${yB}" x2="${x}" y2="${yB + 3}" stroke="#3A5470" stroke-width="1"/>`; s += `<text x="${x}" y="${yB + 22}" fill="#8FA3B5" font-family="Hanken Grotesk" font-size="11" font-weight="600" text-anchor="middle" letter-spacing=".3">Y${i + 1}</text>`; }
+  s += `<line x1="${x0}" y1="${yB}" x2="${x1}" y2="${yB}" stroke="#2A4058" stroke-width="1"/>`;
+  const Wv = [[0, 0.04], [0.1, 0.16], [0.2, 0.3], [0.3, 0.43], [0.4, 0.55], [0.5, 0.64], [0.6, 0.72], [0.7, 0.8], [0.8, 0.88], [0.9, 0.95], [1, 1]];
+  const Av = [[0.2, 0], [0.3, 0.05], [0.4, 0.15], [0.5, 0.29], [0.6, 0.45], [0.7, 0.62], [0.78, 0.72], [0.86, 0.75], [1, 0.75]];
+  const path = pts => pts.map((p, i) => { const x = X(p[0]), y = Y(p[1]); if (i === 0) return `M${x},${y}`; const q = pts[i - 1]; const qx = X(q[0]), qy = Y(q[1]); const cx = (qx + x) / 2; return `C${cx},${qy} ${cx},${y} ${x},${y}`; }).join(' ');
+  s += `<path d="${path(Wv)} L${X(1)},${yB} L${X(0)},${yB}Z" fill="url(#wf)"/>`;
+  s += `<path d="${path(Wv)}" fill="none" stroke="#9CC9E8" stroke-width="4" stroke-linecap="round" opacity=".55" filter="url(#gw)"/>`;
+  s += `<path d="${path(Wv)}" fill="none" stroke="#F2F7FB" stroke-width="2.4" stroke-linecap="round"/>`;
+  s += `<path d="${path(Av)}" fill="none" stroke="#0F1E2E" stroke-width="3.4" stroke-linecap="round" opacity=".7"/>`;
+  s += `<path d="${path(Av)}" fill="none" stroke="#F2A23A" stroke-width="1.5" stroke-linecap="round"/>`;
+  // markers above the axis: a cloud for each storm, a broken line for each cut
+  const cloud = x => `<path transform="translate(${x - 6.4},${yB - 10.5}) scale(.42)" d="M9 20h15.5a5.5 5.5 0 0 0 .6-11A8 8 0 0 0 9.8 7.6 6.2 6.2 0 0 0 9 20z" fill="#F2F7FB" opacity=".92"/>`;
+  [0.27, 0.45, 0.63, 0.93].forEach(t => s += cloud(X(t)));
+  const cut = x => `<g transform="translate(${x},${yB - 5.5})" stroke-linecap="round"><line x1="-6.5" y1="1.2" x2="-1.6" y2="-0.6" stroke="#0F1E2E" stroke-width="3.6"/><line x1="1.6" y1="0.6" x2="6.5" y2="-1.2" stroke="#0F1E2E" stroke-width="3.6"/><line x1="-6.5" y1="1.2" x2="-1.6" y2="-0.6" stroke="#8A98A6" stroke-width="1.7"/><line x1="1.6" y1="0.6" x2="6.5" y2="-1.2" stroke="#8A98A6" stroke-width="1.7"/></g>`;
+  [0.36, 0.54, 0.7, 0.76].forEach(t => s += cut(X(t)));
+  // 20 px markers: the eye where the world woke, the flame where the Furnace stalled, the snowflake at the finish
+  const marker = (x, y, ring, fill, inner) => `<g transform="translate(${x},${y})"><circle r="10.5" fill="${fill}" stroke="${ring}" stroke-width="1.5"/>${inner}</g>`;
+  s += marker(X(0.2), yB, '#F2A23A', '#22180C', I.eye(14, '#F2A23A').replace('<svg', '<svg x="-7" y="-5.25"'));
+  s += marker(X(0.86), Y(0.75) + 14, '#F2A23A', '#22180C', I.flame(14).replace('<svg', '<svg x="-7" y="-7.6"'));
+  s += marker(X(1) + 6, Y(1) - 1, '#F2F7FB', '#0F1E2E', I.snowflake(15, '#F2F7FB', 2.2).replace('<svg', '<svg x="-7.5" y="-7.5"'));
+  svg.innerHTML = s;
+})();
+
+async function go() {
+  await document.fonts.ready;
+  const dpr = window.devicePixelRatio || 1, W = 390, H = 844;
+  const cv = document.getElementById('cv'); cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+  const v = NSO.makeView(195, 318, 160); const k = 160 / 185;
+  NSO.drawSky(ctx, W, H, v, { stars: 70, starSeed: 77 });
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  let g = ctx.createRadialGradient(195, 230, 30, 195, 230, 300); g.addColorStop(0, 'rgba(95,227,181,0.08)'); g.addColorStop(0.6, 'rgba(127,214,232,0.03)'); g.addColorStop(1, 'rgba(127,214,232,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore();
+  const world = NS.paintWorld({ px: Math.round(320 * dpr), unit: dpr * 320 / 370, state: 'win' });
+  NSO.drawDisc(ctx, v, world, { k });
+  ctx.save(); ctx.beginPath(); ctx.arc(v.cx, v.cy, v.R - 0.5, 0, Math.PI * 2); ctx.clip();
+  // blue-hour modelling: lit from the upper left, sinking into blue towards the lower right
+  ctx.globalCompositeOperation = 'multiply';
+  g = ctx.createRadialGradient(v.cx - v.R * 0.55, v.cy - v.R * 0.6, v.R * 0.1, v.cx - v.R * 0.2, v.cy - v.R * 0.2, v.R * 1.75);
+  g.addColorStop(0, '#FFFFFF'); g.addColorStop(0.45, '#E6EEF6'); g.addColorStop(1, '#8FAACB');
+  ctx.fillStyle = g; ctx.fillRect(v.cx - v.R, v.cy - v.R, 2 * v.R, 2 * v.R);
+  // the aurora's sheen on the ice near the top: teal-green curtains reflected
+  ctx.globalCompositeOperation = 'screen';
+  const rnd = NS.mulberry32(9);
+  for (let i = 0; i < 70; i++) {
+    const x = v.cx - v.R + (i + 0.5) / 70 * 2 * v.R; const dx = (x - v.cx) / v.R; const top = v.cy - Math.sqrt(Math.max(0, 1 - dx * dx)) * v.R;
+    const env = Math.exp(-dx * dx * 1.6) * (0.55 + 0.45 * Math.sin(i * 0.37 + 1.2) * Math.sin(i * 0.13));
+    const len = v.R * (0.45 + 0.3 * rnd()) * (0.6 + 0.4 * env);
+    const gg = ctx.createLinearGradient(0, top, 0, top + len); gg.addColorStop(0, `rgba(95,227,181,${0.6 * env})`); gg.addColorStop(0.45, `rgba(110,220,210,${0.26 * env})`); gg.addColorStop(1, 'rgba(127,214,232,0)');
+    ctx.fillStyle = gg; ctx.fillRect(x - v.R / 70 - 0.4, top, 2 * v.R / 70 + 0.8, len);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.restore();
+  // sparkle on the lit snow
+  ctx.save(); ctx.beginPath(); ctx.arc(v.cx, v.cy, v.R - 1, 0, Math.PI * 2); ctx.clip();
+  for (let i = 0, n = 0; i < 2000 && n < 120; i++) {
+    const a = rnd() * Math.PI * 2, rr = Math.sqrt(rnd()) * 0.97; const x = Math.cos(a) * rr, y = Math.sin(a) * rr; const s = world.sample(x, y);
+    const lit = 0.5 - (x * 0.55 + y * 0.7) * 0.5; if (rnd() > lit + (s.land ? 0.2 : -0.2)) continue; n++;
+    const [sx, sy] = v.W(x, y); const big = rnd() > 0.88;
+    ctx.globalCompositeOperation = 'lighter';
+    if (big) { NSO.glowDot(ctx, sx, sy, 4.5, 0, '230,248,255', 0.55); ctx.fillStyle = '#FFFFFF'; NSO.starPath(ctx, sx, sy, 3.2, 0.35, 4, 0); ctx.fill(); }
+    else { ctx.fillStyle = `rgba(255,255,255,${0.55 + rnd() * 0.45})`; ctx.beginPath(); ctx.arc(sx, sy, 0.45 + rnd() * 0.4, 0, Math.PI * 2); ctx.fill(); }
+  }
+  ctx.restore();
+  NSO.grainOver(ctx, v, 78, 0.04);
+  NSO.drawAurora(ctx, v, [
+    { pts: [[20, 306], [28, 236], [60, 188], [112, 160], [170, 146], [228, 152], [282, 168], [330, 186], [366, 226], [384, 290], [372, 352], [340, 404]], h: 46, a: 0.64, hScale: (x, y) => y < 175 ? 0.4 + 0.6 * Math.min(1, Math.max(0, (Math.abs(x - 195) - 55) / 95)) : 1 },
+    { pts: [[62, 256], [52, 204], [86, 172], [140, 158], [204, 154], [262, 148], [318, 162], [352, 198], [366, 252], [360, 318], [346, 372]], h: 34, a: 0.44, hScale: (x, y) => y < 175 ? 0.38 + 0.62 * Math.min(1, Math.max(0, (Math.abs(x - 195) - 55) / 95)) : 1 }
+  ]);
+  const [fx, fy] = v.P(...NSS.MID.furnace); NSO.drawFurnace(ctx, fx, fy, k, false);
+  // the finished snowflake: long SKY and ICE arms
+  const th = document.getElementById('th'); th.width = 64 * dpr; th.height = 64 * dpr; const tc = th.getContext('2d'); tc.scale(dpr, dpr);
+  NSF.drawFlake(tc, 32, 32, { SKY: 5, SEA: 2, SNOW: 2, ICE: 5, QUIET: 1, DARK: 2 }, { R: 27, bodyGlow: 0.16, frost: 0.16, gem: 0.075 });
+  window.__ready = true;
+}
+go();
+</script>
+</body></html>

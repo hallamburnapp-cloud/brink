@@ -1,0 +1,170 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Neverspring</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="ui.css">
+<style>
+body.pc { width: 1280px; height: 800px; position: relative; }
+.kc { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 6px; border: 1px solid #3A5672; border-bottom-width: 2px; font: 700 12px/1 var(--sans); color: #A9BCCD; letter-spacing: 0.2px; background: rgba(11, 22, 34, 0.6); }
+/* left column */
+.card { left: 24px; top: 24px; width: 260px; height: 142px; border-radius: 16px; }
+.card .goal2 { position: absolute; left: 0; right: 0; top: 13px; text-align: center; font: 600 20px/25px var(--serif); color: #E4ECF3; letter-spacing: -0.1px; }
+.card .race { left: 10px; top: 74px; width: 240px; height: 26px; }
+.card .race .track { border-radius: 13px; }
+.card .race .fill-w { left: 13px; height: 26px; border-radius: 0 13px 13px 0; }
+.card .race .fill-a { right: 13px; height: 26px; border-radius: 13px 0 0 13px; }
+.card .race .cap { width: 26px; height: 26px; }
+.card .race .gl { height: 26px; }
+.card .finish { left: 105px; top: -2px; width: 30px; height: 30px; }
+.card .labels { top: 109px; left: 12px; right: 12px; font: 700 14px/18px var(--sans); letter-spacing: 0.1px; }
+.seasonD { left: 24px; top: 178px; width: 260px; height: 38px; display: flex; align-items: center; gap: 10px; padding: 0 10px 0 9px; font: 500 14px/1 var(--sans); color: var(--text); border-radius: 19px; background: rgba(15, 30, 46, 0.86); border: 1px solid var(--border); }
+.speedD { left: 24px; top: 224px; width: 260px; height: 40px; display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; padding: 3px; gap: 3px; background: rgba(15, 30, 46, 0.86); border: 1px solid var(--border); border-radius: 20px; }
+.speedD .seg { font-size: 14px; gap: 6px; display: flex; align-items: center; justify-content: center; border-radius: 16px; }
+.speedD .seg .kc { min-width: 18px; height: 18px; padding: 0 4px; font-size: 12px; border-radius: 5px; }
+.speedD .seg.on .kc { color: #3A5068; border-color: #A9C2D8; background: transparent; }
+.region { left: 24px; top: 280px; width: 260px; border-radius: 16px; padding: 16px 16px 14px; }
+.region .eyebrow { font: 700 12px/1 var(--sans); letter-spacing: 1.8px; color: var(--text2); display: flex; justify-content: space-between; align-items: center; }
+.region .eyebrow .x { width: 10px; height: 10px; position: relative; opacity: 0.7; }
+.region .eyebrow .x::before, .region .eyebrow .x::after { content: ''; position: absolute; left: 4px; top: -1px; width: 1.6px; height: 12px; background: #8FA3B5; border-radius: 1px; transform: rotate(45deg); }
+.region .eyebrow .x::after { transform: rotate(-45deg); }
+.region h2 { margin-top: 8px; font: 600 30px/32px var(--serif); color: #FFE7B8; letter-spacing: -0.2px; }
+.region .chips { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 500 13px/1 var(--sans); color: var(--text); padding: 6px 10px; border-radius: 13px; background: rgba(28, 48, 71, 0.8); border: 1px solid #2A4058; }
+.chip.amber { color: #FFD27A; border-color: rgba(242, 162, 58, 0.55); background: rgba(242, 162, 58, 0.10); }
+.frostbar { margin-top: 14px; display: flex; align-items: center; gap: 9px; font: 500 12px/1 var(--sans); color: var(--text2); }
+.frostbar .bar { flex: 1; height: 6px; border-radius: 3px; background: var(--track); position: relative; overflow: hidden; }
+.frostbar .bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 10%; border-radius: 3px; background: linear-gradient(90deg, #9CC9E8, #F2F7FB); }
+.feeds { margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(42, 64, 88, 0.9); }
+.feeds .hd { font: 700 12px/1 var(--sans); letter-spacing: 1.8px; color: #F2A23A; display: flex; align-items: center; gap: 7px; }
+.feeds .row { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; height: 30px; font: 500 14px/1 var(--sans); color: var(--text); }
+.feeds .row:first-of-type { margin-top: 8px; }
+.feeds .row .w { font: 500 12px/1 var(--sans); color: var(--text2); }
+.feeds .row.cut { color: #8A98A6; }
+.feeds .row.cut .w { color: #8A98A6; }
+.focusD { left: 24px; top: 716px; width: 52px; height: 52px; background: var(--btn); border: 1px solid var(--border); }
+.focusLbl { left: 88px; top: 733px; font: 500 14px/18px var(--sans); color: var(--text2); display: flex; gap: 8px; align-items: center; }
+/* right column */
+.flakeP { left: 936px; top: 24px; width: 320px; height: 560px; border-radius: 18px; }
+.flakeP .hd { position: absolute; left: 18px; right: 18px; top: 17px; display: flex; justify-content: space-between; align-items: center; }
+.flakeP .hd span.t { font: 700 12px/1 var(--sans); letter-spacing: 1.8px; color: var(--text2); }
+.flakeP .hd span.o { font: 500 12px/1 var(--sans); color: #6F8AA4; letter-spacing: 0.2px; }
+.flakeP canvas { position: absolute; left: 0; top: 34px; }
+.flakeP .sel { position: absolute; left: 18px; right: 18px; top: 364px; border-top: 1px solid rgba(42, 64, 88, 0.9); padding-top: 14px; }
+.sel .tag { font: 700 12px/1 var(--sans); letter-spacing: 1.8px; color: #9CC9E8; display: flex; align-items: center; gap: 8px; }
+.sel .tag .hush { color: #6F8AA4; letter-spacing: 0.2px; font-weight: 500; }
+.sel h3 { margin-top: 8px; font: 600 27px/30px var(--serif); color: var(--snow); display: flex; align-items: center; gap: 10px; }
+.sel h3 .loud { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 1px solid #3A5672; }
+.sel p { margin-top: 6px; font: 400 14.5px/20px var(--sans); color: var(--radio); }
+.growD { position: absolute; left: 18px; right: 18px; bottom: 18px; height: 48px; border-radius: 24px; background: linear-gradient(180deg, #FFFFFF, #EAF4FB 55%, #CFE3F2); display: flex; align-items: center; justify-content: center; gap: 8px; font: 700 16px/1 var(--sans); color: var(--ink); box-shadow: 0 8px 22px rgba(156, 201, 232, 0.25), 0 0 0 4px rgba(156, 201, 232, 0.18); }
+.growD .cost { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px 5px 8px; border-radius: 13px; background: rgba(11, 22, 34, 0.08); font-weight: 700; }
+.growD .kc { position: absolute; right: 12px; color: #4A6480; border-color: #9DB7CE; background: transparent; }
+.stormD { left: 948px; top: 602px; width: 92px; height: 92px; background: var(--btn); border: 1px solid var(--border); box-shadow: 0 8px 20px rgba(3, 8, 14, 0.45); }
+.stormD .arc { position: absolute; left: -9px; top: -9px; }
+.stormD .pips { position: absolute; left: 0; right: 0; top: 63px; display: flex; justify-content: center; gap: 6px; }
+.stormD .pips i { width: 8px; height: 8px; border-radius: 50%; border: 1.3px solid #C9D6E2; }
+.stormD .pips i.on { background: #F2F7FB; border-color: #F2F7FB; box-shadow: 0 0 6px rgba(242, 247, 251, 0.6); }
+.stormLbl { left: 936px; width: 116px; top: 708px; text-align: center; font: 500 14px/20px var(--sans); color: var(--text2); display: flex; justify-content: center; gap: 8px; align-items: center; }
+.frostD { left: 1068px; top: 602px; width: 188px; height: 92px; border-radius: 18px; display: flex; align-items: center; gap: 14px; padding: 0 18px; }
+.frostD .ic { width: 48px; height: 48px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #FFFFFF, #CFE3F2); display: grid; place-items: center; box-shadow: 0 0 0 4px rgba(156, 201, 232, 0.18), 0 0 18px rgba(156, 201, 232, 0.35); }
+.frostD .n { font: 700 40px/1 var(--sans); color: var(--snow); letter-spacing: -0.5px; }
+.frostD .l { font: 500 13px/1 var(--sans); color: var(--text2); margin-top: 5px; letter-spacing: 0.2px; }
+.radioD { left: 330px; top: 716px; width: 560px; height: 40px; border-radius: 20px; background: var(--panel80); border: 1px solid var(--border); backdrop-filter: blur(10px); display: flex; align-items: center; padding: 0 16px 0 10px; gap: 10px; }
+.radioD .rg { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: rgba(242, 162, 58, 0.12); }
+.radioD .rt { font: 400 15px/1 var(--sans); color: var(--radio); }
+.radioD .rchev { margin-left: auto; width: 7px; height: 7px; border-top: 1.5px solid var(--text2); border-right: 1.5px solid var(--text2); transform: rotate(45deg); opacity: 0.8; }
+</style>
+</head>
+<body class="pc">
+<canvas id="cv"></canvas>
+<div id="ui">
+  <!-- left column -->
+  <div class="panel card">
+    <div class="goal2">Freeze the world before<br>the Furnace is lit.</div>
+    <div class="race">
+      <div class="track"></div>
+      <div class="fill-w" style="width:58px"><i class="sp" style="left:14px;top:7px"></i><i class="sp" style="left:34px;top:15px"></i><i class="sp s2" style="left:46px;top:7px"></i><i class="sp s2" style="left:24px;top:17px"></i></div>
+      <div class="fill-a" style="width:42px"><i class="gl" style="left:12px"></i></div>
+      <div class="cap cap-w" id="capW"></div>
+      <div class="cap cap-a" id="capA"></div>
+      <div class="finish" id="finish"></div>
+    </div>
+    <div class="labels"><span class="lw">26 of 40 frozen</span><span class="la">Furnace</span></div>
+  </div>
+  <div class="seasonD"><span id="dial"></span><span>Year 3 <b style="color:#8FA3B5;font-weight:500">·</b> Midwinter</span></div>
+  <div class="speedD"><span class="seg pz"><span id="pz"></span><i class="kc">Space</i></span><span class="seg on">1× <i class="kc">1</i></span><span class="seg">2× <i class="kc">2</i></span><span class="seg">4× <i class="kc">4</i></span></div>
+  <div class="panel region">
+    <div class="eyebrow"><span>SUNLANDS</span><i class="x"></i></div>
+    <h2>Toradel</h2>
+    <div class="chips"><span class="chip">Hot</span><span class="chip">Coast</span><span class="chip">Low</span><span class="chip">Many people</span><span class="chip">Rich</span><span class="chip amber">Has the Furnace</span></div>
+    <div class="frostbar"><span id="fb"></span><div class="bar"><i></i></div><span>Thawed</span></div>
+    <div class="feeds">
+      <div class="hd"><span id="fl1"></span>FEEDING THE FURNACE</div>
+      <div class="row"><span id="ln0"></span><span>Velloran rail</span><span class="w">Heavy</span></div>
+      <div class="row"><span id="ln1"></span><span>Ostrel rail</span><span class="w">Heavy</span></div>
+      <div class="row"><span id="ln2"></span><span>Sel Harbour ships</span><span class="w">Steady</span></div>
+      <div class="row"><span id="ln3"></span><span>Mirrin road</span><span class="w">Light</span></div>
+      <div class="row cut"><span id="ln4"></span><span>The Narrows</span><span class="w">Cut</span></div>
+    </div>
+  </div>
+  <div class="btn focusD" id="focus"></div>
+  <div class="focusLbl">Focus <i class="kc">F</i></div>
+
+  <!-- right column -->
+  <div class="panel flakeP">
+    <div class="hd"><span class="t">THE SNOWFLAKE</span><span class="o">Select a crystal to preview</span></div>
+    <canvas id="fl" style="width:320px;height:320px"></canvas>
+    <div class="sel">
+      <div class="tag">SEA <span class="hush">· reach</span></div>
+      <h3>Pack Ice <span class="loud" id="loud"></span></h3>
+      <p>Seas beside frozen land freeze, and ships turn back.</p>
+    </div>
+    <div class="growD"><span>Grow</span><span class="cost"><span id="gsf"></span>22</span><i class="kc">E</i></div>
+  </div>
+  <div class="btn stormD"><svg class="arc" width="110" height="110" viewBox="-55 -55 110 110"><circle r="51" fill="none" stroke="#1C3047" stroke-width="2.5"/><circle r="51" fill="none" stroke="#9CC9E8" stroke-opacity=".65" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="192 400" transform="rotate(-90)"/></svg><span id="cloud" style="position:absolute;left:25px;top:19px"></span><span class="pips"><i class="on"></i><i class="on"></i><i></i></span></div>
+  <div class="stormLbl">Storm <i class="kc">Q</i></div>
+  <div class="panel frostD"><div class="ic" id="fic"></div><div><div class="n">38</div><div class="l">Frost</div></div></div>
+
+  <div class="radioD"><span class="rg" id="rg"></span><span class="rt">Ice closes the Narrows. Fuel ships turn back.</span><span class="rchev"></span></div>
+</div>
+<script src="world.js"></script><script src="overlays.js"></script><script src="icons.js"></script><script src="scene.js"></script><script src="flake.js"></script>
+<script>
+const I = NSI;
+document.getElementById('capW').innerHTML = I.snowflake(16, '#F2F7FB', 2.1);
+document.getElementById('capA').innerHTML = I.flame(17);
+document.getElementById('finish').innerHTML = I.split(23);
+document.getElementById('dial').innerHTML = I.dial(22);
+document.getElementById('pz').innerHTML = I.pause(13, '#C9D6E2');
+document.getElementById('rg').innerHTML = I.radio(17, '#F2A23A');
+document.getElementById('focus').innerHTML = I.disc(24, '#C9D6E2');
+document.getElementById('gsf').innerHTML = I.snowflake(14, '#0B1622', 2.2);
+document.getElementById('cloud').innerHTML = I.cloud(40, '#F2F7FB');
+document.getElementById('fic').innerHTML = I.snowflake(26, '#0B1622', 2.0);
+document.getElementById('fb').innerHTML = I.snowflake(14, '#9CC9E8', 2.0);
+document.getElementById('fl1').innerHTML = I.flame(14);
+document.getElementById('loud').innerHTML = I.loud(14, '#C9D6E2');
+// line swatches: dot size is how much the line carries
+[3.0, 2.4, 1.9, 1.3, 0].forEach((w, i) => {
+  let s = `<svg width="34" height="12" viewBox="0 0 34 12">`;
+  if (w) { const r = 0.62 + w * 0.32; for (let x = 3; x <= 31; x += 3.4 + w * 0.7) s += `<circle cx="${x}" cy="6" r="${r + 0.5}" fill="#0B1622"/><circle cx="${x}" cy="6" r="${r}" fill="#F2A23A"/>`; }
+  else { for (const x of [3, 7.5, 12]) s += `<circle cx="${x}" cy="6" r="1.6" fill="#8A98A6"/>`; s += `<path d="M16 9 L18.5 3.5 M20 9 L22.5 3.5" stroke="#8A98A6" stroke-width="1.4" stroke-linecap="round"/>`; for (const x of [27, 31]) s += `<circle cx="${x}" cy="6" r="1.6" fill="#8A98A6" opacity=".55"/>`; }
+  document.getElementById('ln' + i).innerHTML = s + '</svg>';
+});
+
+async function go() {
+  await document.fonts.ready;
+  const dpr = window.devicePixelRatio || 1, W = 1280, H = 800;
+  const cv = document.getElementById('cv'); cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+  const R = 302, v = NSO.makeView(610, 384, R), k = R / 185;
+  NSO.drawSky(ctx, W, H, v, { stars: 120, starSeed: 808 });
+  const px = Math.round(2 * R * 1.5);
+  const probe = NS.buildRegions('mid'); let sel = 0, bd = 9; const tp = NS.polar(...NSS.MID.furnace);
+  probe.forEach((g, i) => { const d = Math.hypot(g.x - tp[0], g.y - tp[1]); if (d < bd) { bd = d; sel = i; } });
+  const world = NSS.paintMid(px, px / 370, { selected: sel, preview: 'packice' });
+  NSS.drawMid(ctx, v, world, k, { labelSize: 13, labelSpacing: 2.4, columnH: 62, cities: 80, villages: 190 });
+  const fl = document.getElementById('fl'); fl.width = 320 * dpr; fl.height = 320 * dpr; const fc = fl.getContext('2d'); fc.scale(dpr, dpr);
+  NSF.drawFlake(fc, 160, 164, { SKY: 3, SEA: 2, SNOW: 3, ICE: 2, QUIET: 2, DARK: 1 }, { R: 124, labels: true, labelSize: 12.5, selected: ['SEA', 3], gem: 0.085, frost: 0.2 });
+  window.__ready = true;
+}
+go();
+</script>
+</body></html>

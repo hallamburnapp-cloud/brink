@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<title>Off Switch — Steam</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+  :root {
+    --amber: #FFB547; --amber-core: #FFE3A3; --amber-end: #FFD58A;
+    --cyan: #45E6E0; --cyan-end: #B5FFF9; --ice: #D9FFFC;
+    --txt: #E8EEF8; --sec: #8B97AD; --goal: #C9D3E6;
+    --glass: rgba(10, 18, 34, 0.72); --metal: #121821;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #070D1A; }
+  body { font-family: 'Jost', sans-serif; color: var(--txt); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+  .screen { position: relative; width: 1280px; height: 800px; overflow: hidden; background: #070D1A; }
+  #map { position: absolute; left: 0; top: 0; }
+  .abs { position: absolute; }
+  .glass { background: var(--glass); backdrop-filter: blur(12px) saturate(120%); -webkit-backdrop-filter: blur(12px) saturate(120%);
+           border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04); }
+
+  /* race strip, centred over the world */
+  .strip { left: 222px; top: 14px; width: 460px; height: 74px; border-radius: 16px; }
+  .lane { position: absolute; left: 0; width: 460px; height: 18px; }
+  .lane .ico { position: absolute; left: 14px; top: -1px; width: 19px; height: 19px; }
+  .lane .lbl { position: absolute; left: 40px; top: 1px; font: 600 13px/16px 'Jost'; letter-spacing: 0.06em; }
+  .bar { position: absolute; left: 142px; top: 4px; width: 250px; height: 10px; border-radius: 5px; background: rgba(255,255,255,0.06); }
+  .fill { position: absolute; left: 0; top: 0; height: 10px; border-radius: 5px; }
+  .fill.amber { width: 144px; background: linear-gradient(90deg, #E8962E, var(--amber) 35%, var(--amber-end)); box-shadow: 0 0 12px rgba(255,181,71,0.45); }
+  .fill.cyan { width: 166px; background: repeating-linear-gradient(135deg, rgba(7,13,26,0.32) 0 1.4px, rgba(7,13,26,0) 1.4px 4.6px), linear-gradient(90deg, #2BB9B4, var(--cyan) 35%, var(--cyan-end)); box-shadow: 0 0 12px rgba(69,230,224,0.4); }
+  .head { position: absolute; top: -4px; width: 18px; height: 18px; border-radius: 50%; }
+  .head.amber { left: 135px; background: radial-gradient(circle, #FFF6DF 0 2.8px, rgba(255,213,138,0.9) 3.6px, rgba(255,181,71,0.35) 6px, rgba(255,181,71,0) 9px); }
+  .head.cyan { left: 157px; background: radial-gradient(circle, #F2FFFE 0 2.8px, rgba(181,255,249,0.9) 3.6px, rgba(69,230,224,0.35) 6px, rgba(69,230,224,0) 9px); }
+  .notch { position: absolute; top: -4px; width: 2px; height: 18px; border-radius: 1px; background: rgba(255,255,255,0.4); }
+  .notch.done { background: #FFF1D2; box-shadow: 0 0 6px rgba(255,213,138,0.9); }
+  .finish { position: absolute; left: 398px; top: 15px; width: 2px; height: 50px; background: #fff; border-radius: 1px; box-shadow: 0 0 6px rgba(255,255,255,0.35); }
+  .flag { position: absolute; left: 398px; top: 3px; }
+  .count { position: absolute; right: 14px; top: 46px; font: 500 13px/16px 'Jost'; font-variant-numeric: tabular-nums; color: var(--sec); text-align: right; }
+  .goal { left: 222px; top: 94px; width: 460px; text-align: center; font: 400 14px/18px 'Jost'; letter-spacing: 0.02em; color: rgba(201,211,230,0.86); text-shadow: 0 1px 6px rgba(3,6,12,0.95), 0 0 14px rgba(3,6,12,0.9); }
+
+  /* switchboard: docked right, four 66 px circuits */
+  .sbp { left: 962px; top: 14px; width: 304px; height: 718px; border-radius: 16px; overflow: hidden;
+         background:
+           url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9 0.035' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 0.75  0 0 0 0 0.8  0 0 0 0 0.88  0 0 0 0.1 0'/></filter><rect width='300' height='300' filter='url(%23n)'/></svg>"),
+           linear-gradient(160deg, #19212B 0%, #121821 40%, #0E131B 100%);
+         border: 1px solid rgba(255,255,255,0.09);
+         box-shadow: 0 20px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.6); }
+  .screw { position: absolute; width: 9px; height: 9px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #5B6574, #262D38 70%); box-shadow: 0 1px 1px rgba(0,0,0,0.6), inset 0 0 0 0.5px rgba(255,255,255,0.15); }
+  .screw:after { content: ''; position: absolute; left: 2px; top: 4px; width: 5px; height: 1.2px; background: #12161D; transform: rotate(35deg); }
+  .sbh { position: absolute; left: 18px; top: 16px; right: 16px; height: 22px; display: flex; align-items: center; }
+  .sbh .ttl { font: 600 13px/16px 'Jost'; letter-spacing: 0.2em; color: var(--amber); display: flex; align-items: center; gap: 9px; }
+  .sbh .rt { margin-left: auto; display: flex; align-items: center; gap: 8px; font: 500 13px/16px 'Jost'; color: var(--sec); }
+  .kc { display: inline-block; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 5px; background: linear-gradient(#2A3240, #171D27); border: 1px solid rgba(255,255,255,0.18);
+        box-shadow: 0 2px 0 #06090F; font: 600 12px/18px 'Jost'; letter-spacing: 0.02em; color: #C9D3E6; text-align: center; }
+  .desc { position: absolute; left: 10px; top: 50px; width: 230px; height: 66px; border-radius: 12px; background: rgba(4,7,12,0.55); border: 1px solid rgba(255,181,71,0.22);
+          box-shadow: inset 0 2px 6px rgba(0,0,0,0.5); padding: 9px 10px 9px 40px; }
+  .desc .ic { position: absolute; left: 10px; top: 12px; }
+  .desc .n { font: 600 14px/18px 'Jost'; color: var(--amber-core); letter-spacing: 0.01em; display: flex; align-items: center; gap: 8px; }
+  .desc .pv { font: 500 12px/14px 'Jost'; color: var(--amber); letter-spacing: 0.02em; display: inline-flex; align-items: center; gap: 5px; padding: 1px 7px 1px 6px; border-radius: 8px; border: 1px dashed rgba(255,181,71,0.55); }
+  .desc .d { font: 400 13px/16px 'Jost'; color: var(--goal); margin-top: 3px; }
+  .flipb { position: absolute; left: 248px; top: 60px; width: 46px; height: 46px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+           background: linear-gradient(180deg, #FFC56A, #FFB547 55%, #F4A63A); color: #070D1A;
+           box-shadow: 0 0 16px rgba(255,181,71,0.35), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -2px 0 rgba(150,80,0,0.25); }
+  .flipb .t { font: 700 13px/14px 'Jost'; letter-spacing: 0.04em; }
+  .flipb .c { font: 600 13px/14px 'Jost'; font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: 2px; }
+  .flipk { position: absolute; left: 280px; top: 98px; min-width: 18px; height: 18px; border-radius: 5px; background: #1E2530; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 2px 0 #06090F;
+           font: 600 11px/16px 'Jost'; color: #E8EEF8; text-align: center; padding: 0 4px; }
+  .cols { position: absolute; left: 9px; top: 130px; width: 286px; height: 560px; }
+  .colh { position: absolute; top: 0; width: 66px; text-align: center; font: 600 12px/14px 'Jost'; letter-spacing: 0.16em; color: #A9B4C8; padding-left: 0.16em; }
+  .wire { position: absolute; width: 3px; border-radius: 2px; }
+  .tg { position: absolute; width: 66px; border-radius: 10px;
+        background: linear-gradient(180deg, #232B37, #181E28 60%, #141922); border: 1px solid rgba(255,255,255,0.09);
+        box-shadow: 0 3px 0 #090C12, 0 6px 12px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.07); }
+  .tg.locked { background: linear-gradient(180deg, #1B212A, #151A22 60%, #12161D); }
+  .tg.on { background: linear-gradient(180deg, #30291E, #201C17 60%, #18161A); border-color: rgba(255,181,71,0.4); }
+  .tg.sel { border: 1.5px solid var(--amber); box-shadow: 0 0 0 3px rgba(255,181,71,0.16), 0 0 18px rgba(255,181,71,0.4), 0 3px 0 #090C12, 0 6px 12px rgba(0,0,0,0.45); }
+  .lamp { position: absolute; left: 7px; top: 7px; width: 7px; height: 7px; border-radius: 50%; background: #0D1015; box-shadow: inset 0 1px 1px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.05); }
+  .on .lamp { background: #FFD58A; box-shadow: 0 0 6px 1px rgba(255,181,71,0.95), 0 0 14px rgba(255,181,71,0.6); }
+  .next .lamp { background: #5A4320; box-shadow: inset 0 1px 1px rgba(0,0,0,0.5), 0 0 4px rgba(255,181,71,0.25); }
+  .chip { position: absolute; right: 5px; top: 4px; height: 17px; padding: 0 5px 0 4px; border-radius: 8px; font: 600 13px/17px 'Jost'; font-variant-numeric: tabular-nums;
+          color: var(--amber); display: flex; align-items: center; gap: 2px; background: rgba(4,7,12,0.55); border: 1px solid rgba(255,181,71,0.35); }
+  .tg .nm { position: absolute; left: 2px; right: 2px; bottom: 7px; text-align: center; font: 500 13px/14px 'Jost'; color: #E8EEF8; letter-spacing: -0.005em; }
+  .tg.locked .nm { color: #A9B4C8; }
+  .tg.on .nm { color: #FFE3A3; }
+  .tg svg.lev { position: absolute; left: 50%; top: 21px; transform: translateX(-50%); }
+  .fork { position: absolute; width: 66px; border-radius: 11px; }
+  .sub { position: absolute; left: 0; width: 66px; height: 41px; border-radius: 9px; background: linear-gradient(180deg, #1B212A, #13181F); border: 1px solid rgba(255,255,255,0.08);
+         box-shadow: 0 2px 0 #090C12, inset 0 1px 0 rgba(255,255,255,0.05); }
+  .sub .snm { position: absolute; left: 2px; right: 2px; top: 50%; transform: translateY(-50%); text-align: center; font: 500 13px/14px 'Jost'; color: #A9B4C8; letter-spacing: -0.005em; }
+  .sub .lamp { left: 5px; top: 5px; width: 5px; height: 5px; }
+  .forkmark { position: absolute; width: 66px; text-align: center; font: 600 10px/12px 'Jost'; letter-spacing: 0.16em; color: #8B97AD; }
+
+  /* bottom row */
+  .sparks { left: 16px; top: 746px; width: 128px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center; gap: 9px; }
+  .sparks .num { font: 600 23px/1 'Jost'; font-variant-numeric: tabular-nums lining-nums; color: var(--txt); }
+  .ticker { left: 156px; top: 750px; width: 794px; height: 36px; border-radius: 18px; display: flex; align-items: center; padding: 0 16px; }
+  .ticker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan), 0 0 12px rgba(69,230,224,0.6); flex: none; }
+  .ticker .msg { margin-left: 11px; font: 400 15px/18px 'Jost'; white-space: nowrap; color: var(--txt); }
+  .ticker .msg b { font-weight: 600; }
+  .ticker .more { margin-left: auto; display: flex; align-items: center; gap: 5px; }
+  .ticker .more i { width: 5px; height: 5px; border-radius: 50%; background: rgba(139,151,173,0.5); }
+  .speed { left: 962px; top: 746px; width: 304px; height: 44px; border-radius: 22px; display: flex; align-items: center; padding: 0 18px; gap: 14px; }
+  .speed .sp { margin-left: auto; }
+  .speed .day { font: 500 13px/16px 'Jost'; font-variant-numeric: tabular-nums; color: var(--sec); letter-spacing: 0.08em; }
+  .speed .div { width: 1px; height: 22px; background: rgba(255,255,255,0.1); }
+  .vign { left: 0; top: 0; width: 1280px; height: 800px; pointer-events: none; background: radial-gradient(ellipse 58% 72% at 36% 50%, rgba(2,4,9,0) 60%, rgba(2,4,9,0.35)); }
+  /* region ring */
+  .tag { border-radius: 12px; padding: 8px 13px 9px; white-space: nowrap; }
+  .tag .t1 { font: 500 14px/18px 'Jost'; color: var(--txt); letter-spacing: 0.01em; }
+  .tag .t1 .nm { font-weight: 600; } .tag .t1 .sep { color: var(--sec); padding: 0 4px; }
+  .tag .t2 { margin-top: 2px; font: 500 14px/18px 'Jost'; color: var(--cyan); display: flex; align-items: center; gap: 7px; }
+  .tag .t2 i { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+  .rb { width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .rb.shield { background: radial-gradient(circle at 50% 35%, rgba(60,40,12,0.94), rgba(16,14,14,0.94)); border: 1.5px solid var(--amber);
+               box-shadow: 0 0 16px rgba(255,181,71,0.45), inset 0 0 12px rgba(255,181,71,0.18), 0 6px 16px rgba(0,0,0,0.5); }
+  .rb.off { background: radial-gradient(circle at 50% 30%, #0B0E13, #020305 70%); border: 2px solid #E8EEF8;
+            box-shadow: 0 0 16px rgba(232,238,248,0.38), inset 0 0 10px rgba(232,238,248,0.1), 0 6px 16px rgba(0,0,0,0.6); }
+  .rlbl { width: 110px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .rlbl .c { font: 600 13px/15px 'Jost'; font-variant-numeric: tabular-nums; color: var(--amber); display: inline-flex; align-items: center; gap: 2px; padding: 1px 7px 1px 6px; border-radius: 9px; background: #0B0F16; border: 1px solid rgba(255,181,71,0.55); box-shadow: 0 2px 6px rgba(0,0,0,0.6); }
+  .rlbl .n { display: flex; align-items: center; gap: 6px; font: 600 14px/16px 'Jost'; color: var(--txt); text-shadow: 0 1px 4px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.8); }
+  .rlbl .k { min-width: 18px; height: 18px; border-radius: 4px; background: linear-gradient(#2A3240, #171D27); border: 1px solid rgba(255,255,255,0.22); box-shadow: 0 2px 0 #06090F; font: 600 11px/16px 'Jost'; color: #E8EEF8; text-align: center; padding: 0 4px; text-shadow: none; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <canvas id="map"></canvas>
+  <svg class="abs" id="deco" width="1280" height="800" viewBox="0 0 1280 800" style="left:0;top:0"></svg>
+  <div class="abs vign"></div>
+
+  <!-- race strip -->
+  <div class="abs strip glass">
+    <div class="lane" style="top:15px">
+      <svg class="ico" viewBox="0 0 16 16"><path d="M8 2.2 V7.6" stroke="#FFB547" stroke-width="1.8" stroke-linecap="round"/><path d="M4.4 4.4 A5.2 5.2 0 1 0 11.6 4.4" stroke="#FFB547" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+      <div class="lbl" style="color:var(--amber)">OFF SWITCH</div>
+      <div class="bar"><div class="fill amber"></div><div class="notch done" style="left:82px"></div><div class="notch" style="left:166px"></div><div class="head amber"></div></div>
+    </div>
+    <div class="lane" style="top:43px">
+      <svg class="ico" viewBox="0 0 16 16">
+        <defs><clipPath id="lid"><rect x="0" y="7.2" width="16" height="9"/></clipPath></defs>
+        <path d="M1.2 8.4 C4 12.9 12 12.9 14.8 8.4" stroke="#45E6E0" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <path d="M1.6 7.6 C4.6 5.6 11.4 5.6 14.4 7.6" stroke="#45E6E0" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <g clip-path="url(#lid)"><circle cx="8" cy="8.4" r="2.9" fill="#45E6E0"/><circle cx="8" cy="8.4" r="1.2" fill="#0A1222"/></g>
+        <path d="M3.4 5.4 L2.6 4.2 M8 4.6 V3.2 M12.6 5.4 L13.4 4.2" stroke="#45E6E0" stroke-width="1.2" stroke-linecap="round" opacity="0.8"/>
+      </svg>
+      <div class="lbl" style="color:var(--cyan)">TIDY</div>
+      <div class="bar"><div class="fill cyan"></div><div class="head cyan"></div></div>
+    </div>
+    <div class="finish"></div>
+    <svg class="flag" width="12" height="11" viewBox="0 0 12 11" shape-rendering="crispEdges"><rect x="0" y="0" width="1" height="11" fill="#fff"/><rect x="1" y="0" width="8" height="6" fill="#fff"/><rect x="1" y="0" width="2" height="2" fill="#0A1222"/><rect x="5" y="0" width="2" height="2" fill="#0A1222"/><rect x="3" y="2" width="2" height="2" fill="#0A1222"/><rect x="7" y="2" width="2" height="2" fill="#0A1222"/><rect x="1" y="4" width="2" height="2" fill="#0A1222"/><rect x="5" y="4" width="2" height="2" fill="#0A1222"/></svg>
+    <div class="count">14/21</div>
+  </div>
+  <div class="abs goal">Build the Off Switch before TIDY reaches the line.</div>
+
+  <!-- region ring (hovered Tallowmere) -->
+  <svg class="abs" id="focus" width="1280" height="800" viewBox="0 0 1280 800" style="left:0;top:0"></svg>
+  <div class="abs tag glass" id="tag">
+    <div class="t1"><span class="nm">Tallowmere</span><span class="sep">·</span>2 labs<span class="sep">·</span>wired</div>
+    <div class="t2"><i></i>TIDY is getting in</div>
+  </div>
+  <div class="abs rb shield" id="bShield">
+    <svg width="27" height="27" viewBox="0 0 26 26">
+      <path d="M13 2.6 L22 7.8 V18.2 L13 23.4 L4 18.2 V7.8 Z" fill="rgba(255,181,71,0.14)" stroke="#FFB547" stroke-width="1.8" stroke-linejoin="round"/>
+      <path d="M13 8.4 L17 10.7 V15.3 L13 17.6 L9 15.3 V10.7 Z" fill="none" stroke="#FFD58A" stroke-width="1.3" stroke-linejoin="round"/>
+      <path d="M13 2.6 V8.4 M22 7.8 L17 10.7 M22 18.2 L17 15.3 M13 23.4 V17.6 M4 18.2 L9 15.3 M4 7.8 L9 10.7" stroke="#FFB547" stroke-width="1" opacity="0.75"/>
+    </svg>
+  </div>
+  <div class="abs rb off" id="bOff">
+    <svg width="25" height="25" viewBox="0 0 24 24"><path d="M12 3.6 V11" stroke="#E8EEF8" stroke-width="2.2" stroke-linecap="round"/><path d="M6.6 6.6 A7.6 7.6 0 1 0 17.4 6.6" stroke="#E8EEF8" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>
+  </div>
+  <div class="abs rlbl" id="lShield"><span class="c"><svg width="9" height="9" viewBox="0 0 10 10"><path d="M5 0 Q5.7 4.3 10 5 Q5.7 5.7 5 10 Q4.3 5.7 0 5 Q4.3 4.3 5 0 Z" fill="#FFB547"/></svg>4</span><span class="n"><span class="k">S</span>Shield</span></div>
+  <div class="abs rlbl" id="lOff"><span class="c"><svg width="9" height="9" viewBox="0 0 10 10"><path d="M5 0 Q5.7 4.3 10 5 Q5.7 5.7 5 10 Q4.3 5.7 0 5 Q4.3 4.3 5 0 Z" fill="#FFB547"/></svg>2</span><span class="n"><span class="k">X</span>Off</span></div>
+
+  <!-- switchboard -->
+  <div class="abs sbp" id="sbp">
+    <div class="screw" style="left:7px;top:7px"></div><div class="screw" style="right:7px;top:7px"></div>
+    <div class="screw" style="left:7px;bottom:7px"></div><div class="screw" style="right:7px;bottom:7px"></div>
+    <div class="sbh">
+      <div class="ttl">
+        <svg width="26" height="16" viewBox="0 0 30 18"><rect x="1" y="9" width="28" height="8" rx="4" fill="rgba(255,181,71,0.12)" stroke="#FFB547" stroke-width="1.4"/><path d="M11 13 L19.5 3.2" stroke="#FFB547" stroke-width="2.2" stroke-linecap="round"/><circle cx="20.2" cy="2.6" r="2.3" fill="#FFD58A"/><circle cx="11" cy="13" r="2" fill="#FFB547"/></svg>
+        SWITCHBOARD
+      </div>
+      <div class="rt"><span class="kc">Tab</span></div>
+    </div>
+    <div class="desc">
+      <svg class="ic" width="22" height="24" viewBox="0 0 22 24"><path d="M11 1.5 L20 6.7 V17.3 L11 22.5 L2 17.3 V6.7 Z" fill="rgba(255,181,71,0.14)" stroke="#FFB547" stroke-width="1.5" stroke-dasharray="3 2" stroke-linejoin="round"/><path d="M11 8 L15 10.3 V14.9 L11 17.2 L7 14.9 V10.3 Z" fill="none" stroke="#FFE3A3" stroke-width="1.3" stroke-linejoin="round"/></svg>
+      <div class="n">Old Ways <span class="pv"><svg width="11" height="9" viewBox="0 0 12 10"><rect x="0.75" y="0.75" width="10.5" height="8.5" rx="2" fill="rgba(255,181,71,0.18)" stroke="#FFB547" stroke-width="1.2" stroke-dasharray="2.2 1.6"/></svg>on the map</span></div>
+      <div class="d">Every Offline region gets a free light shield.</div>
+    </div>
+    <div class="flipb"><span class="t">FLIP</span><span class="c"><svg width="10" height="10" viewBox="0 0 20 20"><path d="M10 0 Q11.3 8.7 20 10 Q11.3 11.3 10 20 Q8.7 11.3 0 10 Q8.7 8.7 10 0 Z" fill="#070D1A"/></svg>9</span></div>
+    <div class="flipk">F</div>
+    <div class="cols" id="cols"></div>
+  </div>
+  <svg class="abs" id="cursor" width="22" height="28" viewBox="0 0 22 28" style="filter: drop-shadow(0 2px 3px rgba(0,0,0,0.6)); z-index: 5"><path d="M2 2 L2 22 L7.2 17.4 L10.6 25.4 L14.2 23.8 L10.8 16 L17.6 16 Z" fill="#fff" stroke="#0A0F18" stroke-width="1.6" stroke-linejoin="round"/></svg>
+
+  <!-- bottom row -->
+  <div class="abs sparks glass">
+    <svg width="22" height="22" viewBox="0 0 20 20" style="filter:drop-shadow(0 0 5px rgba(255,181,71,0.85))"><path d="M10 0 Q11.3 8.7 20 10 Q11.3 11.3 10 20 Q8.7 11.3 0 10 Q8.7 8.7 10 0 Z" fill="#FFB547"/><path d="M10 5 Q10.6 9.4 15 10 Q10.6 10.6 10 15 Q9.4 10.6 5 10 Q9.4 9.4 10 5 Z" fill="#FFF1D2"/></svg>
+    <div class="num">23</div>
+  </div>
+  <div class="abs ticker glass"><div class="dot"></div><div class="msg"><b>Ashkettle</b> switched off. Residents rediscover board games.</div>
+    <div class="more"><i></i><i></i><i></i></div></div>
+  <div class="abs speed glass">
+    <svg width="14" height="16" viewBox="0 0 14 16"><rect x="1.5" y="1" width="3.6" height="14" rx="1.4" fill="#E8EEF8"/><rect x="8.9" y="1" width="3.6" height="14" rx="1.4" fill="#E8EEF8"/></svg>
+    <span class="kc" style="height:18px;line-height:16px;font-size:11px;min-width:42px">Space</span>
+    <div class="div"></div>
+    <svg width="38" height="14" viewBox="0 0 34 14">
+      <path d="M3 2 L9 7 L3 12" stroke="#FFB547" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M13 2 L19 7 L13 12" stroke="rgba(232,238,248,0.28)" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M23 2 L29 7 L23 12" stroke="rgba(232,238,248,0.28)" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="day sp">DAY 212</div>
+  </div>
+</div>
+<script src="world.js"></script>
+<script>
+(async function () {
+  await document.fonts.load('500 13px Jost'); await document.fonts.load('600 13px Jost'); await document.fonts.load('400 13px Jost'); await document.fonts.ready;
+  const H = 640, Wd = H * 374 / 546, cx = 452;
+  const rect = { x: cx - Wd / 2, y: 116, w: Wd, h: H };
+  const out = OffSwitchWorld.paint(document.getElementById('map'), {
+    cssW: 1280, cssH: 800, dpr: 1.45, rect, state: 'mid', labelPx: 12.5, grain: 0.12, auroraH: 0.9,
+    preview: ['Corvane', 'Cindergap', 'Shoal', 'Driftholm', 'Floe End'],
+    clouds: [[30, 470, 70, 34], [210, 520, 60, 16], [150, 200, 50, 20], [255, 690, 60, 18], [-150, 300, 70, 30], [-90, 560, 80, 26], [-170, 650, 60, 20], [470, 600, 60, 24], [480, 330, 50, 30], [-60, 160, 60, 20], [560, 470, 60, 22]],
+    ships: [[-115, 420, -0.4, 'a'], [-60, 610, 0.2, 'a'], [-150, 210, 0.9, 'a'], [470, 520, 2.4, 'a'], [520, 380, 2.0, 'a']]
+  });
+
+
+  // decorative compass rose
+  const deco = document.getElementById('deco');
+  const cr = [100, 640];
+  let rose = '';
+  for (let i = 0; i < 16; i++) {
+    const a = i * Math.PI / 8 - Math.PI / 2, L = i % 4 === 0 ? 46 : (i % 2 === 0 ? 30 : 20), w = i % 4 === 0 ? 6 : 4;
+    const tip = [cr[0] + Math.cos(a) * L, cr[1] + Math.sin(a) * L];
+    const l = [cr[0] + Math.cos(a - Math.PI / 2) * w, cr[1] + Math.sin(a - Math.PI / 2) * w];
+    const r = [cr[0] + Math.cos(a + Math.PI / 2) * w, cr[1] + Math.sin(a + Math.PI / 2) * w];
+    rose += `<path d="M${l[0]},${l[1]} L${tip[0]},${tip[1]} L${cr[0]},${cr[1]} Z" fill="rgba(201,211,230,${i % 4 === 0 ? 0.14 : 0.07})"/>`;
+    rose += `<path d="M${r[0]},${r[1]} L${tip[0]},${tip[1]} L${cr[0]},${cr[1]} Z" fill="rgba(201,211,230,${i % 4 === 0 ? 0.06 : 0.035})"/>`;
+  }
+  deco.innerHTML = `
+    <g>
+      <circle cx="${cr[0]}" cy="${cr[1]}" r="58" fill="none" stroke="rgba(201,211,230,0.09)"/>
+      <circle cx="${cr[0]}" cy="${cr[1]}" r="62" fill="none" stroke="rgba(201,211,230,0.05)" stroke-dasharray="1 3"/>
+      ${rose}
+      <text x="${cr[0]}" y="${cr[1] - 66}" text-anchor="middle" font-family="Jost" font-weight="600" font-size="12" letter-spacing="2" fill="rgba(201,211,230,0.26)">N</text>
+    </g>`;
+
+  // ---------------------------------------------------------------- switchboard
+  // state: on = flipped, next = powered and next in line (only these show a cost), locked = no power yet
+  const spk = (col) => `<svg width="10" height="10" viewBox="0 0 10 10"><path d="M5 0 Q5.7 4.3 10 5 Q5.7 5.7 5 10 Q4.3 5.7 0 5 Q4.3 4.3 5 0 Z" fill="${col}"/></svg>`;
+  const cols = [
+    ['CUT', [
+      { n: 'Red<br>Lever', s: 'on' }, { n: 'Cut<br>Cables', s: 'on' }, { n: 'Wide<br>Break', s: 'next', c: 9 },
+      { fork: ['Rolling<br>Blackouts', 'Ground<br>Planes'] }, { n: 'Quiet<br>Switch', s: 'locked' }, { n: 'Pull Every<br>Plug', s: 'locked' }]],
+    ['SHIELD', [
+      { n: 'Patch It', s: 'on' }, { n: 'Old Ways', s: 'next', c: 9, sel: true }, { n: 'Hot Spots', s: 'locked' },
+      { fork: ['Mesh', 'Firewall<br>Ports'] }, { n: 'No Fly', s: 'locked' }, { n: 'Hold<br>Fast', s: 'locked' }]],
+    ['WATCH', [
+      { n: 'Spotters', s: 'next', c: 7 }, { n: 'Night<br>Owls', s: 'locked' }, { n: 'Tripwires', s: 'locked' },
+      { fork: ['Read Its<br>Mind', 'Sharp<br>Eyes'] }, { n: 'Slow<br>Learner', s: 'locked' }, { n: 'Bait', s: 'locked' }]],
+    ['BUILD', [
+      { n: 'Night<br>Shift', s: 'on' }, { n: 'Garage<br>Labs', s: 'next', c: 9 }, { n: 'Backup<br>Copies', s: 'locked' },
+      { fork: ['Big Lab', 'Spread<br>It Out'] }, { n: 'Hidden<br>Labs', s: 'locked' }, { n: 'Broadcast', s: 'locked' }]],
+  ];
+  const colW = 66, gap = 7, top0 = 22, rowH = 92, plateH = 84;
+  const lever = (on, lit) => {
+    const knobY = on ? 16 : 3;
+    return `<svg class="lev" width="20" height="28" viewBox="0 0 20 28">
+      <rect x="5.5" y="1" width="9" height="26" rx="4.5" fill="#07090D" stroke="rgba(255,255,255,0.08)"/>
+      <rect x="8.8" y="4.5" width="2.4" height="19" rx="1.2" fill="#0E1218"/>
+      ${on ? `<rect x="8.8" y="${knobY - 3}" width="2.4" height="10" rx="1.2" fill="rgba(255,181,71,0.55)"/>` : ''}
+      <rect x="2" y="${knobY}" width="16" height="8" rx="3" fill="url(#knob${on ? 'On' : (lit ? '' : 'Dim')})" stroke="rgba(0,0,0,0.5)" stroke-width="0.6"/>
+      <rect x="4" y="${knobY + 1.2}" width="12" height="1.3" rx="0.65" fill="rgba(255,255,255,${on ? 0.6 : (lit ? 0.38 : 0.18)})"/>
+    </svg>`;
+  };
+  let html = `<svg width="0" height="0" style="position:absolute"><defs>
+      <linearGradient id="knob" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A3ADBB"/><stop offset="0.5" stop-color="#66707F"/><stop offset="1" stop-color="#3F4652"/></linearGradient>
+      <linearGradient id="knobDim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5D6573"/><stop offset="0.5" stop-color="#3D444F"/><stop offset="1" stop-color="#2A3039"/></linearGradient>
+      <linearGradient id="knobOn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE3A3"/><stop offset="0.5" stop-color="#FFB547"/><stop offset="1" stop-color="#C47A1E"/></linearGradient>
+    </defs></svg>`;
+  cols.forEach(([name, items], ci) => {
+    const x = ci * (colW + gap), mid = x + colW / 2;
+    html += `<div class="colh" style="left:${x}px">${name}</div>`;
+    const rows = items.map((it, k) => ({ it, y: top0 + k * rowH }));
+    const litWire = 'background:linear-gradient(#FFD58A,#FFB547); box-shadow:0 0 8px rgba(255,181,71,0.9), 0 0 2px #FFE3A3';
+    const deadWire = 'background:linear-gradient(#4E3420,#3E2919)';
+    // bus bar feed into the first switch is always live
+    html += `<div class="wire" style="left:${mid - 1.5}px; top:15px; height:${top0 - 13}px; ${litWire}"></div>`;
+    rows.forEach((r, k) => {
+      if (k === 0) return;
+      const prev = rows[k - 1];
+      const lit = prev.it.s === 'on';
+      html += `<div class="wire" style="left:${mid - 1.5}px; top:${prev.y + plateH - 2}px; height:${r.y - prev.y - plateH + 4}px; ${lit ? litWire : deadWire}"></div>`;
+    });
+    rows.forEach(({ it, y }) => {
+      if (it.fork) {
+        html += `<div class="fork" style="left:${x}px; top:${y}px; height:${plateH}px">
+          <div class="sub" style="top:0"><div class="lamp"></div><div class="snm">${it.fork[0]}</div></div>
+          <div class="sub" style="top:${plateH - 41}px"><div class="lamp"></div><div class="snm">${it.fork[1]}</div></div>
+        </div>`;
+        return;
+      }
+      const st = it.s;
+      const chip = st === 'next' ? `<div class="chip">${spk('#FFB547')}${it.c}</div>` : '';
+      html += `<div class="tg ${st}${it.sel ? ' sel' : ''}" style="left:${x}px; top:${y}px; height:${plateH}px">
+          <div class="lamp"></div>${chip}${lever(st === 'on', st !== 'locked')}<div class="nm">${it.n}</div></div>`;
+    });
+  });
+  document.getElementById('cols').innerHTML = html;
+
+  // ---------------------------------------------------------------- hovered region ring
+  const c = out.toCss(298, 291);
+  const sc = out.s;
+  const set = (id, x, y) => { const e = document.getElementById(id); e.style.left = x + 'px'; e.style.top = y + 'px'; return e; };
+  const R = 72 * sc, a1 = 158 * Math.PI / 180, a2 = 97 * Math.PI / 180;
+  const p1 = [c[0] + Math.cos(a1) * R, c[1] + Math.sin(a1) * R], p2 = [c[0] + Math.cos(a2) * R, c[1] + Math.sin(a2) * R];
+  set('bShield', p1[0] - 27, p1[1] - 27); set('bOff', p2[0] - 27, p2[1] - 27);
+  set('lShield', p1[0] - 55, p1[1] + 18); set('lOff', p2[0] - 55, p2[1] + 18);
+  const tag = document.getElementById('tag');
+  const tw = tag.offsetWidth, th = tag.offsetHeight;
+  const tx = 704, ty = 182;
+  set('tag', tx, ty);
+  const tail = [tx, ty + th - 14];
+  const f = document.getElementById('focus');
+  f.innerHTML = `
+    <path d="M ${tail[0]} ${tail[1]} Q ${c[0] + 70} ${c[1] - 38} ${c[0] + 6} ${c[1] - 4}" fill="none" stroke="rgba(3,6,12,0.55)" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M ${tail[0]} ${tail[1]} Q ${c[0] + 70} ${c[1] - 38} ${c[0] + 6} ${c[1] - 4}" fill="none" stroke="rgba(232,238,248,0.9)" stroke-width="1.3" stroke-linecap="round"/>
+    <path d="M ${p1[0] + 20} ${p1[1] - 16} L ${c[0] - 6} ${c[1] + 3}" stroke="rgba(255,181,71,0.65)" stroke-width="1.1" stroke-dasharray="1.5 2.5" stroke-linecap="round"/>
+    <path d="M ${p2[0] + 4} ${p2[1] - 25} L ${c[0] + 1} ${c[1] + 7}" stroke="rgba(232,238,248,0.65)" stroke-width="1.1" stroke-dasharray="1.5 2.5" stroke-linecap="round"/>
+    <circle cx="${c[0]}" cy="${c[1]}" r="3.4" fill="#fff"/>
+    <circle cx="${c[0]}" cy="${c[1]}" r="7.5" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1"/>`;
+  // the pointer rests on Tallowmere
+  const cur = document.getElementById('cursor');
+  cur.style.left = (c[0] + 14) + 'px'; cur.style.top = (c[1] - 22) + 'px';
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>

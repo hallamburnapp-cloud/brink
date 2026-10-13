@@ -1,0 +1,102 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=390">
+<title>REWILD — main</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+:root{--cream:#F4EFE4;--ink:#22302A;--wild:#3E9B5F;--forest:#2F7D4F;--leaf:#8FD694;--asphalt:#4A4C50;--road:#E8C547;--gold:#F2B33D;--muted:#6B6B5E}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:390px;height:844px;overflow:hidden;background:#6F8790;font-family:'Alegreya Sans',sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;font-kerning:normal}
+#map{position:absolute;left:0;top:0;width:390px;height:844px}
+.abs{position:absolute}
+.paper{background:rgba(244,239,228,.94);border:1px solid rgba(34,48,42,.12);box-shadow:0 10px 28px -8px rgba(14,26,30,.45),0 2px 6px rgba(14,26,30,.12),inset 0 1px 0 rgba(255,255,255,.7);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.status{left:0;top:0;width:390px;height:47px;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:4px 26px 0 36px}
+.status .t{font:800 16px/1 'Alegreya Sans';letter-spacing:.2px;text-shadow:0 1px 2px rgba(0,0,0,.18)}
+.status .r{display:flex;gap:6px;align-items:center}
+#strip{left:12px;top:52px;width:366px;height:78px;border-radius:16px}
+#goal{left:0;right:0;top:6px;text-align:center;font:600 14.5px/20px 'Alegreya';color:var(--ink);letter-spacing:.05px}
+#bar{left:11px;top:31px}
+.count{top:61px;font:700 11.5px/14px 'Alegreya Sans';letter-spacing:.2px}
+.pill{height:28px;border-radius:14px;display:flex;align-items:center}
+#menu{left:16px;top:136px;width:32px;height:32px;border-radius:16px;display:flex;align-items:center;justify-content:center;background:rgba(244,239,228,.92)}
+#time{left:56px;top:138px;width:100px;background:rgba(244,239,228,.92);padding:0 6px 0 0;justify-content:center;gap:7px;font:700 13.5px/1 'Alegreya Sans'}
+#time .sub{font-weight:500;color:var(--muted);font-size:12.5px;margin-left:auto}
+#speed{left:224px;top:138px;width:150px;background:rgba(244,239,228,.92);padding:2px;gap:0}
+#speed .seg{flex:1;height:24px;border-radius:12px;display:flex;align-items:center;justify-content:center;font:700 13px/1 'Alegreya Sans';color:var(--ink)}
+#speed .seg.on{background:var(--ink);color:var(--cream);box-shadow:0 1px 2px rgba(0,0,0,.25)}
+#speed .div{width:1px;height:12px;background:rgba(34,48,42,.14)}
+#ticker{left:16px;top:692px;width:358px;height:28px;border-radius:14px;background:rgba(244,239,228,.92);display:flex;align-items:center;padding:0 14px 0 10px;gap:8px;font:500 14px/1 'Alegreya Sans';color:var(--ink)}
+#bottom{left:0;top:744px;width:390px;height:100px;border-radius:20px 20px 0 0;background:rgba(244,239,228,.96);border:1px solid rgba(34,48,42,.10);border-bottom:0;box-shadow:0 -8px 24px -6px rgba(14,26,30,.35),inset 0 1px 0 rgba(255,255,255,.75)}
+#seeds{left:18px;top:752px;height:44px;display:flex;align-items:center;gap:8px}
+#seeds .n{font:800 27px/26px 'Alegreya Sans';font-variant-numeric:tabular-nums lining-nums;letter-spacing:-.3px;color:var(--ink)}
+#seeds .l{font:500 11.5px/12px 'Alegreya Sans';color:var(--muted);margin-top:1px;letter-spacing:.2px}
+#grow{left:157px;top:732px;width:76px;height:76px;border-radius:50%;background:radial-gradient(circle at 38% 30%,#5DBB7C 0%,#3E9B5F 48%,#2E8150 100%);box-shadow:0 8px 18px -4px rgba(20,60,36,.55),0 0 0 4px rgba(244,239,228,.96),0 0 0 5px rgba(34,48,42,.08),inset 0 2px 0 rgba(255,255,255,.28),inset 0 -4px 8px rgba(0,40,20,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:#fff}
+#grow .lbl{font:800 12.5px/12px 'Alegreya Sans';letter-spacing:.3px;opacity:.97}
+#grow .afford{position:absolute;right:5px;top:5px;width:12px;height:12px;border-radius:6px;background:var(--gold);border:2px solid #F4EFE4;box-shadow:0 0 6px rgba(242,179,61,.8)}
+#plant{left:302px;top:746px;width:52px;height:52px;border-radius:50%;background:#F7F3EA;border:2px solid var(--wild);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px -2px rgba(20,40,30,.28),inset 0 -2px 0 rgba(34,48,42,.06)}
+#plant .badge{position:absolute;right:-5px;top:-4px;width:19px;height:19px;border-radius:10px;background:var(--wild);color:#fff;font:800 11.5px/19px 'Alegreya Sans';text-align:center;border:2px solid #F4EFE4}
+#plantl{left:302px;top:801px;width:52px;text-align:center;font:700 11.5px/12px 'Alegreya Sans';color:var(--ink)}
+#home{left:128px;top:830px;width:134px;height:5px;border-radius:3px;background:rgba(34,48,42,.85)}
+</style></head>
+<body>
+<canvas id="map" width="780" height="1688"></canvas>
+
+<div class="abs status"><span class="t">9:41</span><span class="r" id="sicons"></span></div>
+
+<div id="strip" class="abs paper">
+  <div id="goal" class="abs">Turn the world green. First to the middle wins.</div>
+  <div id="bar" class="abs"></div>
+  <div class="abs count" style="left:14px;color:#2F7D4F">27 of 42 green</div>
+  <div class="abs count" style="right:13px;color:#4A4C50;text-align:right">The Clearing</div>
+</div>
+
+<div id="menu" class="abs paper"><span id="mi"></span></div>
+<div id="time" class="abs pill paper"><span id="sun"></span>Year 2</div>
+<div id="speed" class="abs pill paper">
+  <div class="seg" id="pz"></div><div class="div"></div>
+  <div class="seg on">1×</div>
+  <div class="seg">2×</div><div class="div"></div>
+  <div class="seg">4×</div>
+</div>
+
+<div id="ticker" class="abs paper"><span id="tleaf"></span><span>Brannoch Works closes ‘for repairs’.</span></div>
+
+<div id="bottom" class="abs"></div>
+<div id="seeds" class="abs"><span id="sg"></span><div><div class="n">64</div><div class="l">seeds</div></div></div>
+<div id="grow" class="abs"><span id="gi"></span><span class="lbl">Grow</span><span class="afford"></span></div>
+<div id="plant" class="abs"><span id="pi"></span><span class="badge">1</span></div>
+<div id="plantl" class="abs">Plant</div>
+<div id="home" class="abs"></div>
+
+<script src="icons.js"></script>
+<script src="ui.js"></script>
+<script src="world.js"></script>
+<script src="sprites.js"></script>
+<script src="scene.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+$('sicons').innerHTML = RWI.signal() + RWI.wifi() + RWI.battery();
+$('mi').innerHTML = RWI.menu('#22302A', 17);
+$('sun').innerHTML = RWI.sun('#22302A', 17);
+$('pz').innerHTML = RWI.pause('#22302A', 13);
+$('tleaf').innerHTML = RWI.leaf('#3E9B5F', 17);
+$('sg').innerHTML = RWI.seed('#F2B33D', 32);
+$('gi').innerHTML = RWI.sprout('#fff', 30);
+$('pi').innerHTML = RWI.sapling('#2F7D4F', 27);
+
+$('bar').innerHTML = RWUI.raceBar(342, 26);
+
+// ---- the world ----
+async function go() {
+  await Promise.all(["800 11px 'Alegreya Sans'", "700 10px 'Alegreya Sans'", "600 14px 'Alegreya'"].map(f => document.fonts.load(f)));
+  const cv = $('map'); const ctx = cv.getContext('2d');
+  const info = RW.paintWorld({ canvas: cv, dpr: 2, s: 0.959, ox: 19.7, oy: 180.96, state: RWSCENE.ST });
+  ctx.setTransform(2, 0, 0, 2, 0, 0);
+  RWSCENE.drawMidGame(ctx, cv, info, {});
+  // soft vignette for focus
+  const vg = ctx.createRadialGradient(195, 430, 200, 195, 430, 560); vg.addColorStop(0, 'rgba(10,20,26,0)'); vg.addColorStop(1, 'rgba(10,20,26,0.28)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, 390, 844);
+  window.__ready = true;
+}
+go().catch(e => console.error(e.stack));
+</script>
+</body></html>

@@ -1,0 +1,13 @@
+import { chromium } from '@playwright/test';
+import { resolve } from 'node:path';
+const [, , file, out, w = '400'] = process.argv;
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const p = await b.newPage({ viewport: { width: +w, height: 900 }, deviceScaleFactor: 1 });
+const errs = []; p.on('pageerror', (e) => errs.push(String(e)));
+await p.goto('file://' + resolve(file));
+await p.evaluate(() => document.querySelectorAll('img[loading=lazy]').forEach((i) => (i.loading = 'eager')));
+await p.waitForTimeout(1500);
+const over = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+await p.screenshot({ path: out, fullPage: true });
+await b.close();
+console.log('horizontal overflow px:', over, errs.length ? 'ERRORS ' + errs.join(';') : 'no errors');

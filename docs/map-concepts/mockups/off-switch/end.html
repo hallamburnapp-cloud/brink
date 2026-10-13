@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390, initial-scale=1">
+<title>Off Switch — Switched off</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+  :root {
+    --amber: #FFB547; --amber-core: #FFE3A3; --amber-end: #FFD58A;
+    --cyan: #45E6E0; --ice: #D9FFFC; --txt: #E8EEF8; --sec: #8B97AD; --goal: #C9D3E6;
+    --glass: rgba(10, 18, 34, 0.72);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #070D1A; }
+  body { font-family: 'Jost', sans-serif; color: var(--txt); -webkit-font-smoothing: antialiased; }
+  .screen { position: relative; width: 390px; height: 844px; overflow: hidden; background: #070D1A; }
+  #map { position: absolute; left: 0; top: 0; }
+  .abs { position: absolute; }
+  .glass { background: var(--glass); backdrop-filter: blur(12px) saturate(120%); -webkit-backdrop-filter: blur(12px) saturate(120%);
+           border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 8px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04); }
+  .scrim-top { left: 0; top: 0; width: 390px; height: 64px; background: linear-gradient(rgba(3,6,12,0.85), rgba(3,6,12,0)); }
+  .status { left: 0; top: 0; width: 390px; height: 47px; }
+  .status .time { position: absolute; left: 50px; top: 15px; font: 600 16.5px/20px 'Jost'; color: #fff; }
+  .status .glyphs { position: absolute; right: 30px; top: 18px; display: flex; gap: 6px; align-items: center; }
+
+  .h1 { left: 0; top: 58px; width: 390px; text-align: center; font: 600 24px/32px 'Jost'; color: var(--amber-core); letter-spacing: 0.005em;
+        text-shadow: 0 0 18px rgba(255,181,71,0.45), 0 0 2px rgba(255,200,120,0.4); }
+  .h2 { left: 0; top: 98px; width: 390px; text-align: center; font: 400 15px/20px 'Jost'; color: var(--goal); letter-spacing: 0.01em; }
+
+  .replay { left: 145px; top: 530px; width: 100px; height: 32px; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 7px;
+            font: 500 13px/16px 'Jost'; color: var(--txt); letter-spacing: 0.02em; }
+  .tl { left: 12px; top: 568px; width: 366px; height: 78px; border-radius: 14px; }
+  .axis { position: absolute; top: 62px; font: 500 10px/12px 'Jost'; color: var(--sec); letter-spacing: 0.03em; font-variant-numeric: tabular-nums; }
+
+  .facts { left: 24px; top: 654px; width: 342px; }
+  .fact { display: flex; align-items: center; gap: 10px; height: 20px; margin-bottom: 0; font: 400 13px/16px 'Jost'; color: var(--txt); letter-spacing: 0.005em; }
+  .fact svg { flex: none; }
+  .fact b { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  .next { left: 16px; top: 722px; width: 286px; height: 48px; border-radius: 24px; display: flex; align-items: center; justify-content: center; gap: 8px;
+          background: linear-gradient(180deg, #FFC56A, #FFB547 55%, #F4A63A); color: #070D1A; font: 600 16px/20px 'Jost'; letter-spacing: 0.02em;
+          box-shadow: 0 0 24px rgba(255,181,71,0.35), 0 8px 20px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -2px 0 rgba(150,80,0,0.25); }
+  .share { left: 326px; top: 722px; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .link { left: 0; top: 780px; width: 390px; height: 20px; text-align: center; font: 500 14px/20px 'Jost'; color: var(--sec); letter-spacing: 0.01em; }
+  .link span { border-bottom: 1px solid rgba(139,151,173,0.35); padding-bottom: 1px; }
+  .scrim-bot { left: 0; top: 806px; width: 390px; height: 38px; background: linear-gradient(rgba(3,6,12,0), rgba(3,6,12,0.7)); }
+  .home { left: 128px; top: 830px; width: 134px; height: 5px; border-radius: 3px; background: #fff; opacity: 0.92; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <canvas id="map"></canvas>
+  <div class="abs scrim-top"></div>
+  <div class="abs status">
+    <div class="time">9:41</div>
+    <div class="glyphs">
+      <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="#fff"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="#fff"/><rect x="10" y="3" width="3" height="9" rx="1" fill="#fff"/><rect x="15" y="0" width="3" height="12" rx="1" fill="#fff"/></svg>
+      <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 11.2 L5.6 8.6 A3.4 3.4 0 0 1 10.4 8.6 Z" fill="#fff"/><path d="M3.4 6.4 A6.6 6.6 0 0 1 12.6 6.4" stroke="#fff" stroke-width="1.7" fill="none" stroke-linecap="round"/><path d="M1.1 3.9 A9.8 9.8 0 0 1 14.9 3.9" stroke="#fff" stroke-width="1.7" fill="none" stroke-linecap="round"/></svg>
+      <svg width="27" height="13" viewBox="0 0 27 13"><rect x="0.5" y="0.5" width="23" height="12" rx="3.6" stroke="rgba(255,255,255,0.45)" fill="none"/><rect x="2.2" y="2.2" width="16.5" height="8.6" rx="2" fill="#fff"/><path d="M25 4.4 v4.2 a2 2 0 0 0 0 -4.2z" fill="rgba(255,255,255,0.5)"/></svg>
+    </div>
+  </div>
+
+  <div class="abs h1">Switched off on Day 412.</div>
+  <div class="abs h2">The world is messy again. Lovely.</div>
+
+  <div class="abs replay glass">
+    <svg width="11" height="12" viewBox="0 0 11 12"><path d="M1.5 1.2 L10 6 L1.5 10.8 Z" fill="#E8EEF8" stroke="#E8EEF8" stroke-width="1" stroke-linejoin="round"/></svg>
+    Replay
+  </div>
+
+  <!-- timeline card -->
+  <div class="abs tl glass">
+    <svg width="366" height="78" viewBox="0 0 366 78" style="position:absolute;left:0;top:0" id="tlsvg"></svg>
+    <div class="axis" style="left:14px">Day 1</div>
+    <div class="axis" style="right:14px">Day 412</div>
+  </div>
+
+  <div class="abs facts">
+    <div class="fact">
+      <svg width="16" height="16" viewBox="0 0 16 16"><rect x="0.75" y="0.75" width="14.5" height="14.5" rx="3.5" fill="#020305" stroke="#3A4250" stroke-width="1.5"/><path d="M8 3.6 V7.4" stroke="#E8EEF8" stroke-width="1.5" stroke-linecap="round"/><path d="M5.3 5.2 A3.8 3.8 0 1 0 10.7 5.2" stroke="#E8EEF8" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+      <span>You switched off <b>6</b> places. You took back <b>4</b>.</span>
+    </div>
+    <div class="fact">
+      <svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 1 L14.2 4.5 V11.5 L8 15 L1.8 11.5 V4.5 Z" fill="rgba(255,181,71,0.16)" stroke="#FFB547" stroke-width="1.5" stroke-linejoin="round"/><path d="M5.2 8.2 L7.2 10.1 L10.9 6" stroke="#FFE3A3" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>TIDY never reached <b>Farsouth</b>.</span>
+    </div>
+    <div class="fact">
+      <svg width="16" height="16" viewBox="0 0 16 16"><g transform="rotate(45 8 8)"><path d="M8 0.8 C8.9 0.8 9.2 2 9.2 3.2 V6.2 L15 9.4 V11 L9.2 9.4 V12.6 L11 14 V15.2 L8 14.4 L5 15.2 V14 L6.8 12.6 V9.4 L1 11 V9.4 L6.8 6.2 V3.2 C6.8 2 7.1 0.8 8 0.8 Z" fill="#45E6E0"/></g></svg>
+      <span>It learned to fly on <b>Day 160</b>.</span>
+    </div>
+  </div>
+
+  <div class="abs next">Next AI
+    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 8 H12.5 M8.8 4 L12.8 8 L8.8 12" stroke="#070D1A" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="abs share glass">
+    <svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 2.5 V12.5 M6.2 6 L10 2.3 L13.8 6" stroke="#E8EEF8" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.5 9 H5.2 A1.7 1.7 0 0 0 3.5 10.7 V16 A1.7 1.7 0 0 0 5.2 17.7 H14.8 A1.7 1.7 0 0 0 16.5 16 V10.7 A1.7 1.7 0 0 0 14.8 9 H13.5" stroke="#E8EEF8" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+  </div>
+  <div class="abs link"><span>Same world, same start</span></div>
+  <div class="abs scrim-bot"></div>
+  <div class="abs home"></div>
+</div>
+<script src="world.js"></script>
+<script>
+(async function () {
+  await document.fonts.load('600 24px Jost'); await document.fonts.load('500 10px Jost'); await document.fonts.ready;
+  const W = 388 * 374 / 546;
+  const out = OffSwitchWorld.paint(document.getElementById('map'), {
+    cssW: 390, cssH: 844, dpr: window.devicePixelRatio || 2, rect: { x: 195 - W / 2, y: 132, w: W, h: 388 }, state: 'win',
+    labels: false, oceanFlat: true, labSize: 10, grain: 0.12, bloom: 0.38
+  });
+
+
+  // timeline: the race, scaled so its top is the finish line
+  const svg = document.getElementById('tlsvg');
+  const X0 = 14, X1 = 344, Y0 = 54, Y1 = 16;
+  const dx = d => X0 + (d - 1) / 411 * (X1 - X0), dy = v => Y0 + (Y1 - Y0) * v;
+  const sig = (d, c, w) => 1 / (1 + Math.exp(-(d - c) / w));
+  // amber: three clear steps (Find it, Build it, Test it) that touch the line on Day 412
+  const amberV = d => Math.min(1, 0.025 * d / 412 + 0.31 * sig(d, 146, 6) + 0.31 * sig(d, 298, 6) + 0.36 * sig(d, 404, 4.2));
+  // TIDY: climbs to about two-thirds, then falls away
+  const blueV = d => { const up = 0.67 * (1 - Math.exp(-d / 150)) / (1 - Math.exp(-336 / 150)); const fall = d > 336 ? Math.pow((d - 336) / 76, 1.6) : 0; return Math.max(0.03, (d <= 336 ? up : 0.67) * (1 - 0.95 * fall)); };
+  const pathOf = f => { let d = ''; for (let k = 1; k <= 412; k += 1) d += (k === 1 ? 'M' : 'L') + dx(k).toFixed(1) + ',' + dy(f(k)).toFixed(1) + ' '; return d; };
+  const aPath = pathOf(amberV), bPath = pathOf(blueV);
+  const sq = (d) => { const x = dx(d), y = dy(amberV(d)); return `<rect x="${x - 3.6}" y="${y - 3.6}" width="7.2" height="7.2" rx="1.2" fill="#020305" stroke="#C9D3E6" stroke-opacity="0.75" stroke-width="1"/>`; };
+  const arr = (d) => { const x = dx(d), y = dy(amberV(d)); return `<g transform="translate(${x},${y})"><circle r="4.6" fill="#0A1222"/><path d="M0 -3.4 L3 0 H1.2 V3 H-1.2 V0 H-3 Z" fill="#FFB547"/></g>`; };
+  const eye = (d) => { const x = dx(d), y = dy(blueV(d)); return `<g transform="translate(${x - 6.5},${y - 4.5})"><path d="M0.5 4.5 C3.2 0.4 9.8 0.4 12.5 4.5 C9.8 8.6 3.2 8.6 0.5 4.5 Z" fill="#0A1222" stroke="#45E6E0" stroke-width="1.2" stroke-linejoin="round"/><circle cx="6.5" cy="4.5" r="2" fill="#45E6E0"/></g>`; };
+  let s = `
+    <defs>
+      <linearGradient id="ga" x1="0" x2="1"><stop offset="0" stop-color="#FFB547" stop-opacity="0.7"/><stop offset="1" stop-color="#FFD58A"/></linearGradient>
+      <linearGradient id="gaf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFB547" stop-opacity="0.24"/><stop offset="1" stop-color="#FFB547" stop-opacity="0"/></linearGradient>
+      <linearGradient id="gbf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#45E6E0" stop-opacity="0.16"/><stop offset="1" stop-color="#45E6E0" stop-opacity="0"/></linearGradient>
+      <filter id="gl" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="2"/></filter>
+    </defs>
+    <line x1="${X0}" x2="${X1}" y1="${dy(1/3)}" y2="${dy(1/3)}" stroke="rgba(255,255,255,0.06)"/>
+    <line x1="${X0}" x2="${X1}" y1="${dy(2/3)}" y2="${dy(2/3)}" stroke="rgba(255,255,255,0.06)"/>
+    <line x1="${X0}" x2="${X1}" y1="${Y0 + 0.5}" y2="${Y0 + 0.5}" stroke="rgba(255,255,255,0.16)"/>
+    <path d="${bPath} L${dx(412)},${Y0} L${dx(1)},${Y0} Z" fill="url(#gbf)"/>
+    <path d="${aPath} L${dx(412)},${Y0} L${dx(1)},${Y0} Z" fill="url(#gaf)"/>
+    <line x1="${X0}" x2="${X1 + 4}" y1="${Y1}" y2="${Y1}" stroke="#FFFFFF" stroke-opacity="0.85" stroke-width="1.2" stroke-dasharray="3 3"/>
+    <path d="${bPath}" fill="none" stroke="#45E6E0" stroke-width="3" opacity="0.35" filter="url(#gl)"/>
+    <path d="${bPath}" fill="none" stroke="#45E6E0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="${aPath}" fill="none" stroke="#FFB547" stroke-width="3.5" opacity="0.5" filter="url(#gl)"/>
+    <path d="${aPath}" fill="none" stroke="url(#ga)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  `;
+  [160, 330].forEach(d => s += eye(d));
+  [98, 120, 176, 210, 262, 322].forEach(d => s += sq(d));
+  [232, 280, 350, 374].forEach(d => s += arr(d));
+  // the touch: amber meets the finish line under the flag
+  const fx = dx(412), fy = dy(1);
+  s += `<circle cx="${fx}" cy="${fy}" r="7" fill="#FFB547" opacity="0.25" filter="url(#gl)"/><circle cx="${fx}" cy="${fy}" r="3.2" fill="#FFF3DA"/>
+    <g transform="translate(${fx + 1},${fy - 13})" shape-rendering="crispEdges">
+      <rect x="0" y="0" width="1" height="13" fill="#FFFFFF"/>
+      <rect x="1" y="0" width="8" height="6" fill="#FFFFFF"/>
+      <rect x="1" y="0" width="2" height="2" fill="#0A1222"/><rect x="5" y="0" width="2" height="2" fill="#0A1222"/>
+      <rect x="3" y="2" width="2" height="2" fill="#0A1222"/><rect x="7" y="2" width="2" height="2" fill="#0A1222"/>
+      <rect x="1" y="4" width="2" height="2" fill="#0A1222"/><rect x="5" y="4" width="2" height="2" fill="#0A1222"/>
+    </g>`;
+  svg.innerHTML = s;
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>
