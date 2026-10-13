@@ -1,0 +1,17 @@
+bare                               None      target   1350 clear  71.0%  median total 1468
+bare                               None      target   1800 clear  34.0%  median total 1566
+bare                               None      target   2500 clear   7.0%  median total 1588
+bare                               GRIDLOCK  target    600 clear  83.5%  median total 658
+duty                               None      target   1800 clear  92.0%  median total 2030
+duty                               None      target   2500 clear  49.5%  median total 2498
+duty                               None      target   3750 clear  10.0%  median total 2611
+duty+hotline                       BLACKOUT  target   1800 clear 100.0%  median total 2303
+duty+hotline                       None      target   2500 clear  99.0%  median total 3044
+duty+hotline                       None      target   3750 clear  83.0%  median total 4108
+duty+hotline                       None      target   5000 clear  58.5%  median total 5136
+hotline+duty+strategist            None      target   3750 clear  96.5%  median total 4474
+hotline+duty+strategist            None      target   5000 clear  92.5%  median total 5866
+hotline+duty+strategist            None      target   9000 clear  53.5%  median total 9090
+hotline+duty+strategist            FULLTABLE target   5000 clear  91.5%  median total 5888
+harbour+hotline+duty+strategist    None      target   9000 clear  91.5%  median total 9946
+harbour+hotline+duty+strategist    None      target  12000 clear  81.0%  median total 12873

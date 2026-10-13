@@ -1,0 +1,3 @@
+hotline+duty+strategist             target   2500 clear 100.0%  median total 3816
+hotline+duty+strategist             target   3750 clear 100.0%  median total 4150
+hotline+duty+strategist             target   5000 clear 100.0%  median total 6008

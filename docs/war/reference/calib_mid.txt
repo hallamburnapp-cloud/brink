@@ -1,0 +1,6 @@
+duty                                target   1800 clear  98.8%  median total 2046
+duty                                target   2500 clear  85.0%  median total 2698
+duty                                target   3750 clear  20.0%  median total 3246
+duty+hotline                        target   1800 clear 100.0%  median total 2016
+duty+hotline                        target   2500 clear 100.0%  median total 3041
+duty+hotline                        target   3750 clear  91.2%  median total 4170

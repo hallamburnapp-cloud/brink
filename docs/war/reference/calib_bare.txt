@@ -1,0 +1,3 @@
+bare                                target   1350 clear  85.0%  median total 1484
+bare                                target   1800 clear  71.2%  median total 1900
+bare                                target   2500 clear   6.2%  median total 1912

@@ -1,0 +1,32 @@
+drawn borders not in LAND: []
+LAND joins with no drawn border (must be drawn as causeway/bridge): [('DRF', 'GUL'), ('DRF', 'LNK'), ('GUL', 'LNK'), ('GUL', 'TRN'), ('LNK', 'PBB'), ('LNK', 'SHL'), ('LNK', 'TRN'), ('PBB', 'SHL'), ('PBB', 'TRN')]
+Driftholm      area  1804 pt^2  ~ 42 pt square
+Gullrest       area  1804 pt^2  ~ 42 pt square
+Tern Isle      area  1804 pt^2  ~ 42 pt square
+Lantern Key    area  1804 pt^2  ~ 42 pt square
+Pebbleby       area  1804 pt^2  ~ 42 pt square
+Shoal          area  1804 pt^2  ~ 42 pt square
+Brackwater     area  3365 pt^2  ~ 58 pt square
+Rimeholt       area  3878 pt^2  ~ 62 pt square
+Orrinth        area  4077 pt^2  ~ 64 pt square
+Lintel         area  4105 pt^2  ~ 64 pt square
+Vessary        area  4113 pt^2  ~ 64 pt square
+Dunmarrow      area  4114 pt^2  ~ 64 pt square
+Quillon        area  4174 pt^2  ~ 65 pt square
+Kelpmouth      area  4183 pt^2  ~ 65 pt square
+Morrow Downs   area  4343 pt^2  ~ 66 pt square
+Ashkettle      area  4594 pt^2  ~ 68 pt square
+Edda Vale      area  5310 pt^2  ~ 73 pt square
+Northwake      area  5396 pt^2  ~ 73 pt square
+Tallowmere     area  5465 pt^2  ~ 74 pt square
+Frostmere      area  5622 pt^2  ~ 75 pt square
+Wintermast     area  6106 pt^2  ~ 78 pt square
+Wenmoor        area  6109 pt^2  ~ 78 pt square
+Saltwhite      area  6527 pt^2  ~ 81 pt square
+Glassmoor      area  6584 pt^2  ~ 81 pt square
+Brindle Coast  area  7046 pt^2  ~ 84 pt square
+Kellmark       area  7288 pt^2  ~ 85 pt square
+Floe End       area  7294 pt^2  ~ 85 pt square
+Hearth         area  7453 pt^2  ~ 86 pt square
+Iceward        area  7492 pt^2  ~ 87 pt square
+Marram         area  8630 pt^2  ~ 93 pt square

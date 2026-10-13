@@ -1,0 +1,19 @@
+bare                               None      target    300 clear 100.0%  median total 414
+bare                               None      target    450 clear 100.0%  median total 618
+bare                               None      target    600 clear  98.0%  median total 708
+bare                               None      target    900 clear  90.0%  median total 992
+bare                               None      target   1350 clear  61.0%  median total 1410
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user/8a83eba3-4efc-53f8-a9ad-433378148d32/scratchpad/winner/calib2.py", line 18, in <module>
+    ok, tot, left, top = play_crisis(w, t, rng, use_air=False, twist=twist)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user/8a83eba3-4efc-53f8-a9ad-433378148d32/scratchpad/winner/crisis.py", line 41, in play_crisis
+    lev, k, sc, top = score(w, pick[1], lit, hot, twist, commit=True)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user/8a83eba3-4efc-53f8-a9ad-433378148d32/scratchpad/winner/engine.py", line 70, in score
+    k, scoring = P.detect(sel, adj=adj, regions={r: regs_view[r] for r in live}, bloc_of=bloc_of, live_regions=live)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user/8a83eba3-4efc-53f8-a9ad-433378148d32/scratchpad/winner/patterns.py", line 45, in detect
+    sel = set(sel)
+          ^^^^^^^^
+TypeError: 'NoneType' object is not iterable
