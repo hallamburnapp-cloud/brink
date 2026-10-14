@@ -1,0 +1,708 @@
+{
+ "frame": {
+  "w": 390,
+  "h": 520,
+  "portraitScreenOrigin": [
+   0,
+   171
+  ]
+ },
+ "colours": {
+  "CAP": {
+   "name": "The Cap",
+   "hex": "#7CC4FF",
+   "glyph": "triangle"
+  },
+  "HMR": {
+   "name": "Highmarch",
+   "hex": "#3FBFA0",
+   "glyph": "circle"
+  },
+  "SCT": {
+   "name": "The Scatter",
+   "hex": "#E8C15A",
+   "glyph": "diamond"
+  },
+  "SND": {
+   "name": "Sundry",
+   "hex": "#EF7F6A",
+   "glyph": "square"
+  },
+  "FRS": {
+   "name": "Farsouth",
+   "hex": "#A98BFF",
+   "glyph": "hexagon"
+  }
+ },
+ "regions": [
+  {
+   "id": "NWK",
+   "name": "Northwake",
+   "colour": "CAP",
+   "weight": 4,
+   "x": 62,
+   "y": 44,
+   "capital": false,
+   "port": true
+  },
+  {
+   "id": "FRM",
+   "name": "Frostmere",
+   "colour": "CAP",
+   "weight": 3,
+   "x": 158,
+   "y": 36,
+   "capital": false,
+   "port": false
+  },
+  {
+   "id": "WMS",
+   "name": "Wintermast",
+   "colour": "CAP",
+   "weight": 10,
+   "x": 258,
+   "y": 40,
+   "capital": true,
+   "port": false
+  },
+  {
+   "id": "WNM",
+   "name": "Wenmoor",
+   "colour": "CAP",
+   "weight": 6,
+   "x": 104,
+   "y": 100,
+   "capital": false,
+   "port": false
+  },
+  {
+   "id": "GLM",
+   "name": "Glassmoor",
+   "colour": "CAP",
+   "weight": 5,
+   "x": 204,
+   "y": 104,
+   "capital": false,
+   "port": true
+  },
+  {
+   "id": "KLM",
+   "name": "Kellmark",
+   "colour": "CAP",
+   "weight": 7,
+   "x": 316,
+   "y": 94,
+   "capital": false,
+   "port": true
+  },
+  {
+   "id": "VSY",
+   "name": "Vessary",
+   "colour": "HMR",
+   "weight": 5,
+   "x": 38,
+   "y": 176,
+   "capital": false,
+   "port": true
+  },
+  {
+   "id": "RMH",
+   "name": "Rimeholt",
+   "colour": "HMR",
+   "weight": 3,
+   "x": 104,
+   "y": 170,
+   "capital": false,
+   "port": true
+  },
+  {
+   "id": "QLN",
+   "name": "Quillon",
+   "colour": "HMR",
+   "weight": 4,
+   "x": 30,
+   "y": 250,
+   "capital": false,
+   "port": false
+  },
+  {
+   "id": "EDV",
+   "name": "Edda Vale",
+   "colour": "HMR",
+   "weight": 10,
+   "x": 92,
+   "y": 248,
+   "capital": true,
+   "port": false
+  },
+  {
+   "id": "ASK",
+   "name": "Ashkettle",
+   "colour": "HMR",
+   "weight": 6,
+   "x": 40,
+   "y": 330,
+   "capital": false,
+   "port": true
+  },
+  {
+   "id": "MRD",
+   "name": "Morrow Downs",
+   "colour": "HMR",
+   "weight": 7,
+   "x": 110,
+   "y": 322,
+   "capital": false,
+   "port": true
+  },
+  {
+   "id": "GUL",
+   "name": "Gullrest",
+   "colour": "SCT",
+   "weight": 3,
+   "x": 176,
+   "y": 192,
+   "capital": false,
+   "port": true
+  },
+  {
+   "id": "DRF",
+   "name": "Driftholm",
+   "colour": "SCT",
+   "weight": 4,
+   "x": 226,
+   "y": 186,
+   "capital": false,
+   "port": true
+  },
+  {
+   "id": "TRN",
+   "name": "Tern Isle",
+   "colour": "SCT",
+   "weight": 5,
+   "x": 172,
+   "y": 258,
+   "capital": false,
+   "port": true
+  },
+  {
+   "id": "LNK",
+   "name": "Lantern Key",
+   "colour": "SCT",
+   "weight": 10,
+   "x": 222,
+   "y": 258,
+   "capital": true,
+   "port": false
+  },
+  {
+   "id": "PBB",
+   "name": "Pebbleby",
+   "colour": "SCT",
+   "weight": 6,
+   "x": 178,
+   "y": 324,
+   "capital": false,
+   "port": true
+  },
+  {
+   "id": "SHL",
+   "name": "Shoal",
+   "colour": "SCT",
+   "weight": 7,
+   "x": 228,
+   "y": 324,
+   "capital": false,
+   "port": true
+  },
+  {
+   "id": "KLP",
+   "name": "Kelpmouth",
+   "colour": "SND",
+   "weight": 5,
+   "x": 298,
+   "y": 172,
+   "capital": false,
+   "port": true
+  },
+  {
+   "id": "BRK",
+   "name": "Brackwater",
+   "colour": "SND",
+   "weight": 4,
+   "x": 362,
+   "y": 172,
+   "capital": false,
+   "port": false
+  },
+  {
+   "id": "LTL",
+   "name": "Lintel",
+   "colour": "SND",
+   "weight": 6,
+   "x": 290,
+   "y": 250,
+   "capital": false,
+   "port": true
+  },
+  {
+   "id": "TLM",
+   "name": "Tallowmere",
+   "colour": "SND",
+   "weight": 10,
+   "x": 342,
+   "y": 246,
+   "capital": true,
+   "port": false
+  },
+  {
+   "id": "DNM",
+   "name": "Dunmarrow",
+   "colour": "SND",
+   "weight": 3,
+   "x": 298,
+   "y": 330,
+   "capital": false,
+   "port": false
+  },
+  {
+   "id": "ORN",
+   "name": "Orrinth",
+   "colour": "SND",
+   "weight": 7,
+   "x": 356,
+   "y": 334,
+   "capital": false,
+   "port": true
+  },
+  {
+   "id": "BRN",
+   "name": "Brindle Coast",
+   "colour": "FRS",
+   "weight": 6,
+   "x": 60,
+   "y": 418,
+   "capital": false,
+   "port": true
+  },
+  {
+   "id": "MRM",
+   "name": "Marram",
+   "colour": "FRS",
+   "weight": 10,
+   "x": 192,
+   "y": 410,
+   "capital": true,
+   "port": true
+  },
+  {
+   "id": "FLE",
+   "name": "Floe End",
+   "colour": "FRS",
+   "weight": 7,
+   "x": 324,
+   "y": 418,
+   "capital": false,
+   "port": true
+  },
+  {
+   "id": "ICW",
+   "name": "Iceward",
+   "colour": "FRS",
+   "weight": 4,
+   "x": 98,
+   "y": 480,
+   "capital": false,
+   "port": false
+  },
+  {
+   "id": "SLW",
+   "name": "Saltwhite",
+   "colour": "FRS",
+   "weight": 3,
+   "x": 196,
+   "y": 486,
+   "capital": false,
+   "port": false
+  },
+  {
+   "id": "HRT",
+   "name": "Hearth",
+   "colour": "FRS",
+   "weight": 5,
+   "x": 296,
+   "y": 480,
+   "capital": false,
+   "port": false
+  }
+ ],
+ "landmassOutlines": {
+  "CAP": [
+   [
+    24,
+    22
+   ],
+   [
+    120,
+    12
+   ],
+   [
+    300,
+    14
+   ],
+   [
+    354,
+    38
+   ],
+   [
+    364,
+    112
+   ],
+   [
+    300,
+    130
+   ],
+   [
+    150,
+    136
+   ],
+   [
+    60,
+    126
+   ],
+   [
+    24,
+    82
+   ]
+  ],
+  "HMR": [
+   [
+    10,
+    148
+   ],
+   [
+    128,
+    144
+   ],
+   [
+    134,
+    206
+   ],
+   [
+    128,
+    290
+   ],
+   [
+    136,
+    356
+   ],
+   [
+    80,
+    366
+   ],
+   [
+    12,
+    356
+   ],
+   [
+    6,
+    250
+   ]
+  ],
+  "SND": [
+   [
+    266,
+    144
+   ],
+   [
+    382,
+    148
+   ],
+   [
+    386,
+    252
+   ],
+   [
+    382,
+    360
+   ],
+   [
+    318,
+    364
+   ],
+   [
+    270,
+    354
+   ],
+   [
+    264,
+    252
+   ]
+  ],
+  "FRS": [
+   [
+    18,
+    392
+   ],
+   [
+    150,
+    380
+   ],
+   [
+    250,
+    378
+   ],
+   [
+    368,
+    392
+   ],
+   [
+    374,
+    502
+   ],
+   [
+    250,
+    514
+   ],
+   [
+    120,
+    514
+   ],
+   [
+    20,
+    500
+   ]
+  ]
+ },
+ "islands": {
+  "radius": 24,
+  "regions": [
+   "GUL",
+   "DRF",
+   "TRN",
+   "LNK",
+   "PBB",
+   "SHL"
+  ]
+ },
+ "landJoins": [
+  [
+   "NWK",
+   "FRM"
+  ],
+  [
+   "FRM",
+   "WMS"
+  ],
+  [
+   "NWK",
+   "WNM"
+  ],
+  [
+   "FRM",
+   "WNM"
+  ],
+  [
+   "FRM",
+   "GLM"
+  ],
+  [
+   "WMS",
+   "GLM"
+  ],
+  [
+   "WMS",
+   "KLM"
+  ],
+  [
+   "WNM",
+   "GLM"
+  ],
+  [
+   "GLM",
+   "KLM"
+  ],
+  [
+   "VSY",
+   "RMH"
+  ],
+  [
+   "VSY",
+   "QLN"
+  ],
+  [
+   "VSY",
+   "EDV"
+  ],
+  [
+   "RMH",
+   "EDV"
+  ],
+  [
+   "QLN",
+   "EDV"
+  ],
+  [
+   "QLN",
+   "ASK"
+  ],
+  [
+   "EDV",
+   "ASK"
+  ],
+  [
+   "EDV",
+   "MRD"
+  ],
+  [
+   "ASK",
+   "MRD"
+  ],
+  [
+   "GUL",
+   "DRF"
+  ],
+  [
+   "GUL",
+   "TRN"
+  ],
+  [
+   "GUL",
+   "LNK"
+  ],
+  [
+   "DRF",
+   "LNK"
+  ],
+  [
+   "TRN",
+   "LNK"
+  ],
+  [
+   "TRN",
+   "PBB"
+  ],
+  [
+   "LNK",
+   "PBB"
+  ],
+  [
+   "LNK",
+   "SHL"
+  ],
+  [
+   "PBB",
+   "SHL"
+  ],
+  [
+   "KLP",
+   "BRK"
+  ],
+  [
+   "KLP",
+   "LTL"
+  ],
+  [
+   "KLP",
+   "TLM"
+  ],
+  [
+   "BRK",
+   "TLM"
+  ],
+  [
+   "LTL",
+   "TLM"
+  ],
+  [
+   "LTL",
+   "DNM"
+  ],
+  [
+   "TLM",
+   "DNM"
+  ],
+  [
+   "TLM",
+   "ORN"
+  ],
+  [
+   "DNM",
+   "ORN"
+  ],
+  [
+   "BRN",
+   "MRM"
+  ],
+  [
+   "MRM",
+   "FLE"
+  ],
+  [
+   "BRN",
+   "ICW"
+  ],
+  [
+   "MRM",
+   "ICW"
+  ],
+  [
+   "MRM",
+   "SLW"
+  ],
+  [
+   "MRM",
+   "HRT"
+  ],
+  [
+   "FLE",
+   "HRT"
+  ],
+  [
+   "ICW",
+   "SLW"
+  ],
+  [
+   "SLW",
+   "HRT"
+  ]
+ ],
+ "seaLanes": [
+  [
+   "NWK",
+   "VSY"
+  ],
+  [
+   "KLM",
+   "KLP"
+  ],
+  [
+   "GLM",
+   "DRF"
+  ],
+  [
+   "RMH",
+   "GUL"
+  ],
+  [
+   "MRD",
+   "TRN"
+  ],
+  [
+   "ASK",
+   "BRN"
+  ],
+  [
+   "SHL",
+   "LTL"
+  ],
+  [
+   "PBB",
+   "MRM"
+  ],
+  [
+   "ORN",
+   "FLE"
+  ]
+ ]
+}
