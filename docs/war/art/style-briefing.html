@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390, initial-scale=1">
+<title>War Room Briefing</title>
+<!--
+  Style frame: the Briefing tray risen over the map after the 23:00 Standoff in style-frame.html
+  cleared (1,046 + 3,744 = 4,790 against 1,350; Funds 11 -> 19). Offers: the Admiral (Rare staff)
+  and ECHO (an Order); a Recruit Folder; REROLL and NEXT CRISIS. Rects from PROTOTYPE-SPEC.md 10.
+-->
+<link rel="stylesheet" href="../../../public/war/fonts/fonts.css">
+<link rel="stylesheet" href="lib/tokens.css">
+<link rel="stylesheet" href="lib/war-room.css">
+</head>
+<body>
+<div class="screen" id="screen">
+  <div id="chrome"></div>
+
+  <!-- MAP 0,171,390,520 (visible from 171 to 451) -->
+  <div class="abs map"><canvas id="map"></canvas></div>
+
+  <!-- THE BRIEFING TRAY 0,451,390,356 -->
+  <div class="abs tray"><div class="grab"></div></div>
+  <div class="abs tray-head" style="left:16px; top:463px;">
+    <span class="t">BRIEFING</span><span class="sep">&middot;</span>
+    <span class="n">next:</span><span class="c">SUMMIT</span><span class="v num">1,800</span>
+  </div>
+
+  <!-- Offer 1: a staff (16,489,171,150) -->
+  <div class="abs offer rare" style="left:16px; top:489px; width:171px; height:150px;">
+    <div class="body">
+      <div class="felt"></div>
+      <div class="tag">RARE &middot; PIN</div>
+      <div class="seatchip" id="chip-admiral"></div>
+      <div class="obj" id="obj-admiral"></div>
+      <div class="name">ADMIRAL</div>
+      <div class="rule-text">Each Port that scores:<br><b>&times;1.5 Momentum</b></div>
+      <div class="price" id="price-admiral"></div>
+    </div>
+  </div>
+
+  <!-- Offer 2: an Order (203,489,171,150) -->
+  <div class="abs offer order" style="left:203px; top:489px; width:171px; height:150px;">
+    <div class="body">
+      <div class="tag">ORDER</div>
+      <div class="obj" id="obj-echo"></div>
+      <div class="typed-line"></div>
+      <div class="name">ECHO</div>
+      <div class="rule-text">Stamp 1 region.<br>It scores <b>twice</b>.</div>
+      <div class="price" id="price-echo"></div>
+    </div>
+    <div class="clip"></div>
+  </div>
+
+  <!-- Folder (16,651,171,88) -->
+  <div class="abs folder" style="left:16px; top:651px; width:171px; height:88px;">
+    <div class="back"></div>
+    <div class="peek" style="left:74px; top:6px; --rim: var(--pewter); transform: rotate(-3deg);"></div>
+    <div class="peek" style="left:98px; top:2px; --rim: var(--brass); transform: rotate(1.5deg);"></div>
+    <div class="peek" style="left:121px; top:5px; --rim: var(--pewter); transform: rotate(4deg);"></div>
+    <div class="front">
+      <div class="label">RECRUIT FOLDER</div>
+      <div class="sub">Pick 1 of 3 staff</div>
+      <div class="stamp" id="folder-stamp"></div>
+      <div class="price" id="price-folder"></div>
+    </div>
+  </div>
+
+  <!-- REROLL (203,651,171,40) and NEXT CRISIS (203,699,171,40) -->
+  <div class="abs btn-outline btn-row" style="left:203px; top:651px; width:171px; height:40px; flex-direction:row;">
+    <span class="btn-title">REROLL</span><span class="cost" id="cost-reroll"></span>
+  </div>
+  <div class="abs brass btn-row" style="left:203px; top:699px; width:171px; height:40px; flex-direction:row;">
+    <span class="btn-title" style="font-size:14px; letter-spacing:0.2em;">NEXT CRISIS</span><span id="arrow" style="display:inline-flex; width:15px; color:#2a1c08;"></span>
+  </div>
+
+  <!-- In-tray (same wells as in play: 120,745 and 178,745) and the payout receipt -->
+  <div class="abs" style="left:16px; top:752px; width:96px;">
+    <div class="label" style="color:var(--text-2); letter-spacing:0.24em;">IN-TRAY</div>
+    <div class="num" style="margin-top:8px; font:700 9px/9px var(--font-num); color:var(--text-3);">1 / 2</div>
+  </div>
+  <div class="abs well" style="left:120px; top:745px; width:52px; height:56px;">
+    <div class="slip"><div class="rule-line"></div><div class="stamp" id="slip-stamp"></div><div class="name">RELAY</div></div>
+  </div>
+  <div class="abs well" style="left:178px; top:745px; width:52px; height:56px;">
+    <div class="empty-mark">EMPTY</div>
+  </div>
+  <div class="abs receipt" style="left:238px; top:745px; width:136px; height:56px;">
+    <div class="row"><span>STANDOFF CLEARED</span><span>+4</span></div>
+    <div class="row"><span>1 SWEEP LEFT</span><span>+1</span></div>
+    <div class="row"><span>INTEREST</span><span>+2</span></div>
+    <div class="row"><span>OVERWHELM 2&times;</span><span>+1</span></div>
+  </div>
+
+  <div class="abs os-home"></div>
+  <div class="room-light"></div>
+</div>
+
+<script src="lib/textures.js"></script>
+<script src="lib/map-data.js"></script>
+<script src="lib/map-render.js"></script>
+<script src="lib/icons.js"></script>
+<script src="lib/kit.js"></script>
+<script>
+(async function () {
+  'use strict';
+  const I = WarIcons;
+  const K = WarKit;
+  const $ = (id) => document.getElementById(id);
+  const dia = I.diamond('currentColor');
+
+  $('chrome').innerHTML =
+    K.osStatus('22:41') +
+    K.bigBoard({
+      hh: '23', mm: '00', crisis: 'STANDOFF', dots: ['done', 'done', 'todo'], summit: 'BLACKOUT',
+      total: 4790, target: 1350, funds: 19, heat: false, ruleFill: 1, ruleDone: true, cleared: true,
+    }) +
+    K.rail([K.seatOf('duty'), K.seatOf('hotline'), K.seatOf('harbour'), K.seatOf('strategist'), null]);
+
+  $('obj-admiral').innerHTML = I.telescope();
+  $('chip-admiral').innerHTML = `<span style="color:var(--momentum)">&times;1.5</span>${I.anchorGlyph('var(--text-2)')}`;
+  $('price-admiral').innerHTML = `${dia}<span>8</span>`;
+  $('obj-echo').innerHTML = I.orderStamp('ECHO', 'offer');
+  $('price-echo').innerHTML = `${dia}<span>3</span>`;
+  $('folder-stamp').innerHTML = I.orderStamp('RECRUIT', 'folder');
+  $('price-folder').innerHTML = `${dia}<span>4</span>`;
+  $('cost-reroll').innerHTML = `${I.diamond('var(--brass-hi)')}<span>4</span>`;
+  $('arrow').innerHTML = I.arrowGlyph('#2a1c08');
+  $('slip-stamp').innerHTML = I.orderStamp('RELAY', 'slip');
+
+  await K.fontsReady();
+  // After the clear: nothing lit; the run's history stays on the table (threads, brass, stamps).
+  const regions = {
+    LNK: { brass: 1, glow: 0.15 },
+    SHL: { glow: 0.09 },
+    LTL: { glow: 0.06 },
+    KLP: { glow: 0.06, stamp: 'FORTIFY' },
+    TLM: { glow: 0.09, brass: 1 },
+    EDV: { glow: 0.12, brass: 1 },
+    MRD: { glow: 0.06 },
+    WMS: { glow: 0.12, brass: 1 },
+    FRM: { glow: 0.06 },
+    KLM: { glow: 0.06 },
+    MRM: { brass: 1, glow: 0.06 },
+  };
+  WarMap.paint($('map'), {
+    dpr: Math.max(2, window.devicePixelRatio || 1),
+    state: {
+      regions,
+      threads: [
+        { a: 'LNK', b: 'SHL', traffic: 3 },
+        { a: 'SHL', b: 'LTL', traffic: 3 },
+        { a: 'LTL', b: 'KLP', traffic: 2 },
+        { a: 'LTL', b: 'TLM', traffic: 2 },
+        { a: 'KLP', b: 'TLM', traffic: 4 },
+        { a: 'EDV', b: 'MRD', traffic: 4 },
+        { a: 'MRD', b: 'ASK', traffic: 2 },
+        { a: 'FRM', b: 'WMS', traffic: 3 },
+        { a: 'WMS', b: 'KLM', traffic: 2 },
+        { a: 'NWK', b: 'FRM', traffic: 1 },
+      ].map((t) => Object.assign(t, { alpha: 0.85 })),
+      flashpoint: { id: 'TLM', ring: 0.18, r0: 72, cooled: true },
+    },
+  });
+
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>

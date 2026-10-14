@@ -1,0 +1,483 @@
+/*
+ * War-room materials and components for the art pages. Rects come from PROTOTYPE-SPEC.md
+ * section 10 and are set inline on each element so they can be checked against the spec.
+ * Recipes are explained in ../STYLE.md.
+ */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--room-0); }
+body { -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision; }
+
+.screen {
+  position: relative;
+  width: 390px;
+  height: 844px;
+  overflow: hidden;
+  background: var(--table);
+  color: var(--text);
+  font-family: var(--font-label);
+}
+.abs { position: absolute; }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1, 'zero' 0; }
+.dia { width: 0.62em; height: 0.74em; vertical-align: -0.04em; }
+.glyph { width: 0.8em; height: 0.8em; vertical-align: -0.08em; }
+
+/* Room light: a lamp above-left of the table, 6% vignette at the frame edge. */
+.room-light {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(120% 70% at 18% -8%, rgba(255, 181, 71, 0.07), rgba(255, 181, 71, 0) 60%),
+    radial-gradient(140% 100% at 50% 45%, rgba(0, 0, 0, 0) 62%, rgba(0, 0, 0, 0.06) 100%);
+}
+
+/* ------------------------------------------------------------- OS chrome */
+.os-status { left: 0; top: 0; width: 390px; height: 47px; }
+.os-status .time {
+  position: absolute; left: 34px; top: 15px;
+  font: 600 15px/18px var(--font-label); letter-spacing: 0.02em; color: rgba(233, 226, 210, 0.82);
+}
+.os-status .icons { position: absolute; right: 26px; top: 17px; display: flex; gap: 6px; align-items: center; }
+.os-home { left: 0; top: 807px; width: 390px; height: 37px; }
+.os-home::after {
+  content: ''; position: absolute; left: 128px; top: 21px; width: 134px; height: 5px; border-radius: 3px;
+  background: rgba(233, 226, 210, 0.42);
+}
+
+/* ------------------------------------------------------------ Big Board */
+.board {
+  left: 0; top: 47px; width: 390px; height: 60px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 40%, rgba(0, 0, 0, 0.25)),
+    var(--board);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 -1px 0 rgba(0, 0, 0, 0.6);
+}
+/* Module dividers between the clock, leverage and funds sections (1 pt seam, engraved). */
+.board .divider { position: absolute; top: 4px; bottom: 6px; width: 1px; background: var(--board-seam); box-shadow: 1px 0 0 rgba(0, 0, 0, 0.55); }
+/* Housing screws at the corners. */
+.board .rivet { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #6a717c, #2a3038 60%, #15191e); box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06); }
+/* Backlight behind the leverage digits: amber, white-hot under HEAT. */
+.board .backlight {
+  position: absolute; left: 96px; top: 0; width: 220px; height: 60px; pointer-events: none;
+  background: radial-gradient(60% 75% at 50% 62%, rgba(255, 181, 71, 0.2), rgba(255, 181, 71, 0) 70%);
+  mix-blend-mode: screen;
+}
+.board.heat .backlight { background: radial-gradient(60% 80% at 50% 62%, rgba(255, 246, 224, 0.26), rgba(255, 246, 224, 0) 72%); }
+
+.label {
+  font: 700 8px/8px var(--font-label); letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-3);
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------- split-flap tile */
+.flaps { display: flex; align-items: stretch; }
+.flap {
+  position: relative; overflow: visible; isolation: isolate;
+  border-radius: 2.5px;
+  /* Two halves: the upper catches the board lamp, the lower sits in shadow; a 1 pt cut between. */
+  background: linear-gradient(180deg,
+    var(--flap-hi) 0%, var(--flap-hi-2) 49%, #07090b 49%, #07090b 51.5%, var(--flap-lo) 51.5%, var(--flap-lo-2) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 1px 0 0 rgba(255, 255, 255, 0.02),
+    0 1px 0 rgba(0, 0, 0, 0.9),
+    0 2px 5px rgba(0, 0, 0, 0.6);
+  color: var(--text);
+  font-family: var(--font-num); font-weight: 800; text-align: center;
+}
+.flap .ch { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.flap .ch.top { clip-path: inset(0 0 50% 0); }
+.flap .ch.bot { clip-path: inset(50% 0 0 0); filter: brightness(0.86); }
+/* Hinge pins either side of the cut. */
+.flap::before {
+  content: ''; position: absolute; left: -1.5px; right: -1.5px; top: calc(50% - 1.5px); height: 3px; z-index: 2;
+  background: linear-gradient(90deg, #3a414b 0 2px, transparent 2px calc(100% - 2px), #3a414b calc(100% - 2px));
+  border-radius: 1px;
+}
+/* The cut, drawn over the digit so it splits the glyph like the real thing. */
+.flap::after {
+  content: ''; position: absolute; left: 0; right: 0; top: calc(50% - 0.5px); height: 1px; z-index: 3;
+  background: #030405; box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.flap.blank .ch { display: none; }
+/* Mid-flip: the leaf has passed the vertical and is falling onto the lower half. Its back already
+   carries the new digit's lower half, foreshortened; the old lower half still shows beneath it. */
+.flap .leaf {
+  position: absolute; left: -0.5px; right: -0.5px; top: 50%; height: 31%; z-index: 4; overflow: hidden;
+  border-radius: 0 0 2px 2px;
+  background: linear-gradient(180deg, #0e1115, #191d23 85%, #2c333d);
+  box-shadow: 0 3px 4px rgba(0, 0, 0, 0.65);
+}
+.flap .leaf .ch {
+  position: absolute; left: 0; right: 0; top: 0; height: 322%; bottom: auto;
+  transform: translateY(-50%) scaleY(0.62); transform-origin: 50% 50%;
+  clip-path: inset(50% 0 0 0); filter: brightness(0.62);
+}
+
+/* The board is a lightbox: its backlight leaks through the gaps between the flaps.
+   Amber (--momentum) normally; white-hot (--heat) under HEAT. */
+.backlit {
+  border-radius: 3px;
+  background: rgba(255, 181, 71, 0.85);
+  box-shadow: 0 0 10px 2px rgba(255, 181, 71, 0.45), 0 0 26px 6px rgba(255, 181, 71, 0.16);
+}
+.backlit.soft { background: rgba(255, 181, 71, 0.45); box-shadow: 0 0 8px 1px rgba(255, 181, 71, 0.25); }
+.backlit.hot {
+  background: rgba(255, 246, 224, 0.95);
+  box-shadow: 0 0 9px 2px rgba(255, 246, 224, 0.45), 0 0 24px 5px rgba(255, 220, 170, 0.16);
+}
+/* Thousands separator: a comma-shaped slot in a dark plate, glowing with the backlight. */
+.comma-plate { position: relative; border-radius: 1.5px; background: linear-gradient(180deg, #15191f, #0b0d10); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.9); }
+.comma-plate span {
+  position: absolute; left: 50%; top: 13px; transform: translateX(-50%);
+  font: 800 18px/18px var(--font-num); color: #ffcf85; text-shadow: 0 0 6px rgba(255, 181, 71, 0.9);
+}
+.total.hot .comma-plate span { color: #fff8ea; text-shadow: 0 0 6px rgba(255, 246, 224, 0.95); }
+/* Under HEAT the leverage digits pick up the white-hot backlight. */
+.total.hot .flap .ch { text-shadow: 0 0 10px rgba(255, 246, 224, 0.35); }
+
+/* CLEARED: a rubber stamp in clears-green, 3 degrees off, slammed over the leverage tiles. */
+.stamp-cleared {
+  z-index: 5;
+  width: 132px; height: 34px; display: flex; align-items: center; justify-content: center;
+  font: 400 23px/23px var(--font-pattern); letter-spacing: 0.12em; padding-left: 0.12em; color: var(--clears);
+  border: 2.5px solid var(--clears); border-radius: 4px;
+  outline: 1px solid rgba(91, 227, 125, 0.45); outline-offset: -6px;
+  transform: rotate(-3deg);
+  background: linear-gradient(180deg, rgba(12, 30, 18, 0.95), rgba(8, 20, 12, 0.95));
+  box-shadow: 0 0 18px rgba(91, 227, 125, 0.4), inset 0 0 12px rgba(91, 227, 125, 0.22), 0 3px 8px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 0 10px rgba(91, 227, 125, 0.65);
+}
+.stamp-cleared::after { content: ''; position: absolute; inset: -3px; border-radius: 6px; background: var(--stamp-speck, none); pointer-events: none; }
+
+/* ------------------------------------------------------------ Funds coin */
+.funds { display: flex; align-items: center; gap: 8px; padding-left: 5px; }
+.funds .coin { width: 20px; height: 20px; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6)); }
+.funds .amount { font: 800 18px/18px var(--font-num); color: var(--brass-hi); letter-spacing: -0.02em; text-shadow: 0 0 10px rgba(242, 201, 76, 0.25); }
+
+/* --------------------------------------------------------- progress rule */
+.rule { left: 0; top: 103px; width: 390px; height: 4px; background: #06080b; box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.8); }
+.rule .fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: linear-gradient(90deg, #8a4f08, #e79a2c 70%, var(--momentum));
+  box-shadow: 0 0 8px rgba(255, 181, 71, 0.55);
+}
+.rule .fill::after { content: ''; position: absolute; right: -1px; top: -1px; bottom: -1px; width: 3px; background: var(--momentum-hi); box-shadow: 0 0 8px 2px rgba(255, 220, 160, 0.8); border-radius: 1px; }
+.rule.done .fill { background: linear-gradient(90deg, #d8cfbb, var(--heat)); box-shadow: 0 0 10px rgba(255, 246, 224, 0.7); }
+
+/* ----------------------------------------------------------- staff rail */
+.rail {
+  left: 0; top: 107px; width: 390px; height: 64px;
+  background:
+    linear-gradient(180deg, rgba(255, 220, 170, 0.05), rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.35)),
+    var(--leather-grain, none),
+    var(--leather-1);
+  box-shadow: inset 0 1px 0 rgba(255, 210, 150, 0.08), 0 3px 6px rgba(0, 0, 0, 0.55);
+}
+.rail .stitch { position: absolute; left: 6px; right: 6px; height: 0; border-top: 1px dashed var(--stitch); }
+
+.seat {
+  width: 64px; height: 58px; border-radius: 7px;
+  padding: 1.5px;
+  background: linear-gradient(145deg, var(--rim-hi) 0%, var(--rim) 40%, var(--rim-lo) 100%);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.55), 0 4px 7px rgba(0, 0, 0, 0.5);
+}
+.seat.common { --rim-hi: var(--pewter-hi); --rim: var(--pewter); --rim-lo: var(--pewter-lo); }
+.seat.uncommon { --rim-hi: var(--brass-hi); --rim: var(--brass); --rim-lo: var(--brass-lo); }
+.seat.rare { --rim-hi: var(--silver-hi); --rim: var(--silver); --rim-lo: var(--silver-lo); }
+.seat.legendary { --rim-hi: var(--gold-hi); --rim: var(--gold); --rim-lo: var(--gold-lo); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.55), 0 0 10px rgba(242, 201, 76, 0.35); }
+.seat .felt {
+  position: relative; width: 100%; height: 100%; border-radius: 5.5px; overflow: hidden;
+  background:
+    radial-gradient(90% 70% at 35% 25%, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 70%),
+    var(--felt-grain, none),
+    var(--felt-1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.7), inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+}
+.seat .no { position: absolute; left: 4.5px; top: 3.5px; font: 700 7px/7px var(--font-num); color: var(--text-3); }
+.seat .obj { position: absolute; left: 50%; top: 5.5px; width: 34px; height: 34px; margin-left: -17px; filter: drop-shadow(1.5px 2px 1.5px rgba(0, 0, 0, 0.6)); }
+.seat .obj svg { width: 34px; height: 34px; display: block; }
+.seat .chip {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 15px;
+  display: flex; align-items: center; justify-content: center; gap: 1px;
+  background: linear-gradient(180deg, #0a0e13, #06080b);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font: 800 8px/8px var(--font-num); letter-spacing: -0.01em; white-space: nowrap;
+}
+.chip .i { color: var(--influence); }
+.chip .m { color: var(--momentum); }
+.chip .k { color: var(--text-2); font-weight: 700; }
+.chip .glyph { width: 7px; height: 8px; vertical-align: -1px; }
+/* Firing: the seat hops 6 pt and its chip lights in the colour of the box it feeds. */
+.seat.firing { transform: translateY(-6px); box-shadow: 0 8px 0 rgba(0, 0, 0, 0), 0 10px 12px rgba(0, 0, 0, 0.55), 0 0 14px rgba(95, 212, 244, 0.35); }
+.seat.firing .chip { background: linear-gradient(180deg, #0d3a48, #072431); border-top-color: rgba(95, 212, 244, 0.6); }
+.seat.firing .chip .i { color: var(--influence-hi); text-shadow: 0 0 6px rgba(95, 212, 244, 0.9); }
+.seat-shadow { width: 56px; height: 8px; border-radius: 50%; background: rgba(0, 0, 0, 0.55); filter: blur(3px); }
+.seat.empty {
+  background: none; box-shadow: none; padding: 0;
+  border: 1px dashed rgba(233, 226, 210, 0.24);
+}
+.seat.empty .felt { background: rgba(0, 0, 0, 0.18); box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5); border-radius: 6px; }
+.seat.empty .vacant {
+  position: absolute; left: 0; right: 0; top: 23px; text-align: center;
+  font: 700 7px/7px var(--font-label); letter-spacing: 0.24em; color: var(--text-4);
+}
+
+/* ------------------------------------------------------------------ map */
+.map { left: 0; top: 171px; width: 390px; height: 520px; }
+.map canvas { display: block; }
+/* The table's brass trim where the glass meets the console. */
+.trim { left: 0; width: 390px; height: 2px; background: linear-gradient(180deg, rgba(247, 224, 163, 0.55), rgba(106, 79, 34, 0.7)); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.8); }
+
+/* -------------------------------------------------------------- readout */
+.readout {
+  left: 0; top: 691px; width: 390px; height: 48px;
+  background: linear-gradient(180deg, #11161d, #0c1015);
+}
+.pattern-name {
+  font: 400 20px/20px var(--font-pattern); letter-spacing: 0.02em; color: var(--linen);
+  text-shadow: 0 0 14px rgba(233, 226, 210, 0.18);
+  white-space: nowrap;
+}
+.pattern-lv { font: 700 11px/11px var(--font-num); color: var(--text-2); }
+.box {
+  border: 2px solid var(--c);
+  border-radius: 6px;
+  background:
+    radial-gradient(90% 90% at 50% 100%, var(--glow-in), rgba(0, 0, 0, 0) 75%),
+    linear-gradient(180deg, var(--deep), #05080b);
+  box-shadow: 0 0 14px var(--glow-out), inset 0 0 10px var(--glow-in), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.box.inf { --c: var(--influence); --deep: #08202a; --glow-in: rgba(95, 212, 244, 0.22); --glow-out: rgba(95, 212, 244, 0.3); }
+.box.mom { --c: var(--momentum); --deep: #241606; --glow-in: rgba(255, 181, 71, 0.22); --glow-out: rgba(255, 181, 71, 0.28); }
+/* A number has just landed: the box swells 4% and burns brighter for 120 ms. */
+.box.bump { transform: scale(1.04); --c: #a8ecff; box-shadow: 0 0 22px rgba(95, 212, 244, 0.6), 0 0 4px rgba(168, 236, 255, 0.9), inset 0 0 14px rgba(95, 212, 244, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2); }
+.box.mom.bump { --c: #ffd08a; box-shadow: 0 0 22px rgba(255, 181, 71, 0.6), inset 0 0 14px rgba(255, 181, 71, 0.4); }
+.box .lbl {
+  position: absolute; left: 0; right: 0; top: 4px; text-align: center;
+  font: 700 7px/7px var(--font-label); letter-spacing: 0.2em; color: var(--c); opacity: 0.85;
+}
+.box .val {
+  position: absolute; left: 0; right: 0; top: 12px; text-align: center;
+  font: 800 22px/22px var(--font-num); letter-spacing: -0.02em;
+}
+.box.inf .val { color: var(--influence-hi); text-shadow: 0 0 10px rgba(95, 212, 244, 0.55); }
+.box.mom .val { color: var(--momentum-hi); text-shadow: 0 0 10px rgba(255, 181, 71, 0.55); }
+.times { font: 700 16px/16px var(--font-num); color: var(--text-2); }
+
+/* ------------------------------------------------------------- controls */
+.controls {
+  left: 0; top: 739px; width: 390px; height: 68px;
+  background:
+    linear-gradient(180deg, rgba(255, 220, 170, 0.04), rgba(0, 0, 0, 0.3)),
+    var(--leather-grain, none),
+    var(--leather-1);
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.7);
+}
+.btn-outline {
+  border-radius: 9px;
+  border: 1.5px solid rgba(201, 205, 212, 0.42);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.18));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 2px 0 rgba(0, 0, 0, 0.5);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+}
+.btn-title { font: 700 15px/15px var(--font-label); letter-spacing: 0.2em; padding-left: 0.2em; color: var(--text); }
+.btn-sub { font: 600 10px/10px var(--font-label); letter-spacing: 0.16em; padding-left: 0.16em; color: var(--text-3); text-transform: uppercase; }
+
+/* Brass: four stops from a top-left lamp, a bevel of light above and dark below, a 4 pt skirt. */
+.brass {
+  border-radius: 9px;
+  border: 1px solid #4a3614;
+  background: linear-gradient(180deg, var(--brass-hi) 0%, var(--brass-1) 16%, var(--brass) 50%, #a9843f 78%, var(--brass-2) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 250, 230, 0.75),
+    inset 0 -2px 0 rgba(58, 42, 16, 0.45),
+    0 4px 0 #3a2a10,
+    0 6px 10px rgba(0, 0, 0, 0.6);
+  color: #2a1c08;
+}
+.brass::after {
+  /* Brushed grain, horizontal. */
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0.5;
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0 1px, rgba(0, 0, 0, 0.04) 1px 2px, rgba(0, 0, 0, 0) 2px 3px);
+}
+.brass.pressed {
+  transform: translateY(3px);
+  background: linear-gradient(180deg, #edd08e 0%, #dcb872 18%, #c19a52 55%, #9c793d 100%);
+  box-shadow:
+    inset 0 2px 4px rgba(58, 42, 16, 0.55),
+    inset 0 -1px 0 rgba(255, 240, 200, 0.25),
+    0 1px 0 #3a2a10,
+    0 2px 4px rgba(0, 0, 0, 0.6);
+}
+.brass .btn-title { color: #2a1c08; text-shadow: 0 1px 0 rgba(255, 240, 200, 0.5); font-size: 17px; line-height: 17px; letter-spacing: 0.24em; }
+.brass .btn-sub { color: rgba(42, 28, 8, 0.72); text-shadow: 0 1px 0 rgba(255, 240, 200, 0.35); }
+.brass.disabled { opacity: 0.4; }
+
+/* CLEARS lamp: a 12 pt bulb in a brass bezel. */
+.lamp {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #6c727b, #3a4048 55%, #1d2126);
+  box-shadow: 0 0 0 1.5px #3a2a10, 0 0 0 2.5px rgba(247, 224, 163, 0.45), inset 0 -1px 2px rgba(0, 0, 0, 0.6);
+}
+.lamp.on {
+  background: radial-gradient(circle at 35% 30%, #e9ffee 0%, #9bf5b2 22%, var(--clears) 55%, #1f8a43 100%);
+  box-shadow: 0 0 0 1.5px #3a2a10, 0 0 0 2.5px rgba(247, 224, 163, 0.5), 0 0 10px 2px rgba(91, 227, 125, 0.75), 0 0 22px 4px rgba(91, 227, 125, 0.35);
+}
+.lamp-label { font: 700 7px/7px var(--font-label); letter-spacing: 0.2em; color: rgba(42, 28, 8, 0.7); text-shadow: 0 1px 0 rgba(255, 240, 200, 0.4); }
+
+/* In-tray: two recessed wells; an Order is a typed linen slip with a rubber stamp. */
+.well {
+  border-radius: 7px;
+  background: linear-gradient(180deg, #07090c, #0d1116);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.85), inset 0 -1px 0 rgba(255, 255, 255, 0.05), 0 1px 0 rgba(255, 220, 170, 0.06);
+}
+.well .empty-mark {
+  position: absolute; left: 0; right: 0; top: 23px; text-align: center;
+  font: 700 7px/7px var(--font-label); letter-spacing: 0.2em; color: var(--text-4);
+}
+.slip {
+  position: absolute; left: 5px; top: 4px; width: 42px; height: 48px;
+  border-radius: 2px;
+  background:
+    var(--linen-grain, none),
+    linear-gradient(180deg, #f2ecdf, var(--linen) 60%, var(--linen-shade));
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 3px 5px rgba(0, 0, 0, 0.55);
+  transform: rotate(-2.5deg);
+}
+.slip .stamp { position: absolute; left: 7px; top: 4px; width: 28px; height: 28px; }
+.slip .stamp svg { width: 28px; height: 28px; display: block; }
+.slip .name {
+  position: absolute; left: 0; right: 0; bottom: 5px; text-align: center;
+  font: 700 8px/8px var(--font-num); letter-spacing: 0.04em; color: var(--type-ink);
+}
+.slip .rule-line { position: absolute; left: 5px; right: 5px; bottom: 15px; height: 0; border-top: 0.5px solid rgba(42, 37, 32, 0.25); }
+
+/* ------------------------------------------------------- flying numbers */
+.fly {
+  position: absolute; transform: translate(-50%, -50%);
+  font: 800 16px/16px var(--font-num); letter-spacing: -0.02em;
+  paint-order: stroke fill; -webkit-text-stroke: 3px rgba(4, 18, 26, 0.9);
+  white-space: nowrap;
+}
+.fly.inf { color: var(--influence-hi); text-shadow: 0 0 10px rgba(95, 212, 244, 0.9), 0 0 2px rgba(95, 212, 244, 1); }
+.fly.mom { color: var(--momentum-hi); text-shadow: 0 0 10px rgba(255, 181, 71, 0.9); }
+
+/* ============================================================== Briefing */
+/* The tray: linen at 8% over #1A1F27 (spec), with weave, a brass lip and a shadow onto the map. */
+.tray {
+  left: 0; top: 451px; width: 390px; height: 356px;
+  border-radius: 14px 14px 0 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0) 18%, rgba(0, 0, 0, 0.18)),
+    var(--tray-grain, none),
+    linear-gradient(rgba(233, 226, 210, 0.08), rgba(233, 226, 210, 0.08)),
+    #1a1f27;
+  box-shadow: 0 -12px 28px rgba(0, 0, 0, 0.65), 0 -2px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(247, 224, 163, 0.5), inset 0 2px 0 rgba(106, 79, 34, 0.5);
+}
+.tray .grab { position: absolute; left: 177px; top: 5px; width: 36px; height: 4px; border-radius: 2px; background: linear-gradient(180deg, var(--brass-hi), var(--brass-2)); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.6); }
+.tray-head { display: flex; align-items: baseline; gap: 7px; white-space: nowrap; }
+.tray-head .t { font: 700 12px/12px var(--font-label); letter-spacing: 0.28em; color: var(--linen); }
+.tray-head .sep { font: 700 12px/12px var(--font-label); color: var(--text-3); }
+.tray-head .n { font: 500 11px/11px var(--font-label); letter-spacing: 0.08em; color: var(--text-3); }
+.tray-head .c { font: 700 11px/11px var(--font-label); letter-spacing: 0.16em; color: var(--alarm); }
+.tray-head .v { font: 700 12px/12px var(--font-num); color: var(--alarm); }
+
+/* Offer card: a dossier with a rarity rim; the object sits on felt like it will at the table. */
+.offer {
+  border-radius: 10px; padding: 2px;
+  background: linear-gradient(150deg, var(--rim-hi), var(--rim) 45%, var(--rim-lo));
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.5), 0 8px 16px rgba(0, 0, 0, 0.45);
+}
+.offer.common { --rim-hi: var(--pewter-hi); --rim: var(--pewter); --rim-lo: var(--pewter-lo); }
+.offer.uncommon { --rim-hi: var(--brass-hi); --rim: var(--brass); --rim-lo: var(--brass-lo); }
+.offer.rare { --rim-hi: var(--silver-hi); --rim: var(--silver); --rim-lo: var(--silver-lo); }
+.offer .body { position: relative; width: 100%; height: 100%; border-radius: 8px; overflow: hidden; background: linear-gradient(180deg, #171d26, #10141a); }
+.offer .felt {
+  position: absolute; left: 0; right: 0; top: 0; height: 70px;
+  background: radial-gradient(70% 90% at 50% 40%, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 70%), var(--felt-grain, none), var(--felt-1);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.06), inset 0 -6px 10px rgba(0, 0, 0, 0.35);
+}
+.offer .obj { position: absolute; left: 50%; top: 11px; width: 48px; height: 48px; margin-left: -24px; filter: drop-shadow(2px 3px 2px rgba(0, 0, 0, 0.6)); }
+.offer .obj svg { width: 48px; height: 48px; display: block; }
+.offer .tag { position: absolute; left: 8px; top: 7px; font: 700 7px/7px var(--font-label); letter-spacing: 0.2em; color: var(--rim-hi); }
+.offer .seatchip {
+  position: absolute; right: 7px; top: 5px; height: 13px; padding: 0 5px; border-radius: 3px;
+  display: flex; align-items: center; gap: 1px;
+  background: #06080b; border: 1px solid rgba(255, 255, 255, 0.08);
+  font: 800 8px/8px var(--font-num);
+}
+.offer .seatchip .glyph { width: 7px; height: 8px; }
+.offer .name { position: absolute; left: 10px; right: 10px; top: 78px; font: 700 14px/14px var(--font-label); letter-spacing: 0.1em; color: var(--linen); white-space: nowrap; }
+.offer .rule-text { position: absolute; left: 10px; right: 10px; top: 97px; font: 500 11px/13px var(--font-label); letter-spacing: 0.02em; color: var(--text-2); }
+.offer .rule-text b { font-weight: 700; color: var(--momentum); }
+.offer .rule-text b.i { color: var(--influence); }
+
+/* Price tag: a brass luggage tag, pointed at the left. */
+.price {
+  position: absolute; right: 8px; bottom: 8px; height: 20px; padding: 0 7px 0 12px;
+  display: flex; align-items: center; gap: 3px;
+  clip-path: polygon(6px 0, 100% 0, 100% 100%, 6px 100%, 0 50%);
+  background: linear-gradient(180deg, var(--brass-hi), var(--brass) 55%, var(--brass-2));
+  color: #2a1c08; font: 800 12px/12px var(--font-num);
+}
+.price .dia { width: 7px; height: 9px; }
+
+/* Order card: a typed linen slip, clipped to the tray. */
+.offer.order { padding: 0; background: none; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), 0 8px 16px rgba(0, 0, 0, 0.45); border-radius: 3px; }
+.offer.order .body {
+  border-radius: 3px;
+  background: var(--linen-grain, none), linear-gradient(180deg, #f3eee2, var(--linen) 55%, var(--linen-shade));
+}
+.offer.order .tag { color: #b5372d; }
+.offer.order .obj { top: 14px; filter: none; }
+.offer.order .name { font: 800 14px/14px var(--font-num); letter-spacing: 0.12em; color: var(--type-ink); }
+.offer.order .rule-text { font: 400 10.5px/13px var(--font-num); letter-spacing: -0.01em; color: rgba(42, 37, 32, 0.85); }
+.offer.order .rule-text b { color: #b5372d; }
+.offer.order .clip {
+  position: absolute; right: 22px; top: -6px; width: 11px; height: 26px; border-radius: 6px;
+  border: 1.6px solid #9aa3ae; border-bottom-color: #66707c;
+  box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.4);
+}
+.offer.order .typed-line { position: absolute; left: 10px; right: 10px; top: 72px; border-top: 1px dashed rgba(42, 37, 32, 0.25); }
+
+/* Folder: kraft board with a tab; three dossiers peek out. */
+.folder { filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.35)) drop-shadow(0 8px 12px rgba(0, 0, 0, 0.45)); }
+.folder .peek {
+  position: absolute; top: 4px; height: 30px; width: 46px; border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, #f3eee2, var(--linen-shade));
+  border-top: 3px solid var(--rim);
+  box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.35);
+}
+.folder .back {
+  position: absolute; left: 0; top: 0; width: 66px; height: 16px; border-radius: 6px 10px 0 0;
+  background: linear-gradient(180deg, #c9a46d, var(--kraft));
+}
+.folder .front {
+  position: absolute; left: 0; right: 0; top: 14px; bottom: 0; border-radius: 3px 8px 8px 8px;
+  background: var(--linen-grain, none), linear-gradient(180deg, #c8a26a, var(--kraft) 60%, var(--kraft-lo));
+  box-shadow: inset 0 1px 0 rgba(255, 240, 210, 0.5), inset 0 -2px 0 rgba(60, 40, 15, 0.3);
+}
+.folder .label {
+  position: absolute; left: 10px; top: 10px; padding: 4px 6px 3px;
+  background: var(--linen); color: var(--type-ink); border-radius: 1px;
+  font: 800 9px/9px var(--font-num); letter-spacing: 0.12em; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+}
+.folder .sub { position: absolute; left: 11px; top: 32px; font: 600 11px/12px var(--font-label); letter-spacing: 0.03em; color: rgba(42, 28, 8, 0.85); }
+.folder .stamp { position: absolute; right: 2px; top: -6px; width: 66px; height: 66px; opacity: 0.8; transform: rotate(-8deg); }
+
+.btn-row { display: flex; align-items: center; justify-content: center; gap: 9px; }
+.btn-row .btn-title { font-size: 14px; line-height: 14px; }
+.cost { display: inline-flex; align-items: center; gap: 3px; font: 800 13px/13px var(--font-num); color: var(--brass-hi); }
+.cost .dia { width: 8px; height: 10px; }
+
+/* Payout receipt: typed on a linen ticket, torn at the bottom. */
+.receipt {
+  padding: 6px 8px 0;
+  background: var(--linen-grain, none), linear-gradient(180deg, #f1ebde, var(--linen));
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 3px), 95% 100%, 90% calc(100% - 3px), 85% 100%, 80% calc(100% - 3px), 75% 100%, 70% calc(100% - 3px), 65% 100%, 60% calc(100% - 3px), 55% 100%, 50% calc(100% - 3px), 45% 100%, 40% calc(100% - 3px), 35% 100%, 30% calc(100% - 3px), 25% 100%, 20% calc(100% - 3px), 15% 100%, 10% calc(100% - 3px), 5% 100%, 0 calc(100% - 3px));
+  color: var(--type-ink); font: 700 8px/10px var(--font-num);
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+}
+.receipt .row { display: flex; justify-content: space-between; }
+.receipt .row span:last-child { font-weight: 800; }
+.receipt .sum { border-top: 1px dashed rgba(42, 37, 32, 0.4); margin-top: 2px; padding-top: 2px; font-weight: 800; }

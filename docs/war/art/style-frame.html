@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=390, initial-scale=1">
+<title>War Room Style Frame</title>
+<!--
+  Style frame: the 390 x 844 portrait war room, mid-cascade. 23:00 STANDOFF, NETWORK Lv 2 across
+  The Scatter and Sundry, the scan line on the third pin (Lintel), the Harbourmaster's +15 in flight
+  to INFLUENCE, HEAT on. Every rect is from PROTOTYPE-SPEC.md section 10. Render: see STYLE.md, Tooling.
+-->
+<link rel="stylesheet" href="../../../public/war/fonts/fonts.css">
+<link rel="stylesheet" href="lib/tokens.css">
+<link rel="stylesheet" href="lib/war-room.css">
+</head>
+<body>
+<div class="screen" id="screen">
+  <div id="chrome"></div>
+
+  <!-- MAP 0,171,390,520 -->
+  <div class="abs map"><canvas id="map"></canvas></div>
+  <div class="abs trim" style="top:690px"></div>
+
+  <!-- READOUT 0,691,390,48 -->
+  <div class="abs readout"></div>
+  <div class="abs" style="left:16px; top:697px; display:flex; align-items:baseline; gap:7px;">
+    <span class="pattern-name">NETWORK</span>
+    <span class="pattern-lv num">Lv 2</span>
+  </div>
+  <div class="abs box inf bump" style="left:196px; top:695px; width:86px; height:40px;">
+    <div class="lbl">INFLUENCE</div><div class="val num">312</div>
+  </div>
+  <div class="abs times" style="left:284px; top:703px; width:16px; line-height:24px; text-align:center;">&times;</div>
+  <div class="abs box mom" style="left:300px; top:695px; width:74px; height:40px;">
+    <div class="lbl">MOMENTUM</div><div class="val num">12</div>
+  </div>
+
+  <!-- CONTROLS 0,739,390,68 -->
+  <div class="abs controls"></div>
+  <div class="abs btn-outline" style="left:16px; top:745px; width:96px; height:56px;">
+    <div class="btn-title">SWAP</div><div class="btn-sub">2 left</div>
+  </div>
+  <div class="abs well" style="left:120px; top:745px; width:52px; height:56px;">
+    <div class="slip"><div class="rule-line"></div><div class="stamp" id="slip-stamp"></div><div class="name">RELAY</div></div>
+  </div>
+  <div class="abs well" style="left:178px; top:745px; width:52px; height:56px;">
+    <div class="empty-mark">IN-TRAY</div>
+  </div>
+  <div class="abs brass pressed" style="left:238px; top:745px; width:136px; height:56px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; padding-right:22px;">
+    <div class="btn-title">SWEEP</div><div class="btn-sub">1 left</div>
+    <div class="abs lamp-label" style="left:102px; top:21px; width:34px; text-align:center; letter-spacing:0.12em; padding-left:0.12em;">CLEARS</div>
+    <div class="abs lamp on" style="left:113px; top:5px;"></div>
+  </div>
+
+  <div class="abs os-home"></div>
+
+  <!-- FX: numbers in flight -->
+  <svg class="abs" id="fx" width="390" height="844" viewBox="0 0 390 844" style="left:0; top:0; pointer-events:none; overflow:visible"></svg>
+  <div id="flying"></div>
+
+  <div class="room-light"></div>
+</div>
+
+<script src="lib/textures.js"></script>
+<script src="lib/map-data.js"></script>
+<script src="lib/map-render.js"></script>
+<script src="lib/icons.js"></script>
+<script src="lib/kit.js"></script>
+<script>
+(async function () {
+  'use strict';
+  const I = WarIcons;
+  const K = WarKit;
+  const $ = (id) => document.getElementById(id);
+
+  /* ---- Board and rail: 1,046 of 1,350 (the last tile mid-flip), HEAT on, Harbourmaster firing ---- */
+  $('chrome').innerHTML =
+    K.osStatus('22:41') +
+    K.bigBoard({
+      hh: '23', mm: '00', crisis: 'STANDOFF', dots: ['done', 'live', 'todo'], summit: 'BLACKOUT',
+      total: 1046, flipFrom: '5', target: 1350, funds: 11, heat: true, ruleFill: 1046 / 1350,
+    }) +
+    K.rail([
+      K.seatOf('duty'),
+      K.seatOf('hotline'),
+      K.seatOf('harbour', { firing: true, chip: `<span class="i">+15</span>${I.anchorGlyph('var(--influence-hi)')}` }),
+      K.seatOf('strategist'),
+      null,
+    ]);
+  $('slip-stamp').innerHTML = I.orderStamp('RELAY', 'slip');
+
+  /* ---- The map ---- */
+  await K.fontsReady();
+  const regions = {
+    LNK: { status: 'lit', pinned: true, phase: 'scored', order: 1, orderDone: true, brass: 1, glow: 0.12 },
+    SHL: { status: 'lit', pinned: true, phase: 'scored', order: 2, orderDone: true, glow: 0.06 },
+    LTL: { status: 'lit', pinned: true, phase: 'flash', order: 3 },
+    KLP: { status: 'lit', pinned: true, order: 4, stamp: 'FORTIFY' },
+    TLM: { status: 'lit', pinned: true, order: 5 },
+    QLN: { status: 'lit' },
+    GLM: { status: 'lit' },
+    BRN: { status: 'lit' },
+    EDV: { status: 'spent', brass: 1 },
+    MRD: { status: 'spent' },
+    ASK: { status: 'spent' },
+    FRM: { status: 'spent' },
+    WMS: { status: 'spent', brass: 1 },
+    KLM: { status: 'spent' },
+    MRM: { brass: 1 },
+  };
+  const hot = (a, b, traffic) => ({ a, b, traffic, active: true, hot: true });
+  WarMap.paint($('map'), {
+    dpr: Math.max(2, window.devicePixelRatio || 1),
+    state: {
+      regions,
+      scoring: ['LNK', 'SHL', 'LTL', 'KLP', 'TLM'],
+      threads: [
+        hot('LNK', 'SHL', 2),
+        hot('SHL', 'LTL', 2),
+        hot('LTL', 'KLP', 1),
+        hot('LTL', 'TLM', 1),
+        hot('KLP', 'TLM', 3),
+        { a: 'EDV', b: 'MRD', traffic: 4 },
+        { a: 'MRD', b: 'ASK', traffic: 2 },
+        { a: 'FRM', b: 'WMS', traffic: 3 },
+        { a: 'WMS', b: 'KLM', traffic: 2 },
+        { a: 'MRM', b: 'SLW', traffic: 2 },
+        { a: 'BRN', b: 'MRM', traffic: 1 },
+      ],
+      scanX: 290,
+      pulse: { from: 'SHL', to: 'LTL', t: 0.78, pop: '+2', popAt: 0.5, popDx: 10, popDy: -6 },
+      flashpoint: { id: 'TLM', ring: 1 - 1046 / 1350, r0: 72 },
+    },
+  });
+
+  /* ---- Numbers in flight ---- */
+  const MAP_Y = 171;
+  const fly = [];
+  // '+6' rises out of Lintel (map 290,250).
+  fly.push(`<div class="fly inf" style="left:271px; top:${MAP_Y + 250 - 27}px; font-size:14px;">+6</div>`);
+  // The Harbourmaster's '+15', flung from seat 3 to the Influence box along a bowed arc.
+  const P0 = [195, 134], C = [330, 520], P1 = [239, 712];
+  const B = (t) => [0, 1].map((k) => (1 - t) * (1 - t) * P0[k] + 2 * (1 - t) * t * C[k] + t * t * P1[k]);
+  const tHead = 0.88;
+  const head = B(tHead);
+  let trail = '';
+  const N = 18;
+  for (let i = 0; i < N; i++) {
+    const a = B(tHead - 0.17 + (0.17 * i) / N);
+    const b = B(tHead - 0.17 + (0.17 * (i + 1)) / N - 0.002);
+    const k = (i + 1) / N;
+    trail += `<line x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}" stroke="rgba(170,238,255,${(0.95 * k * k).toFixed(3)})" stroke-width="${(0.8 + 4.2 * k).toFixed(2)}" stroke-linecap="round"/>`;
+  }
+  $('fx').innerHTML = `<defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.4"/></filter></defs>
+    <g filter="url(#glow)" opacity="0.9">${trail}</g><g>${trail}</g>${soundLines(195, 128)}`;
+  // Sparks shed along the trail.
+  let sparks = '';
+  for (const [t, dx, dy, r] of [[0.74, -7, 2, 1.3], [0.78, 6, -3, 1], [0.81, -4, -5, 1.6], [0.84, 8, 4, 1.1], [0.76, 3, 6, 0.9]]) {
+    const p = B(t);
+    sparks += `<circle cx="${(p[0] + dx).toFixed(1)}" cy="${(p[1] + dy).toFixed(1)}" r="${r}" fill="#d4f6ff" opacity="0.85"/>`;
+  }
+  $('fx').insertAdjacentHTML('beforeend', `<g filter="url(#glow)">${sparks}</g><g>${sparks}</g>`);
+  fly.push(`<div class="fly inf" style="left:${head[0].toFixed(1)}px; top:${head[1].toFixed(1)}px; font-size:20px;">+15</div>`);
+  $('flying').innerHTML = fly.join('');
+
+  /** The bell rings: two short strokes either side of the hopping seat's object. */
+  function soundLines(cx, cy) {
+    const d = (deg) => (deg * Math.PI) / 180;
+    const tick = (a, r0, r1) => {
+      const s = [cx + Math.cos(a) * r0, cy + Math.sin(a) * r0];
+      const e = [cx + Math.cos(a) * r1, cy + Math.sin(a) * r1];
+      return `<path d="M${s[0].toFixed(1)} ${s[1].toFixed(1)} L${e[0].toFixed(1)} ${e[1].toFixed(1)}"/>`;
+    };
+    return `<g fill="none" stroke="var(--brass-hi)" stroke-linecap="round" stroke-width="1.5" opacity="0.85">
+      ${tick(d(200), 19, 25)}${tick(d(222), 19, 24)}${tick(d(-20), 19, 25)}${tick(d(-42), 19, 24)}</g>`;
+  }
+
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>

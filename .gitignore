@@ -19,3 +19,8 @@ public/og-image.png
 sim-output/
 playtest-output/
 dist-*
+
+# War-room captures: the repository keeps the WebP copies (tools/war-webp.py)
+docs/war/screens/*.png
+docs/war/art/*.png
+__pycache__/

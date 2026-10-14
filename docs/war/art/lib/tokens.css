@@ -1,0 +1,108 @@
+/*
+ * War-room design tokens. The single source for every colour, curve and type size in the
+ * art pages; the game UI should copy these names one to one (see ../STYLE.md).
+ * Spec-fixed values are marked [spec].
+ */
+:root {
+  /* ---- Room and table ---- */
+  --room-0: #06080b;          /* vignette floor, letterbox edge */
+  --table: #0b0f14;           /* [spec] background and letterbox */
+  --room-1: #0f141a;          /* console panels */
+  --board: #12161c;           /* [spec] Big Board housing */
+  --board-seam: #2a3038;      /* [spec] flap seams, panel dividers */
+  --flap-hi: #20262e;         /* split-flap upper half, top */
+  --flap-hi-2: #181c22;       /* split-flap upper half, at the cut */
+  --flap-lo: #121519;         /* split-flap lower half, at the cut */
+  --flap-lo-2: #0d1013;       /* split-flap lower half, bottom */
+  --ink: #040608;             /* seams, the deepest shadow */
+  --hairline: rgba(233, 226, 210, 0.08);
+
+  /* ---- Leather (staff rail and console) ---- */
+  --leather-0: #120c08;
+  --leather-1: #1d150f;
+  --leather-2: #2b2018;
+  --stitch: rgba(233, 214, 178, 0.2);
+
+  /* ---- Felt (seat inset; deep navy wool, never casino green) ---- */
+  --felt-0: #0b1118;
+  --felt-1: #121a24;
+  --felt-2: #1a2633;
+
+  /* ---- Plotting-table sea ---- */
+  --sea: #0d1b2a;             /* [spec] */
+  --sea-deep: #08121d;        /* edges of the glass, open water */
+  --sea-glow: #12263a;        /* backlight pool, table centre */
+  --sea-shelf: #1b3a57;       /* coastal shelf halo */
+  --graticule: rgba(157, 184, 217, 0.06);
+  --graticule-cross: rgba(157, 184, 217, 0.17);
+  --lane: rgba(233, 240, 248, 0.5);
+  --causeway: #2a3a4a;        /* [spec] */
+
+  /* ---- Land ---- */
+  --land-base: #16222f;       /* [spec] */
+  --border-etch: #0d1b2a;     /* [spec] 1 pt region borders */
+
+  /* ---- Blocs [spec] ---- */
+  --cap: #7cc4ff;
+  --hmr: #3fbfa0;
+  --sct: #e8c15a;
+  --snd: #ef7f6a;
+  --frs: #a98bff;
+
+  /* ---- Metals ---- */
+  --brass-hi: #f7e0a3;
+  --brass-1: #e3c078;
+  --brass: #c9a35b;           /* [spec] brass rim, Funds */
+  --brass-2: #9e7b3b;
+  --brass-lo: #6a4f22;
+  --brass-deep: #3a2a10;
+  --pewter-hi: #c9cdd4;
+  --pewter: #8a8f98;          /* [spec] Common rim */
+  --pewter-lo: #4d525a;
+  --silver-hi: #dde9f7;
+  --silver: #9db8d9;          /* [spec] Rare rim */
+  --silver-lo: #56708f;
+  --gold-hi: #ffe9a6;
+  --gold: #f2c94c;            /* [spec] Legendary rim */
+  --gold-lo: #a37c16;
+
+  /* ---- Paper ---- */
+  --linen: #e9e2d2;           /* [spec] */
+  --linen-shade: #d8cfbb;
+  --linen-edge: #b7ac93;
+  --type-ink: #2a2520;        /* typewriter ink on linen */
+  --kraft: #b8915c;           /* folder board */
+  --kraft-lo: #8c6a3d;
+
+  /* ---- Meaning (colour only ever carries meaning) ---- */
+  --influence: #5fd4f4;       /* [spec] */
+  --influence-hi: #d4f6ff;
+  --influence-deep: #072431;
+  --momentum: #ffb547;        /* [spec] */
+  --momentum-hi: #ffe7bd;
+  --momentum-deep: #2e1b04;
+  --thread: #e0483c;          /* [spec] */
+  --heat: #fff6e0;            /* [spec] white-hot */
+  --clears: #5be37d;          /* [spec] */
+  --alarm: #ff5a4e;           /* [spec] target red, Summit chip */
+  --standby: #6fa8ff;         /* Chief of Staff standby pulse */
+
+  /* ---- Text on dark ---- */
+  --text: #e8e2d0;            /* [spec] board white: warm, never #fff */
+  --text-2: rgba(232, 226, 208, 0.64);
+  --text-3: rgba(232, 226, 208, 0.4);
+  --text-4: rgba(232, 226, 208, 0.22);
+
+  /* ---- Type ---- */
+  --font-label: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-num: 'JetBrains Mono', ui-monospace, monospace;
+  --font-pattern: 'Saira Stencil One', 'Barlow Condensed', sans-serif;
+
+  /* ---- Motion ---- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.55, 0, 1, 0.45);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-flap-fall: cubic-bezier(0.5, 0, 0.9, 0.4);
+  --ease-flap-land: cubic-bezier(0.2, 1.35, 0.5, 1);
+}

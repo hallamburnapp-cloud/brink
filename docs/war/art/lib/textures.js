@@ -1,0 +1,47 @@
+/*
+ * Procedural material grain (no raster files): SVG feTurbulence tiles as data URIs, exposed as
+ * CSS custom properties. Each tile is alpha-only over the material's base colour.
+ */
+(function () {
+  'use strict';
+
+  /** One noise tile. alpha = a * R + b, where R is the turbulence's red channel. */
+  function turb({ freq, oct = 2, seed = 1, rgb = [0, 0, 0], a = 1, b = 0, size = 220 }) {
+    const svg =
+      `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'>` +
+      `<filter id='n' x='0' y='0' width='100%' height='100%'>` +
+      `<feTurbulence type='fractalNoise' baseFrequency='${freq}' numOctaves='${oct}' seed='${seed}' stitchTiles='stitch'/>` +
+      `<feColorMatrix values='0 0 0 0 ${rgb[0]} 0 0 0 0 ${rgb[1]} 0 0 0 0 ${rgb[2]} ${a} 0 0 0 ${b}'/>` +
+      `</filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`;
+    return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+  }
+
+  const TEXTURES = {
+    // Leather: a fine pebbled grain over slow mottling.
+    '--leather-grain': [
+      turb({ freq: 1.1, oct: 3, seed: 4, rgb: [0, 0, 0], a: 1.1, b: -0.42 }),
+      turb({ freq: 0.9, oct: 2, seed: 11, rgb: [1, 0.86, 0.66], a: 0.5, b: -0.26 }),
+      turb({ freq: 0.03, oct: 2, seed: 9, rgb: [0.42, 0.28, 0.16], a: 0.6, b: -0.22, size: 400 }),
+    ].join(', '),
+    // Felt: dense short fibres, light on dark.
+    '--felt-grain': [
+      turb({ freq: 1.7, oct: 2, seed: 21, rgb: [0.75, 0.85, 1], a: 0.55, b: -0.27 }),
+      turb({ freq: 0.6, oct: 2, seed: 5, rgb: [0, 0, 0], a: 0.6, b: -0.2 }),
+    ].join(', '),
+    // Linen: a stretched weave, horizontal and vertical threads.
+    '--linen-grain': [
+      turb({ freq: '0.9 0.06', oct: 2, seed: 2, rgb: [0.42, 0.36, 0.26], a: 0.55, b: -0.2 }),
+      turb({ freq: '0.06 0.9', oct: 2, seed: 3, rgb: [0.42, 0.36, 0.26], a: 0.5, b: -0.2 }),
+    ].join(', '),
+    // Tray: the same weave, light on dark and much quieter.
+    '--tray-grain': [
+      turb({ freq: '0.85 0.05', oct: 2, seed: 7, rgb: [0.91, 0.89, 0.82], a: 0.13, b: -0.055 }),
+      turb({ freq: '0.05 0.85', oct: 2, seed: 8, rgb: [0.91, 0.89, 0.82], a: 0.1, b: -0.045 }),
+    ].join(', '),
+    // Ink gaps for stamps that sit on a dark backing (CLEARED): specks of the backing colour.
+    '--stamp-speck': turb({ freq: 1.25, oct: 2, seed: 13, rgb: [0.04, 0.11, 0.07], a: 2.6, b: -1.42, size: 160 }),
+  };
+
+  for (const [k, v] of Object.entries(TEXTURES)) document.documentElement.style.setProperty(k, v);
+  window.WarTextures = { turb };
+})();

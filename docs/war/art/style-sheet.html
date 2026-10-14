@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1200">
+<title>War Room Style Sheet</title>
+<!--
+  The specimen sheet that goes with STYLE.md: tokens, plate tones, type, materials in every state,
+  icons, and the map in its everyday "choosing" state (which neither frame shows).
+-->
+<link rel="stylesheet" href="../../../public/war/fonts/fonts.css">
+<link rel="stylesheet" href="lib/tokens.css">
+<link rel="stylesheet" href="lib/war-room.css">
+<style>
+  body { background: var(--room-0); color: var(--text); font-family: var(--font-label); }
+  .sheet { width: 1200px; padding: 40px 44px 56px; }
+  h1 { margin: 0 0 4px; font: 400 34px/38px var(--font-pattern); letter-spacing: 0.04em; color: var(--linen); }
+  .lede { margin: 0 0 30px; font: 500 15px/20px var(--font-label); color: var(--text-2); letter-spacing: 0.02em; }
+  h2 { margin: 0 0 14px; font: 700 12px/12px var(--font-label); letter-spacing: 0.3em; color: var(--brass); text-transform: uppercase; }
+  .panel { background: linear-gradient(180deg, #10151b, #0c1015); border: 1px solid rgba(233, 226, 210, 0.07); border-radius: 12px; padding: 22px 24px 24px; margin-bottom: 22px; }
+  .row { display: flex; gap: 22px; align-items: flex-start; }
+  .grid { display: grid; gap: 12px; }
+  .sw { border-radius: 8px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.06); background: #0b0f14; }
+  .sw .c { height: 46px; }
+  .sw .t { padding: 6px 8px 7px; font: 700 10px/13px var(--font-num); color: var(--text-2); }
+  .sw .t b { display: block; font: 700 11px/13px var(--font-label); letter-spacing: 0.08em; color: var(--text); }
+  .cap { font: 700 9px/9px var(--font-label); letter-spacing: 0.2em; color: var(--text-3); text-transform: uppercase; margin-top: 8px; text-align: center; }
+  .spec { position: relative; display: inline-block; vertical-align: top; }
+  .type-row { display: grid; grid-template-columns: 150px 1fr 200px; align-items: baseline; gap: 18px; padding: 9px 0; border-bottom: 1px solid rgba(233, 226, 210, 0.06); }
+  .type-row .k { font: 700 10px/12px var(--font-label); letter-spacing: 0.18em; color: var(--text-3); text-transform: uppercase; }
+  .type-row .v { font: 400 10px/12px var(--font-num); color: var(--text-3); }
+  .plate td { padding: 0; }
+  .plates { display: grid; grid-template-columns: 120px repeat(5, 1fr); gap: 8px; align-items: center; }
+  .plates .h { font: 700 10px/10px var(--font-label); letter-spacing: 0.2em; color: var(--text-3); text-align: center; }
+  .plates .b { font: 700 12px/14px var(--font-label); letter-spacing: 0.12em; display: flex; align-items: center; gap: 8px; }
+  .plates canvas { width: 100%; height: 52px; border-radius: 6px; display: block; }
+  .plates .hx { font: 700 9.5px/12px var(--font-num); color: var(--text-3); text-align: center; margin-top: 4px; }
+  .stage { position: relative; background: var(--table); border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.05); }
+  .icons { display: grid; grid-template-columns: repeat(8, 1fr); gap: 12px; }
+  .icon-cell { background: var(--felt-grain, none), var(--felt-1); border-radius: 10px; height: 104px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6); }
+  .icon-cell svg { width: 64px; height: 64px; filter: drop-shadow(2px 3px 2px rgba(0, 0, 0, 0.55)); }
+  .icon-cell .n { margin-top: 6px; font: 700 9px/9px var(--font-label); letter-spacing: 0.16em; color: var(--text-3); text-transform: uppercase; }
+  .sizes { display: flex; align-items: flex-end; gap: 14px; }
+  .sizes svg { display: block; }
+  .paper-cell { background: var(--linen-grain, none), linear-gradient(180deg, #f2ecdf, var(--linen)); border-radius: 4px; height: 104px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .paper-cell svg { width: 60px; height: 60px; }
+  .paper-cell .n { font: 800 9px/9px var(--font-num); letter-spacing: 0.12em; color: var(--type-ink); }
+  .note { font: 500 12px/17px var(--font-label); color: var(--text-3); letter-spacing: 0.02em; max-width: 360px; }
+  .note b { color: var(--text-2); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <h1>WAR ROOM</h1>
+  <p class="lede">Visual language for the playable slice. Every swatch, specimen and component below is live CSS, SVG or canvas from <span class="num">docs/war/art/lib</span>; the values are in STYLE.md.</p>
+
+  <div class="panel"><h2>Palette</h2><div id="palette"></div></div>
+
+  <div class="panel">
+    <h2>Land plates: one jewel tone per bloc, five states</h2>
+    <div class="plates" id="plates"></div>
+  </div>
+
+  <div class="row">
+    <div class="panel" style="flex: 0 0 420px;">
+      <h2>The map while choosing</h2>
+      <div class="stage" style="width:390px; height:520px; overflow:hidden;"><canvas id="choose"></canvas></div>
+      <p class="note" style="margin-top:14px;"><b>Everyday state.</b> 8 lit regions glow from beneath; three pinned regions make a CHAIN with taut threads and sweep-order badges; the flashpoint ring is at its full 72 pt; old threads and brass tacks record the run.</p>
+    </div>
+    <div style="flex: 1;">
+      <div class="panel">
+        <h2>Type</h2>
+        <div id="type"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Materials and states</h2>
+    <div class="stage" id="materials" style="height:430px;"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Staff objects: 64 x 64, three flat tones, one highlight, light from the top-left</h2>
+    <div class="icons" id="icons"></div>
+    <div class="row" style="margin-top:18px; align-items:flex-end;">
+      <div class="stage" style="padding:16px 18px; flex:0 0 auto;"><div class="sizes" id="sizes"></div><div class="cap" style="text-align:left">Rail 34 &middot; Card 48 &middot; Store 64</div></div>
+      <div class="stage" style="padding:16px 18px; flex:0 0 auto;"><div class="sizes" id="silhouettes"></div><div class="cap" style="text-align:left">Silhouette test at 20</div></div>
+      <div class="icons" id="stamps" style="grid-template-columns: repeat(5, 1fr); flex:1; min-width:0;"></div>
+    </div>
+  </div>
+</div>
+
+<script src="lib/textures.js"></script>
+<script src="lib/map-data.js"></script>
+<script src="lib/map-render.js"></script>
+<script src="lib/icons.js"></script>
+<script src="lib/kit.js"></script>
+<script>
+(async function () {
+  'use strict';
+  const I = WarIcons;
+  const K = WarKit;
+  const M = WarMap;
+  const $ = (id) => document.getElementById(id);
+
+  /* ---- Palette ---- */
+  const groups = [
+    ['Room and table', [['--room-0', '#06080B'], ['--table', '#0B0F14'], ['--room-1', '#0F141A'], ['--board', '#12161C'], ['--board-seam', '#2A3038'], ['--flap-hi', '#20262E'], ['--flap-lo', '#121519'], ['--ink', '#040608']]],
+    ['Leather, felt, paper', [['--leather-1', '#1D150F'], ['--leather-2', '#2B2018'], ['--felt-1', '#121A24'], ['--felt-2', '#1A2633'], ['--linen', '#E9E2D2'], ['--linen-shade', '#D8CFBB'], ['--type-ink', '#2A2520'], ['--kraft', '#B8915C']]],
+    ['Sea and joins', [['--sea', '#0D1B2A'], ['--sea-deep', '#08121D'], ['--sea-glow', '#12263A'], ['--sea-shelf', '#1B3A57'], ['--causeway', '#2A3A4A'], ['--land-base', '#16222F'], ['stamp ink', '#C4372C'], ['--standby', '#6FA8FF']]],
+    ['Meaning', [['--influence', '#5FD4F4'], ['--influence-hi', '#D4F6FF'], ['--momentum', '#FFB547'], ['--momentum-hi', '#FFE7BD'], ['--thread', '#E0483C'], ['--heat', '#FFF6E0'], ['--clears', '#5BE37D'], ['--alarm', '#FF5A4E']]],
+    ['Metals', [['--brass-hi', '#F7E0A3'], ['--brass', '#C9A35B'], ['--brass-lo', '#6A4F22'], ['--pewter', '#8A8F98'], ['--silver', '#9DB8D9'], ['--gold', '#F2C94C'], ['--text', '#E8E2D0'], ['--text-3', 'rgba(232,226,208,.4)']]],
+  ];
+  $('palette').innerHTML = groups
+    .map(([name, list]) => `<div style="margin-bottom:14px"><div class="cap" style="text-align:left; margin:0 0 8px">${name}</div>
+      <div class="grid" style="grid-template-columns: repeat(8, 1fr);">${list
+        .map(([k, v]) => {
+          const metal = k.startsWith('--brass') ? 'background:linear-gradient(180deg,#F7E0A3,#E3C078 16%,#C9A35B 50%,#9E7B3B)' : '';
+          return `<div class="sw"><div class="c" style="background:${v}; ${k === '--brass' ? metal : ''}"></div><div class="t"><b>${k}</b>${v}</div></div>`;
+        })
+        .join('')}</div></div>`)
+    .join('');
+
+  /* ---- Plate tones ---- */
+  const states = ['dark', 'spent', 'lit', 'scored', 'flash'];
+  const blocs = Object.entries(WAR_MAP.colours);
+  let html = '<div></div>' + states.map((s) => `<div class="h">${s.toUpperCase()}</div>`).join('');
+  for (const [k, c] of blocs) {
+    html += `<div class="b">${I.blocGlyph(c.glyph, c.hex)} ${k}</div>`;
+    for (const s of states) html += `<div><canvas data-b="${k}" data-s="${s}" width="300" height="104"></canvas><div class="hx">${hexOf(M.fillFor(k, s))}</div></div>`;
+  }
+  $('plates').innerHTML = html;
+  for (const cv of document.querySelectorAll('#plates canvas')) {
+    const x = cv.getContext('2d');
+    const k = cv.dataset.b;
+    const s = cv.dataset.s;
+    x.fillStyle = M.css(M.fillFor(k, s));
+    x.fillRect(0, 0, 300, 104);
+    const [core, a] = M.coreFor(k, s);
+    const g = x.createRadialGradient(150, 50, 2, 150, 52, 150);
+    if (a > 0) {
+      g.addColorStop(0, M.css(core, a));
+      g.addColorStop(0.45, M.css(core, a * 0.28));
+      g.addColorStop(1, 'rgba(0,0,0,0.16)');
+    } else {
+      g.addColorStop(0, M.css(M.hex(c(k)), 0.07));
+      g.addColorStop(1, 'rgba(0,0,0,0.12)');
+    }
+    x.fillStyle = g;
+    x.fillRect(0, 0, 300, 104);
+  }
+  function c(k) { return WAR_MAP.colours[k].hex; }
+  function hexOf(rgb) { return '#' + rgb.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('').toUpperCase(); }
+
+  /* ---- Type ---- */
+  const T = [
+    ['Crisis total', '<span class="num" style="font:800 28px/28px var(--font-num)">1,046</span>', 'Mono 800 · 28 · split-flap'],
+    ['Box value', '<span class="num" style="font:800 22px/22px var(--font-num); color:var(--influence-hi); text-shadow:0 0 10px rgba(95,212,244,.55)">312</span> <span class="num" style="font:800 22px/22px var(--font-num); color:var(--momentum-hi); text-shadow:0 0 10px rgba(255,181,71,.55); margin-left:10px">12</span>', 'Mono 800 · 22 · -0.02em'],
+    ['Pattern name', '<span class="pattern-name">SURROUND</span> <span class="pattern-lv num" style="margin-left:6px">Lv 3</span>', 'Saira Stencil One · 20'],
+    ['Clock', '<span class="num" style="font:800 17px/17px var(--font-num)">23:00</span>', 'Mono 800 · 17'],
+    ['Funds', '<span class="num" style="font:800 18px/18px var(--font-num); color:var(--brass-hi)">11</span>', 'Mono 800 · 18 · brass-hi'],
+    ['Button', '<span class="btn-title" style="padding:0">SWEEP</span>&nbsp;&nbsp;<span class="btn-sub">4 left</span>', 'Barlow 700 · 15-17 · 0.2em'],
+    ['Offer name / rule', '<span style="font:700 14px/14px var(--font-label); letter-spacing:.1em; color:var(--linen)">HARBOURMASTER</span>&nbsp;&nbsp;<span style="font:500 11px/13px var(--font-label); color:var(--text-2)">Each Port that scores: <b style="color:var(--influence)">+15 Influence</b></span>', 'Barlow 700 14 / 500 11'],
+    ['Hint (first night)', '<span style="font:600 13px/16px var(--font-label); letter-spacing:.02em">Pins that touch join up.</span>', 'Barlow 600 · 13'],
+    ['Region name / weight', '<span style="font:600 9px/9px var(--font-label); letter-spacing:.6px; color:var(--linen)">MORROW DOWNS</span>&nbsp;&nbsp;<span class="num" style="font:800 11px/11px var(--font-num)">7</span>', 'Barlow 600 · 9 caps / Mono 800 · 11'],
+    ['Board label', '<span class="label">LEVERAGE</span>&nbsp;&nbsp;<span class="label" style="font-size:9px; color:var(--text-2); letter-spacing:.16em">STANDOFF</span>', 'Barlow 700 · 8-9 · 0.16-0.22em'],
+    ['Seat chip', '<span class="num" style="font:800 8px/8px var(--font-num); color:var(--momentum)">+4M</span>&nbsp;&nbsp;<span class="num" style="font:800 8px/8px var(--font-num); color:var(--influence)">+15</span>', 'Mono 800 · 8, meaning colour'],
+    ['Typed paper', '<span style="background:var(--linen); color:var(--type-ink); padding:3px 6px; font:800 12px/12px var(--font-num); letter-spacing:.12em">FORTIFY</span>', 'Mono 800 · type-ink on linen'],
+  ];
+  $('type').innerHTML = T.map(([k, v, d]) => `<div class="type-row"><div class="k">${k}</div><div>${v}</div><div class="v">${d}</div></div>`).join('');
+
+  /* ---- Materials ---- */
+  const dia = I.diamond('currentColor');
+  const at = (x, y, inner, extra = '') => `<div class="abs" style="left:${x}px; top:${y}px; ${extra}">${inner}</div>`;
+  const cap = (x, y, w, t) => `<div class="abs cap" style="left:${x}px; top:${y}px; width:${w}px;">${t}</div>`;
+  const seat = (x, y, rarity, icon, chip, cls = '') =>
+    `<div class="abs seat ${rarity} ${cls}" style="left:${x}px; top:${y}px;"><div class="felt"><div class="no">1</div><div class="obj">${icon}</div><div class="chip">${chip}</div></div></div>`;
+  let m = '';
+  // Brass and buttons.
+  m += `<div class="abs brass" style="left:24px; top:28px; width:136px; height:56px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; padding-right:22px;"><div class="btn-title">SWEEP</div><div class="btn-sub">4 left</div><div class="abs lamp" style="left:113px; top:5px;"></div><div class="abs lamp-label" style="left:102px; top:21px; width:34px; text-align:center; letter-spacing:.12em">CLEARS</div></div>`;
+  m += cap(24, 102, 136, 'Brass, at rest, lamp off');
+  m += `<div class="abs brass pressed" style="left:184px; top:28px; width:136px; height:56px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; padding-right:22px;"><div class="btn-title">SWEEP</div><div class="btn-sub">3 left</div><div class="abs lamp on" style="left:113px; top:5px;"></div><div class="abs lamp-label" style="left:102px; top:21px; width:34px; text-align:center; letter-spacing:.12em">CLEARS</div></div>`;
+  m += cap(184, 102, 136, 'Pressed, lamp on');
+  m += `<div class="abs brass disabled" style="left:344px; top:28px; width:136px; height:56px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;"><div class="btn-title">SWEEP</div><div class="btn-sub">needs 5 pins</div></div>`;
+  m += cap(344, 102, 136, 'Disabled (40%)');
+  m += `<div class="abs btn-outline" style="left:504px; top:28px; width:96px; height:56px;"><div class="btn-title">SWAP</div><div class="btn-sub">3 left</div></div>`;
+  m += cap(504, 102, 96, 'Outline');
+  // Flaps.
+  m += `<div class="abs backlit" style="left:628px; top:30px; width:68px; height:32px;"></div><div class="abs total" style="left:628px; top:30px; display:flex; gap:2px;">${K.flap('4', 21.5, 32, 28)}${K.flap('5', 21.5, 32, 28)}${K.flap('6', 21.5, 32, 28, { flipFrom: '5' })}</div>`;
+  m += cap(616, 102, 96, 'Amber backlight, mid-flip');
+  m += `<div class="abs backlit hot" style="left:742px; top:30px; width:68px; height:32px;"></div><div class="abs total hot" style="left:742px; top:30px; display:flex; gap:2px;">${K.flap('9', 21.5, 32, 28)}${K.flap('0', 21.5, 32, 28)}${K.flap('2', 21.5, 32, 28)}</div>`;
+  m += cap(730, 102, 96, 'Heat');
+  m += `<div class="abs stamp-cleared" style="left:850px; top:30px;">CLEARED</div>`;
+  m += cap(850, 102, 132, 'Cleared stamp');
+  m += at(1000, 40, `<div style="height:12px; padding:0 4px; border-radius:2px; border:1px solid rgba(255,90,78,0.5); background:rgba(255,90,78,0.1); display:flex; align-items:center;"><span class="label" style="color:var(--alarm); letter-spacing:0.12em; line-height:8px;">SUMMIT: GRIDLOCK</span></div>`);
+  m += cap(990, 102, 110, 'Summit chip');
+  // Seats.
+  const sx = 24, sy = 150;
+  m += seat(sx, sy, 'common', I.deskLamp(), '<span class="m">+4M</span>');
+  m += cap(sx - 8, sy + 72, 80, 'Common');
+  m += seat(sx + 90, sy, 'uncommon', I.foldedMap(), '<span class="m">&times;2</span><span class="k">&middot;4</span>');
+  m += cap(sx + 82, sy + 72, 80, 'Uncommon');
+  m += seat(sx + 180, sy, 'rare', I.morseKey(), `${I.starGlyph('var(--gold)')}<span class="k">&times;2</span>`);
+  m += cap(sx + 172, sy + 72, 80, 'Rare');
+  m += seat(sx + 270, sy, 'legendary', I.satchel(), '<span class="m">1st&times;2</span>');
+  m += cap(sx + 262, sy + 72, 80, 'Legendary rim');
+  m += `<div class="abs seat-shadow" style="left:${sx + 364}px; top:${sy + 54}px;"></div>` + seat(sx + 360, sy, 'common', I.shipsBell(), `<span class="i">+15</span>${I.anchorGlyph('var(--influence-hi)')}`, 'firing');
+  m += cap(sx + 352, sy + 72, 80, 'Firing (hop)');
+  m += `<div class="abs seat empty" style="left:${sx + 450}px; top:${sy}px;"><div class="felt"><div class="no">5</div><div class="vacant">VACANT</div></div></div>`;
+  m += cap(sx + 442, sy + 72, 80, 'Empty');
+  // Boxes.
+  m += `<div class="abs box inf" style="left:600px; top:${sy + 9}px; width:86px; height:40px;"><div class="lbl">INFLUENCE</div><div class="val num">140</div></div>`;
+  m += `<div class="abs box mom" style="left:700px; top:${sy + 9}px; width:74px; height:40px;"><div class="lbl">MOMENTUM</div><div class="val num">12</div></div>`;
+  m += cap(600, sy + 72, 174, 'Boxes at rest');
+  m += `<div class="abs box inf bump" style="left:800px; top:${sy + 9}px; width:86px; height:40px;"><div class="lbl">INFLUENCE</div><div class="val num">155</div></div>`;
+  m += `<div class="abs box mom bump" style="left:900px; top:${sy + 9}px; width:74px; height:40px;"><div class="lbl">MOMENTUM</div><div class="val num">24</div></div>`;
+  m += cap(800, sy + 72, 174, 'Bump (a number lands)');
+  m += `<div class="abs fly inf" style="left:1020px; top:${sy + 28}px; font-size:18px;">+15</div><div class="abs fly mom" style="left:1070px; top:${sy + 28}px; font-size:18px;">&times;2</div>`;
+  m += cap(985, sy + 72, 120, 'Flying numbers');
+  // Paper.
+  const py = 290;
+  m += `<div class="abs well" style="left:24px; top:${py}px; width:52px; height:56px;"><div class="slip"><div class="rule-line"></div><div class="stamp">${I.orderStamp('FORTIFY', 'm1')}</div><div class="name">FORTIFY</div></div></div>`;
+  m += `<div class="abs well" style="left:84px; top:${py}px; width:52px; height:56px;"><div class="empty-mark">IN-TRAY</div></div>`;
+  m += cap(16, py + 72, 128, 'In-tray wells');
+  m += `<div class="abs price" style="left:170px; top:${py + 18}px; right:auto; bottom:auto;">${dia}<span>4</span></div>`;
+  m += `<div class="abs cost" style="left:230px; top:${py + 22}px;">${I.diamond('var(--brass-hi)')}<span>5</span></div>`;
+  m += cap(160, py + 72, 120, 'Price tag, cost');
+  m += `<div class="abs funds" style="left:296px; top:${py + 8}px; width:70px; height:40px;"><div class="coin">${I.coin('mc')}</div><div class="amount num">24</div></div>`;
+  m += cap(290, py + 72, 80, 'Funds');
+  m += `<div class="abs receipt" style="left:396px; top:${py}px; width:136px; height:56px;"><div class="row"><span>FLARE-UP CLEARED</span><span>+3</span></div><div class="row"><span>2 SWEEPS LEFT</span><span>+2</span></div><div class="row"><span>INTEREST</span><span>+1</span></div><div class="row"><span>TREASURER</span><span>+4</span></div></div>`;
+  m += cap(396, py + 72, 136, 'Payout receipt (proposal)');
+  m += `<div class="abs" style="left:560px; top:${py - 4}px; width:240px; height:8px;"><div class="rule" style="position:absolute; top:0; width:240px;"><div class="fill" style="width:150px"></div></div></div>
+        <div class="abs" style="left:560px; top:${py + 16}px; width:240px; height:8px;"><div class="rule done" style="position:absolute; top:0; width:240px;"><div class="fill" style="width:240px"></div></div></div>`;
+  m += cap(560, py + 72, 240, 'Progress rule: filling, at target');
+  m += at(830, py + 6, `<div class="lamp" style="display:inline-block"></div>&nbsp;&nbsp;&nbsp;&nbsp;<div class="lamp on" style="display:inline-block"></div>`);
+  m += cap(810, py + 72, 80, 'CLEARS lamp');
+  $('materials').innerHTML = m;
+
+  /* ---- Icons ---- */
+  const staff = [
+    ['Duty Officer', I.deskLamp()], ['Hotline Operator', I.redPhone()], ['Harbourmaster', I.shipsBell()], ['Strategist', I.foldedMap()],
+    ['Admiral', I.telescope()], ['Courier', I.satchel()], ['Signals Officer', I.morseKey()], ['Funds coin', I.coin('ic')],
+  ];
+  $('icons').innerHTML = staff.map(([n, s]) => `<div class="icon-cell">${s}<div class="n">${n}</div></div>`).join('');
+  $('sizes').innerHTML = [34, 48, 64].map((z) => `<div style="width:${z}px; height:${z}px">${I.shipsBell().replace('<svg ', `<svg width="${z}" height="${z}" `)}</div>`).join('');
+  $('silhouettes').innerHTML = [I.deskLamp(false), I.redPhone(), I.shipsBell(), I.foldedMap(), I.telescope(), I.morseKey()]
+    .map((s) => `<div style="width:20px; height:20px; filter: brightness(0) invert(0.9);">${s.replace('<svg ', '<svg width="20" height="20" ')}</div>`)
+    .join('');
+  $('stamps').innerHTML = ['FORTIFY', 'RELAY', 'ECHO', 'CABLE', 'RECRUIT']
+    .map((k) => `<div class="paper-cell">${I.orderStamp(k, 'st')}<div class="n">${k === 'CABLE' ? 'LAY CABLE' : k}</div></div>`)
+    .join('');
+
+  /* ---- The map while choosing ---- */
+  await K.fontsReady();
+  M.paint($('choose'), {
+    dpr: Math.max(2, window.devicePixelRatio || 1),
+    state: {
+      regions: {
+        LNK: { status: 'lit', pinned: true, order: 2, brass: 1, glow: 0.12 },
+        GUL: { status: 'lit', pinned: true, order: 1 },
+        SHL: { status: 'lit', pinned: true, order: 3 },
+        EDV: { status: 'lit', brass: 1, glow: 0.09 },
+        QLN: { status: 'lit' },
+        NWK: { status: 'lit' },
+        ICW: { status: 'lit' },
+        HRT: { status: 'lit', stamp: 'FORTIFY' },
+        WMS: { status: 'spent', brass: 1 },
+        FRM: { status: 'spent' },
+        WNM: { status: 'spent' },
+        MRM: { brass: 2 },
+      },
+      threads: [
+        { a: 'GUL', b: 'LNK', traffic: 1, active: true },
+        { a: 'LNK', b: 'SHL', traffic: 1, active: true },
+        { a: 'NWK', b: 'FRM', traffic: 2 },
+        { a: 'FRM', b: 'WMS', traffic: 3 },
+        { a: 'EDV', b: 'MRD', traffic: 6 },
+        { a: 'MRD', b: 'TRN', traffic: 2 },
+      ],
+      flashpoint: { id: 'LNK', ring: 1, r0: 72 },
+    },
+  });
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>
