@@ -44,6 +44,9 @@ export interface BoardRoll {
 }
 export const boardRoll = signal<BoardRoll | null>(null);
 
+/** The total has landed on the board after a roll: its tiles flash once (n retriggers it). */
+export const totalLanded = signal(0);
+
 /** The progress rule and ring follow this total while a sweep is shown (null: the run's). */
 export const totalShown = signal<bigint | null>(null);
 
@@ -79,6 +82,9 @@ export const tableKeep = signal<TableKeep | null>(null);
 /** The flashpoint ring stays red (not yet cooled) until the clear collapses it. */
 export const ringHold = signal(false);
 
+/** NEXT CRISIS was pressed: the Briefing tray slides away before the new crisis is shown. */
+export const trayLeaving = signal(false);
+
 let n = 0;
 /** A fresh counter value for retriggering signals. */
 export function nextN(): number {
@@ -103,5 +109,6 @@ export function resetAnim(): void {
     tableKeep.value = null;
     ringHold.value = false;
     revealOutcome.value = true;
+    trayLeaving.value = false;
   });
 }

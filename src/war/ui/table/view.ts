@@ -7,14 +7,17 @@
 import {
   armedView,
   boardOf,
+  formatShort,
   mapFlags,
+  pinChips,
   preview,
   regionViews,
   ringFactor,
   threadViews,
+  type PinChip,
   type RunState,
 } from '../../engine';
-import type { MapViewPlus, RegionId } from '../art';
+import type { MapViewPlus, PinChipView, RegionId } from '../art';
 
 export interface ViewExtras {
   highlight: RegionId[] | null;
@@ -28,6 +31,8 @@ export interface ViewExtras {
   keep: { lit: RegionId[]; pins: RegionId[]; joins: Array<[RegionId, RegionId]> } | null;
   /** The crisis is won but the clear has not played: the flashpoint ring is not cooled yet. */
   ringHold: boolean;
+  /** The region under a mouse pointer. */
+  hover: RegionId | null;
 }
 
 export const NO_EXTRAS: ViewExtras = {
@@ -38,6 +43,7 @@ export const NO_EXTRAS: ViewExtras = {
   brassHold: null,
   keep: null,
   ringHold: false,
+  hover: null,
 };
 
 function ringOf(s: RunState, total: bigint | null): number {
@@ -84,10 +90,12 @@ export function mapViewOf(s: RunState, x: ViewExtras): MapViewPlus {
     highlight: x.highlight,
     finger: live ? x.finger : null,
     sweepOrder: p && p.pins.length ? p.sweepOrder : null,
+    pinChips: p ? chipsOf(s) : null,
     loose: p?.loose ?? null,
     ringed: p?.ringed ?? null,
     cableDrag: x.cableDrag,
     ringHold: x.ringHold,
+    hover: p ? x.hover : null,
   };
 }
 
@@ -97,4 +105,23 @@ function joinableOf(s: RunState, pins: RegionId[]): RegionId[] | null {
   const board = boardOf(s);
   const out = s.crisis.lit.filter((r) => !pins.includes(r) && pins.some((q) => board.joined(q, r)));
   return out.length ? out : null;
+}
+
+/** A product of multipliers as a chip shows it: 'x2', 'x2.25', 'x3.38', 'x12'. */
+export function timesText(mults: readonly string[]): string {
+  const f = mults.reduce((t, m) => t * Number(m), 1);
+  const shown = Number.isInteger(f) || f >= 10 ? String(Math.round(f)) : String(Number(f.toFixed(2)));
+  return `×${shown}`;
+}
+
+/** The engine's per-pin shares, as the chips draw them. */
+function chipsOf(s: RunState): Record<RegionId, PinChipView> | null {
+  const chips = pinChips(s);
+  if (!chips) return null;
+  const out: Record<RegionId, PinChipView> = {};
+  for (const [id, c] of Object.entries(chips) as Array<[RegionId, PinChip]>) {
+    const mom = [c.momAdd > 0n ? `+${c.momAdd}` : '', c.mults.length ? timesText(c.mults) : ''].filter(Boolean).join(' ');
+    out[id] = { inf: `+${formatShort(c.inf, 5)}`, mom: mom || null, passes: c.passes };
+  }
+  return out;
 }

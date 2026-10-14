@@ -157,10 +157,15 @@ function litHalo(g: Gfx, x: number, y: number, alpha: number, breath: number): v
 }
 
 /** One brass tack (4 pt), lit from the top-left. */
-function tack(g: Gfx, bx: number, by: number, alpha: number, shadowK = 1): void {
+function tack(g: Gfx, bx: number, by: number, alpha: number, shadowK = 1, scale = 1): void {
   const { ctx } = g;
   ctx.save();
   ctx.globalAlpha = alpha;
+  if (scale !== 1) {
+    ctx.translate(bx, by);
+    ctx.scale(scale, scale);
+    ctx.translate(-bx, -by);
+  }
   withShadow(g, `rgba(0,0,0,${0.8 * shadowK})`, 2.5 / 3, 1 / 3, 1.6 / 3, () => {
     ctx.fillStyle = css(BRASS.lo);
     ctx.beginPath();
@@ -189,7 +194,8 @@ function tack(g: Gfx, bx: number, by: number, alpha: number, shadowK = 1): void 
 
 /**
  * Earned brass pins: up to 3 tacks stacked left of the pin like coins, then an 'x4' count. `drop`
- * (0..1) animates the newest tack falling from 18 pt above (250 ms fall, then a 2 pt bounce).
+ * (0..1) animates the newest tack: big, close to the eye, falling from 60 pt above onto the glass
+ * (250 ms, shrinking from 2.5x as it falls, its shadow gathering under it), then a 60 ms bounce.
  */
 function paintBrass(g: Gfx, x: number, y: number, n: number, alpha: number, drop: number | null): void {
   const shown = Math.min(3, n);
@@ -197,19 +203,28 @@ function paintBrass(g: Gfx, x: number, y: number, n: number, alpha: number, drop
     const bx = x - 14.5 - i * 4.5;
     let by = y + 2;
     let shadowK = 1;
+    let scale = 1;
     if (drop !== null && i === shown - 1) {
-      // 250 ms fall (ease-in), then a 60 ms bounce: 310 ms in all.
       const fallEnd = 250 / 310;
       if (drop < fallEnd) {
         const f = easeIn(drop / fallEnd);
-        by -= 18 * (1 - f);
-        shadowK = 0.4 + 0.6 * f;
+        by -= 60 * (1 - f);
+        scale = 2.5 - 1.5 * f;
+        shadowK = 0.2 + 0.8 * f;
+        // Its shadow waits on the glass where it will land, tightening as the pin comes down.
+        const { ctx } = g;
+        ctx.save();
+        ctx.fillStyle = `rgba(0,0,0,${(0.15 + 0.4 * f) * alpha})`;
+        ctx.beginPath();
+        ctx.ellipse(bx + 1, y + 3.5, 4 + 6 * (1 - f), 2 + 3 * (1 - f), 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       } else {
         const b = (drop - fallEnd) / (1 - fallEnd);
-        by -= 2 * Math.sin(Math.PI * b);
+        by -= 3 * Math.sin(Math.PI * b);
       }
     }
-    tack(g, bx, by, alpha, shadowK);
+    tack(g, bx, by, alpha, shadowK, scale);
   }
   if (n > 3) {
     text(g.ctx, `×${n}`, x - 34, y + 2, { font: `800 7px ${FONT_MONO}`, color: css(BRASS.a, alpha), align: 'right', halo: [HALO, 2.2] });
@@ -316,14 +331,16 @@ function paintRegionMarker(g: Gfx, r: RegionVis, s: Scene, t: MarkerTiming): voi
   const wFont = big ? `800 11px ${FONT_MONO}` : `700 8.5px ${FONT_MONO}`;
   const spent = r.status === 'spent';
   const wA = big ? a : spent ? 0.32 : 0.62 * Math.max(a, 0.5) * (r.blackout ? 0.6 : 1);
-  // While choosing, a pin that will score shows what it adds, in Influence cyan: its number (plus 5
-  // per brass pin) becomes '+10', so choosing a 10 over a 3 reads before the sweep. Loose and
-  // blacked-out pins add nothing and keep the plain number; during a sweep the pops carry it.
-  const adds = held && r.order !== null && !r.loose && !r.blackout && !s.sweeping;
-  const label = adds ? `+${r.def.weight + 5 * r.brass}` : String(r.def.weight);
+  // While choosing, a pin that will score shows what it adds (the engine's silent scorer): its
+  // number becomes its Influence, every pass, thread, stamp and pin staff included ('+20' on the
+  // flashpoint), and anything it does to Momentum follows the port or capital mark in amber
+  // ('+5', 'x1.5'). Loose and blacked-out pins add nothing and keep the plain number; during a
+  // sweep the pops carry it.
+  const chip = r.chip && !r.loose && !r.blackout ? r.chip : null;
+  const label = chip ? chip.inf : String(r.def.weight);
   text(ctx, label, wx, y + 0.5, {
     font: wFont,
-    color: adds ? css(INFLUENCE, a) : css(weightInk(r.colour, big), wA),
+    color: chip ? css(INFLUENCE, a) : css(weightInk(r.colour, big), wA),
     align: 'left',
     halo: [`rgba(6,11,17,${0.85 * Math.max(a, 0.4)})`, big ? 3 : 2.4],
   });
@@ -354,15 +371,27 @@ function paintRegionMarker(g: Gfx, r: RegionVis, s: Scene, t: MarkerTiming): voi
   } else if (r.port) {
     anchor(ctx, tagX, y + 0.2, big ? 7 : 5.6, css(mix(LINEN, col, 0.7), tagA), big ? 1 : 0.85);
   }
+  if (chip?.mom) {
+    const mx = tagX + (r.capital || r.port ? 6 : 0);
+    text(ctx, chip.mom, mx, y + 0.5, {
+      font: `800 9.5px ${FONT_MONO}`,
+      color: css(MOMENTUM, a),
+      align: 'left',
+      halo: [`rgba(20,10,2,${0.9 * a})`, 2.6],
+    });
+  }
 
   if (lit) {
     const name = r.def.name.toUpperCase();
     const nameFont = `600 9px ${FONT_LABEL}`;
     text(ctx, name, x, y + 15.5, { font: nameFont, color: css(LINEN, 0.92 * a), halo: [`rgba(6,11,17,${0.8 * a})`, 2.6], tracking: 0.6 });
-    // The flashpoint scores twice: say so where the player is looking, beside its name.
-    if (r.id === s.flashpoint && !s.cooled && s.collapse === null) {
+    // A region that scores more than once says so beside its name: the flashpoint always (the red
+    // ring scores twice), and while choosing any pin the Courier, an Echo or the Signals Officer
+    // makes score again.
+    const times = r.loose ? 1 : r.chip && !r.blackout ? r.chip.passes : r.id === s.flashpoint ? 2 : 1;
+    if (times > 1 && !(r.id === s.flashpoint && (s.cooled || s.collapse !== null))) {
       const nameW = textWidth(ctx, name, nameFont) + 0.6 * name.length;
-      text(ctx, '×2', x + nameW / 2 + 3, y + 15.5, {
+      text(ctx, `×${times}`, x + nameW / 2 + 3, y + 15.5, {
         font: `800 8.5px ${FONT_MONO}`,
         color: css(MOMENTUM, a),
         align: 'left',

@@ -8,7 +8,8 @@ import {
   HOLD_MS,
   multPitch,
   multWeight,
-  octaveUp,
+  fifthUp,
+  noteHz,
   outcomeSchedule,
   RISER_MS,
   shakeFor,
@@ -80,13 +81,13 @@ describe('event durations and sizes', () => {
     expect(slamIntensity(180n, 0.6, true)).toBeCloseTo(sizeOf(180n), 5);
   });
 
-  it('climbs a pentatonic over the sweep, an AGAIN an octave up, multipliers a semitone each', () => {
+  it('climbs a pentatonic over the sweep, an AGAIN pings a fifth up, multipliers a semitone each', () => {
     const four = [0, 1, 2, 3].map((k) => tickIntensity(k, 4));
     for (let i = 1; i < four.length; i++) expect(four[i]).toBeGreaterThan(four[i - 1]);
     // A5 to B6 whatever the length: a short sweep climbs as far as a long one.
     expect(tickIntensity(0, 4)).toBeCloseTo(tickIntensity(0, 9), 6);
     expect(tickIntensity(3, 4)).toBeCloseTo(tickIntensity(8, 9), 6);
-    expect(500 * Math.pow(4.4, octaveUp(tickIntensity(0, 4)))).toBeCloseTo(1760, 0);
+    expect(500 * Math.pow(4.4, fifthUp(noteHz(0, 4)))).toBeCloseTo(1320, 0);
     expect(multPitch(1)).toBeGreaterThan(multPitch(0));
     expect(380 * Math.pow(3.5, multPitch(1)) / (380 * Math.pow(3.5, multPitch(0)))).toBeCloseTo(Math.pow(2, 1 / 12), 4);
     expect([multWeight('1.5'), multWeight('2'), multWeight('3')]).toEqual([0.9, 1, 1.2]);
@@ -121,12 +122,23 @@ describe('first night, sweep 1 (Chain 180)', () => {
     expect(lands.map((c) => c.value)).toEqual([33n, 43n, 53n, 60n]);
   });
 
-  it('ticks up a scale, the AGAIN an octave above the note before it', () => {
-    const ticks = sounds(s.cues, 'tally_tick').map((c) => c.intensity);
-    expect(ticks[1]).toBeGreaterThan(ticks[0]);
-    expect(ticks[2]).toBeCloseTo(octaveUp(ticks[1]), 6);
-    expect(ticks[3]).toBeGreaterThan(ticks[1]);
-    expect(ticks.every((i) => i >= 0.38)).toBe(true);
+  it('ticks up a scale; the AGAIN repeats its note with a ping a fifth above, and the climb gets louder', () => {
+    const at = (t: number) => sounds(s.cues, 'tally_tick').filter((c) => c.t === t).map((c) => c.intensity);
+    const [gul, lnk, again, shl] = [450, 770, 1071, 1354].map(at);
+    expect(lnk[0]).toBeGreaterThan(gul[0]);
+    expect(again).toContain(lnk[0]);
+    expect(Math.max(...again)).toBeCloseTo(fifthUp(noteHz(1, 3)), 6);
+    expect(shl[0]).toBeGreaterThan(lnk[0]);
+    // Each note is doubled for body; a thump grows under the later ones.
+    expect(sounds(s.cues, 'tick').filter((c) => c.t >= 450 && c.t <= 1354)).toHaveLength(4);
+    const pins = sounds(s.cues, 'pin').map((c) => c.intensity);
+    expect(pins).toHaveLength(4);
+    expect(pins[0]).toBeCloseTo(0.2, 6);
+    expect(pins[1]).toBeCloseTo(0.6, 6);
+    expect(pins[2]).toBeCloseTo(0.6, 6);
+    expect(pins[3]).toBeCloseTo(1, 6);
+    expect(sounds(s.cues, 'thump').some((c) => c.t === 1354)).toBe(true);
+    expect(sounds(s.cues, 'thump').some((c) => c.t === 450)).toBe(false);
   });
 
   it('holds its breath before the slam, then prints the product on the board and rolls the total', () => {
@@ -271,16 +283,19 @@ describe('outcomes', () => {
     expect(t('cleared')).toBe(CLEARED_AT);
     expect(o.cues.some((c) => c.do === 'sound' && c.sfx === 'ante_smash')).toBe(false);
     expect(t('drop') - t('cleared')).toBeGreaterThanOrEqual(250);
+    // The total that cleared is held, readable, before the stamp covers the tiles.
+    expect(t('cleared')).toBeGreaterThanOrEqual(350);
     const coins = o.cues.filter((c) => c.do === 'coin').map((c) => c.t);
     expect(coins[0]).toBeGreaterThan(t('drop') + 250);
     // 90 ms apart for the first five, quicker after.
     expect(coins.slice(1, 5).map((c, i) => c - coins[i])).toEqual([90, 90, 90, 90]);
     expect(coins[5] - coins[4]).toBe(70);
-    expect(t('rise')).toBe(coins.at(-1)! + 300);
+    expect(t('rise')).toBe(coins.at(-1)! + 240);
   });
 
-  it('plays the chord at the start of the clear when the riser was skipped', () => {
-    const o = outcomeSchedule({ kind: 'clear', fundsBefore: 5, fundsAfter: 8, reduced: false, riserPlayed: false });
+  it('plays the chord at the start of the clear when the riser was skipped, and stamps CLEARED on it', () => {
+    const o = outcomeSchedule({ kind: 'clear', fundsBefore: 5, fundsAfter: 8, reduced: false, riserPlayed: false, chordAt: RISER_MS });
     expect(o.cues.find((c) => c.do === 'sound' && c.sfx === 'ante_smash')!.t).toBe(0);
+    expect(o.cues.find((c) => c.do === 'cleared')!.t).toBe(RISER_MS);
   });
 });

@@ -6,14 +6,16 @@
 import { audio } from '../../../audio';
 import * as E from '../../engine';
 import type { RegionId, Result, RunState } from '../../engine';
+import { REGION } from '../../content/map';
+import { ORDER } from '../../content/orders';
 import { centre, R, type Rect } from '../common/layout';
 import { droneFor, isPlaying, playSweep, skip } from '../director/play';
-import { resetAnim } from '../fx/anim';
+import { resetAnim, trayLeaving } from '../fx/anim';
 import { buzz } from '../fx/shake';
 import { getMap } from '../table/mapRef';
-import { dropCurtain, raiseCurtain } from './curtain';
-import { hintsAfter, hintsStart, hintsStop } from './hints';
-import { balloon, busy, cableDrag, pressHighlight, prefs, run, screen, setPrefs, sheet, showToast, shown } from './store';
+import { dropCurtain, raiseCurtain, veil, VEIL_MS } from './curtain';
+import { hintsAfter, hintsStart, hintsStop, hintTap } from './hints';
+import { balloon, busy, cableDrag, pressHighlight, pressNote, prefs, receiptOpen, reduced, run, screen, setPrefs, sheet, showToast, shown, speed } from './store';
 
 /** Where a refusal toast should sit: above the control that was tapped. */
 export function above(r: Rect): { x: number; bottom: number } {
@@ -53,10 +55,14 @@ function begin(s: RunState): void {
   // From the title, the title stays up until the war room's table has drawn.
   if (screen.value === 'title') raiseCurtain();
   skip();
+  cancelLeaving();
+  cancelQuit();
   resetAnim();
   getMap()?.fx.reset();
   balloon.value = null;
+  receiptOpen.value = null;
   pressHighlight.value = null;
+  pressNote.value = null;
   sheet.value = null;
   run.value = s;
   shown.value = s;
@@ -83,18 +89,41 @@ export function loadState(s: RunState): void {
   begin(s);
 }
 
+let quitting = 0;
+
+function cancelQuit(): void {
+  clearTimeout(quitting);
+  quitting = 0;
+  veil.value = false;
+}
+
+/** Back to the title: the war room fades to the table colour, then the title comes up. */
 export function quitToTitle(): void {
   const s = run.value;
   // A first night left after its first sweep has done its teaching: the next night is a fresh map.
   if (s?.firstNight && s.sweepsTaken > 0 && !prefs.value.playedFirstNight) setPrefs({ playedFirstNight: true });
   skip();
-  dropCurtain();
+  cancelLeaving();
   hintsStop();
-  resetAnim();
   audio.drone(false);
   balloon.value = null;
+  receiptOpen.value = null;
   sheet.value = null;
   pressHighlight.value = null;
+  pressNote.value = null;
+  if (screen.value !== 'game' || reduced.value) {
+    leaveGame();
+    return;
+  }
+  if (quitting) return;
+  veil.value = true;
+  quitting = window.setTimeout(leaveGame, VEIL_MS);
+}
+
+function leaveGame(): void {
+  cancelQuit();
+  dropCurtain();
+  resetAnim();
   screen.value = 'title';
   run.value = null;
   shown.value = null;
@@ -110,7 +139,7 @@ export function tapRegion(id: RegionId): void {
   if (s.armed) {
     const { order, chosen } = s.armed;
     const r = E.tapArmed(s, id);
-    if (commit(r, above(R.readout)) && !r.state.armed) afterOrder(order, chosen[0] ?? id, s, r.state);
+    if (commit(r, above(R.readout)) && !r.state.armed) afterOrder(order, [...chosen, id], s, r.state);
     return;
   }
   if (s.phase !== 'crisis') return;
@@ -126,14 +155,16 @@ export function tapRegion(id: RegionId): void {
   }
 }
 
-/** Effects of an Order that just applied (the map draws the result; DEFECT gets its ink). */
-function afterOrder(order: E.OrderId, source: RegionId, before: RunState, after: RunState): void {
+/** Effects of an Order that just applied: its thunk, the map's ink, and a line naming where it went. */
+function afterOrder(order: E.OrderId, targets: RegionId[], before: RunState, after: RunState): void {
   if (after.tray.length >= before.tray.length && order !== 'AIRLIFT') return;
   audio.play('tally_slam', { intensity: 0.15 });
   buzz(12);
+  const names = [...new Set(targets)].map((id) => REGION[id].name);
+  if (names.length) showToast(`${ORDER[order].name} → ${names.join(order === 'CABLE' ? ' – ' : ', ')}`, above(R.readout));
   if (order === 'DEFECT') {
     const changed = Object.keys(after.world.colour).filter((id) => after.world.colour[id] !== before.world.colour[id]);
-    if (changed.length) void getMap()?.fx.inkSpread(source, changed);
+    if (changed.length) void getMap()?.fx.inkSpread(targets[0], changed);
   }
 }
 
@@ -141,11 +172,14 @@ export async function sweepNow(): Promise<void> {
   const s = current();
   if (!s || isPlaying()) return;
   balloon.value = null;
+  receiptOpen.value = null;
   const r = E.sweep(s);
   if (!r.ok) {
     showToast(r.reason, above(R.sweep));
     return;
   }
+  // The lines about choosing have done their work once the lever is pulled.
+  hintTap();
   if (s.firstNight && !prefs.value.playedFirstNight && (r.state.crisis.cleared || r.state.phase === 'missed')) {
     setPrefs({ playedFirstNight: true });
   }
@@ -176,7 +210,7 @@ export function confirmOrder(): void {
   if (!s) return;
   const armed = s.armed;
   const r = E.confirmArmed(s);
-  if (armed && commit(r, above(R.readout))) afterOrder(armed.order, armed.chosen[0], s, r.state);
+  if (armed && commit(r, above(R.readout))) afterOrder(armed.order, armed.chosen, s, r.state);
 }
 
 export function cancelOrder(): void {
@@ -193,7 +227,7 @@ export function applyOrder(slot: number, targets: RegionId[]): boolean {
   const order = s.tray[slot]?.id;
   const r = E.useOrder(s, slot, targets);
   if (order && commit(r, above(R.readout))) {
-    afterOrder(order, targets[0], s, r.state);
+    afterOrder(order, targets, s, r.state);
     return true;
   }
   return false;
@@ -248,15 +282,49 @@ export function rerollOffers(): boolean {
   return true;
 }
 
+/** The tray's slide away before a new crisis is shown (1x). */
+const TRAY_LEAVE_MS = 220;
+let leaving = 0;
+
+function cancelLeaving(): void {
+  clearTimeout(leaving);
+  leaving = 0;
+  trayLeaving.value = false;
+}
+
+/**
+ * NEXT CRISIS: the run moves on at once, and the screen follows once the tray has slid away, so the
+ * new crisis arrives whole: a blank board, an empty rule, and eight regions lighting one by one.
+ */
 export function nextCrisis(): void {
   const s = current();
-  if (!s) return;
-  if (commit(E.nextCrisis(s), BRIEFING_TOAST)) {
-    resetAnim();
-    getMap()?.fx.reset();
-    audio.play('tally_slam', { intensity: 0.2 });
-    droneFor(run.value);
+  if (!s || leaving) return;
+  const r = E.nextCrisis(s);
+  if (!r.ok) {
+    showToast(r.reason, BRIEFING_TOAST);
+    return;
   }
+  resetAnim();
+  getMap()?.fx.reset();
+  receiptOpen.value = null;
+  run.value = r.state;
+  const show = () => {
+    leaving = 0;
+    trayLeaving.value = false;
+    // A tap on the table during the slide has already put the new crisis on show.
+    if (run.value !== r.state || shown.value === r.state) return;
+    shown.value = r.state;
+    hintsAfter(s, r.state);
+    audio.play('tally_slam', { intensity: 0.2 });
+    droneFor(r.state);
+  };
+  if (reduced.value) {
+    show();
+    return;
+  }
+  trayLeaving.value = true;
+  audio.play('slide', { intensity: 0.6 });
+  leaving = window.setTimeout(show, TRAY_LEAVE_MS / speed.value);
 }
 
 export function keepGoing(): void {

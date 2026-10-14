@@ -5,7 +5,7 @@
 import type { Colour, MapView, RegionId, RegionStatus, Stamp } from './contract';
 import { LAND_JOINS, REGION, REGIONS, SEA_LANES, pairKey, type MapRegion } from './data';
 import { clamp01, easeOut, lerp } from './draw';
-import type { MapViewExtras, MapViewPlus } from './extensions';
+import type { MapViewExtras, MapViewPlus, PinChipView } from './extensions';
 import { progress, tweenAt, type FxState } from './fx';
 import type { FillState } from './palette';
 
@@ -41,6 +41,8 @@ export interface RegionVis {
   warm: number;
   /** Lit, unpinned, and a pin here would join the pins already down. */
   joinable: boolean;
+  /** While choosing: what this scoring pin will add. */
+  chip: PinChipView | null;
 }
 
 export interface ThreadVis {
@@ -183,7 +185,8 @@ export function buildScene(view: MapViewPlus, fx: FxState, now: number, reduced:
       orderDone: !!scoring && fx.scored.has(def.id),
       blackout: view.blackout !== null && colour === view.blackout,
       warm: light && !waiting ? easeOut(progress(light, now)) : 1,
-      joinable: status === 'lit' && !pinned && !airlift && joinableSet.has(def.id),
+      joinable: status === 'lit' && !pinned && !airlift && (joinableSet.has(def.id) || (!scoring && view.hover === def.id)),
+      chip: (pinned || airlift) && !scoring ? (view.pinChips?.[def.id] ?? null) : null,
     };
     regions[def.id] = vis;
     list.push(vis);

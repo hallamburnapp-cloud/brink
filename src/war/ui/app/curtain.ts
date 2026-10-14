@@ -13,6 +13,10 @@ export type Curtain = 'up' | 'lifting' | null;
 export const curtain = signal<Curtain>(null);
 
 export const CURTAIN_FADE_MS = 260;
+
+/** Leaving the war room: it fades to the table colour before the title comes up. */
+export const veil = signal(false);
+export const VEIL_MS = 200;
 /** Never hold the title longer than this, whatever the map is doing. */
 const CAP_MS = 1500;
 

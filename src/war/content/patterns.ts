@@ -35,7 +35,7 @@ export interface PatternDef {
 type Row = [PatternId, string, number, number, number, number, boolean, string];
 
 const ROWS: Row[] = [
-  ['SINGLE', 'SINGLE', 5, 1, 10, 1, false, 'No pins joined: your heaviest pin'],
+  ['SINGLE', 'SINGLE', 5, 1, 10, 1, false, 'No pins joined: your highest-numbered pin'],
   ['LINK', 'LINK', 10, 2, 15, 1, false, '2 joined pins'],
   ['TWO_LINKS', 'TWO LINKS', 20, 2, 20, 1, false, '2 separate joined pairs'],
   ['WORLDWIDE', 'WORLDWIDE', 30, 2, 25, 2, false, '5 pins, one of each colour'],

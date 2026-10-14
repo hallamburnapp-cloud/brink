@@ -17,8 +17,9 @@ async function bootHotel(): Promise<void> {
 const started = import.meta.env.VITE_GAME === 'war' ? import('./war/main') : bootHotel();
 
 // PWA: registered by vite-plugin-pwa (registerType: autoUpdate) in production builds, once the
-// game is on screen so the precache never competes with first paint.
-if (import.meta.env.PROD) {
+// game is on screen so the precache never competes with first paint. VITE_PWA=off skips it for
+// hosts that cannot run a service worker (an embedded preview page).
+if (import.meta.env.PROD && import.meta.env.VITE_PWA !== 'off') {
   started
     .then(() => import('virtual:pwa-register'))
     .then(({ registerSW }) => registerSW({ immediate: true }))

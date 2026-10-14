@@ -7,7 +7,6 @@
  */
 import { signal } from '@preact/signals';
 import { boardOf, formatShort, litHasJoin, preview, type RegionId, type RunState } from '../../engine';
-import { STAFF_DEF, type StaffId } from '../../content/staff';
 import { whenTableShown } from './curtain';
 import { prefs, run, setPrefs, spotlight } from './store';
 
@@ -101,11 +100,6 @@ export function joinSpotlight(s: RunState): RegionId[] | null {
   return joinable.length ? [...pins, ...joinable] : null;
 }
 
-/** A staff whose rule multiplies Momentum: seat order starts to matter once one is seated. */
-function multiplies(id: StaffId): boolean {
-  return /x[\d.]+ Momentum/.test(STAFF_DEF[id].rule);
-}
-
 /** The opening line: the goal, the limit and what a miss means, in the crisis's own numbers. */
 export function goalLine(s: RunState): string {
   return `Reach *${formatShort(s.crisis.target, 7)}* in *${s.crisis.sweepsLeft} sweeps*, or the world tips.`;
@@ -191,14 +185,21 @@ function laterLines(prev: RunState | null, s: RunState): void {
   if (sameCrisis && c.swapsLeft < prev.crisis.swapsLeft && once('swap')) {
     showCoach('Swapped regions are spent for this crisis. New ones light.');
   }
+  const pinAdded = sameCrisis && c.pins.length > prev.crisis.pins.length;
+  if (pinAdded && preview(s).loose.length > 0 && once('loose')) {
+    showCoach('A *LOOSE* pin is not in the shape: it scores nothing, and is still used up.', 'map', 4500, 400);
+  } else if (pinAdded && preview(s).joins.some(([a, b]) => boardOf(s).traffic(a, b) > 0) && once('traffic')) {
+    showCoach('Worn threads add their traffic. *Sweep the same route again.*', 'map', 4500, 400);
+  }
   if (prev && s.phase === 'crisis' && prev.phase === 'briefing' && c.hour === 0 && c.index === 2) {
     if (s.hour.twist.kind === 'GRIDLOCK' && once('gridlock')) showCoach('*SUMMIT: GRIDLOCK.* Sea lanes are cut for this crisis.', 'map', 4500, 800);
   }
   if (prev && prev.phase === 'briefing' && s.tray.length > prev.tray.length && once('order')) {
     showControlHint('Drag it onto the map.', 'tray');
   }
-  if (prev && s.staff.length > prev.staff.length && s.staff.length >= 2 && s.staff.some((st) => multiplies(st.id)) && once('seats')) {
-    showCoach('Seats fire *1 to 5*. Hold one and drag to reorder.', 'map', 5000, 600);
+  // From the second hire, seat order matters (adds before multipliers): one line says how and why.
+  if (prev && s.staff.length > prev.staff.length && s.staff.length >= 2 && once('seats')) {
+    showCoach('Seats fire *1 to 5*: put × staff after + staff. Hold one and drag.', 'map', 5000, 600);
   }
   // In the Briefing (a reroll, a buy) when no other line is on show; the tray's rise is hintsBriefing.
   if (prev?.phase === 'briefing' && !coach.value) playbookLine(s);

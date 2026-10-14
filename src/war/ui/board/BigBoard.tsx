@@ -6,7 +6,7 @@
  * there is always a way home.
  */
 import type { JSX } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { boardLabels, formatShort, type RunState } from '../../engine';
 import { Coin } from '../art';
 import { balloon, reduced, sheet } from '../app/store';
@@ -33,6 +33,9 @@ export function BigBoard({ s }: { s: RunState }): JSX.Element {
   const live = A.boxes.value;
   const ghost = live && A.slam.value === 'idle' && s.phase === 'crisis' ? share(totalNow + (live.I * live.M10) / 10n, target) : null;
   const sweepsLeft = s.phase === 'crisis' && !s.crisis.cleared ? s.crisis.sweepsLeft : null;
+  // A new crisis gets a fresh row and an empty rule at once: the last crisis's total never stands
+  // against the new target, and the rule never drains back across the board.
+  const crisisKey = `${s.crisis.hour}:${s.crisis.index}`;
 
   return (
     <div class="layer board-layer">
@@ -48,7 +51,7 @@ export function BigBoard({ s }: { s: RunState }): JSX.Element {
 
       <div class="backlit soft abs" style={{ left: '16px', top: '51px', width: '57px', height: '20px' }} />
       <div class="abs" style={{ left: '16px', top: '51px' }}>
-        <FlapRow text={b.clock} style={CLOCK} motion={{ flips: 3, flipMs: 70, stagger: 30, instant: false, reduced: reduced.value, click: 0.15 }} />
+        <FlapRow text={b.clock} style={CLOCK} motion={{ flips: 3, flipMs: 70, stagger: 30, instant: false, reduced: reduced.value, click: 0.4 }} />
       </div>
       <MenuButton />
       <div class="crisis-line abs">
@@ -71,10 +74,10 @@ export function BigBoard({ s }: { s: RunState }): JSX.Element {
       <div class="label abs" style={{ left: '112px', top: '50px' }}>
         LEVERAGE
       </div>
-      <TotalTiles total={totalNow} target={target} roll={roll} heat={heat} />
+      <TotalTiles key={crisisKey} total={totalNow} target={target} roll={roll} heat={heat} />
       <div
-        key={`${s.crisis.hour}:${s.crisis.index}`}
-        class={`target abs${reduced.value ? '' : ' arrive'}`}
+        key={crisisKey}
+        class={`target abs${reduced.value ? '' : ' arrive'}${heat ? ' hot' : ''}`}
         style={{ fontSize: targetSize(target) }}
       >
         <span class="slash">/</span>
@@ -86,13 +89,18 @@ export function BigBoard({ s }: { s: RunState }): JSX.Element {
         </div>
       )}
       {cleared && <div key={A.clearedStamp.value} class={`stamp-cleared abs${reduced.value ? ' still' : ''}`}>CLEARED</div>}
+      {cleared && (
+        <div class="sweeps-left total-line abs">
+          TOTAL <span class="num">{formatShort(totalNow, 7)}</span>
+        </div>
+      )}
 
       <div class="funds abs">
         <Coin size={20} class="coin" />
         <span class="amount num">{funds}</span>
       </div>
 
-      <div class={`rule${progress >= 1 ? ' done' : ''}${progress <= 0 ? ' empty' : ''}`}>
+      <div key={crisisKey} class={`rule${progress >= 1 ? ' done' : ''}${progress <= 0 ? ' empty' : ''}`}>
         {ghost !== null && ghost > progress && <div class={`ghost${ghost >= 1 ? ' full' : ''}`} style={{ width: `${(ghost * 100).toFixed(2)}%` }} />}
         <div class="fill" style={{ width: `${(progress * 100).toFixed(2)}%`, transitionDuration: roll ? `${Math.round(roll.ms)}ms` : undefined }} />
       </div>
@@ -115,12 +123,17 @@ function tileCount(text: string): number {
   return tilesOf(text, 0).filter((c) => c !== ',' && c !== '.').length;
 }
 
-/** The text the board shows while a roll plays: each odometer step in turn. */
-function useRoll(roll: A.BoardRoll | null): string | null {
+/**
+ * The text the board shows while a roll plays: each odometer step in turn, sent `lead` ms early so
+ * that its leaf lands on the step's moment (and the last one as the roll ends).
+ */
+function useRoll(roll: A.BoardRoll | null, lead: number): string | null {
   const [text, setText] = useState<{ n: number; text: string } | null>(null);
   useEffect(() => {
     if (!roll) return;
-    const timers = rollSteps(roll.from, roll.to, roll.ms).map((step) => window.setTimeout(() => setText({ n: roll.n, text: step.text }), step.at));
+    const timers = rollSteps(roll.from, roll.to, roll.ms).map((step) =>
+      window.setTimeout(() => setText({ n: roll.n, text: step.text }), Math.max(0, step.at - lead)),
+    );
     return () => timers.forEach((t) => clearTimeout(t));
   }, [roll?.n]);
   if (!roll) return null;
@@ -133,7 +146,12 @@ function useRoll(roll: A.BoardRoll | null): string | null {
  * the powered tiles.
  */
 function TotalTiles({ total, target, roll, heat }: { total: bigint; target: bigint; roll: A.BoardRoll | null; heat: boolean }): JSX.Element {
-  const rolled = useRoll(roll);
+  // A roll steps the value: every changed tile flips one leaf per step, all together, so the row
+  // only ever shows a step's value (never a lagging tile's old digit beside a new one).
+  const stepMs = roll ? roll.ms / Math.max(2, Math.floor(roll.ms / 70)) : 0;
+  const rollFlipMs = Math.max(30, Math.min(60, stepMs * 0.85));
+  const rolled = useRoll(roll, rollFlipMs);
+  const flash = useLanded();
   const text = rolled ?? formatShort(total, 7);
   const minTiles = tileCount(formatShort(target, 7));
   const chars = tilesOf(text, minTiles);
@@ -141,21 +159,35 @@ function TotalTiles({ total, target, roll, heat }: { total: bigint; target: bigi
   const nSeps = chars.length - nTiles;
   const need = nTiles * TOTAL.w + nSeps * TOTAL.sep + (chars.length - 1) * TOTAL.gap;
   const w = need > TOTAL_W ? (TOTAL_W - nSeps * TOTAL.sep - (chars.length - 1) * TOTAL.gap) / nTiles : TOTAL.w;
-  const lit = tileCount(text);
+  // The backlight sits behind the powered tiles; under HEAT the whole row burns.
+  const lit = heat ? nTiles : tileCount(text);
   const litW = lit * w + nSeps * TOTAL.sep + (lit + nSeps - 1) * TOTAL.gap;
-  // A roll steps the value: one leaf per step, landing before the next, each with its click.
-  const stepMs = roll ? roll.ms / Math.max(2, Math.floor(roll.ms / 70)) : 0;
   const motion: FlapMotion = roll
-    ? { flips: 1, flipMs: Math.max(30, Math.min(60, stepMs * 0.85)), stagger: 6, instant: false, reduced: reduced.value, click: 0.25 }
-    : { flips: 2, flipMs: 70, stagger: 30, instant: false, reduced: reduced.value, click: 0.2 };
+    ? { flips: 1, flipMs: rollFlipMs, stagger: 0, instant: false, reduced: reduced.value, click: 0.8, atomic: true }
+    : { flips: 2, flipMs: 70, stagger: 30, instant: false, reduced: reduced.value, click: 0.6 };
   return (
     <>
       <div class={`backlit abs${heat ? ' hot' : ''}`} style={{ left: `${TOTAL_RIGHT - litW + 7}px`, top: '60px', width: `${litW - 7}px`, height: '32px' }} />
-      <div class={`total abs${heat ? ' hot' : ''}${total === 0n && !roll ? ' idle' : ''}`}>
+      <div class={`total abs${heat ? ' hot' : ''}${total === 0n && !roll ? ' idle' : ''}${flash ? ' landed' : ''}`}>
         <FlapRow key={layoutOf(text)} text={text} style={TOTAL} motion={motion} minTiles={minTiles} maxWidth={TOTAL_W} unlitPadding class="right" />
       </div>
     </>
   );
+}
+
+/** True for a moment after the total lands at the end of a roll (the tiles flash white once). */
+function useLanded(): boolean {
+  const n = A.totalLanded.value;
+  const seen = useRef(n);
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    if (n === seen.current || reduced.value) return;
+    seen.current = n;
+    setOn(true);
+    const t = window.setTimeout(() => setOn(false), 180);
+    return () => clearTimeout(t);
+  }, [n]);
+  return on;
 }
 
 function MenuButton(): JSX.Element {

@@ -400,12 +400,20 @@ test('Mid Shift at 1x: taps in the first moments never skip; a tap later skips t
   await sampleBoard(page);
   const sweepAt = await framePoint(page, 238 + 68, 745 + 28);
   const mapAt = await framePoint(page, 195, 420);
+  // When each tap lands, in page time from the first (a slow harness must not drift past the guard).
+  await page.evaluate(() => {
+    const w = window as unknown as { __downs: number[] };
+    w.__downs = [];
+    document.addEventListener('pointerdown', () => w.__downs.push(performance.now()), true);
+  });
   await page.touchscreen.tap(sweepAt.x, sweepAt.y);
-  await page.waitForTimeout(120);
+  await page.waitForTimeout(60);
   await page.touchscreen.tap(sweepAt.x, sweepAt.y);
-  await page.waitForTimeout(200);
   await page.touchscreen.tap(mapAt.x, mapAt.y);
-  await page.waitForTimeout(500);
+  const downs = await page.evaluate(() => (window as unknown as { __downs: number[] }).__downs);
+  expect(downs).toHaveLength(3);
+  expect(downs[2] - downs[0], 'the early taps land inside the 700 ms guard').toBeLessThan(700);
+  await page.waitForTimeout(Math.max(0, 900 - (downs[2] - downs[0])));
   expect(await page.evaluate(() => window.__war!.busy())).toBe(true);
   await expect(page.locator('.readout-layer')).not.toHaveClass(/slam-hit/);
   // Past the guard (and off the lever), a tap skips to the end of the slam.
@@ -584,6 +592,172 @@ test("the phone's back button asks before it drops a night, and never leaves the
   await expect(page.getByRole('button', { name: /^NEW NIGHT/ })).toBeVisible();
   expect(await page.evaluate(() => window.__war!.state())).toBeNull();
   expect(page.url()).toBe(home);
+});
+
+// ---------------------------------------------------------------- reading the table
+
+/** Press and hold at a page point for `ms`, then release (a pointer long-press). */
+async function hold(page: Page, at: { x: number; y: number }, ms: number, during?: () => Promise<void>): Promise<void> {
+  await page.mouse.move(at.x, at.y);
+  await page.mouse.down();
+  await page.waitForTimeout(ms);
+  await during?.();
+  await page.mouse.up();
+}
+
+/** The first night up to its first Briefing, fast, then back to 1x with full motion. */
+async function toFirstBriefing(page: Page): Promise<void> {
+  await open(page);
+  await page.getByRole('button', { name: /^NEW NIGHT/ }).tap();
+  await fast(page, 'reduce');
+  await page.evaluate(async () => {
+    const w = window.__war!;
+    w.pin(['LNK', 'GUL', 'SHL']);
+    await w.sweep();
+    w.pin(['NWK', 'FRM', 'WNM', 'WMS']);
+    await w.sweep();
+    w.speed(1);
+    w.motion('full');
+  });
+  await idle(page);
+  await expect(page.locator('.tray-head')).toContainText('BRIEFING');
+}
+
+test('Mid Shift at 1x: the board rolls up to 10,920 across the digit crossing, never reading more', async ({ page }) => {
+  await open(page);
+  await page.getByRole('button', { name: /^MID SHIFT/ }).tap();
+  await tapRegions(page, ['SHL', 'LTL', 'KLP', 'KLM', 'TLM']);
+  await expect(patternName(page)).toHaveText('NETWORK');
+  await sampleBoard(page);
+  await sweepButton(page).tap();
+  await idle(page);
+  const samples = await boardSamples(page);
+  expectNeverAbove(samples, '10,920');
+  // It rolled through four figures on its way to five, rather than jumping to the end.
+  expect(samples.some((t) => /^\d,\d{3}$/.test(t.trim()))).toBe(true);
+  await expect.poll(() => paintedTotal(page)).toBe('10,920');
+});
+
+test('the clearing sweep: 452 lands and reads on the board before CLEARED, which keeps it beside the stamp', async ({ page }) => {
+  await open(page);
+  await page.getByRole('button', { name: /^NEW NIGHT/ }).tap();
+  await fast(page, 'reduce');
+  await page.evaluate(async () => {
+    const w = window.__war!;
+    w.pin(['LNK', 'GUL', 'SHL']);
+    await w.sweep();
+    w.speed(1);
+    w.motion('full');
+  });
+  await idle(page);
+  await tapRegions(page, ['NWK', 'FRM', 'WNM', 'WMS']);
+  // Frame by frame: how long the landed 452 is on show before the stamp.
+  await page.evaluate(() => {
+    const w = window as unknown as { __clear: Array<{ t: number; total: string; cleared: boolean }>; __clearOn: boolean };
+    w.__clear = [];
+    w.__clearOn = true;
+    const read = () => {
+      const row = document.querySelector('.board-layer .total .flap-row');
+      const total = row
+        ? Array.from(row.children)
+            .map((el) => (el.classList.contains('flap') ? (el.querySelector('.fh.bot .g')?.textContent ?? '') : (el.textContent ?? '')))
+            .join('')
+        : '';
+      w.__clear.push({ t: performance.now(), total, cleared: !!document.querySelector('.stamp-cleared') });
+      if (w.__clearOn) requestAnimationFrame(read);
+    };
+    requestAnimationFrame(read);
+  });
+  await sweepButton(page).tap();
+  await idle(page);
+  const frames = await page.evaluate(() => {
+    const w = window as unknown as { __clear: Array<{ t: number; total: string; cleared: boolean }>; __clearOn: boolean };
+    w.__clearOn = false;
+    return w.__clear;
+  });
+  const landed = frames.find((f) => f.total === '452');
+  const stamped = frames.find((f) => f.cleared);
+  expect(landed && stamped).toBeTruthy();
+  // About 450 ms on a phone; a slow headless frame rate still leaves it well in view.
+  expect(stamped!.t - landed!.t).toBeGreaterThanOrEqual(180);
+  await expect(page.locator('.board-layer .total-line')).toHaveText('TOTAL 452');
+});
+
+test('the Briefing: a held card shows where it acts and is never bought; the ticket opens the clearing sweep; NEXT CRISIS slides the tray away', async ({ page }) => {
+  await toFirstBriefing(page);
+
+  // A desk staff has no place on the map: holding it says when it fires, over the readout.
+  const duty = await page.getByRole('button', { name: /^Duty Officer, 3 Funds/ }).boundingBox();
+  await hold(page, { x: duty!.x + duty!.width / 2, y: duty!.y + duty!.height / 2 }, 500, async () => {
+    await expect(page.locator('.peek-note')).toContainText('EVERY SWEEP');
+    await expect(page.locator('.peek-note')).toContainText('+4 Momentum');
+    await expect(page.locator('.box.mom.peeked')).toHaveCount(1);
+  });
+  await expect(page.locator('.peek-note')).toHaveCount(0);
+  expect((await runInfo(page))!.staff).toEqual([]);
+
+  // An open folder's cards peek the same way; only a short tap takes one.
+  await page.locator('.folder').tap();
+  const courier = page.getByRole('button', { name: /^Courier\./ });
+  const c = await courier.boundingBox();
+  await hold(page, { x: c!.x + c!.width / 2, y: c!.y + c!.height / 2 }, 500, async () => {
+    await expect(page.locator('.peek-note')).toContainText('scores twice');
+  });
+  expect((await runInfo(page))!.staff).toEqual([]);
+  await expect(courier).toBeVisible();
+
+  // The ticket's first line unfolds the sweep that cleared.
+  await page.locator('.payout .sweep-row').tap();
+  const receipt = page.getByRole('dialog', { name: 'LAST SWEEP · FRONT' });
+  await expect(receipt).toContainText('68 × 4 = 272');
+  await page.locator('.tray-head').tap();
+  await expect(receipt).toHaveCount(0);
+
+  await page.getByRole('button', { name: /^SKIP/ }).tap();
+  await page.getByRole('button', { name: /^NEXT CRISIS/ }).tap();
+  await expect(page.locator('.tray-layer.leaving')).toHaveCount(1);
+  await expect(page.locator('.crisis-line')).toContainText('STANDOFF');
+  await expect(page.locator('.tray-layer')).toHaveCount(0);
+  expect(await boardTotal(page)).toBe('0');
+});
+
+test('reading the map: a loose pin is named, and a held region shows its card instead of pinning', async ({ page }) => {
+  await open(page);
+  await page.getByRole('button', { name: /^NEW NIGHT/ }).tap();
+  await expect(page.locator('canvas.map-canvas')).toBeVisible();
+  await tapRegions(page, ['LNK', 'EDV']);
+  await expect(page.locator('.readout-layer .pattern-loose')).toHaveText('1 LOOSE · SCORES NOTHING');
+  await tapRegions(page, ['LNK', 'EDV']);
+  expect((await runInfo(page))!.pins).toEqual([]);
+
+  const box = await page.locator('canvas.map-canvas').boundingBox();
+  const r = REGION.GUL;
+  await hold(page, { x: box!.x + (r.x / 390) * box!.width, y: box!.y + (r.y / 520) * box!.height }, 600);
+  const card = page.locator('.region-card');
+  await expect(card).toContainText(/gullrest/i);
+  await expect(card).toContainText('+3 Influence');
+  expect((await runInfo(page))!.pins).toEqual([]);
+  // The next tap only closes the card.
+  await tapRegion(page, 'SHL');
+  await expect(card).toHaveCount(0);
+  expect((await runInfo(page))!.pins).toEqual([]);
+});
+
+test.describe('a phone browser with its toolbars showing', () => {
+  test.use({ viewport: { width: 390, height: 664 } });
+
+  test('the war room fills the height: the live area is fitted and the desk runs on to the edges', async ({ page }) => {
+    await open(page);
+    await page.getByRole('button', { name: /^NEW NIGHT/ }).tap();
+    await expect(page.locator('canvas.map-canvas')).toBeVisible();
+    const board = await page.locator('.board').boundingBox();
+    const controls = await page.locator('.controls').boundingBox();
+    // The Big Board meets the top of the window and the console its bottom.
+    expect(Math.abs(board!.y)).toBeLessThan(1.5);
+    expect(Math.abs(controls!.y + controls!.height - 664)).toBeLessThan(1.5);
+    expect(board!.width).toBeGreaterThan(335);
+    await expect(page.locator('.war-bleed .bleed-rail')).toHaveCount(1);
+  });
 });
 
 // ---------------------------------------------------------------- reduced motion

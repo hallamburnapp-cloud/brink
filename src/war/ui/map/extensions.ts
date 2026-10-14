@@ -21,6 +21,13 @@ export interface MapViewExtras {
    * ring, so the player sees what joins (DESIGN 0:06, 'start to breathe').
    */
   joinable?: RegionId[] | null;
+  /** The lit region under a mouse pointer: it breathes like a joinable one (desktop hover). */
+  hover?: RegionId | null;
+  /**
+   * While choosing: what each scoring pin will add (from the engine's silent scorer), drawn as its
+   * chip: cyan Influence, then amber Momentum ('+5', 'x1.5'); `passes` > 1 tags its name 'x2'.
+   */
+  pinChips?: Record<RegionId, PinChipView> | null;
   /**
    * LAY CABLE drag in progress: a provisional brass cable from a region's pin to the finger, in
    * map points. Leave null when not dragging.
@@ -31,6 +38,13 @@ export interface MapViewExtras {
    * spent) instead of cooling, until collapseRing() closes it.
    */
   ringHold?: boolean;
+}
+
+/** One pin's chip as drawn: '+20', and '+5 x1.5' (or null when it leaves Momentum alone). */
+export interface PinChipView {
+  inf: string;
+  mom: string | null;
+  passes: number;
 }
 
 export type MapViewPlus = MapView & MapViewExtras;

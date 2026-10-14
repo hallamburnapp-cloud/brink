@@ -129,15 +129,16 @@ export function paintTargets(g: Gfx, s: Scene, fadeIn: number): void {
     regionFill(g, id, css(LINEN, (0.04 + 0.05 * breath) * fadeIn));
     if (edges) innerGlow(g, id, (a) => css(LINEN, Math.min(0.85, a * (0.5 + 0.35 * breath)) * fadeIn), 2, 3);
     // A few targets get a slowly turning dashed ring round the pin, linen over a dark rim so it
-    // reads on a bright lit plate as well as a dark one; many targets get a quiet thin ring.
+    // reads on a bright lit plate as well as a dark one. Many targets get no rings (thirty alike
+    // would read as hit-area outlines): a soft light breathes up from under each pin instead.
     const def = REGION[id];
-    const ring = (r: number) => {
-      ctx.beginPath();
-      ctx.arc(def.x, def.y, r, 0, Math.PI * 2);
-      ctx.stroke();
-    };
     ctx.save();
     if (edges) {
+      const ring = (r: number) => {
+        ctx.beginPath();
+        ctx.arc(def.x, def.y, r, 0, Math.PI * 2);
+        ctx.stroke();
+      };
       ctx.strokeStyle = css(INK, 0.45 * fadeIn);
       ctx.lineWidth = 2.8;
       ring(17 + 1.5 * breath);
@@ -147,9 +148,13 @@ export function paintTargets(g: Gfx, s: Scene, fadeIn: number): void {
       ctx.lineWidth = 1.3;
       ring(17 + 1.5 * breath);
     } else {
-      ctx.strokeStyle = css(LINEN, (0.35 + 0.25 * breath) * fadeIn);
-      ctx.lineWidth = 1;
-      ring(11 + breath);
+      const core = ctx.createRadialGradient(def.x, def.y, 1, def.x, def.y, 16);
+      core.addColorStop(0, css(LINEN, (0.22 + 0.18 * breath) * fadeIn));
+      core.addColorStop(1, css(LINEN, 0));
+      ctx.fillStyle = core;
+      ctx.beginPath();
+      ctx.arc(def.x, def.y, 16, 0, Math.PI * 2);
+      ctx.fill();
     }
     ctx.restore();
   }
@@ -354,7 +359,8 @@ export function paintLiveThreads(g: Gfx, s: Scene): void {
     const sag = t.snap >= 1 ? 0 : 7 * Math.exp(-5 * t.snap) * Math.cos(t.snap * 15);
     const a = Math.min(s.regions[t.a].dimNow, s.regions[t.b].dimNow);
     drawThread(g, joinCurve(t.a, t.b, t.kind, sag), {
-      width: t.width,
+      // HEAT: the cord swells to at least 3 pt as it burns white.
+      width: Math.max(t.width, 3 * t.hot),
       alpha: t.grey ? Math.max(0.5, a) : 1,
       traffic: t.traffic,
       hot: t.hot,

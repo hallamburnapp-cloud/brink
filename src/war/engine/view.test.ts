@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { newRun, newSandbox, sweep, useOrder } from './run';
 import { must, pinAll, tweak } from './testkit';
+import { boardOf } from './run';
+import { listCandidates } from './patterns';
 import {
   actsOn,
   armedView,
   litHasJoin,
   mapFlags,
+  patternExample,
   patternTable,
+  pinChips,
   preview,
   ringFactor,
   seatViews,
@@ -100,5 +104,38 @@ describe('views for the UI', () => {
     expect(actsOn(s, { kind: 'staff', id: 'GOVERNOR' })).toEqual(['WMS', 'EDV', 'LNK', 'TLM', 'MRM']);
     const cabled = must(useOrder(tweak(s, (d) => (d.tray = [{ uid: 1, id: 'CABLE' }])), 0, ['ICW', 'HRT']));
     expect(actsOn(cabled, { kind: 'staff', id: 'HARBOUR' })).toHaveLength(20);
+  });
+});
+
+describe('what each pin will add, and example shapes', () => {
+  it('gives each scoring pin its own share: the flashpoint scores twice, a loose pin has none', () => {
+    const chips = pinChips(pinAll(newRun('FIRST-NIGHT'), ['LNK', 'GUL', 'SHL']))!;
+    expect(chips.LNK).toEqual({ inf: 20n, momAdd: 0n, mults: [], passes: 2 });
+    expect(chips.GUL).toEqual({ inf: 3n, momAdd: 0n, mults: [], passes: 1 });
+    expect(chips.SHL).toEqual({ inf: 7n, momAdd: 0n, mults: [], passes: 1 });
+    // A SINGLE of Edda Vale leaves Lantern Key loose: it has no chip at all.
+    const single = pinChips(pinAll(newRun('FIRST-NIGHT'), ['LNK', 'EDV']))!;
+    expect(Object.keys(single)).toEqual(['EDV']);
+    expect(pinChips(newRun('FIRST-NIGHT'))).toBeNull();
+  });
+
+  it('tells two picks of the same shape apart: the Courier and a RELAY stamp show on their pin', () => {
+    const s = tweak(newRun('FIRST-NIGHT'), (d) => {
+      d.staff = [{ uid: 1, id: 'COURIER', count: 0 }];
+      d.world.stamps.GUL = 'RELAY';
+    });
+    const chips = pinChips(pinAll(s, ['LNK', 'GUL', 'SHL']))!;
+    // Gullrest is first west to east: it scores twice, and its RELAY multiplies each time.
+    expect(chips.GUL).toEqual({ inf: 6n, momAdd: 0n, mults: ['1.5', '1.5'], passes: 2 });
+  });
+
+  it('outlines a shape that really makes each public pattern on the starting map', () => {
+    const s = newRun('FIRST-NIGHT');
+    const board = boardOf(s);
+    for (const id of ['SINGLE', 'LINK', 'TWO_LINKS', 'CHAIN', 'FRONT', 'NETWORK', 'BLOC', 'WORLDWIDE', 'SURROUND'] as const) {
+      const ex = patternExample(s, id);
+      expect(ex.length, id).toBeGreaterThan(0);
+      expect(listCandidates(ex, board).map((c) => c.pattern), id).toContain(id);
+    }
   });
 });

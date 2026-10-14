@@ -35,6 +35,14 @@ interface StaffSum {
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
+/** Why a pin scored again, as the receipt says it. */
+function againWhy(e: TraceEvent): string {
+  if (e.reason === 'flashpoint') return 'red ring';
+  if (e.reason === 'echo') return 'Echo';
+  const name = e.staffId ? STAFF_DEF[e.staffId].name : 'staff';
+  return e.viaDeputy ? `Deputy (${name})` : name;
+}
+
 export function receiptOf(rec: SweepRecord): Receipt {
   const lines: ReceiptLine[] = [];
   let regions = 0n;
@@ -70,7 +78,7 @@ export function receiptOf(rec: SweepRecord): Receipt {
       case 'pin':
         if (e.dark) dark++;
         else if (again) {
-          const name = REGION[e.region!].name;
+          const name = `${REGION[e.region!].name} (${againWhy(again)})`;
           const a = agains.get(name) ?? { n: 0, inf: 0n };
           agains.set(name, { n: a.n + 1, inf: a.inf + BigInt(e.amount) });
         } else {

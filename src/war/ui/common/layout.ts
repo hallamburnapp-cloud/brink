@@ -77,30 +77,38 @@ export function clampBalloonX(centreX: number, w: number): number {
 }
 
 /**
- * Uniform scale that fits the frame in a window, plus the frame's top-left. The status band
- * (0-47) and the home band (807-844) are the frame's own safe areas; if the device's insets are
- * larger than those bands at this scale, the frame shrinks to keep the war room clear of them.
- * On a desktop (`desk`) there is no OS chrome to clear: the live area alone (47-807) is fitted,
- * with a margin of room around it, and the bands fall outside the console's edge.
+ * How the frame meets the window. 'device': a phone that reports safe-area insets (an installed
+ * app, a notch); the status band (0-47) and the home band (807-844) sit under the OS chrome.
+ * 'browser': a phone browser with no insets (its own toolbars take the edges); only the live area
+ * (47-807) is fitted, edge to edge. 'desk': a desktop window; the live area is fitted with a margin
+ * of room around it, and the console is framed as an object set into the room.
+ */
+export type FitMode = 'device' | 'browser' | 'desk';
+
+const NO_INSETS = { top: 0, bottom: 0, left: 0, right: 0 };
+
+/**
+ * Uniform scale that fits the frame in a window, plus the frame's top-left. In 'device' mode, if
+ * the device's insets are larger than the frame's own bands at this scale, the frame shrinks to
+ * keep the war room clear of them.
  */
 export function fitFrame(
   winW: number,
   winH: number,
-  insets: { top: number; bottom: number; left: number; right: number } = { top: 0, bottom: 0, left: 0, right: 0 },
-  desk = false,
+  insets: { top: number; bottom: number; left: number; right: number } = NO_INSETS,
+  mode: FitMode = 'device',
 ): { scale: number; left: number; top: number } {
   const topBand = R.safeTop[3];
   const bottomBand = R.home[3];
-  if (desk) {
-    const liveH = FRAME_H - topBand - bottomBand;
-    const margin = Math.max(12, Math.min(28, winH * 0.025));
-    const s = Math.max(0.1, Math.min((winW - 2 * margin) / FRAME_W, (winH - 2 * margin) / liveH));
-    return { scale: s, left: (winW - FRAME_W * s) / 2, top: (winH - liveH * s) / 2 - topBand * s };
+  const live = FRAME_H - topBand - bottomBand;
+  if (mode !== 'device') {
+    const margin = mode === 'desk' ? 12 : 0;
+    const s = Math.max(0.1, Math.min((winW - 2 * margin) / FRAME_W, (winH - 2 * margin) / live));
+    return { scale: s, left: (winW - FRAME_W * s) / 2, top: (winH - live * s) / 2 - topBand * s };
   }
   const availW = Math.max(1, winW - insets.left - insets.right);
   let scale = Math.min(availW / FRAME_W, winH / FRAME_H);
   // The live area (47..807) must clear the insets.
-  const live = FRAME_H - topBand - bottomBand;
   const need = (s: number) => Math.max(insets.top - topBand * s, 0) + Math.max(insets.bottom - bottomBand * s, 0);
   if (FRAME_H * scale + need(scale) > winH) {
     scale = Math.min(scale, (winH - insets.top - insets.bottom) / live);

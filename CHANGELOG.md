@@ -2,6 +2,23 @@
 
 All notable changes to BRINK. Dates are UTC.
 
+## 0.5.0 — 2026-10-14 (The war room, a playable slice)
+
+A new game on the same brand, chosen against the owner's three anchors (D-102): a world map that reacts, Balatro-style building, a war room. It is selected with `VITE_GAME=war`; the hotel build is unchanged.
+
+### The game
+- Each crisis lights eight of thirty regions on a fictional world map. Pin up to five; the shape they make is the pattern (Single, Link, Two Links, Worldwide, Chain, Front, Surround, Network, Bloc, and two secrets). LEVERAGE = INFLUENCE × MOMENTUM must reach the crisis target within four sweeps, with three swaps.
+- Twenty staff in five seats fire left to right (order matters: 10,920 against 8,736 when two swap seats); eight Orders change the map for good (Fortify, Relay, Echo, Lay Cable, Defect, Promote, Retire, Airlift); Playbooks level a pattern.
+- Three Hours of three crises (Flare-up, Standoff, Summit with a twist: Gridlock, Blackout, Full Table), the Briefing shop between crises with interest and overwhelm, and KEEP GOING past 01:00. Two sandboxes: Late Shift (a desk at full power, 10.6 billion in one sweep) and Mid Shift.
+
+### Engine and simulator
+- `src/war/engine`: a deterministic TypeScript port of the Python reference with BigInt scoring and Momentum in tenths; it reproduces every worked example and agrees with the reference on 1,200 random positions. The sweep's trace drives the animation, the sounds, the tests and the bots.
+- `src/war/sim`, `tools/war-sim.ts`: random, greedy and builder bots replayed identically in the reference; all five balance gates pass (best play about 8x the median, random taps clear the first crisis 1 time in 10). `docs/war/SIM-REPORT.md`.
+
+### Interface
+- The war room: a split-flap Big Board, a staff rail with drag-to-reorder, a canvas plotting-table map, the live pattern preview, the scoring cascade from the trace, the Briefing, the end screens, first-night teaching, a menu with quit to title, speed and reduced motion; hand-drawn icons for every staff member and Order; self-hosted open-licence fonts.
+- Reviewed by four critics over two rounds (D-103).
+
 ## 0.4.0 — 2026-10-08 (The Brink Hotel)
 
 The setting changed; the brand, the engine and the loop did not (D-089; the step back is on

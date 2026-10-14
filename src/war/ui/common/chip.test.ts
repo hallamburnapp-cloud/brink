@@ -44,7 +44,11 @@ describe('seat chips', () => {
     expect(parseChip('×1.5★sb', 'mom')).toEqual([
       { text: '×1.5', tone: 'mom' },
       { glyph: 'star', tone: 'plain' },
-      { text: 'sb', tone: 'muted' },
+      { text: 'idle', tone: 'muted' },
+    ]);
+    expect(parseChip('×2·4c', 'mom')).toEqual([
+      { text: '×2', tone: 'mom' },
+      { text: '·4 blocs', tone: 'muted' },
     ]);
   });
 
@@ -86,7 +90,7 @@ describe('layout', () => {
   });
 
   it('on a desktop fits the live area alone, centred with a margin of room', () => {
-    const f = fitFrame(1440, 900, undefined, true);
+    const f = fitFrame(1440, 900, undefined, 'desk');
     const liveTop = f.top + 47 * f.scale;
     const liveBottom = f.top + 807 * f.scale;
     expect(f.scale).toBeGreaterThan(900 / 844);
@@ -94,9 +98,22 @@ describe('layout', () => {
     expect(liveTop).toBeGreaterThanOrEqual(12);
     expect(f.left).toBeCloseTo((1440 - 390 * f.scale) / 2, 5);
     // A narrow desktop window: the width decides, and the console still clears the edges.
-    const narrow = fitFrame(400, 900, undefined, true);
+    const narrow = fitFrame(400, 900, undefined, 'desk');
     expect(narrow.left).toBeGreaterThanOrEqual(12 - 1e-6);
     expect(narrow.top + 47 * narrow.scale).toBeGreaterThan(0);
+  });
+
+  it('in a phone browser fits the live area edge to edge', () => {
+    // Safari with its toolbars showing: the height decides, and the frame is no longer a postage stamp.
+    const safari = fitFrame(390, 664, undefined, 'browser');
+    expect(safari.scale).toBeCloseTo(664 / 760, 5);
+    expect(safari.top + 47 * safari.scale).toBeCloseTo(0, 5);
+    expect(safari.top + 807 * safari.scale).toBeCloseTo(664, 5);
+    // A narrow phone: the width decides, full bleed.
+    const narrow = fitFrame(360, 740, undefined, 'browser');
+    expect(narrow.scale).toBeCloseTo(360 / 390, 5);
+    expect(narrow.left).toBeCloseTo(0, 5);
+    expect(fitFrame(412, 780, undefined, 'browser').scale).toBeCloseTo(780 / 760, 5);
   });
 
   it('keeps the live area clear of large insets', () => {

@@ -11,6 +11,7 @@
     "dev:war": "VITE_GAME=war vite",
     "build": "npm run content:validate && npm run og && vite build",
     "build:war": "VITE_GAME=war BRINK_BASE=./ vite build --outDir dist-war",
+    "build:war-page": "VITE_GAME=war VITE_PWA=off BRINK_BASE=./ vite build --outDir dist-war-page",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",

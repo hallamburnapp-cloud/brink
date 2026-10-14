@@ -70,8 +70,13 @@ export function parseChip(chip: string, tone: ChipTone): ChipPart[] {
     run += ch;
   }
   flush();
-  // 'sb' (standby) after the effect reads as a qualifier too.
-  return parts.map((p) => ('text' in p && p.text === 'sb' ? { ...p, tone: 'muted' } : p));
+  // The spec's shorthand reads as words on the chip: 'sb' (standby: lit and left unpinned) is
+  // 'idle', a qualifier too; '4c' (four colours) is '4 blocs'.
+  return parts.map((p) => {
+    if (!('text' in p)) return p;
+    if (p.text === 'sb') return { text: 'idle', tone: 'muted' };
+    return { ...p, text: p.text.replace(/(\d)c$/, '$1 blocs') };
+  });
 }
 
 /** Text with the font-less symbols swapped for glyph markers, for rules and prices. */

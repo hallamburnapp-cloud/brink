@@ -52,14 +52,19 @@ export const speed = computed(() => prefs.value.speed);
 
 // ---------------------------------------------------------------- transient UI
 
-export type BalloonKind = 'seat' | 'paper' | 'summit';
+export type BalloonKind = 'seat' | 'paper' | 'summit' | 'region';
 export interface Balloon {
   kind: BalloonKind;
-  /** Seat index, tray slot, or 0 for the Summit chip. */
+  /** Seat index, tray slot, or 0 for the Summit chip and a region. */
   index: number;
+  /** For a region's card (a long-press on the map). */
+  region?: RegionId;
 }
-/** The rule balloon under a seat / above a paper / under the Summit chip. */
+/** The rule balloon under a seat / above a paper / under the Summit chip / beside a held region. */
 export const balloon = signal<Balloon | null>(null);
+
+/** The LAST SWEEP receipt is unfolded: from the readout's sum, or from the Briefing's ticket. */
+export const receiptOpen = signal<'readout' | 'briefing' | null>(null);
 
 export interface Toast {
   text: string;
@@ -83,10 +88,20 @@ export function showToast(text: string, at?: { x: number; bottom: number }): voi
 
 /** Long-press highlight of where an offer acts (the Briefing). */
 export const pressHighlight = signal<RegionId[] | null>(null);
+/**
+ * Long-press of a card that has no place on the map (a desk staff, a rule) or a Playbook: its line
+ * over the readout, and the box it feeds (which pulses).
+ */
+export const pressNote = signal<{ head: string; text: string; box: 'inf' | 'mom' | null } | null>(null);
 /** A teaching spotlight: the regions a first-night line is about (the pins and what joins them). */
 export const spotlight = signal<RegionId[] | null>(null);
-/** What the map lights up: a long-press wins over the teaching spotlight. */
-export const highlight = computed(() => pressHighlight.value ?? spotlight.value);
+/** An Order being dragged from the in-tray: the regions it may land on. */
+export const dragTargets = signal<RegionId[] | null>(null);
+/** What the map lights up: a long-press wins, then a dragged Order's targets, then the teaching spotlight. */
+export const highlight = computed(() => pressHighlight.value ?? dragTargets.value ?? spotlight.value);
+
+/** The region under a mouse pointer (desktop): it breathes, and the cursor says it can be tapped. */
+export const hoverRegion = signal<RegionId | null>(null);
 
 /** LAY CABLE drag in progress, in map points. */
 export const cableDrag = signal<{ from: RegionId; x: number; y: number } | null>(null);

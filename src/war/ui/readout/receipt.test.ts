@@ -22,9 +22,16 @@ describe('the LAST SWEEP receipt', () => {
     expect(r.lines).toEqual([
       { label: 'CHAIN Lv 1', value: '30 × 3', tone: 'plain' },
       { label: 'Regions · 3 pins', value: '+20', tone: 'inf' },
-      { label: 'AGAIN Lantern Key', value: '+10', tone: 'inf' },
+      { label: 'AGAIN Lantern Key (red ring)', value: '+10', tone: 'inf' },
     ]);
     expect(r.total).toBe('60 × 3 = 180');
+  });
+
+  it('says who made a pin score again', () => {
+    const s = newRun('FIRST-NIGHT');
+    const r = receiptOf(swept({ ...s, staff: [{ uid: 1, id: 'COURIER', count: 0 }] }, ['LNK', 'GUL', 'SHL']));
+    expect(r.lines.map((l) => l.label)).toContain('AGAIN Gullrest (Courier)');
+    expect(r.lines.map((l) => l.label)).toContain('AGAIN Lantern Key (red ring)');
   });
 
   it('adds up for staff, stamps and threads (Mid Shift) and for a showcase (Late Shift)', () => {

@@ -20,7 +20,10 @@ function easeOut(t: number): number {
   return 1 - Math.pow(1 - t, 3);
 }
 
-/** The steps of a roll from `from` to `to` over `ms`; the last step is `to`, at `ms`. */
+/**
+ * The steps of a roll from `from` to `to` over `ms`; the last step is `to`, at `ms`. The first
+ * step is at 0: the board starts moving the moment the product lands on it.
+ */
 export function rollSteps(from: bigint, to: bigint, ms: number): RollStep[] {
   const last = { at: Math.max(0, Math.round(ms)), value: to, text: formatShort(to, 7) };
   if (to <= from || ms <= 0) return [last];
@@ -34,7 +37,7 @@ export function rollSteps(from: bigint, to: bigint, ms: number): RollStep[] {
     const text = formatShort(value, 7);
     // A step that would not change the board is skipped; so is one that rounds up to the final text.
     if (text === shown || text === last.text) continue;
-    out.push({ at: Math.round((ms * i) / n), value, text });
+    out.push({ at: Math.round((ms * (i - 1)) / (n - 1)), value, text });
     shown = text;
   }
   out.push(last);

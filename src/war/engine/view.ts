@@ -109,6 +109,38 @@ export const preview = memo((s: RunState): Preview => {
   return p;
 });
 
+/** What one scoring pin will add if you sweep now, read off the silent scorer's trace. */
+export interface PinChip {
+  /** Influence it adds, every pass, thread, stamp and pin staff included. */
+  inf: bigint;
+  /** Momentum it adds (whole units). */
+  momAdd: bigint;
+  /** The Momentum multipliers it applies, in order ('1.5', '2'). */
+  mults: string[];
+  /** How many times it scores (the flashpoint, the Courier's first pin, an Echo: 2). */
+  passes: number;
+}
+
+/**
+ * Each scoring pin's own share of the sweep, so two picks of the same shape can be told apart
+ * before SWEEP. Never the total: that stays the reveal. Same object per state.
+ */
+export const pinChips = memo((s: RunState): Record<RegionId, PinChip> | null => {
+  if (s.phase !== 'crisis' || s.crisis.pins.length === 0) return null;
+  const res = scorePins(s, s.crisis.pins, { trace: true });
+  if (!res) return null;
+  const out: Record<RegionId, PinChip> = {};
+  for (const r of res.scoringSet) out[r] = { inf: 0n, momAdd: 0n, mults: [], passes: res.passes[r] ?? 0 };
+  for (const e of res.trace) {
+    const c = e.region ? out[e.region] : undefined;
+    if (!c || (e.phase !== 'pin' && e.phase !== 'thread' && e.phase !== 'stamp' && e.phase !== 'staff')) continue;
+    if (e.op === '+I') c.inf += BigInt(e.amount);
+    else if (e.op === '+M') c.momAdd += BigInt(e.amount);
+    else if (e.op === 'xM') c.mults.push(e.amount);
+  }
+  return out;
+});
+
 // ---------------------------------------------------------------- map views
 
 export function isCapital(s: RunState, r: RegionId): boolean {
@@ -378,6 +410,89 @@ export function actsOn(s: RunState, item: Offer | { kind: 'staff'; id: StaffId }
       return live;
     default:
       return [];
+  }
+}
+
+/**
+ * A few live regions that make a pattern on this map, heaviest first: what a Playbook's long-press
+ * outlines as an example. Empty when the map has no such shape (a secret not open to it).
+ */
+export function patternExample(s: RunState, id: PatternId): RegionId[] {
+  const board = boardOf(s);
+  const byWeight = [...board.live].sort((a, b) => REGION[b].weight - REGION[a].weight || compareWestEast(a, b));
+  const joinsAny = (r: RegionId, set: readonly RegionId[]) => set.some((p) => board.joined(p, r));
+  /** From `start`, add the heaviest joined region until there are k (never one in `avoid` or joined to it). */
+  const grow = (k: number, start: RegionId | undefined, avoid: readonly RegionId[] = []): RegionId[] => {
+    if (!start) return [];
+    const set = [start];
+    while (set.length < k) {
+      const next = byWeight.find((r) => !set.includes(r) && !avoid.includes(r) && !joinsAny(r, avoid) && joinsAny(r, set));
+      if (!next) return [];
+      set.push(next);
+    }
+    return set;
+  };
+  const byColour = new Map<Colour, RegionId[]>();
+  for (const r of byWeight) byColour.set(board.colourOf(r), [...(byColour.get(board.colourOf(r)) ?? []), r]);
+  const colours = [...byColour.values()];
+  switch (id) {
+    case 'SINGLE':
+      return byWeight.slice(0, 1);
+    case 'LINK':
+      return grow(2, byWeight[0]);
+    case 'CHAIN':
+      return grow(3, byWeight[0]);
+    case 'FRONT':
+      return grow(4, byWeight[0]);
+    case 'NETWORK':
+      return grow(5, byWeight[0]);
+    case 'TWO_LINKS': {
+      const a = grow(2, byWeight[0]);
+      const b = grow(2, byWeight.find((r) => !a.includes(r) && !joinsAny(r, a)), a);
+      return a.length && b.length ? [...a, ...b] : [];
+    }
+    case 'WORLDWIDE':
+      return colours.length >= 5 ? colours.map((c) => c[0]).slice(0, 5) : [];
+    case 'BLOC': {
+      const most = [...colours].sort((a, b) => b.length - a.length)[0] ?? [];
+      return most.length >= 5 ? most.slice(0, 5) : [];
+    }
+    case 'WHOLE_BLOC': {
+      const fewest = colours.filter((c) => c.length >= 3 && c.length <= 5).sort((a, b) => a.length - b.length)[0];
+      return fewest ?? [];
+    }
+    case 'SURROUND': {
+      let best: RegionId[] = [];
+      let bestSum = -1;
+      for (const r of board.live) {
+        const ring = [...(board.adj.get(r) ?? [])];
+        if (ring.length < 3 || ring.length > 5) continue;
+        const sum = ring.reduce((t, q) => t + REGION[q].weight, 0);
+        if (sum > bestSum) {
+          best = ring;
+          bestSum = sum;
+        }
+      }
+      return best;
+    }
+    case 'AROUND_THE_WORLD': {
+      // Five joined regions, one of each colour: a small search, only ever run on a long-press.
+      const find = (set: RegionId[]): RegionId[] | null => {
+        if (set.length === 5) return set;
+        const used = new Set(set.map((r) => board.colourOf(r)));
+        for (const r of byWeight) {
+          if (set.includes(r) || used.has(board.colourOf(r)) || !joinsAny(r, set)) continue;
+          const found = find([...set, r]);
+          if (found) return found;
+        }
+        return null;
+      };
+      for (const start of byWeight) {
+        const found = find([start]);
+        if (found) return found;
+      }
+      return [];
+    }
   }
 }
 

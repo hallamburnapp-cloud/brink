@@ -35,9 +35,28 @@ export interface FlapMotion {
   reduced: boolean;
   /** Play a flap click at this intensity as each leaf lands (the Big Board's clatter). */
   click?: number;
+  /**
+   * Each new character starts from the last one landed: a flip still under way lands at once.
+   * With no stagger, every tile of a counting number moves in step, so the row only ever shows a
+   * value it was given (an odometer roll never overshoots while one tile lags).
+   */
+  atomic?: boolean;
 }
 
 const SEPARATORS = new Set([',', '.', ':']);
+const DIGIT = /^\d$/;
+
+/** Leaves landing together click 10 ms apart, a quick rattle rather than one lost click. */
+const CLICK_GAP_MS = 10;
+let nextClickAt = 0;
+
+function flapClick(intensity: number): void {
+  const now = performance.now();
+  const at = Math.max(now, nextClickAt);
+  nextClickAt = at + CLICK_GAP_MS;
+  if (at - now < 1) audio.play('flap', { intensity });
+  else window.setTimeout(() => audio.play('flap', { intensity }), at - now);
+}
 
 /** Splits text into tiles, padding blank tiles on the left up to `minTiles`. */
 export function tilesOf(text: string, minTiles: number): string[] {
@@ -62,7 +81,8 @@ interface RowProps {
 }
 
 export function FlapRow({ text, style, motion, minTiles = 0, maxWidth, from, fromMotion, unlitPadding, class: cls }: RowProps): JSX.Element {
-  // `from` applies to the row's first render only; tiles added later just appear.
+  // `from` applies to the row's first render only; a tile added later (a number gaining a digit)
+  // flips in from blank with its neighbours, never appearing already set ahead of them.
   const rowMounted = useRef(false);
   useEffect(() => {
     rowMounted.current = true;
@@ -87,12 +107,24 @@ export function FlapRow({ text, style, motion, minTiles = 0, maxWidth, from, fro
       return <Separator key={`s${key}`} ch={c} w={style.sep} h={style.h} skin={style.skin} />;
     }
     const i = tileFromRight++;
-    const initial = fromTiles ? (fromTiles[i] ?? ' ') : undefined;
+    const initial = fromTiles ? (fromTiles[i] ?? ' ') : rowMounted.current ? ' ' : undefined;
     const m = initial !== undefined && fromMotion ? fromMotion : motion;
     const delay = m.instant ? 0 : i * m.stagger;
     const unlit = !!unlitPadding && i >= textTiles;
     return (
-      <Flap key={`t${key}`} ch={c} initial={initial} w={w} h={style.h} size={size} delay={delay} motion={m} skin={style.skin} unlit={unlit} />
+      <Flap
+        key={`t${key}`}
+        ch={c}
+        step={m.atomic ? text : undefined}
+        initial={initial}
+        w={w}
+        h={style.h}
+        size={size}
+        delay={delay}
+        motion={m}
+        skin={style.skin}
+        unlit={unlit}
+      />
     );
   });
   out.reverse();
@@ -122,6 +154,11 @@ function Separator({ ch, w, h, skin }: { ch: string; w: number; h: number; skin:
 
 interface FlapProps {
   ch: string;
+  /**
+   * Atomic rows only: the row's whole text. A new step lands every tile's flip at once, those whose
+   * own character does not change included, so no tile is ever a step behind its neighbours.
+   */
+  step?: string;
   /** The character on show at mount, if it differs from `ch` (it flips in). */
   initial?: string;
   w: number;
@@ -135,7 +172,7 @@ interface FlapProps {
 }
 
 /** One tile. Animates imperatively: a flip touches four layers and must not re-render the row. */
-function Flap({ ch, initial, w, h, size, delay, motion, skin, unlit }: FlapProps): JSX.Element {
+function Flap({ ch, step, initial, w, h, size, delay, motion, skin, unlit }: FlapProps): JSX.Element {
   const root = useRef<HTMLDivElement>(null);
   const shownCh = useRef(initial ?? ch);
   const mounted = useRef(false);
@@ -182,13 +219,14 @@ function Flap({ ch, initial, w, h, size, delay, motion, skin, unlit }: FlapProps
   useLayoutEffect(() => {
     const first = !mounted.current;
     mounted.current = true;
+    const wanted = want.current;
     want.current = ch;
     // The glyph layers are written here, never by render, so a re-render can't cut a flip short.
     if (first) settle(shownCh.current);
     const el = root.current;
     if (!el) return;
     const m = motionNow.current;
-    if ((m.instant && !first) || m.reduced || typeof el.animate !== 'function') {
+    if (m.instant || m.reduced || typeof el.animate !== 'function') {
       cancel();
       plan.current = { to: ch, seq: [] };
       const from = shownCh.current;
@@ -201,9 +239,20 @@ function Flap({ ch, initial, w, h, size, delay, motion, skin, unlit }: FlapProps
       }
       return;
     }
-    if (timers.current.length > 0 || anims.current.length > 0 || ch === shownCh.current) return;
-    timers.current.push(window.setTimeout(advance, delay));
-  }, [ch]);
+    const busy = timers.current.length > 0 || anims.current.length > 0;
+    if (busy && m.atomic) {
+      // Land the flip under way on what it was heading for, then flip on from there.
+      cancel();
+      settle(wanted);
+      plan.current = { to: ch, seq: [] };
+    } else if (busy) {
+      return;
+    }
+    if (ch === shownCh.current) return;
+    // An atomic row starts every tile's flip in this same commit, so they all fall in one frame.
+    if (m.atomic && delay === 0) advance();
+    else timers.current.push(window.setTimeout(advance, delay));
+  }, [ch, step]);
 
   /** Flip one leaf towards the wanted character, then keep going until it is on show. */
   function advance(): void {
@@ -220,12 +269,14 @@ function Flap({ ch, initial, w, h, size, delay, motion, skin, unlit }: FlapProps
 
   /** One flip from the character on show to `next`. */
   function flipOnce(next: string, done: () => void): void {
-    const from = shownCh.current;
+    // A counting row powers a blank tile up as a 0 first, so no blank sits between lit digits.
+    const from = shownCh.current === ' ' && motionNow.current.atomic && DIGIT.test(next) ? '0' : shownCh.current;
     const top = layer('fl top');
     const bot = layer('fl bot');
     if (!top || !bot) return done();
     // Static halves: the new top is already behind the falling leaf; the old bottom stays until the leaf lands.
     setText('fh top', next);
+    setText('fh bot', from);
     setText('fl top', from);
     setText('fl bot', next);
     root.current?.classList.toggle('blank', false);
@@ -254,7 +305,7 @@ function Flap({ ch, initial, w, h, size, delay, motion, skin, unlit }: FlapProps
       anims.current.push(b);
       b.onfinish = () => {
         const click = motionNow.current.click;
-        if (click) audio.play('flap', { intensity: click });
+        if (click) flapClick(click);
         setText('fh bot', next);
         shownCh.current = next;
         bot.style.visibility = 'hidden';

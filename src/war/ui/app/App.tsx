@@ -9,26 +9,26 @@ import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { audio } from '../../../audio';
 import { preview } from '../../engine';
-import { fitFrame, FRAME_H, FRAME_W } from '../common/layout';
+import { fitFrame, FRAME_H, FRAME_W, type FitMode } from '../common/layout';
 import { droneFor, tapSkip } from '../director/play';
+import { revealOutcome } from '../fx/anim';
 import { FlyerCanvas } from '../fx/FlyerCanvas';
 import { setShakeTarget } from '../fx/shake';
 import { Game } from '../screens/Game';
 import { Title } from '../screens/Title';
 import { Sheets } from '../sheets/Sheets';
 import { cancelOrder, sweepNow, swapNow } from './actions';
-import { curtain } from './curtain';
+import { curtain, veil } from './curtain';
 import { installBrowserGuards } from './guards';
 import { hintTap } from './hints';
 import { installBackButton } from './history';
-import { balloon, busy, frameScale, pressHighlight, run, screen, sheet, shown, speed } from './store';
+import { balloon, busy, frameScale, pressHighlight, pressNote, receiptOpen, run, screen, sheet, shown, speed } from './store';
 
 interface Fit {
   scale: number;
   left: number;
   top: number;
-  /** A desktop window: the console is framed as an object set into the room (no OS bands). */
-  desk: boolean;
+  mode: FitMode;
   /** A phone held sideways: the war room asks to be turned upright. */
   sideways: boolean;
 }
@@ -47,7 +47,7 @@ function readInsets(probe: HTMLElement | null): { top: number; bottom: number; l
 export function App(): JSX.Element {
   const probe = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null);
-  const [fit, setFit] = useState<Fit>({ scale: 1, left: 0, top: 0, desk: false, sideways: false });
+  const [fit, setFit] = useState<Fit>({ scale: 1, left: 0, top: 0, mode: 'device', sideways: false });
 
   useLayoutEffect(() => {
     const measure = () => {
@@ -55,9 +55,11 @@ export function App(): JSX.Element {
       const w = vv?.width ?? window.innerWidth;
       const h = vv?.height ?? window.innerHeight;
       const insets = readInsets(probe.current);
-      const desk = matches('(hover: hover) and (pointer: fine)') && insets.top === 0 && insets.bottom === 0;
-      const f = fitFrame(w, h, insets, desk);
-      setFit({ ...f, desk, sideways: matches('(pointer: coarse)') && w > h && h < 520 });
+      // No insets: a desktop window, or a phone browser whose toolbars already take the edges.
+      const bare = insets.top === 0 && insets.bottom === 0;
+      const mode: FitMode = !bare ? 'device' : matches('(hover: hover) and (pointer: fine)') ? 'desk' : 'browser';
+      const f = fitFrame(w, h, insets, mode);
+      setFit({ ...f, mode, sideways: matches('(pointer: coarse)') && w > h && h < 520 });
       frameScale.value = f.scale;
     };
     measure();
@@ -146,22 +148,26 @@ export function App(): JSX.Element {
     }
   };
 
-  // A tap that reaches the frame (nothing else claimed it) closes balloons and highlights.
+  // A tap that reaches the frame (nothing else claimed it) closes balloons, receipts and highlights.
   const onPointerDown = () => {
     balloon.value = null;
+    receiptOpen.value = null;
     pressHighlight.value = null;
+    pressNote.value = null;
   };
 
   const place = `translate(${fit.left}px, ${fit.top}px) scale(${fit.scale})`;
   const inGame = screen.value === 'game';
+  const desk = fit.mode === 'desk';
   // From the title into a night, the title stays up as a curtain until the table has drawn.
   const cover = curtain.value;
   return (
     <div ref={root} class="war-root">
       <div ref={probe} class="inset-probe" aria-hidden="true" />
-      {fit.desk && <div class="war-bezel" style={{ transform: place }} aria-hidden="true" />}
+      {desk && <div class="war-bezel" style={{ transform: place }} aria-hidden="true" />}
+      {!desk && inGame && fit.left > 0.5 && <Bleed fit={fit} />}
       <div
-        class={`war-frame${fit.desk ? ' desk' : ''}`}
+        class={`war-frame${desk ? ' desk' : fit.mode === 'browser' ? ' bare' : ''}`}
         style={{ transform: place, '--speed': speed.value } as JSX.CSSProperties}
         onPointerDownCapture={onPointerDownCapture}
         onPointerDown={onPointerDown}
@@ -172,6 +178,7 @@ export function App(): JSX.Element {
           {(!inGame || cover !== null) && <Title leaving={inGame} lifting={inGame && cover === 'lifting'} />}
           <div class="room-light" />
           <FlyerCanvas />
+          {inGame && <div class={`quit-veil${veil.value ? ' on' : ''}`} aria-hidden="true" />}
         </div>
         <Sheets s={shown.value} />
       </div>
@@ -179,6 +186,33 @@ export function App(): JSX.Element {
         <div class="turn-upright" role="alert">
           <span>Turn your phone upright</span>
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * A phone browser a little wider than the frame: the Big Board, the rail and the console run on
+ * to the window's edges, so the side gap reads as more of the same desk, not as black bars. While
+ * the Briefing is up, the tray's linen runs on instead of the console.
+ */
+function Bleed({ fit }: { fit: Fit }): JSX.Element {
+  const band = (y: number, h: number): JSX.CSSProperties => ({ top: `${fit.top + y * fit.scale}px`, height: `${h * fit.scale}px` });
+  const tray = shown.value?.phase === 'briefing' && revealOutcome.value;
+  return (
+    <div class="war-bleed" aria-hidden="true">
+      <i class="bleed-board" style={band(47, 56)} />
+      <i class="bleed-rule" style={band(103, 4)} />
+      <i class="bleed-rail" style={band(107, 64)} />
+      {tray ? (
+        <i class="bleed-tray" style={{ top: `${fit.top + 451 * fit.scale}px`, bottom: 0 }} />
+      ) : (
+        <>
+          <i class="bleed-trim" style={band(689, 2)} />
+          <i class="bleed-readout" style={band(691, 48)} />
+          <i class="bleed-controls" style={band(739, 68)} />
+          <i class="bleed-home" style={{ top: `${fit.top + 807 * fit.scale}px`, bottom: 0 }} />
+        </>
       )}
     </div>
   );

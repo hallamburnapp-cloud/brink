@@ -130,6 +130,29 @@ export function drawThread(g: Gfx, c: Curve, s: ThreadStyle): void {
   ctx.restore();
 }
 
+/**
+ * A worn thread: traffic from earlier sweeps, between regions not pinned now. Dried ink, thin and
+ * flat (no glow), so it never reads as a live join; it still wears thicker with traffic, and from
+ * 2 its traffic is written at its middle (what a join along it will add).
+ */
+export function drawWornThread(g: Gfx, c: Curve, traffic: number, width: number, alpha: number): void {
+  const { ctx } = g;
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = css(mix(THREAD, PEWTER.lo, 0.45), 0.55 * alpha);
+  ctx.lineWidth = Math.max(0.9, 0.55 * width);
+  strokeCurve(g, c);
+  if (traffic >= 2) {
+    const [mx, my] = pointOn(c, 0.5);
+    text(ctx, String(traffic), mx, my, {
+      font: `800 7.5px ${FONT_MONO}`,
+      color: css(mix(LINEN, THREAD, 0.25), 0.85 * alpha),
+      halo: ['rgba(5,8,12,0.92)', 2.6],
+    });
+  }
+  ctx.restore();
+}
+
 /** A laid cable (Order LAY CABLE): a glowing brass line with a terminal ring at each end. */
 export function drawCable(g: Gfx, c: Curve, alpha: number): void {
   const { ctx } = g;

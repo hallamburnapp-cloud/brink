@@ -5,12 +5,12 @@
  */
 import type { JSX } from 'preact';
 import { useRef, useState } from 'preact/hooks';
-import { boardLabels, preview, trayViews, type PaperView, type RunState } from '../../engine';
+import { actsOn, boardLabels, preview, trayViews, type PaperView, type RunState } from '../../engine';
 import { ORDER } from '../../content/orders';
 import { OrderIcon } from '../art';
 import { above, applyOrder, armSlot, sweepNow, swapNow, tapRegion } from '../app/actions';
 import { controlHint, type HintSpot } from '../app/hints';
-import { balloon, busy, frameScale, run, showToast } from '../app/store';
+import { balloon, busy, dragTargets, frameScale, run, showToast } from '../app/store';
 import { R, type Rect } from '../common/layout';
 import { leverDown } from '../fx/anim';
 import { clientToMap, getMap } from '../table/mapRef';
@@ -60,9 +60,10 @@ export function Controls({ s }: { s: RunState }): JSX.Element {
  * Where each control balloon sits. Over SWAP and the in-tray it hangs above the control; for SWEEP
  * and its lamp it sits beside the lever, over the console, so it never hides the readout's boxes.
  */
-const HINT_AT: Record<HintSpot, { r: Rect; side: 'above' | 'beside' }> = {
+const HINT_AT: Record<HintSpot, { r: Rect; side: 'above' | 'beside'; left?: number }> = {
   swap: { r: R.swap, side: 'above' },
-  tray: { r: R.tray0, side: 'above' },
+  // Hung from the frame's left edge, so in the Briefing it never covers NEXT CRISIS.
+  tray: { r: R.tray0, side: 'above', left: 16 },
   sweep: { r: R.sweep, side: 'beside' },
   lamp: { r: R.sweep, side: 'beside' },
 };
@@ -71,7 +72,7 @@ const HINT_AT: Record<HintSpot, { r: Rect; side: 'above' | 'beside' }> = {
 export function ControlHint(): JSX.Element | null {
   const hint = controlHint.value;
   if (!hint) return null;
-  const { r, side } = HINT_AT[hint.at];
+  const { r, side, left: at } = HINT_AT[hint.at];
   if (side === 'beside') {
     const style = { right: `${390 - r[0] + 10}px`, top: `${r[1] + r[3] / 2}px` };
     return (
@@ -80,10 +81,10 @@ export function ControlHint(): JSX.Element | null {
       </div>
     );
   }
-  const left = Math.max(10, r[0] - 4);
+  const left = at ?? Math.max(10, r[0] - 4);
   const style = { left: `${left}px`, bottom: `${844 - r[1] + 10}px`, '--nib': `${r[0] + r[2] / 2 - left - 5}px` };
   return (
-    <div key={hint.n} class="control-hint abs" style={style} role="status">
+    <div key={hint.n} class={`control-hint abs${at !== undefined ? ' narrow' : ''}`} style={style} role="status">
       {hint.text}
     </div>
   );
@@ -137,6 +138,11 @@ function Well({ r, paper, briefing }: { r: Rect; paper: PaperView | null; briefi
     const dx = (e.clientX - p.x) / k;
     const dy = (e.clientY - p.y) / k;
     if (!p.moved && Math.hypot(dx, dy) < 8) return;
+    if (!p.moved) {
+      // The map lights where the paper can land while it is carried there.
+      const s = run.value;
+      if (s) dragTargets.value = actsOn(s, { kind: 'order', id: paper.id, price: 0 });
+    }
     p.moved = true;
     setDrag({ dx, dy });
   };
@@ -145,6 +151,7 @@ function Well({ r, paper, briefing }: { r: Rect; paper: PaperView | null; briefi
     const was = press.current;
     press.current = null;
     setDrag(null);
+    dragTargets.value = null;
     if (!was) return;
     if (!was.moved) {
       if (briefing) balloon.value = balloon.value?.kind === 'paper' && balloon.value.index === paper.slot ? null : { kind: 'paper', index: paper.slot };
@@ -165,6 +172,7 @@ function Well({ r, paper, briefing }: { r: Rect; paper: PaperView | null; briefi
         onPointerCancel={() => {
           press.current = null;
           setDrag(null);
+          dragTargets.value = null;
         }}
         role="button"
         aria-label={`${paper.name}: ${paper.rule}`}

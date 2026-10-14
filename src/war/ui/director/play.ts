@@ -21,6 +21,7 @@ import { buzz, shake, stopShake } from '../fx/shake';
 import { getMap, pinOnFrame } from '../table/mapRef';
 import {
   outcomeSchedule,
+  RISER_MS,
   shakeFor,
   shareOfNeed,
   slamIntensity,
@@ -104,8 +105,11 @@ interface Playing {
 }
 let playing: Playing | null = null;
 
-/** What the current sweep has already shown, for a skip to land the rest. */
-const progress = { collided: false, riser: false, tapSkipped: false };
+/**
+ * What the current sweep has already shown, for a skip to land the rest. `riserAt` is when the
+ * clear's riser started (performance.now()), so CLEARED can wait for its chord.
+ */
+const progress: { collided: boolean; riserAt: number | null; tapSkipped: boolean } = { collided: false, riserAt: null, tapSkipped: false };
 
 /** No skip in the first 700 ms after SWEEP (at 1x), or the first 250 ms of the outcome. */
 const SKIP_GUARD_MS = 700;
@@ -215,7 +219,7 @@ export async function playSweep(prev: RunState, next: RunState): Promise<void> {
   map?.setSpeed(rate);
   map?.setReducedMotion(isReduced);
   progress.collided = false;
-  progress.riser = false;
+  progress.riserAt = null;
   progress.tapSkipped = false;
 
   const missed = next.phase === 'missed';
@@ -236,18 +240,23 @@ export async function playSweep(prev: RunState, next: RunState): Promise<void> {
   const line = new Timeline<Cue>(sched.cues, sched.end, (c) => scoreCue(c, rec, prev, rate), rate);
   playing = { stage: 'score', line, noSkip: prev.firstNight && prev.sweepsTaken < 2 };
   await line.start();
-  // A tap skipped the slam: it still lands, so the payoff is never silent.
-  if (progress.tapSkipped && !progress.collided) slamNow(rec, prev, missed, isReduced);
   endScoring(rec);
+  // A tap skipped the slam: it still lands (after the scoring is cleared away, so its shake stays),
+  // and the payoff is never silent.
+  if (progress.tapSkipped && !progress.collided) slamNow(rec, prev, missed, isReduced);
 
   const kind = missed ? 'miss' : rec.cleared ? 'clear' : 'carryOn';
   const clear = next.lastClear;
+  // The chord lands RISER_MS after the riser starts (real time); in outcome time at this speed.
+  const riserPlayed = progress.riserAt !== null;
+  const chordAt = riserPlayed ? Math.max(0, (progress.riserAt! + RISER_MS - performance.now()) * rate) : RISER_MS * rate;
   const outcome = outcomeSchedule({
     kind,
     fundsBefore: clear?.fundsBefore ?? next.funds,
     fundsAfter: clear?.fundsAfter ?? next.funds,
     reduced: isReduced,
-    riserPlayed: progress.riser,
+    riserPlayed,
+    chordAt,
   });
   const line2 = new Timeline<OutcomeCue>(outcome.cues, outcome.end, (c) => outcomeCue(c, rec, prev, next), rate);
   playing = { stage: 'outcome', line: line2, noSkip: false };
@@ -282,6 +291,9 @@ function scoreCue(c: Cue, rec: SweepRecord, prev: RunState, rate: number): void 
       else map?.fx.scanTo(x);
       break;
     }
+    case 'scanOff':
+      map?.fx.scanTo(null);
+      break;
     case 'flash':
       map?.fx.flash(c.region);
       break;
@@ -360,7 +372,7 @@ function scoreCue(c: Cue, rec: SweepRecord, prev: RunState, rate: number): void 
       map?.bloom(c.region, COLOURS[prev.world.colour[c.region]].hex);
       break;
     case 'showcase':
-      A.showcase.value = { text: formatShort(rec.leverage, 7), sub: `×${c.r >= 100 ? Math.round(c.r) : c.r.toFixed(1)} THE TARGET`, n: A.nextN() };
+      A.showcase.value = { text: formatShort(rec.leverage, 7), sub: `${c.r >= 100 ? Math.round(c.r) : c.r.toFixed(1)}× THE TARGET`, n: A.nextN() };
       break;
     case 'print': {
       // The product leaves the readout (or the showcase) for the Big Board.
@@ -392,11 +404,14 @@ function scoreCue(c: Cue, rec: SweepRecord, prev: RunState, rate: number): void 
       });
       break;
     case 'riser':
-      progress.riser = true;
+      progress.riserAt = performance.now();
       audio.play('ante_smash', { intensity: 0.8 });
       break;
     case 'release':
       A.leverDown.value = false;
+      break;
+    case 'landed':
+      A.totalLanded.value++;
       break;
   }
 }
@@ -431,6 +446,8 @@ function endScoring(rec: SweepRecord): void {
     A.totalShown.value = rec.totalAfter;
     A.ringHold.value = rec.cleared;
     A.hops.value = {};
+    // A skipped roll lands at once, with the same flash.
+    if (progress.tapSkipped) A.totalLanded.value++;
   });
 }
 

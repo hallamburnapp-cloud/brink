@@ -160,6 +160,66 @@ body {
   background: linear-gradient(145deg, var(--brass-hi), var(--brass) 28%, var(--brass-lo) 70%, #3a2a10);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.85), 0 6px 16px rgba(0, 0, 0, 0.5), 0 24px 60px rgba(0, 0, 0, 0.7);
 }
+/* On a desktop the frame shows at about 1x on a 1x screen: the smallest labels step up a size so
+   they stay crisp, and the map answers the mouse. */
+.war-frame.desk .label,
+.war-frame.desk .summit-chip {
+  font-size: 9px !important;
+  line-height: 9px !important;
+}
+.war-frame.desk .sweeps-left,
+.war-frame.desk .menu-btn::after,
+.war-frame.desk .seat .no,
+.war-frame.desk .seat.empty .vacant {
+  font-size: 8.5px;
+  line-height: 8.5px;
+}
+.war-frame.desk .crisis-line {
+  font-size: 10px;
+}
+.war-frame.desk .seat .chip {
+  font-size: 9px;
+}
+/* A phone browser: no OS bands to clear, so the frame meets the window with no cast shadow, and
+   where the window is a little wider the desk's strips run on to its edges (App.tsx Bleed). */
+.war-frame.bare {
+  box-shadow: none;
+}
+.war-bleed {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.war-bleed > i {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+.bleed-board {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 40%, rgba(0, 0, 0, 0.25)), var(--board);
+}
+.bleed-rule {
+  background: #06080b;
+}
+.bleed-rail {
+  background: linear-gradient(180deg, rgba(255, 220, 170, 0.05), rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.35)), var(--leather-grain, none),
+    var(--leather-1);
+}
+.bleed-trim {
+  background: linear-gradient(180deg, rgba(247, 224, 163, 0.55), rgba(106, 79, 34, 0.7));
+}
+.bleed-readout {
+  background: linear-gradient(180deg, #11161d, #0c1015);
+}
+.bleed-controls {
+  background: linear-gradient(180deg, rgba(255, 220, 170, 0.04), rgba(0, 0, 0, 0.3)), var(--leather-grain, none), var(--leather-1);
+}
+.bleed-home {
+  background: linear-gradient(180deg, #0a0806, #050403);
+}
+.bleed-tray {
+  background: var(--tray-grain, none), linear-gradient(rgba(233, 226, 210, 0.08), rgba(233, 226, 210, 0.08)), #1a1f27;
+}
 /* A phone held sideways: the frame would be too small to play, so the room asks to turn it. */
 .turn-upright {
   position: fixed;
@@ -312,7 +372,32 @@ body {
   transition: background 150ms linear;
 }
 .board.heat .board-backlight {
-  background: radial-gradient(60% 80% at 50% 62%, rgba(255, 246, 224, 0.26), rgba(255, 246, 224, 0) 72%);
+  background: radial-gradient(64% 86% at 50% 62%, rgba(255, 246, 224, 0.42), rgba(255, 246, 224, 0) 74%);
+  animation: heat-flicker 1.1s steps(1, end) infinite;
+}
+/* HEAT: the whole leverage module is lit white-hot and the lamp behind it flickers, slowly. */
+@keyframes heat-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  18% {
+    opacity: 0.82;
+  }
+  24% {
+    opacity: 1;
+  }
+  61% {
+    opacity: 0.9;
+  }
+  66% {
+    opacity: 1;
+  }
+}
+.target.hot {
+  color: #ffb0a6;
+  text-shadow: 0 0 8px rgba(255, 246, 224, 0.75), 0 0 2px rgba(255, 246, 224, 0.9);
+  transition: color 150ms linear, text-shadow 150ms linear;
 }
 .backlit {
   border-radius: 3px;
@@ -598,8 +683,36 @@ body {
 .sweeps-left.last {
   color: rgba(255, 90, 78, 0.85);
 }
+/* After a clear the line under the target keeps the total that cleared, beside the stamp. */
+.sweeps-left.total-line {
+  top: 89px;
+  color: var(--text-2);
+}
+.total-line .num {
+  font: 800 9.5px/9px var(--font-num);
+  letter-spacing: 0;
+  color: var(--text);
+}
+/* The total lands: its tiles flash white once (120 ms) and settle. */
+.total.landed .flap .g {
+  animation: total-landed 180ms ease-out;
+}
+@keyframes total-landed {
+  0%,
+  40% {
+    color: #fffaf0;
+    text-shadow: 0 0 10px rgba(255, 246, 224, 0.95), 0 0 2px #fff;
+  }
+}
+/* An unpowered tile is no tile yet: a dark slot in the housing, its seams only, until a value
+   needs it (then it flips in with its face). */
 .flap.steel.unlit {
-  filter: brightness(0.6);
+  background: linear-gradient(180deg, #0c0f12, #101317);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(42, 48, 56, 0.55);
+}
+.flap.steel.unlit::before,
+.flap.steel.unlit::after {
+  display: none;
 }
 .total.idle .flap .g {
   color: rgba(232, 226, 208, 0.55);
@@ -917,13 +1030,10 @@ body {
   background: linear-gradient(180deg, #2c2009, #160f04);
   border-top-color: rgba(255, 181, 71, 0.6);
 }
-.seat.firing .chip .c-mom {
-  color: var(--momentum-hi);
-  text-shadow: 0 0 6px rgba(255, 181, 71, 0.9);
-}
-.seat.firing .chip .c-inf {
-  color: var(--influence-hi);
-  text-shadow: 0 0 6px rgba(95, 212, 244, 0.9);
+/* The seat lights as it fires, and its chip's number dims while its copy flies off under the seat:
+   one bright number at a time. */
+.seat.firing .chip .chip-text {
+  opacity: 0.4;
 }
 .seat.firing {
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.55), 0 6px 12px rgba(0, 0, 0, 0.55), 0 0 14px rgba(255, 220, 160, 0.3);
@@ -1038,6 +1148,15 @@ body {
   background: linear-gradient(180deg, #11161d, #0c1015);
   cursor: pointer;
 }
+.pattern-loose {
+  position: absolute;
+  left: 0;
+  top: 25px;
+  white-space: nowrap;
+  font: 700 7.5px/8px var(--font-label);
+  letter-spacing: 0.16em;
+  color: var(--text-3);
+}
 .pattern {
   left: 16px;
   top: 697px;
@@ -1111,6 +1230,15 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transition: none;
 }
+.box.peeked {
+  animation: box-peeked 900ms var(--ease-in-out) infinite;
+}
+@keyframes box-peeked {
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 24px var(--c), inset 0 0 14px var(--glow-in), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+}
 .box.mom.bump {
   --c: #ffd08a;
   box-shadow: 0 0 22px rgba(255, 181, 71, 0.6), inset 0 0 14px rgba(255, 181, 71, 0.4);
@@ -1161,7 +1289,7 @@ body {
 }
 /* Motion fixer: the slam. The slam class sits on .readout-layer (the boxes are its children, not
    .readout's), so the selectors start there. The boxes wind back a hair, then slide in on
-   --ease-in and stop dead on contact (9 px each, using the translate property so the landing
+   --ease-in and crash into each other under the plate (22 px each, using the translate property so the landing
    pulses' transforms still compose); on contact their rims flash white-hot and they squash, and the
    sum's plate pops over both. Durations follow the playback speed. */
 .readout-layer.slam-slide .box.inf {
@@ -1171,11 +1299,11 @@ body {
   animation: slam-in-mom calc(200ms / var(--speed, 1)) linear both;
 }
 .readout-layer.slam-hit .box.inf {
-  translate: 9px 0;
+  translate: 22px 0;
   animation: squash calc(140ms / var(--speed, 1)) var(--ease-out);
 }
 .readout-layer.slam-hit .box.mom {
-  translate: -9px 0;
+  translate: -22px 0;
   animation: squash calc(140ms / var(--speed, 1)) var(--ease-out);
 }
 .readout-layer.slam-slide .times,
@@ -1188,11 +1316,11 @@ body {
     animation-timing-function: var(--ease-out);
   }
   30% {
-    translate: -5px 0;
+    translate: -6px 0;
     animation-timing-function: var(--ease-in);
   }
   100% {
-    translate: 9px 0;
+    translate: 22px 0;
   }
 }
 @keyframes slam-in-mom {
@@ -1201,11 +1329,11 @@ body {
     animation-timing-function: var(--ease-out);
   }
   30% {
-    translate: 5px 0;
+    translate: 6px 0;
     animation-timing-function: var(--ease-in);
   }
   100% {
-    translate: -9px 0;
+    translate: -22px 0;
   }
 }
 @keyframes squash {
@@ -1290,6 +1418,40 @@ body {
     opacity: 1;
   }
 }
+/* A sweep that covers what is left of the target: the plate fills the readout band, the result
+   prints at 28 pt from 1.5x, and the plate flashes white on contact. */
+.product.big {
+  top: 691px;
+  height: 48px;
+  animation: product-in-big calc(240ms / var(--speed, 1)) var(--ease-back) both;
+}
+.product.big .res {
+  font-size: 28px;
+  line-height: 28px;
+}
+.product.big::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 6px;
+  background: rgba(255, 250, 240, 0.85);
+  pointer-events: none;
+  animation: plate-flash calc(140ms / var(--speed, 1)) ease-out both;
+}
+@keyframes product-in-big {
+  from {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+}
+@keyframes plate-flash {
+  to {
+    opacity: 0;
+  }
+}
 /* Motion fixer: the settled sum is a tab (a small brass chevron says so); it unfolds the LAST
    SWEEP receipt, typed on linen above the readout. */
 .product.still::after {
@@ -1314,14 +1476,14 @@ body {
 }
 .receipt {
   left: 16px;
-  bottom: 157px;
   width: 358px;
-  padding: 10px 14px 9px;
-  border-radius: 2px;
+  z-index: 47;
+  padding: 7px 12px 9px;
   background: var(--linen-grain, none), linear-gradient(180deg, #f2ecdf, var(--linen) 60%, var(--linen-shade));
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 3px 5px rgba(0, 0, 0, 0.55), 0 10px 24px rgba(0, 0, 0, 0.45);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 3px), 95% 100%, 90% calc(100% - 3px), 85% 100%, 80% calc(100% - 3px), 75% 100%, 70% calc(100% - 3px), 65% 100%, 60% calc(100% - 3px), 55% 100%, 50% calc(100% - 3px), 45% 100%, 40% calc(100% - 3px), 35% 100%, 30% calc(100% - 3px), 25% 100%, 20% calc(100% - 3px), 15% 100%, 10% calc(100% - 3px), 5% 100%, 0 calc(100% - 3px));
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.55));
   color: var(--type-ink);
-  font: 400 11px/15px var(--font-num);
+  font: 500 9.5px/12.5px var(--font-num);
   letter-spacing: -0.01em;
   transform-origin: 50% 100%;
   animation: receipt-up calc(180ms / var(--speed, 1)) var(--ease-out) both;
@@ -1384,11 +1546,11 @@ body {
 .showcase::before {
   content: '';
   position: absolute;
-  left: 30px;
-  right: 30px;
-  top: 170px;
-  height: 180px;
-  background: radial-gradient(closest-side, rgba(5, 8, 12, 0.6), rgba(5, 8, 12, 0));
+  left: 40px;
+  right: 40px;
+  top: 178px;
+  height: 164px;
+  background: radial-gradient(closest-side, rgba(5, 8, 11, 0.9) 58%, rgba(5, 8, 11, 0));
 }
 .showcase .big {
   position: relative;
@@ -1400,11 +1562,13 @@ body {
 }
 .showcase .sub {
   position: relative;
-  font: 700 13px/13px var(--font-label);
+  font: 700 12px/12px var(--font-label);
   letter-spacing: 0.24em;
-  padding-left: 0.24em;
-  color: var(--momentum);
-  text-shadow: 0 0 10px rgba(255, 181, 71, 0.7), 0 1px 0 #000;
+  padding: 4px 8px 4px calc(8px + 0.24em);
+  border-radius: 3px;
+  background: rgba(5, 8, 11, 0.85);
+  color: var(--momentum-hi);
+  text-shadow: 0 0 8px rgba(255, 181, 71, 0.6);
   animation: fade-in calc(200ms / var(--speed, 1)) calc(120ms / var(--speed, 1)) both;
 }
 @keyframes showcase-in {
@@ -1629,16 +1793,18 @@ body {
   padding-right: 20px !important;
 }
 .sweep.beckon {
-  animation: beckon 1.4s ease-in-out infinite;
+  animation: beckon 1.2s ease-in-out infinite;
 }
+/* The lever asks to be pulled: it lifts a point, its rim lights and it glows on the leather. */
 @keyframes beckon {
   50% {
-    box-shadow: inset 0 1px 0 rgba(255, 250, 230, 0.75), inset 0 -2px 0 rgba(58, 42, 16, 0.45), 0 4px 0 #3a2a10, 0 6px 10px rgba(0, 0, 0, 0.6),
-      0 0 18px rgba(247, 224, 163, 0.45);
+    transform: translateY(-1px);
+    box-shadow: inset 0 1px 0 rgba(255, 250, 230, 0.9), inset 0 -2px 0 rgba(58, 42, 16, 0.45), 0 0 0 2px var(--brass-hi), 0 5px 0 #3a2a10,
+      0 7px 12px rgba(0, 0, 0, 0.6), 0 0 24px 4px rgba(247, 224, 163, 0.7);
   }
 }
 .lamp {
-  left: 352px;
+  left: 348px;
   top: 751px;
   width: 12px;
   height: 12px;
@@ -1664,15 +1830,15 @@ body {
   }
 }
 .lamp-label {
-  left: 340px;
+  left: 337px;
   top: 768px;
-  width: 36px;
+  width: 34px;
   text-align: center;
   pointer-events: none;
-  /* Shell fixer: engraved at 9 pt in full brass-ink, readable at arm's length. */
-  font: 700 9px/9px var(--font-label);
-  letter-spacing: 0.06em;
-  padding-left: 0.06em;
+  /* Engraved in full brass-ink, centred under the lamp and clear of the lever's rim. */
+  font: 700 8.5px/9px var(--font-label);
+  letter-spacing: 0.05em;
+  padding-left: 0.05em;
   color: #2a1c08;
   text-shadow: 0 1px 0 rgba(255, 240, 200, 0.5);
 }
@@ -1791,6 +1957,10 @@ body {
   border-bottom: 1px solid rgba(247, 224, 163, 0.45);
   transform: rotate(45deg);
 }
+/* Hung from the frame's left edge (the in-tray line): it ends before NEXT CRISIS at x 203. */
+.control-hint.narrow {
+  max-width: 180px;
+}
 /* Shell fixer: beside SWEEP (and its lamp) the balloon sits over the console, left of the lever,
    with its nib pointing right: the readout's boxes above stay in view. */
 .control-hint.beside {
@@ -1904,7 +2074,7 @@ body {
   color: var(--text-3);
 }
 .balloon:has(.sell) .b-drag {
-  padding-right: 64px;
+  padding-right: 80px;
 }
 .b-actions {
   display: flex;
@@ -1926,7 +2096,7 @@ body {
   bottom: 8px;
 }
 .balloon:has(.sell) .b-rule {
-  padding-right: 64px;
+  padding-right: 80px;
 }
 .toast {
   z-index: 47;
@@ -2055,6 +2225,60 @@ body {
 .tray-layer.peek {
   transform: translateY(240px);
   transition-duration: 180ms;
+}
+/* A held card with no place on the map lowers the tray past the readout, where its line shows. */
+.tray-layer.peek.deep {
+  transform: translateY(316px);
+}
+/* A held card's line on the readout row (Balloons.tsx PeekNote). */
+.peek-note {
+  left: 10px;
+  top: 694px;
+  width: 176px;
+  min-height: 42px;
+  z-index: 46;
+  padding: 5px 9px 6px;
+  border-radius: 7px;
+  background: linear-gradient(180deg, #181c23, #0e1116);
+  border: 1px solid rgba(201, 163, 91, 0.45);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  animation: rise-in 140ms var(--ease-out) both;
+}
+.peek-note .nib {
+  position: absolute;
+  right: -6.5px;
+  top: 14px;
+  width: 12px;
+  height: 12px;
+  background: #13171d;
+  border-right: 1px solid rgba(201, 163, 91, 0.45);
+  border-top: 1px solid rgba(201, 163, 91, 0.45);
+  transform: rotate(45deg);
+}
+.pn-head {
+  font: 700 7.5px/9px var(--font-label);
+  letter-spacing: 0.18em;
+  color: var(--text-3);
+}
+.pn-text {
+  font: 500 11px/13px var(--font-label);
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+.pb-shape {
+  color: var(--text-2);
+}
+/* NEXT CRISIS: the tray slides away under the console before the new crisis is shown. */
+.tray-layer.leaving {
+  transform: translateY(400px);
+  transition: transform calc(220ms / var(--speed, 1)) var(--ease-in);
+}
+.tray-layer.leaving > * {
+  pointer-events: none;
 }
 .tray-layer .grab {
   left: 177px;
@@ -2678,21 +2902,31 @@ body {
   letter-spacing: 0;
   color: var(--text-3);
 }
-.receipt {
-  padding: 5px 8px 0;
+/* The clear's payout, typed on a torn ticket in the Briefing; its first line opens the LAST SWEEP
+   receipt of the sweep that cleared. */
+.payout {
+  padding: 4px 8px 0;
   background: var(--linen-grain, none), linear-gradient(180deg, #f1ebde, var(--linen));
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 3px), 95% 100%, 90% calc(100% - 3px), 85% 100%, 80% calc(100% - 3px), 75% 100%, 70% calc(100% - 3px), 65% 100%, 60% calc(100% - 3px), 55% 100%, 50% calc(100% - 3px), 45% 100%, 40% calc(100% - 3px), 35% 100%, 30% calc(100% - 3px), 25% 100%, 20% calc(100% - 3px), 15% 100%, 10% calc(100% - 3px), 5% 100%, 0 calc(100% - 3px));
   color: var(--type-ink);
-  font: 700 8px/9.5px var(--font-num);
+  font: 700 8px/8.6px var(--font-num);
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
 }
-.receipt .row {
+.payout .row {
   display: flex;
   justify-content: space-between;
   white-space: nowrap;
 }
-.receipt .row span:last-child {
+.payout .row span:last-child {
   font-weight: 800;
+}
+.payout .sweep-row {
+  width: 100%;
+  padding-bottom: 1px;
+  margin-bottom: 1px;
+  border-bottom: 0.5px dashed rgba(42, 37, 32, 0.35) !important;
+  color: #0b6a86;
+  text-align: left;
 }
 .place-bar {
   position: absolute;
@@ -3202,6 +3436,23 @@ body {
 .title-screen {
   position: absolute;
   inset: 0;
+}
+/* Back from a night, the title comes up out of the table colour the war room faded to. */
+.title-screen:not(.leaving) {
+  animation: fade-in 280ms var(--ease-out) both;
+}
+.quit-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  background: var(--table);
+  opacity: 0;
+  transition: opacity 200ms var(--ease-in);
+}
+.quit-veil.on {
+  opacity: 1;
+  pointer-events: auto;
 }
 /* Shell fixer: the title as the curtain into a night. It covers the war room (opaque, above its
    layers, taps passing through) until the new table has drawn, then fades away. */

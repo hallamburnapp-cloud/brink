@@ -5,11 +5,11 @@
  */
 export const WAR_META = {
   /** One line for the manifest and the search snippet's lead. */
-  tagline: 'Hold the world together until dawn.',
+  tagline: 'Hold the world together until 01:00.',
   /** The page's meta description and link-preview text. */
   description:
     'A war-room roguelike. Each crisis lights eight regions of the map: pin the shape that holds them, ' +
-    'seat your staff, and hold the world together until dawn.',
+    'seat your staff, and hold until 01:00: three hours, nine crises.',
   /** The table colour: theme colour, manifest background and the letterbox. */
   themeColor: '#0B0F14',
 } as const;

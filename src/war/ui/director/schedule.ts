@@ -17,6 +17,8 @@ export type Cue =
   | { t: number; do: 'stamp'; name: string; level: number }
   | { t: number; do: 'base'; I: bigint; M10: bigint }
   | { t: number; do: 'scan'; region: RegionId; again: boolean }
+  /** The pins are done: the scan line leaves the map while the rail and the desk take over. */
+  | { t: number; do: 'scanOff' }
   | { t: number; do: 'flash'; region: RegionId }
   | { t: number; do: 'thread'; from: RegionId; to: RegionId; amount: number }
   | { t: number; do: 'stampPulse'; region: RegionId }
@@ -42,7 +44,9 @@ export type Cue =
   | { t: number; do: 'roll'; ms: number }
   /** A clearing sweep: the clear's rising chord starts here so that it lands on CLEARED. */
   | { t: number; do: 'riser' }
-  | { t: number; do: 'release' };
+  | { t: number; do: 'release' }
+  /** The roll has landed: the total flashes once and holds, readable. */
+  | { t: number; do: 'landed' };
 
 export type CueKind = Cue['do'];
 
@@ -77,6 +81,8 @@ export interface Schedule {
   r: number;
   /** Number of sweep events (scoring passes, AGAINs included). */
   events: number;
+  /** When the clear's riser starts, or null (not a clearing sweep). */
+  riserAt: number | null;
 }
 
 // ---------------------------------------------------------------- spec constants (1x)
@@ -88,18 +94,26 @@ const THREAD_AT = 60;
 const STAMP_PULSE_AT = 100;
 const STAFF_AT = 120;
 const STAFF_GAP = 60;
-/** A number pops at its source for 60 ms ('+w' rising 18 pt off the pin), then flies 200 ms. */
+/**
+ * A number pops at its source for 60 ms, then flies 200 ms; a pin's '+w' rises 18 pt off the pin
+ * and holds there for 100 ms, so it reads on the map before it leaves.
+ */
 const POP_MS = 60;
+const PIN_POP_MS = 100;
 const RISE_PT = 18;
 const FLY_MS = 200;
 const STANDBY_MS = 200;
 const DESK_MS = 250;
 /** The held breath: a beat between the last number landing and the boxes sliding together. */
 export const HOLD_MS = 240;
+/** After a multiplier the breath waits for its swell to finish, so the hold is longer. */
+export const HOLD_AFTER_MULT_MS = 320;
+/** No screen shake this close before the slam: the slam's own shake lands against stillness. */
+const STILL_BEFORE_SLAM_MS = 300;
 const SLIDE_MS = 200;
-/** After the hit the product plate is read for a moment before it flies to the board. */
-const PRINT_AT = 120;
-const PRINT_MS = 240;
+/** After the hit the product leaves the plate (which keeps its copy) for the board. */
+const PRINT_AT = 60;
+const PRINT_MS = 200;
 /** A showcase slam (r >= 10) holds the big product over the map before it flies. */
 const SHOWCASE_HOLD = 360;
 const SHAKE_MS = 250;
@@ -164,22 +178,46 @@ function tickAt(hz: number): number {
   return Math.min(1, Math.max(0, Math.log(hz / 500) / Math.log(4.4)));
 }
 
+/** tick's pitch is 800 + 1600 i Hz: the intensity that plays `hz` (it doubles a note for body). */
+function blipAt(hz: number): number {
+  return Math.min(1, Math.max(0, (hz - 800) / 1600));
+}
+
 /** A major pentatonic from A5: A5 B5 C#6 E6 F#6 A6 B6. */
 const PENTATONIC = [880, 987.77, 1108.73, 1318.51, 1479.98, 1760, 1975.53];
 
 /**
- * The tick for the k-th of n scoring passes: one climb up the pentatonic from A5 across the whole
+ * The note for the k-th of n scoring passes: one climb up the pentatonic from A5 across the whole
  * sweep, so a short sweep climbs as far as a long one.
  */
-export function tickIntensity(k: number, n: number): number {
+export function noteHz(k: number, n: number): number {
   const top = PENTATONIC.length - 1;
-  const step = n <= 1 ? 0 : Math.round((Math.min(k, n - 1) * top) / (n - 1));
-  return tickAt(PENTATONIC[step]);
+  return PENTATONIC[n <= 1 ? 0 : Math.round((Math.min(k, n - 1) * top) / (n - 1))];
 }
 
-/** An AGAIN repeats the previous note an octave up. */
-export function octaveUp(i: number): number {
-  return tickAt(500 * Math.pow(4.4, i) * 2);
+/** tally_tick's intensity for the k-th of n notes. */
+export function tickIntensity(k: number, n: number): number {
+  return tickAt(noteHz(k, n));
+}
+
+/** An AGAIN's accent: a ping a fifth above the note it repeats. */
+export function fifthUp(hz: number): number {
+  return tickAt(hz * 1.5);
+}
+
+/**
+ * One scoring note at `p` (0..1) of the way through the sweep: tally_tick on the scale, doubled
+ * by tick at the same pitch and a glassy pin, so it plucks rather than blips; from halfway a body
+ * thump grows under it, so the climb gets louder as well as higher (about 5 dB across a sweep).
+ */
+function noteCues(t: number, hz: number, p: number): Cue[] {
+  const cues: Cue[] = [
+    { t, do: 'sound', sfx: 'tally_tick', intensity: tickAt(hz) },
+    { t, do: 'sound', sfx: 'tick', intensity: blipAt(hz) },
+    { t, do: 'sound', sfx: 'pin', intensity: 0.2 + 0.8 * p },
+  ];
+  if (p >= 0.5) cues.push({ t, do: 'sound', sfx: 'thump', intensity: 0.2 * p });
+  return cues;
 }
 
 /** A multiplier's size: x1.5 lands at 0.8, x2 at 1.0, x3 and up at 1.2. */
@@ -189,10 +227,14 @@ export function multWeight(factor: string): number {
   return Math.min(1.2, Math.max(0.8, 0.6 + 0.2 * f));
 }
 
-/** Each multiplier in a sweep lands a semitone above the last (tally_mult is 380 Hz x 3.5^i). */
-export function multPitch(nth: number): number {
+/**
+ * Each multiplier in a sweep lands higher than the last (tally_mult is 380 Hz x 3.5^i): a semitone
+ * a step, or, in a sweep of many, an even climb that still reaches the top on the last one.
+ */
+export function multPitch(nth: number, of = 1): number {
   const semitone = Math.log(Math.pow(2, 1 / 12)) / Math.log(3.5);
-  return Math.min(1, 0.45 + semitone * nth);
+  const step = of > 1 ? Math.min(semitone, 0.55 / (of - 1)) : semitone;
+  return Math.min(1, 0.45 + step * nth);
 }
 
 // ---------------------------------------------------------------- trace grouping
@@ -286,26 +328,41 @@ export function sweepSchedule(input: SweepInput): Schedule {
   // Held in an object: it is set inside the helpers below.
   const heat: { at: number | null } = { at: null };
   let lastLand = 0;
+  let lastWasMult = false;
   let mults = 0;
+  const totalMults = trace.filter((e) => e.op === 'xM' && (e.phase === 'staff' || e.phase === 'standby' || e.phase === 'desk')).length;
+  /** The pass whose first multiplier has already shaken the room. */
+  let shookPass = -1;
 
   /** A number travels to its box and lands with its sound; reports the landing time. */
-  const send = (t: number, from: Anchor, e: TraceEvent, rise: number, big: boolean, sound: boolean): number => {
+  const send = (t: number, from: Anchor, e: TraceEvent, rise: number, big: boolean, sound: boolean, pass = -1): number => {
     const box = boxOf(e);
     const mult = e.op === 'xM';
     const weight = mult ? multWeight(e.amount) : 1;
-    const land = t + pop + fly;
-    if (!reduced) add({ t, do: 'fly', from, box, text: flyText(e), pop, rise, ms: pop + fly, big, weight });
+    const held = reduced ? 0 : 'region' in from && e.phase === 'pin' ? PIN_POP_MS : pop;
+    const land = t + held + fly;
+    if (!reduced) add({ t, do: 'fly', from, box, text: flyText(e), pop: held, rise, ms: held + fly, big, weight });
     add({ t: land, do: 'land', box, value: valueOf(e), mult, weight });
     // The hit is heard and felt when the number arrives, never when it leaves.
     if (sound && mult) {
+      const nth = mults++;
       add({ t: land, do: 'sound', sfx: 'thump', intensity: 0.3 * weight });
-      add({ t: land, do: 'sound', sfx: 'tally_mult', intensity: multPitch(mults++) });
+      add({ t: land, do: 'sound', sfx: 'tally_mult', intensity: multPitch(nth, totalMults) });
       add({ t: land, do: 'buzz', ms: 12 });
-      if (!reduced) add({ t: land, do: 'shake', px: 4, ms: 120 });
+      // The room kicks for a desk multiplier and for the first of each pass, less as the sweep goes
+      // on (4 px down to 2), so a long sweep does not shake the whole way through.
+      if (!reduced && (pass < 0 || pass !== shookPass)) {
+        shookPass = pass;
+        const decay = totalMults > 1 ? nth / (totalMults - 1) : 0;
+        add({ t: land, do: 'shake', px: Math.round((4 - 2 * decay) * weight * 10) / 10, ms: 120 });
+      }
     } else if (sound) {
       add({ t: land, do: 'sound', sfx: 'tally_mult', intensity: 0.4 });
     }
-    lastLand = Math.max(lastLand, land);
+    if (land >= lastLand) {
+      lastLand = land;
+      lastWasMult = mult;
+    }
     checkHeat(e, land);
     return land;
   };
@@ -329,12 +386,13 @@ export function sweepSchedule(input: SweepInput): Schedule {
     checkHeat(base, STAMP_AT + 180);
   }
 
-  // From 450 ms: the sweep events. The ticks climb a pentatonic across the sweep's own passes;
-  // an AGAIN repeats the note before it an octave up.
+  // From 450 ms: the sweep events. The notes climb a pentatonic across the sweep's own passes; an
+  // AGAIN repeats its note with a ping a fifth above and a soft echo of the slam.
   const plain = parts.passes.filter((g) => !g.again).length;
   let t = EVENTS_AT;
   let plainK = 0;
-  let note = tickIntensity(0, plain);
+  let hz = noteHz(0, plain);
+  let climb = 0;
   parts.passes.forEach((g, k) => {
     const d = eventDuration(k);
     const p = g.pin;
@@ -346,13 +404,16 @@ export function sweepSchedule(input: SweepInput): Schedule {
 
     if (g.again) {
       add({ t, do: 'scan', region, again: true });
-      add({ t, do: 'sound', sfx: 'retrigger', intensity: 0.6 });
-      add({ t, do: 'sound', sfx: 'tally_tick', intensity: octaveUp(note) });
+      add({ t, do: 'sound', sfx: 'retrigger', intensity: 0.05 });
+      add({ t, do: 'sound', sfx: 'tally_tick', intensity: fifthUp(hz) });
+      for (const c of noteCues(t, hz, climb)) add(c);
       if (g.again.seat !== undefined) add({ t, do: 'hop', seat: g.again.seat });
     } else {
-      note = tickIntensity(plainK++, plain);
+      hz = noteHz(plainK, plain);
+      climb = plain > 1 ? plainK / (plain - 1) : 0;
+      for (const c of noteCues(t, hz, climb)) add(c);
+      plainK++;
       add({ t, do: 'scan', region, again: false });
-      add({ t, do: 'sound', sfx: 'tally_tick', intensity: note });
     }
     add({ t, do: 'flash', region });
     add({ t, do: 'buzz', ms: 8 });
@@ -362,7 +423,7 @@ export function sweepSchedule(input: SweepInput): Schedule {
       add({ t: at(THREAD_AT), do: 'thread', from: th.other!, to: region, amount: Number(th.amount) });
       if (th.amount !== '0') {
         // The pop shows on the thread; the box takes it just after the pin's own number lands.
-        const land = Math.max(at(THREAD_AT) + 100 + (reduced ? 0 : 40), t + pop + fly + 30);
+        const land = Math.max(at(THREAD_AT) + 100 + (reduced ? 0 : 40), t + (reduced ? 0 : PIN_POP_MS) + fly + 30);
         add({ t: land, do: 'land', box: 'inf', value: BigInt(th.I), mult: false, weight: 1 });
         lastLand = Math.max(lastLand, land);
         checkHeat(th, land);
@@ -381,16 +442,17 @@ export function sweepSchedule(input: SweepInput): Schedule {
     g.staff.forEach((st, j) => {
       const ts = at(STAFF_AT + STAFF_GAP * j);
       add({ t: ts, do: 'hop', seat: st.seat! });
-      send(ts, { seat: st.seat! }, st, 0, true, true);
+      send(ts, { seat: st.seat! }, st, 0, true, true, k);
     });
     t += d;
   });
 
   // Standby: 200 ms per firing region. Desk: 250 ms per firing staff.
+  if (parts.standby.length || parts.desk.length) add({ t, do: 'scanOff' });
   for (const e of parts.standby) {
     add({ t, do: 'standby', region: e.region! });
     add({ t, do: 'hop', seat: e.seat! });
-    send(t, { region: e.region! }, e, 0, true, true);
+    send(t, { region: e.region! }, e, 0, true, true, parts.passes.length);
     t += STANDBY_MS;
   }
   for (const e of parts.desk) {
@@ -399,12 +461,23 @@ export function sweepSchedule(input: SweepInput): Schedule {
     t += DESK_MS;
   }
 
-  // The held breath, then the slam.
+  // The held breath, then the slam. A multiplier landing last gets to swell before the breath.
   const r = shareOfNeed(leverage, target, totalBefore);
-  const hold = reduced ? 0 : HOLD_MS;
+  const hold = reduced ? 0 : lastWasMult ? HOLD_AFTER_MULT_MS : HOLD_MS;
   const slamAt = Math.max(t, lastLand + hold);
-  if (heat.at !== null) add({ t: heat.at, do: 'heat', on: true });
-  if (!reduced) add({ t: Math.max(lastLand + 40, slamAt - hold + 40), do: 'breath' });
+  if (heat.at !== null) {
+    // HEAT, the turn of the sweep: it ignites (a whoosh into a bright fifth) and the phone kicks.
+    add({ t: heat.at, do: 'heat', on: true });
+    add({ t: heat.at, do: 'sound', sfx: 'slide', intensity: 0.7 });
+    add({ t: heat.at + 90, do: 'sound', sfx: 'meter_up', intensity: 0.5 });
+    add({ t: heat.at, do: 'buzz', ms: 10 });
+  }
+  if (!reduced) add({ t: Math.max(lastLand + (lastWasMult ? 240 : 40), slamAt - hold + 40), do: 'breath' });
+  // The breath is still: no kicks in the last moments before the slam.
+  for (let i = cues.length - 1; i >= 0; i--) {
+    const c = cues[i];
+    if (c.do === 'shake' && c.t > slamAt - STILL_BEFORE_SLAM_MS) cues.splice(i, 1);
+  }
   add({ t: slamAt, do: 'slide' });
   const hit = slamAt + (reduced ? 0 : SLIDE_MS);
   add({ t: hit, do: 'collide' });
@@ -431,10 +504,13 @@ export function sweepSchedule(input: SweepInput): Schedule {
   const roll = rollMs(r);
   add({ t: rollAt, do: 'roll', ms: roll });
   const end = rollAt + roll;
+  // The total lands with a flash and a ping, and holds.
+  add({ t: end, do: 'landed' });
+  add({ t: end, do: 'sound', sfx: 'tick', intensity: 0.9 });
 
   // A stable sort keeps same-time cues in the order they were added.
   cues.sort((a, b) => a.t - b.t);
-  let sched: Schedule = { cues, end, slamAt, hitAt: hit, heatAt: heat.at, r, events: parts.passes.length };
+  let sched: Schedule = { cues, end, slamAt, hitAt: hit, heatAt: heat.at, r, events: parts.passes.length, riserAt: null };
   if (reduced && end > REDUCED_BUDGET) sched = scaleSchedule(sched, REDUCED_BUDGET / end);
   return input.clears ? withRiser(sched, input.rate ?? 1, reduced ? REDUCED_CLEARED_AT : CLEARED_AT) : sched;
 }
@@ -447,7 +523,7 @@ export function sweepSchedule(input: SweepInput): Schedule {
 export function withRiser(s: Schedule, rate: number, clearedAt: number): Schedule {
   const t = Math.max(s.hitAt, Math.round(s.end + clearedAt - RISER_MS * rate));
   const cues = [...s.cues, { t, do: 'riser' } as Cue].sort((a, b) => a.t - b.t);
-  return { ...s, cues };
+  return { ...s, cues, riserAt: t };
 }
 
 /** Scale every time (and every print / roll duration) by `k`. */
@@ -489,6 +565,11 @@ export interface OutcomeInput {
   reduced: boolean;
   /** The clear's riser already started during the roll (false after a skip: it starts here). */
   riserPlayed?: boolean;
+  /**
+   * When the clear's chord lands, ms into the outcome. CLEARED waits for it: at 4x, or after a
+   * skip, the riser cannot start early enough for the usual moment.
+   */
+  chordAt?: number;
 }
 
 export interface Outcome {
@@ -496,8 +577,11 @@ export interface Outcome {
   end: number;
 }
 
-/** CLEARED lands on the riser's chord, this far into the clear (reduced: at once). */
-export const CLEARED_AT = 150;
+/**
+ * CLEARED lands on the riser's chord, this far into the clear (reduced: at once). Before it the
+ * total that cleared holds on the board, readable, for a moment of its own.
+ */
+export const CLEARED_AT = 450;
 export const REDUCED_CLEARED_AT = 0;
 const COIN_GAP = 90;
 /** After the fifth coin the rest come quicker. */
@@ -523,29 +607,33 @@ export function outcomeSchedule(input: OutcomeInput): Outcome {
   }
   // CLEAR: the ring collapses and the shockwave rolls as the chord lands with CLEARED; the brass pin
   // gets its own beat; then the coins, then the tray.
-  const clearedAt = r ? REDUCED_CLEARED_AT : CLEARED_AT;
+  const clearedAt = r ? REDUCED_CLEARED_AT : Math.max(CLEARED_AT, Math.round(input.chordAt ?? 0));
   add({ t: 0, do: 'settle' });
   if (!input.riserPlayed) add({ t: 0, do: 'sound', sfx: 'ante_smash', intensity: 0.8 });
   add({ t: Math.max(0, clearedAt - (r ? 0 : 150)), do: 'collapse' });
   add({ t: Math.max(0, clearedAt - (r ? 0 : 150)), do: 'shockwave' });
   add({ t: clearedAt, do: 'cleared' });
   add({ t: clearedAt, do: 'buzz', pattern: [20, 40, 60] });
-  const dropAt = clearedAt + (r ? 40 : 300);
+  const dropAt = clearedAt + (r ? 40 : 250);
   add({ t: dropAt, do: 'drop' });
   // The pin lands 250 ms into its fall.
   const landAt = dropAt + (r ? 0 : 250);
   add({ t: landAt, do: 'sound', sfx: 'tally_slam', intensity: 0.3 });
   add({ t: landAt, do: 'buzz', pattern: [20] });
-  const coinsAt = r ? dropAt + 20 : landAt + 100;
+  const coinsAt = r ? dropAt + 20 : landAt + 60;
   const coins = Math.max(0, input.fundsAfter - input.fundsBefore);
   // Reduced motion: every coin still clicks, but all within a fifth of a second.
   const gapAt = (i: number) => (r ? i * Math.min(30, Math.floor(200 / Math.max(1, coins))) : Math.min(i, 4) * COIN_GAP + Math.max(0, i - 4) * COIN_GAP_FAST);
+  // Each coin rings a step up the scale, the last one brighter.
   for (let i = 0; i < coins; i++) {
-    add({ t: coinsAt + gapAt(i), do: 'coin', funds: input.fundsBefore + i + 1 });
-    add({ t: coinsAt + gapAt(i), do: 'sound', sfx: 'capital', intensity: 0.5 });
+    const at = coinsAt + gapAt(i);
+    const last = i === coins - 1;
+    add({ t: at, do: 'coin', funds: input.fundsBefore + i + 1 });
+    add({ t: at, do: 'sound', sfx: 'capital', intensity: last ? 0.9 : 0.5 });
+    add({ t: at, do: 'sound', sfx: 'tick', intensity: blipAt(noteHz(i, coins)) });
   }
   const coinsEnd = coinsAt + gapAt(Math.max(0, coins - 1));
-  const riseAt = coinsEnd + (r ? 20 : 300);
+  const riseAt = coinsEnd + (r ? 20 : 240);
   add({ t: riseAt, do: 'rise' });
   add({ t: riseAt, do: 'sound', sfx: 'offer', intensity: 0.5 });
   cues.sort((a, b) => a.t - b.t);

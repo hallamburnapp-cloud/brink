@@ -43,6 +43,8 @@ const TONES: Record<Tone, { hi: string; glow: string; deep: string; trail: strin
 const FONT = '"JetBrains Mono", ui-monospace, monospace';
 const W = 390;
 const H = 844;
+/** How close (pt) the middle of a flying number may come to the frame's side edges. */
+const EDGE = 26;
 /** The last part of the flight in which the number shrinks and fades into its box. */
 const ARRIVE = 0.28;
 
@@ -72,9 +74,11 @@ export function arcPoint(f: Flight, p: number): [number, number] {
   const mx = (sx + f.x1) / 2;
   const my = (sy + f.y1) / 2;
   const dist = Math.hypot(f.x1 - sx, f.y1 - sy);
-  // Bow towards the nearer screen edge, away from the scoring cluster.
+  // Bow towards the nearer screen edge, away from the scoring cluster, but never so far that the
+  // number's middle comes within EDGE pt of the frame (the phone's rounded corner).
   const side = sx < W / 2 ? -1 : 1;
-  const cx = mx + side * Math.min(70, dist * 0.22);
+  const limit = (edge: number) => (edge - 0.25 * (sx + f.x1)) / 0.5;
+  const cx = Math.max(limit(EDGE), Math.min(limit(W - EDGE), mx + side * Math.min(70, dist * 0.22)));
   const cy = my - Math.min(60, dist * 0.12);
   const u = 1 - p;
   return [u * u * sx + 2 * u * p * cx + p * p * f.x1, u * u * sy + 2 * u * p * cy + p * p * f.y1];

@@ -209,14 +209,22 @@ export function HowTo({ onClose }: { onClose: () => void }): JSX.Element {
       </div>
       <ol class="steps">
         <li>
-          <b>Pin lit regions.</b> Each crisis lights 8. Tap up to 5. Neighbours join: by border, bridge or sea lane.
+          <b>Pin lit regions.</b> Each crisis lights 8: tap up to 5. A region's number adds to{' '}
+          <span class="c-inf">Influence</span>. The red ring scores twice.
         </li>
         <li>
-          <b>Make a shape.</b> The shape is the pattern. Bigger shapes multiply.
+          <b>Make a shape.</b> Neighbours join by border, bridge or sea lane. The shape is the pattern. Bigger shapes multiply.
         </li>
         <li>
           <b>Sweep.</b> <span class="c-inf">Influence</span> × <span class="c-mom">Momentum</span> adds to your total. Reach the
-          target in 4 sweeps, or the world tips and the night ends. Staff fire seat 1 to 5: hold one and drag to reorder.
+          target in 4 sweeps, or the world tips. Green lamp: this sweep clears it. SWAP spends pinned regions and lights new ones.
+        </li>
+        <li>
+          <b>Staff and threads.</b> Staff fire seat 1 to 5: put × staff after + staff (hold one and drag). Each sweep wears a
+          thread between joined pins; join along it again and it adds its traffic.
+        </li>
+        <li>
+          <b>The Briefing.</b> A clear pays Funds: hire staff, file Orders (stamps for the map) and Playbooks (pattern levels).
         </li>
       </ol>
       <div class="mini-ladder">

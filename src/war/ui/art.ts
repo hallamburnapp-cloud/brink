@@ -4,7 +4,7 @@
  * a one-line change.
  */
 export { createMap } from './map';
-export type { MapControllerPlus, MapViewPlus } from './map';
+export type { MapControllerPlus, MapViewPlus, PinChipView } from './map';
 export type { MapView, RegionId, Colour } from './map/contract';
 export { StaffIcon, OrderIcon, PaperIcon, Coin, Glyph, BlocGlyph } from './icons';
 export type { GlyphName } from './icons';

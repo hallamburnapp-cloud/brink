@@ -12,7 +12,7 @@ import { ControlHint, Controls } from '../controls/Controls';
 import { revealOutcome } from '../fx/anim';
 import { StaffRail } from '../rail/StaffRail';
 import { Readout } from '../readout/Readout';
-import { Balloons, Toast } from '../sheets/Balloons';
+import { Balloons, PeekNote, Toast } from '../sheets/Balloons';
 import { Coach } from '../sheets/Coach';
 import { Table } from '../table/Table';
 import { EndCard } from './EndCard';
@@ -36,6 +36,7 @@ export function Game(): JSX.Element | null {
       {s.phase === 'briefing' && reveal && <Briefing s={s} />}
       {over && reveal && <EndCard s={s} />}
       <Balloons s={s} />
+      <PeekNote />
       <ControlHint />
       <Toast />
     </>

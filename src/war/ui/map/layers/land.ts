@@ -11,7 +11,7 @@ import { ALARM, BLOC, css, INK, LINEN, mix, plateCore, plateFill, SEA, type Fill
 import { getPaths } from '../paths';
 import { threadWidth, type RegionVis, type Scene } from '../scene';
 import { makeLayer, type Layer } from './static';
-import { drawCable, drawThread, joinCurve, pointOn, strokeCurve } from './threads';
+import { drawCable, drawWornThread, joinCurve, pointOn, strokeCurve } from './threads';
 
 export interface PlateStyle {
   colour: Colour;
@@ -345,13 +345,10 @@ export function paintLand(g: Gfx, s: Scene, statics: LandStatics): void {
     drawCable(g, joinCurve(a, b, 'cable'), (0.5 + 0.5 * dim) * (s.gridlock ? 0.55 : 1));
   }
 
+  // Earlier sweeps' threads are worn ink; only joins between the pins down now are live red.
   for (const t of s.oldThreads) {
     const dim = Math.min(s.regions[t.a].dim, s.regions[t.b].dim);
-    drawThread(g, joinCurve(t.a, t.b, t.kind), {
-      width: threadWidth(t.traffic),
-      alpha: 0.72 * (0.4 + 0.6 * dim),
-      traffic: t.traffic,
-    });
+    drawWornThread(g, joinCurve(t.a, t.b, t.kind), t.traffic, threadWidth(t.traffic), 0.4 + 0.6 * dim);
   }
 
   if (s.gridlock) {

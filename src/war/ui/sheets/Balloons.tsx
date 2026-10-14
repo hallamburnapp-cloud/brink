@@ -3,10 +3,12 @@
  * balloon in the Briefing (USE / SELL), the Summit chip's rule, and the one-line refusals.
  */
 import type { JSX } from 'preact';
-import { boardLabels, seatViews, trayViews, twistInForce, type RunState } from '../../engine';
+import { boardLabels, boardOf, regionViews, seatViews, trayViews, twistInForce, type RegionId, type RunState } from '../../engine';
+import { COLOURS, REGION } from '../../content/map';
 import { STAFF_DEF, type StaffId, type StaffTiming } from '../../content/staff';
+import { BlocGlyph } from '../art';
 import { armSlot, sellSeat, sellTray } from '../app/actions';
-import { balloon, toast } from '../app/store';
+import { balloon, pressNote, toast } from '../app/store';
 import { clampBalloonX, R, SEAT_X, SEAT_W } from '../common/layout';
 import { Funds, RuleText } from '../common/text';
 
@@ -15,6 +17,7 @@ export function Balloons({ s }: { s: RunState }): JSX.Element | null {
   if (!b) return null;
   if (b.kind === 'seat') return <SeatBalloon s={s} seat={b.index} />;
   if (b.kind === 'paper') return <PaperBalloon s={s} slot={b.index} />;
+  if (b.kind === 'region' && b.region) return <RegionBalloon s={s} id={b.region} />;
   return <SummitBalloon s={s} />;
 }
 
@@ -101,6 +104,68 @@ function PaperBalloon({ s, slot }: { s: RunState; slot: number }): JSX.Element |
   );
 }
 
+const STAMP_LINE = {
+  FORTIFY: 'FORTIFY: +20 Influence each time it scores.',
+  RELAY: 'RELAY: x1.5 Momentum each time it scores.',
+  ECHO: 'ECHO: it scores twice.',
+} as const;
+
+const STATUS_LINE = {
+  lit: 'Lit: pin it this sweep.',
+  dark: 'In the pile: it may light later.',
+  spent: 'Spent for this crisis.',
+  retired: 'Retired for the night.',
+} as const;
+
+/**
+ * A long-press on a region: its card. Its number, what it is (Capital, Port), its stamp and brass,
+ * and the worn threads it carries (what joining along them adds).
+ */
+function RegionBalloon({ s, id }: { s: RunState; id: RegionId }): JSX.Element {
+  const v = regionViews(s)[id];
+  const def = REGION[id];
+  const board = boardOf(s);
+  const worn = [...(board.adj.get(id) ?? [])]
+    .map((q) => ({ name: REGION[q].name, t: board.traffic(id, q) }))
+    .filter((x) => x.t > 0);
+  const lane = def.lane && v.port ? ` to ${REGION[def.lane].name}` : '';
+  // RuleText sets the star and the anchor beside the words, as on the map.
+  const kinds = [v.capital ? 'Capital' : null, v.port ? `Port${lane}` : null].filter(Boolean).join(' · ');
+  const w = 214;
+  const y = 171 + def.y;
+  const left = clampBalloonX(def.x, w);
+  const below = def.y < 260;
+  const place = below ? { top: `${y + 18}px` } : { bottom: `${844 - y + 18}px` };
+  return (
+    <div class={`balloon ${below ? 'down' : 'up'} abs region-card`} style={{ left: `${left}px`, width: `${w}px`, ...place }} onPointerDown={stop}>
+      <i class="nib" style={{ left: `${def.x - left - 6}px` }} />
+      <div class="b-head">
+        <span class="b-name">{def.name}</span>
+        <span class="b-meta">
+          <BlocGlyph colour={v.colour} size={8} /> {COLOURS[v.colour].name.toUpperCase()}
+        </span>
+      </div>
+      <div class="b-rule">
+        <RuleText rule={`Number ${def.weight}: +${def.weight + 5 * v.brass} Influence each time it scores.`} />
+        {kinds && (
+          <span class="b-note">
+            {' '}
+            <RuleText rule={`${kinds}.`} />
+          </span>
+        )}
+      </div>
+      {(v.stamp || v.brass > 0) && (
+        <div class="b-rule">
+          {v.stamp && <RuleText rule={STAMP_LINE[v.stamp]} />}
+          {v.brass > 0 && ` ${v.brass} brass pin${v.brass > 1 ? 's' : ''} (+${5 * v.brass}).`}
+        </div>
+      )}
+      {worn.length > 0 && <div class="b-drag">Worn threads: {worn.map((x) => `${x.name} +${x.t}`).join(', ')}.</div>}
+      <div class="b-drag">{STATUS_LINE[v.status]}</div>
+    </div>
+  );
+}
+
 function SummitBalloon({ s }: { s: RunState }): JSX.Element {
   const b = boardLabels(s);
   return (
@@ -111,6 +176,24 @@ function SummitBalloon({ s }: { s: RunState }): JSX.Element {
         <span class="b-meta">{b.twistNow ? 'IN FORCE' : 'AT THE SUMMIT'}</span>
       </div>
       <div class="b-rule">{b.twistRule}</div>
+    </div>
+  );
+}
+
+/**
+ * A held Briefing card with no place on the map: when it fires and what it does, on the readout
+ * row, its nib at the box it feeds (which pulses).
+ */
+export function PeekNote(): JSX.Element | null {
+  const n = pressNote.value;
+  if (!n) return null;
+  return (
+    <div class={`peek-note abs${n.box ? ` to-${n.box}` : ''}`} role="status">
+      {n.box && <i class="nib" />}
+      <span class="pn-head">{n.head}</span>
+      <span class="pn-text">
+        <RuleText rule={n.text} />
+      </span>
     </div>
   );
 }
