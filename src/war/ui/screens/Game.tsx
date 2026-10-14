@@ -13,6 +13,7 @@ import { revealOutcome } from '../fx/anim';
 import { StaffRail } from '../rail/StaffRail';
 import { Readout } from '../readout/Readout';
 import { Balloons, Toast } from '../sheets/Balloons';
+import { Coach } from '../sheets/Coach';
 import { Table } from '../table/Table';
 import { EndCard } from './EndCard';
 import { Glyph } from '../art';
@@ -26,6 +27,7 @@ export function Game(): JSX.Element | null {
     <>
       <Table />
       <i class="rail-shadow" />
+      <Coach at="map" />
       <i class="trim abs" style={{ top: '689px' }} />
       <BigBoard s={s} />
       <StaffRail s={s} />

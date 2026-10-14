@@ -9,7 +9,7 @@ import { boardLabels, preview, trayViews, type PaperView, type RunState } from '
 import { ORDER } from '../../content/orders';
 import { OrderIcon } from '../art';
 import { above, applyOrder, armSlot, sweepNow, swapNow, tapRegion } from '../app/actions';
-import { boardHint, controlHint } from '../app/hints';
+import { controlHint, type HintSpot } from '../app/hints';
 import { balloon, busy, frameScale, run, showToast } from '../app/store';
 import { R, type Rect } from '../common/layout';
 import { leverDown } from '../fx/anim';
@@ -19,45 +19,71 @@ export function Controls({ s }: { s: RunState }): JSX.Element {
   const p = preview(s);
   const b = boardLabels(s);
   const pressed = leverDown.value;
-  const sweepHinted = boardHint.value?.text === 'Sweep.';
+  const hint = controlHint.value?.at;
   // Between crises the console rests under the Briefing: nothing is greyed out.
   const live = s.phase === 'crisis';
   const canSwap = p.canSwap || !live;
   const canSweep = p.canSweep || !live;
+  const lampOn = p.clears && live;
+  const swapping = live && p.canSwap ? s.crisis.pins.filter((r) => r !== s.crisis.airlift).length : 0;
   return (
     <div class="layer controls-layer">
       <div class="controls" />
       <button
         class={`btn-outline swap abs${canSwap ? '' : ' off'}`}
         onClick={() => (p.canSwap ? swapNow() : showToast(p.swapReason ?? 'No swaps left.', above(R.swap)))}
+        aria-label={swapping ? `Swap ${swapping}, ${b.swapsLeft} left` : `Swap, ${b.swapsLeft} left`}
       >
-        <span class="btn-title">SWAP</span>
+        <span class="btn-title">{swapping ? `SWAP ${swapping}` : 'SWAP'}</span>
         <span class="btn-sub">{b.swapsLeft} left</span>
       </button>
 
       <TraySlots s={s} />
 
       <button
-        class={`brass sweep abs${canSweep ? '' : ' disabled'}${pressed ? ' pressed' : ''}${sweepHinted && p.canSweep ? ' beckon' : ''}`}
+        class={`brass sweep abs${canSweep ? '' : ' disabled'}${pressed ? ' pressed' : ''}${hint === 'sweep' && p.canSweep ? ' beckon' : ''}`}
         onClick={() => (p.canSweep ? void sweepNow() : showToast(p.sweepReason ?? 'Pin at least one lit region.', above(R.sweep)))}
         aria-label={`Sweep, ${b.sweepsLeft} left${p.clears ? '. This sweep clears the crisis.' : ''}`}
       >
         <span class="btn-title">SWEEP</span>
         <span class="btn-sub">{b.sweepsLeft} left</span>
       </button>
-      <div class={`lamp abs${p.clears && live ? ' on' : ''}`} aria-hidden="true" />
-      <div class="lamp-label abs">CLEARS</div>
+      <div class={`lamp abs${lampOn ? ' on' : ''}${lampOn && hint === 'lamp' ? ' beckon' : ''}`} aria-hidden="true" />
+      <div class={`lamp-label abs${lampOn ? ' on' : ''}${canSweep ? '' : ' off'}`} aria-hidden="true">
+        CLEARS
+      </div>
     </div>
   );
 }
 
-/** A one-time hint over SWAP or the in-tray; drawn above the Briefing tray too. */
+/**
+ * Where each control balloon sits. Over SWAP and the in-tray it hangs above the control; for SWEEP
+ * and its lamp it sits beside the lever, over the console, so it never hides the readout's boxes.
+ */
+const HINT_AT: Record<HintSpot, { r: Rect; side: 'above' | 'beside' }> = {
+  swap: { r: R.swap, side: 'above' },
+  tray: { r: R.tray0, side: 'above' },
+  sweep: { r: R.sweep, side: 'beside' },
+  lamp: { r: R.sweep, side: 'beside' },
+};
+
+/** A one-time hint on a control; drawn above the Briefing tray too. Its nib points at the control. */
 export function ControlHint(): JSX.Element | null {
   const hint = controlHint.value;
   if (!hint) return null;
-  const r: Rect = hint.at === 'swap' ? R.swap : R.tray0;
+  const { r, side } = HINT_AT[hint.at];
+  if (side === 'beside') {
+    const style = { right: `${390 - r[0] + 10}px`, top: `${r[1] + r[3] / 2}px` };
+    return (
+      <div key={hint.n} class="control-hint abs beside" style={style} role="status">
+        <span>{hint.text}</span>
+      </div>
+    );
+  }
+  const left = Math.max(10, r[0] - 4);
+  const style = { left: `${left}px`, bottom: `${844 - r[1] + 10}px`, '--nib': `${r[0] + r[2] / 2 - left - 5}px` };
   return (
-    <div key={hint.n} class="control-hint abs" style={{ left: `${Math.max(10, r[0] - 4)}px`, bottom: `${844 - r[1] + 10}px` }} role="status">
+    <div key={hint.n} class="control-hint abs" style={style} role="status">
       {hint.text}
     </div>
   );

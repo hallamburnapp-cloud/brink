@@ -4,7 +4,6 @@
  * animation has finished.
  */
 import { hashState, hashTrace, type RunState } from '../../engine';
-import { R } from '../common/layout';
 import { skip } from '../director/play';
 import * as act from './actions';
 import { busy, run, screen, setPrefs, sheet, type Sheet } from './store';
@@ -61,7 +60,7 @@ export function installDevHook(): void {
       return run.value;
     },
     buy(slot) {
-      act.buyOffer(slot, slot === 0 ? R.offer0 : R.offer1);
+      act.buyOffer(slot);
       return run.value;
     },
     next() {
@@ -81,7 +80,7 @@ export function installDevHook(): void {
       return run.value;
     },
     pick(i) {
-      act.pickCard(i, R.offer0);
+      act.pickCard(i);
       return run.value;
     },
     keepGoing() {

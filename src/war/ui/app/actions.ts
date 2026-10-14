@@ -11,8 +11,9 @@ import { droneFor, isPlaying, playSweep, skip } from '../director/play';
 import { resetAnim } from '../fx/anim';
 import { buzz } from '../fx/shake';
 import { getMap } from '../table/mapRef';
+import { dropCurtain, raiseCurtain } from './curtain';
 import { hintsAfter, hintsStart, hintsStop } from './hints';
-import { balloon, busy, cableDrag, highlight, prefs, run, screen, setPrefs, sheet, showToast, shown } from './store';
+import { balloon, busy, cableDrag, pressHighlight, prefs, run, screen, setPrefs, sheet, showToast, shown } from './store';
 
 /** Where a refusal toast should sit: above the control that was tapped. */
 export function above(r: Rect): { x: number; bottom: number } {
@@ -49,11 +50,13 @@ function randomSeed(): string {
 }
 
 function begin(s: RunState): void {
+  // From the title, the title stays up until the war room's table has drawn.
+  if (screen.value === 'title') raiseCurtain();
   skip();
   resetAnim();
   getMap()?.fx.reset();
   balloon.value = null;
-  highlight.value = null;
+  pressHighlight.value = null;
   sheet.value = null;
   run.value = s;
   shown.value = s;
@@ -81,13 +84,17 @@ export function loadState(s: RunState): void {
 }
 
 export function quitToTitle(): void {
+  const s = run.value;
+  // A first night left after its first sweep has done its teaching: the next night is a fresh map.
+  if (s?.firstNight && s.sweepsTaken > 0 && !prefs.value.playedFirstNight) setPrefs({ playedFirstNight: true });
   skip();
+  dropCurtain();
   hintsStop();
   resetAnim();
   audio.drone(false);
   balloon.value = null;
   sheet.value = null;
-  highlight.value = null;
+  pressHighlight.value = null;
   screen.value = 'title';
   run.value = null;
   shown.value = null;
@@ -111,7 +118,11 @@ export function tapRegion(id: RegionId): void {
   const r = E.togglePin(s, id);
   if (commit(r, above(R.readout))) {
     buzz(pinned ? 4 : 8);
-    audio.play('tally_tick', { intensity: pinned ? 0.05 : 0.15 + 0.08 * r.state.crisis.pins.length });
+    // A brass pin into glass, a step brighter per pin; the tally tick is kept for the scoring.
+    audio.play('pin', { intensity: pinned ? 0.1 : Math.min(1, 0.2 * r.state.crisis.pins.length) });
+    // A blacked-out region still makes the shape but adds nothing: say so as it goes down.
+    const t = E.twistInForce(s);
+    if (!pinned && t?.kind === 'BLACKOUT' && s.world.colour[id] === t.colour) showToast('BLACKOUT: this region adds nothing.', above(R.readout));
   }
 }
 
@@ -190,46 +201,57 @@ export function applyOrder(slot: number, targets: RegionId[]): boolean {
 
 // ---------------------------------------------------------------- the Briefing
 
-export function buyOffer(slot: number, at: Rect): void {
+/**
+ * Where a Briefing refusal is said: one reserved spot on the map just above the tray, never over
+ * the cards (the card tapped shakes its own price tag).
+ */
+export const BRIEFING_TOAST = above(R.tray);
+
+/** Each returns false on a refusal, so the thing tapped can show it. */
+export function buyOffer(slot: number): boolean {
   const s = current();
-  if (!s) return;
-  if (commit(E.buyOffer(s, slot), above(at))) {
-    audio.play('capital', { intensity: 0.6 });
-    buzz(12);
-  }
+  if (!s) return false;
+  if (!commit(E.buyOffer(s, slot), BRIEFING_TOAST)) return false;
+  audio.play('capital', { intensity: 0.6 });
+  buzz(12);
+  return true;
 }
 
-export function openFolder(): void {
+export function openFolder(): boolean {
   const s = current();
-  if (!s) return;
-  if (commit(E.buyFolder(s), above(R.folder))) audio.play('offer', { intensity: 0.6 });
+  if (!s) return false;
+  if (!commit(E.buyFolder(s), BRIEFING_TOAST)) return false;
+  audio.play('offer', { intensity: 0.6 });
+  return true;
 }
 
-export function pickCard(i: number, at: Rect): void {
+export function pickCard(i: number): boolean {
   const s = current();
-  if (!s) return;
-  if (commit(E.pickFromFolder(s, i), above(at))) {
-    audio.play('capital', { intensity: 0.6 });
-    buzz(12);
-  }
+  if (!s) return false;
+  if (!commit(E.pickFromFolder(s, i), BRIEFING_TOAST)) return false;
+  audio.play('capital', { intensity: 0.6 });
+  buzz(12);
+  return true;
 }
 
 export function skipFolder(): void {
   const s = current();
   if (!s) return;
-  commit(E.skipFolder(s), above(R.folder));
+  commit(E.skipFolder(s), BRIEFING_TOAST);
 }
 
-export function rerollOffers(): void {
+export function rerollOffers(): boolean {
   const s = current();
-  if (!s) return;
-  if (commit(E.reroll(s), above(R.reroll))) audio.play('offer', { intensity: 0.5 });
+  if (!s) return false;
+  if (!commit(E.reroll(s), BRIEFING_TOAST)) return false;
+  audio.play('offer', { intensity: 0.5 });
+  return true;
 }
 
 export function nextCrisis(): void {
   const s = current();
   if (!s) return;
-  if (commit(E.nextCrisis(s), above(R.next))) {
+  if (commit(E.nextCrisis(s), BRIEFING_TOAST)) {
     resetAnim();
     getMap()?.fx.reset();
     audio.play('tally_slam', { intensity: 0.2 });
@@ -246,7 +268,7 @@ export function keepGoing(): void {
 export function sellSeat(seat: number): void {
   const s = current();
   if (!s) return;
-  if (commit(E.sellStaff(s, seat), above(R.rail))) {
+  if (commit(E.sellStaff(s, seat), BRIEFING_TOAST)) {
     balloon.value = null;
     audio.play('capital', { intensity: 0.4 });
   }

@@ -17,10 +17,20 @@ export interface MapViewExtras {
   /** SURROUND's ringed region (Preview.ringed): ringed in light. */
   ringed?: RegionId | null;
   /**
+   * Lit regions a further pin would join to the pins already down: their heads carry a breathing
+   * ring, so the player sees what joins (DESIGN 0:06, 'start to breathe').
+   */
+  joinable?: RegionId[] | null;
+  /**
    * LAY CABLE drag in progress: a provisional brass cable from a region's pin to the finger, in
    * map points. Leave null when not dragging.
    */
   cableDrag?: { from: RegionId; x: number; y: number } | null;
+  /**
+   * The crisis is won but the clear has not played yet: the flashpoint ring stays red (its arc
+   * spent) instead of cooling, until collapseRing() closes it.
+   */
+  ringHold?: boolean;
 }
 
 export type MapViewPlus = MapView & MapViewExtras;
@@ -32,4 +42,16 @@ export interface MapControllerPlus extends MapController {
    * triple traffic). Without an amount the pop shows the thread's traffic from the view.
    */
   pulseThreadAmount(from: RegionId, to: RegionId, amount: number | null, ms?: number): void;
+  /**
+   * Light these regions one by one, `gapMs` apart (a deal or a refill), starting `delayMs` from now.
+   * Call it before the update() that shows them lit: each stays dark until its turn, then warms up
+   * over 150 ms. Calling it again for a region re-times its turn.
+   */
+  lightUp(ids: RegionId[], gapMs: number, delayMs?: number): void;
+  /** The clear: the flashpoint ring closes in to the cooled ring and turns blue over `ms` (300). */
+  collapseRing(ms?: number): void;
+  /** A slam of 10x the target: light blooms out from a region across the table (600 ms). */
+  bloom(from: RegionId, hex: string, ms?: number): void;
+  /** Resolves once fonts are ready and the first full frame is drawn. */
+  ready(): Promise<void>;
 }

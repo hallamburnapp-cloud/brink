@@ -50,6 +50,13 @@ export interface AudioApi {
   isMuted(): boolean;
   /** Master volume 0..1 (default 0.8). */
   setVolume(v: number): void;
+  /**
+   * The app went to the background (another app, another tab): suspend the context so nothing keeps
+   * sounding, and drop one-shots until resume(). The drone keeps its wanted state.
+   */
+  suspend(): void;
+  /** Back in the foreground: resume the context (once unlocked). */
+  resume(): void;
 }
 
 const DEFAULT_VOLUME = 0.8;
@@ -71,6 +78,8 @@ class BrinkAudio implements AudioApi {
   private unsupported = false;
   /** null until first read, so a late-installed localStorage stub is still honoured. */
   private muted: boolean | null = null;
+  /** In the background: the context is suspended and one-shots are dropped. */
+  private hidden = false;
   private volume = DEFAULT_VOLUME;
   private readonly beat = new Heartbeat(
     () => this.engine,
@@ -93,9 +102,25 @@ class BrinkAudio implements AudioApi {
         this.hum.resume();
       }
       const { ctx } = this.engine;
-      if (ctx.state !== 'running' && typeof ctx.resume === 'function') {
+      if (!this.hidden && ctx.state !== 'running' && typeof ctx.resume === 'function') {
         ctx.resume().catch(noop);
       }
+    });
+  }
+
+  suspend(): void {
+    safe(() => {
+      this.hidden = true;
+      const ctx = this.engine?.ctx;
+      if (ctx && ctx.state === 'running' && typeof ctx.suspend === 'function') ctx.suspend().catch(noop);
+    });
+  }
+
+  resume(): void {
+    safe(() => {
+      this.hidden = false;
+      const ctx = this.engine?.ctx;
+      if (ctx && ctx.state !== 'running' && typeof ctx.resume === 'function') ctx.resume().catch(noop);
     });
   }
 
@@ -166,7 +191,7 @@ class BrinkAudio implements AudioApi {
    */
   private oneShot(build: (v: Voice) => void): void {
     const eng = this.engine;
-    if (!eng || this.isMuted()) return;
+    if (!eng || this.hidden || this.isMuted()) return;
     const { ctx } = eng;
     if (ctx.state === 'suspended' && typeof ctx.resume === 'function') {
       ctx.resume().catch(noop);

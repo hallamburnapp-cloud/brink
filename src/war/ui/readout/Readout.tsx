@@ -1,18 +1,28 @@
 /**
  * The readout (spec 10: 0,691,390,48): the pattern your pins make, its level, and INFLUENCE x
  * MOMENTUM. It answers every tap at once ('CHAIN 30 x 3' becomes 'FRONT 45 x 4' as a pin goes
- * down), and during a sweep the boxes count up and slam together. Tap it for Run Info.
- * While an Order is armed it becomes the Order's prompt with DONE and CANCEL.
+ * down). During a sweep the boxes lock on the base, count up as numbers land (a multiplier lands
+ * heavier than an add), hold their breath, and slam together into the sweep's sum, '68 x 4 = 272',
+ * which stays on the readout until the next pin; tap that sum for the LAST SWEEP receipt. Tap the
+ * rest of the readout for Run Info. While an Order is armed it becomes the Order's prompt with DONE
+ * and CANCEL. A slam of 10x the target is also stamped big over the map.
  */
 import type { JSX } from 'preact';
-import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
-import { armedView, formatM10Short, formatShort, preview, twistInForce, type RunState } from '../../engine';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { armedView, formatM10Short, formatShort, preview, twistInForce, type RunState, type SweepRecord } from '../../engine';
 import { cancelOrder, confirmOrder } from '../app/actions';
 import { reduced, run, sheet, speed } from '../app/store';
 import { FlapRow, type FlapMotion, type FlapStyle } from '../board/SplitFlap';
 import * as A from '../fx/anim';
+import { receiptOf } from './receipt';
 
 const BOX: FlapStyle = { w: 13.4, h: 24, size: 22, gap: 0, sep: 6.5, skin: 'bare' };
+
+/** The latest sweep, if it belongs to the crisis on the table (it stays on show until the next pin). */
+function lastOfCrisis(s: RunState): SweepRecord | null {
+  const l = s.lastSweep;
+  return l && s.phase === 'crisis' && l.hour === s.crisis.hour && l.crisisIndex === s.crisis.index ? l : null;
+}
 
 export function Readout({ s }: { s: RunState }): JSX.Element {
   const armed = armedView(s);
@@ -27,6 +37,12 @@ export function Readout({ s }: { s: RunState }): JSX.Element {
   const M10 = sweepBoxes?.M10 ?? (p.pattern ? p.m10 : null);
   const slam = A.slam.value;
   const fullTable = twistInForce(s)?.kind === 'FULL_TABLE';
+  // The slam's sum: from the sweep playing now, or (once it has settled) the crisis's last sweep
+  // until a pin goes down.
+  const settled = !sweepBoxes && p.pins.length === 0 ? lastOfCrisis(s) : null;
+  // During playback the shown run is the pre-sweep one; the sweep's record is on the run itself.
+  const playing = slam === 'hit' && sweepBoxes ? run.value?.lastSweep : null;
+  const sum = playing ?? settled;
 
   return (
     <div class={`layer readout-layer${slam !== 'idle' ? ` slam-${slam}` : ''}`}>
@@ -36,7 +52,9 @@ export function Readout({ s }: { s: RunState }): JSX.Element {
       <Box kind="inf" label="INFLUENCE" text={I === null ? null : formatShort(I, 6)} sweeping={!!sweepBoxes} />
       <span class="times abs">×</span>
       <Box kind="mom" label="MOMENTUM" text={M10 === null ? null : formatM10Short(M10, 5)} sweeping={!!sweepBoxes} />
-      {slam === 'hit' && sweepBoxes && <Product />}
+      {sum && <Sum I={sum.influence} M10={sum.m10} leverage={sum.leverage} still={!playing} />}
+      {settled && <LastSweep key={`${settled.hour}:${settled.crisisIndex}:${settled.n}`} rec={settled} />}
+      <Showcase />
     </div>
   );
 }
@@ -69,15 +87,16 @@ function PatternName({ name, level, stampN, pins }: { name: string | null; level
     if (w > 132) n.style.fontSize = `${Math.max(15, (20 * 132) / w).toFixed(1)}px`;
   }, [name]);
 
+  // Keyed apart, so the empty line never inherits the name's fitted size.
   if (!name) {
     return (
-      <div class="pattern abs empty">
+      <div key="empty" class="pattern abs empty">
         <span class="tap-lit">Tap lit regions</span>
       </div>
     );
   }
   return (
-    <div class="pattern abs" ref={box}>
+    <div key="name" class="pattern abs" ref={box}>
       <span ref={el} class="pattern-name">
         {name}
       </span>
@@ -91,6 +110,11 @@ function Box({ kind, label, text, sweeping }: { kind: 'inf' | 'mom'; label: stri
   const bump = A.bumps.value;
   const n = kind === 'inf' ? bump.inf : bump.mom;
   const mult = kind === 'mom' ? bump.mult : 0;
+  const pulse = (keyframes: Keyframe[], ms: number, easing = 'cubic-bezier(.22,1,.36,1)') => {
+    if (!el.current || reduced.value || typeof el.current.animate !== 'function') return;
+    el.current.animate(keyframes, { duration: ms / speed.value, easing });
+  };
+  // An add lands with a bump and a bright rim.
   useEffect(() => {
     if (!n || !el.current || reduced.value) return;
     el.current.classList.remove('bump');
@@ -99,39 +123,94 @@ function Box({ kind, label, text, sweeping }: { kind: 'inf' | 'mom'; label: stri
     const t = window.setTimeout(() => el.current?.classList.remove('bump'), 120 / speed.value);
     return () => clearTimeout(t);
   }, [n]);
+  // A multiplier lands heavier: the box swells and wobbles, more for a bigger factor.
   useEffect(() => {
-    if (!mult || !el.current || reduced.value) return;
-    el.current.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.1)' }, { transform: 'scale(1)' }], {
-      duration: 160 / speed.value,
-      easing: 'cubic-bezier(.22,1,.36,1)',
-    });
+    if (!mult) return;
+    const w = A.multWeight.value;
+    pulse(
+      [
+        { transform: 'scale(1) rotate(0deg)' },
+        { transform: `scale(${(1 + 0.25 * w).toFixed(3)}) rotate(-4deg)`, offset: 0.35 },
+        { transform: `scale(${(1 + 0.12 * w).toFixed(3)}) rotate(3deg)`, offset: 0.65 },
+        { transform: 'scale(1) rotate(0deg)' },
+      ],
+      220,
+    );
   }, [mult]);
-  const flip = A.baseFlip.value;
+  // The stamp locks the base in place: a press, not a scramble.
+  useEffect(() => {
+    if (bump.base) pulse([{ transform: 'scale(1)' }, { transform: 'scale(1.06)' }, { transform: 'scale(1)' }], 180);
+  }, [bump.base]);
+  // The held breath before the slam: both boxes swell once together.
+  const breath = A.breath.value;
+  useEffect(() => {
+    if (breath) pulse([{ transform: 'scale(1)' }, { transform: 'scale(1.06)', offset: 0.6 }, { transform: 'scale(1)' }], 280, 'cubic-bezier(.65,0,.35,1)');
+  }, [breath]);
+  // While a sweep plays, numbers swap in place as they land (the landing pulse carries them).
   const motion: FlapMotion = { flips: 1, flipMs: 80, stagger: 12, instant: sweeping, reduced: reduced.value };
-  const baseMotion: FlapMotion = { flips: 3, flipMs: 60 / speed.value, stagger: 0, instant: false, reduced: reduced.value };
   return (
     <div ref={el} class={`box ${kind} abs${text === null ? ' idle' : ''}`}>
       <span class="lbl">{label}</span>
-      <span class="val num">
-        {text === null ? (
-          <span class="dash">–</span>
-        ) : (
-          <FlapRow key={sweeping ? `f${flip}` : 'live'} text={text} style={BOX} motion={motion} from={sweeping ? '' : undefined} fromMotion={baseMotion} class="center" />
-        )}
+      <span class="val num">{text === null ? <span class="dash">–</span> : <FlapRow text={text} style={BOX} motion={motion} class="center" />}</span>
+    </div>
+  );
+}
+
+/**
+ * The slam's sum, in one plate across both boxes: the two factors in their colours over the result,
+ * '68 x 4 = 272'. It pops in on contact; once the sweep has settled it stays, still.
+ */
+function Sum({ I, M10, leverage, still }: { I: bigint; M10: bigint; leverage: bigint; still: boolean }): JSX.Element {
+  const lev = formatShort(leverage, 9);
+  return (
+    <div class={`product abs${still || reduced.value ? ' still' : ''}`} aria-live="polite" aria-label={`This sweep: ${formatShort(I, 9)} times ${formatM10Short(M10, 7)} equals ${lev}`}>
+      <span class="eqn num">
+        <span class="f-inf">{formatShort(I, 7)}</span>
+        <span class="by">×</span>
+        <span class="f-mom">{formatM10Short(M10, 6)}</span>
+      </span>
+      <span class="res num">
+        <span class="eq">=</span>
+        {lev}
       </span>
     </div>
   );
 }
 
-/** After the slam: the sweep's leverage, from the engine's record, in one plate across both boxes. */
-function Product(): JSX.Element {
-  // During playback the shown run is the pre-sweep one; the record is on the run itself.
-  const lev = run.value?.lastSweep?.leverage ?? 0n;
+/**
+ * The settled sum is a tab: tapping it unfolds the LAST SWEEP receipt above the readout, where the
+ * points came from line by line. Tapping either folds it away; the next pin takes it with the sum.
+ */
+function LastSweep({ rec }: { rec: SweepRecord }): JSX.Element {
+  const [open, setOpen] = useState(false);
+  const r = open ? receiptOf(rec) : null;
   return (
-    <div class="product abs" aria-live="polite">
-      <span class="plbl">LEVERAGE</span>
-      <span class="eq">=</span>
-      <span class="num">{formatShort(lev, 9)}</span>
+    <>
+      <button class="sum-tab abs" aria-expanded={open} aria-label="Last sweep: where the points came from" onClick={() => setOpen(!open)} />
+      {r && (
+        <div class="receipt abs" role="dialog" aria-label={r.title} onClick={() => setOpen(false)}>
+          <div class="r-head">{r.title}</div>
+          {r.lines.map((l, i) => (
+            <div key={i} class="r-line">
+              <span class="r-label">{l.label}</span>
+              <span class={`r-val num ${l.tone}`}>{l.value}</span>
+            </div>
+          ))}
+          <div class="r-total num">= {r.total}</div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** A slam of 10x the target or more: the product stamped big over the map before it flies up. */
+function Showcase(): JSX.Element | null {
+  const sc = A.showcase.value;
+  if (!sc) return null;
+  return (
+    <div key={sc.n} class="showcase abs" aria-hidden="true">
+      <span class="big num">{sc.text}</span>
+      <span class="sub">{sc.sub}</span>
     </div>
   );
 }

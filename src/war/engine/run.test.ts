@@ -174,7 +174,7 @@ describe('pins, sweeps and swaps', () => {
     let t = after;
     for (let i = 0; i < 2; i++) t = must(swap(pinAll(t, [t.crisis.lit[7]])));
     expect(swap(pinAll(t, [t.crisis.lit[7]]))).toMatchObject({ ok: false, reason: 'No swaps left.' });
-    expect(swap(newRun('x'))).toMatchObject({ ok: false, reason: 'Select lit regions to swap.' });
+    expect(swap(newRun('x'))).toMatchObject({ ok: false, reason: 'Pin the regions you want to swap out.' });
   });
 
   it('refills from the spent regions when the pile runs out', () => {

@@ -28,8 +28,9 @@ export function paintPlate(g: Gfx, id: RegionId, p: PlateStyle): void {
   const r = REGION[id];
   let tone = plateFill(p.colour, p.fill);
   const lit = p.fill === 'lit' || p.fill === 'scored' || p.fill === 'flash';
-  // Blackout: the bloc takes the spent tone; lit plates keep half their light so they stay tappable.
-  if (p.blackout) tone = lit ? mix(tone, plateFill(p.colour, 'spent'), 0.45) : plateFill(p.colour, 'spent');
+  // Blackout: the bloc takes the spent tone; lit plates keep a little light so they stay tappable,
+  // but never read as live (they make the shape and add nothing).
+  if (p.blackout) tone = lit ? mix(tone, plateFill(p.colour, 'spent'), 0.7) : plateFill(p.colour, 'spent');
   ctx.fillStyle = css(tone);
   ctx.fill(path);
 
@@ -37,7 +38,7 @@ export function paintPlate(g: Gfx, id: RegionId, p: PlateStyle): void {
   const reach = r.island ? 30 : 58;
   const grad = ctx.createRadialGradient(r.x, r.y - 2, 1, r.x, r.y, reach);
   if (alpha > 0) {
-    const a = p.blackout ? alpha * 0.5 : alpha;
+    const a = p.blackout ? alpha * 0.3 : alpha;
     grad.addColorStop(0, css(core, a));
     grad.addColorStop(0.45, css(core, a * 0.28));
     grad.addColorStop(1, 'rgba(0,0,0,0.16)');
@@ -53,7 +54,7 @@ export function paintPlate(g: Gfx, id: RegionId, p: PlateStyle): void {
     ctx.fill(path);
   }
   if (p.fill === 'retired') paintShutter(g, id);
-  if (p.blackout) paintHatch(g, id, css(ALARM, 0.2), 5, 1);
+  if (p.blackout) paintHatch(g, id, css(ALARM, 0.35), 5, 1);
   if (p.dim < 1) {
     ctx.fillStyle = css(INK, (1 - p.dim) * 0.85);
     ctx.fill(path);

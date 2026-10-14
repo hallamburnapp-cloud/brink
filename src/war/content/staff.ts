@@ -81,7 +81,7 @@ const ROWS: Row[] = [
     'common',
     4,
     'pin',
-    'Each scoring region of weight 4 or less: +15 Influence.',
+    'Each scoring region numbered 4 or less: +15 Influence.',
     '+15≤4',
   ],
   [

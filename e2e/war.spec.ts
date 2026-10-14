@@ -114,8 +114,74 @@ async function paintedTotal(page: Page): Promise<string> {
 }
 
 const sweepButton = (page: Page) => page.getByRole('button', { name: /^Sweep, / });
-const boardHint = (page: Page) => page.locator('.board-hint');
+/** The first-night coach: a line on tape under the rail, or on the Briefing tray's lip. */
+const coach = (page: Page) => page.locator('.coach.on-map:not(.out)');
+const trayCoach = (page: Page) => page.locator('.coach.on-tray:not(.out)');
+/** A one-time balloon on a control (SWEEP, the lamp, SWAP, the in-tray). */
+const controlHint = (page: Page) => page.locator('.control-hint');
 const patternName = (page: Page) => page.locator('.readout-layer .pattern-name');
+
+/** A board reading ('180', '13,800', '10.6B') as a number; NaN for anything unreadable. */
+function boardValue(text: string): number {
+  const t = text.replace(/,/g, '').trim();
+  if (!t) return 0;
+  const m = /^(\d+(?:\.\d+)?)([KMBT]?)$/.exec(t);
+  if (!m) return Number.NaN;
+  const unit = { '': 1, K: 1e3, M: 1e6, B: 1e9, T: 1e12 }[m[2] as '' | 'K' | 'M' | 'B' | 'T'];
+  return Number(m[1]) * unit;
+}
+
+/**
+ * Start sampling, every animation frame, what the Big Board's total tiles actually paint: the upper
+ * halves (the falling leaf while it is up) and the lower halves (the landing leaf once it shows),
+ * plus the row's text label. Read the samples back with boardSamples().
+ */
+async function sampleBoard(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const w = window as unknown as { __boardSamples: string[]; __boardSampling: boolean };
+    w.__boardSamples = [];
+    w.__boardSampling = true;
+    const glyph = (tile: Element, leaf: string, half: string): string => {
+      const moving = tile.querySelector<HTMLElement>(`.fl.${leaf}`);
+      const el = moving && moving.style.visibility === 'visible' ? moving : tile.querySelector(`.fh.${half}`);
+      return el?.querySelector('.g')?.textContent ?? '';
+    };
+    const read = () => {
+      const row = document.querySelector('.board-layer .total .flap-row');
+      if (row) {
+        const tiles = Array.from(row.children);
+        const line = (leaf: string, half: string) =>
+          tiles.map((el) => (el.classList.contains('flap') ? glyph(el, leaf, half) : (el.textContent ?? ''))).join('');
+        w.__boardSamples.push(line('top', 'top'), line('bot', 'bot'), row.getAttribute('aria-label') ?? '');
+      }
+      if (w.__boardSampling) requestAnimationFrame(read);
+    };
+    requestAnimationFrame(read);
+  });
+}
+
+async function boardSamples(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const w = window as unknown as { __boardSamples: string[]; __boardSampling: boolean };
+    w.__boardSampling = false;
+    return w.__boardSamples;
+  });
+}
+
+/** The Big Board never showed more than `final` reads: every sample is a number at or under it. */
+function expectNeverAbove(samples: string[], final: string): void {
+  expect(samples.length).toBeGreaterThan(10);
+  const cap = boardValue(final);
+  const bad = samples.filter((t) => !(boardValue(t) <= cap));
+  expect(bad, `board readings above ${final}: ${[...new Set(bad)].join(' | ')}`).toEqual([]);
+}
+
+/** A rect in frame px (x, y, w, h) as the page's box for it. */
+async function frameRect(page: Page, r: [number, number, number, number]) {
+  const a = await framePoint(page, r[0], r[1]);
+  const b = await framePoint(page, r[0] + r[2], r[1] + r[3]);
+  return { x: a.x, y: a.y, width: b.x - a.x, height: b.y - a.y };
+}
 
 async function fast(page: Page, motion: 'full' | 'reduce' = 'full'): Promise<void> {
   await page.evaluate((m) => {
@@ -126,36 +192,54 @@ async function fast(page: Page, motion: 'full' | 'reduce' = 'full'): Promise<voi
 
 // ---------------------------------------------------------------- the first night
 
-test('the first night: title, hints, CHAIN 180, FRONT 452, the Briefing, a hire, the next crisis', async ({ page }) => {
+test('the first night: title, coach lines, CHAIN 180, FRONT 452, the Briefing, a hire, the next crisis', async ({ page }) => {
   await open(page);
   expect(await page.title()).toBe(BRAND.name);
 
   await page.getByRole('button', { name: /^NEW NIGHT/ }).tap();
-  await expect(boardHint(page)).toHaveText('Hold the world together until dawn.');
-  await expect(boardHint(page)).toHaveText('Tap a lit region.', { timeout: 5_000 });
+  // The opening line states the goal in the crisis's own numbers; then the first move.
+  await expect(coach(page)).toHaveText('Reach 300 in 4 sweeps, or the world tips.');
+  await expect(coach(page)).toHaveText('Tap a lit region. The red ring scores twice.', { timeout: 7_000 });
   await expect(page.locator('.readout-layer .tap-lit')).toHaveText('Tap lit regions');
+  await expect(page.locator('.board-layer .sweeps-left')).toHaveText('4 SWEEPS LEFT');
   const start = await runInfo(page);
   expect(start).toMatchObject({ seed: 'FIRST-NIGHT', phase: 'crisis', hour: 0, crisisIndex: 0, target: '300', funds: 5 });
   expect(start!.lit).toEqual(['LNK', 'GUL', 'SHL', 'EDV', 'QLN', 'NWK', 'ICW', 'HRT']);
 
   await tapRegion(page, 'LNK');
-  await expect(boardHint(page)).toHaveText('Pins that touch join up.');
-  await tapRegions(page, ['GUL', 'SHL']);
+  await expect(coach(page)).toHaveText('Pin a neighbour to join it: by border, bridge or sea lane.');
+  await tapRegion(page, 'GUL');
+  await expect(coach(page)).toHaveText('Joined pins make shapes. Bigger shapes multiply.');
+  await tapRegion(page, 'SHL');
   await expect(patternName(page)).toHaveText('CHAIN');
-  await expect(boardHint(page)).toHaveText('Sweep.');
+  await expect(controlHint(page)).toHaveText('Sweep.');
+  await expect(page.locator('button.sweep.beckon')).toBeVisible();
   expect((await runInfo(page))!.pins).toEqual(['LNK', 'GUL', 'SHL']);
 
   // Sweep 1 plays at 1x with full motion: this is the moment the slice exists for.
+  await sampleBoard(page);
   await sweepButton(page).tap();
   await expect.poll(() => page.evaluate(() => window.__war!.busy())).toBe(true);
   await idle(page);
+  expectNeverAbove(await boardSamples(page), '180');
   expect(await runInfo(page)).toMatchObject({ total: '180', pattern: 'CHAIN', leverage: '180', phase: 'crisis' });
   expect(await boardTotal(page)).toBe('180');
   await expect.poll(() => paintedTotal(page)).toBe('180');
+  await expect(page.locator('.board-layer .sweeps-left')).toHaveText('3 SWEEPS LEFT');
+  // The sweep's sum stays on the readout until the next pin, and opens its receipt.
+  await expect(page.locator('.readout-layer .product .res')).toHaveText('=180');
+  await page.locator('.readout-layer .sum-tab').tap();
+  const receipt = page.getByRole('dialog', { name: /^LAST SWEEP/ });
+  await expect(receipt).toContainText('60 × 3 = 180');
+  await receipt.tap();
+  await expect(receipt).toHaveCount(0);
 
-  await tapRegions(page, ['NWK', 'FRM', 'WNM', 'WMS']);
-  await expect(patternName(page)).toHaveText('FRONT');
+  // The northern CHAIN already clears it: the lamp lights and says so, once.
+  await tapRegions(page, ['NWK', 'FRM', 'WNM']);
   await expect(page.locator('.lamp.on')).toBeVisible();
+  await expect(controlHint(page)).toHaveText('Green lamp: this sweep clears the crisis.');
+  await tapRegion(page, 'WMS');
+  await expect(patternName(page)).toHaveText('FRONT');
   await sweepButton(page).tap();
   await idle(page);
 
@@ -165,9 +249,9 @@ test('the first night: title, hints, CHAIN 180, FRONT 452, the Briefing, a hire,
   await expect(page.locator('.board-layer .funds .amount')).toHaveText('11');
   await expect(page.locator('.tray-head')).toContainText('BRIEFING');
   await expect(page.locator('.tray-head')).toContainText('STANDOFF');
-  // The Briefing's hint holds the board's leverage module for 3.5 s; CLEARED is under it.
-  await expect(boardHint(page)).toHaveText('Hire staff. They sit at your table and fire every sweep.');
-  await expect(page.locator('.stamp-cleared')).toHaveText('CLEARED', { timeout: 6_000 });
+  // The Briefing's line lies on the tray beside the cards; CLEARED stays on the board above.
+  await expect(trayCoach(page)).toHaveText('Hire staff: they fire every sweep. Hold a card to see where.');
+  await expect(page.locator('.stamp-cleared')).toHaveText('CLEARED');
   const duty = page.getByRole('button', { name: /^Duty Officer, 3 Funds/ });
   await expect(duty).toBeVisible();
   await expect(page.getByRole('button', { name: /^Harbourmaster, 4 Funds/ })).toBeVisible();
@@ -183,17 +267,87 @@ test('the first night: title, hints, CHAIN 180, FRONT 452, the Briefing, a hire,
   expect(await runInfo(page)).toMatchObject({ phase: 'crisis', hour: 0, crisisIndex: 1, total: '0', target: '450', staff: ['DUTY'] });
 });
 
+test('the first deal: the goal stays on the Big Board while every coach line plays', async ({ page }) => {
+  await open(page);
+  await page.getByRole('button', { name: /^NEW NIGHT/ }).tap();
+  const board = await frameRect(page, [104, 47, 196, 60]);
+  const target = page.locator('.board-layer .target');
+  const total = page.locator('.board-layer .total');
+  /** The leverage module is on show and no coach line sits over it. */
+  const goalInView = async () => {
+    await expect(target).toBeVisible();
+    await expect(target).toContainText('300');
+    await expect(total).toBeVisible();
+    const tape = (await coach(page).count()) ? await coach(page).boundingBox({ timeout: 300 }).catch(() => null) : null;
+    if (tape) expect(tape.y, 'the coach line must sit below the Big Board').toBeGreaterThanOrEqual(board.y + board.height - 1);
+  };
+  // Through the opening line (4 s) and into the first move, sampled.
+  await expect(coach(page)).toHaveText('Reach 300 in 4 sweeps, or the world tips.');
+  for (let t = 0; t < 5_250; t += 350) {
+    await goalInView();
+    await page.waitForTimeout(350);
+  }
+  await expect(coach(page)).toHaveText('Tap a lit region. The red ring scores twice.');
+  // And through each line the pins earn.
+  for (const [id, line] of [
+    ['LNK', 'Pin a neighbour to join it: by border, bridge or sea lane.'],
+    ['GUL', 'Joined pins make shapes. Bigger shapes multiply.'],
+  ] as const) {
+    await tapRegion(page, id);
+    await expect(coach(page)).toHaveText(line);
+    await goalInView();
+  }
+  await tapRegion(page, 'SHL');
+  await expect(controlHint(page)).toHaveText('Sweep.');
+  await goalInView();
+  // The SWEEP balloon sits beside the lever, never over the Influence or Momentum box.
+  const balloon = (await controlHint(page).boundingBox())!;
+  const boxes = await frameRect(page, [196, 695, 178, 40]);
+  expect(balloon.y >= boxes.y + boxes.height || balloon.y + balloon.height <= boxes.y || balloon.x + balloon.width <= boxes.x).toBe(true);
+});
+
+test('a double tap on SWEEP never throws the first cascade away', async ({ page }) => {
+  await open(page);
+  await page.getByRole('button', { name: /^NEW NIGHT/ }).tap();
+  await expect(coach(page)).toHaveText(/Reach 300/);
+  await tapRegions(page, ['LNK', 'GUL', 'SHL']);
+  await expect(patternName(page)).toHaveText('CHAIN');
+  const at = await framePoint(page, 238 + 68, 745 + 28);
+  await sampleBoard(page);
+  const t0 = Date.now();
+  await page.touchscreen.tap(at.x, at.y);
+  await page.waitForTimeout(140);
+  await page.touchscreen.tap(at.x, at.y);
+  await page.waitForTimeout(400);
+  // An impatient third tap, on the map, right after.
+  const map = await framePoint(page, 195, 420);
+  await page.touchscreen.tap(map.x, map.y);
+  // Still the cascade: no sum yet, the board still at 0.
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => window.__war!.busy())).toBe(true);
+  await expect(page.locator('.readout-layer')).not.toHaveClass(/slam-hit/);
+  expect(await boardTotal(page)).toBe('0');
+  await idle(page);
+  // The whole first sweep played (about 2.7 s to the total at 1x), and only one sweep was taken.
+  expect(Date.now() - t0).toBeGreaterThan(2_400);
+  expectNeverAbove(await boardSamples(page), '180');
+  expect(await runInfo(page)).toMatchObject({ total: '180', leverage: '180' });
+  expect(await page.evaluate(() => window.__war!.state()!.sweepsTaken)).toBe(1);
+});
+
 // ---------------------------------------------------------------- the sandboxes
 
-test('Late Shift: the Network shows 10.6B on the Big Board', async ({ page }) => {
+test('Late Shift: the Network shows 10.6B on the Big Board, never more on the way', async ({ page }) => {
   await open(page);
   await page.getByRole('button', { name: /^LATE SHIFT/ }).tap();
-  await fast(page);
   await tapRegions(page, ['EDV', 'MRD', 'TRN', 'GUL', 'LNK']);
   await expect(patternName(page)).toHaveText('NETWORK');
   await expect(page.locator('.readout-layer .pattern-lv')).toHaveText('Lv 6');
+  // At 1x, with full motion: the showcase, the flight to the board and the odometer roll.
+  await sampleBoard(page);
   await sweepButton(page).tap();
   await idle(page);
+  expectNeverAbove(await boardSamples(page), '10.6B');
   expect(await runInfo(page)).toMatchObject({ leverage: '10559856944', total: '10559856944' });
   expect(await boardTotal(page)).toBe('10.6B');
   await expect.poll(() => paintedTotal(page)).toBe('10.6B');
@@ -236,6 +390,54 @@ test('Mid Shift: 10,920, then seats 2 and 3 dragged apart score 8,736', async ({
   await idle(page);
   expect(await runInfo(page)).toMatchObject({ leverage: '8736', staff: ['HARBOUR', 'STRATEGIST', 'HOTLINE'] });
   expect(await boardTotal(page)).toBe('8,736');
+});
+
+test('Mid Shift at 1x: taps in the first moments never skip; a tap later skips to the slam, which still lands', async ({ page }) => {
+  await open(page);
+  await page.getByRole('button', { name: /^MID SHIFT/ }).tap();
+  await tapRegions(page, ['SHL', 'LTL', 'KLP', 'KLM', 'TLM']);
+  await expect(patternName(page)).toHaveText('NETWORK');
+  await sampleBoard(page);
+  const sweepAt = await framePoint(page, 238 + 68, 745 + 28);
+  const mapAt = await framePoint(page, 195, 420);
+  await page.touchscreen.tap(sweepAt.x, sweepAt.y);
+  await page.waitForTimeout(120);
+  await page.touchscreen.tap(sweepAt.x, sweepAt.y);
+  await page.waitForTimeout(200);
+  await page.touchscreen.tap(mapAt.x, mapAt.y);
+  await page.waitForTimeout(500);
+  expect(await page.evaluate(() => window.__war!.busy())).toBe(true);
+  await expect(page.locator('.readout-layer')).not.toHaveClass(/slam-hit/);
+  // Past the guard (and off the lever), a tap skips to the end of the slam.
+  await page.touchscreen.tap(mapAt.x, mapAt.y);
+  await expect(page.locator('.readout-layer')).toHaveClass(/slam-hit/, { timeout: 1_000 });
+  await idle(page);
+  expectNeverAbove(await boardSamples(page), '10,920');
+  expect(await runInfo(page)).toMatchObject({ leverage: '10920', total: '10920' });
+  await expect.poll(() => paintedTotal(page)).toBe('10,920');
+});
+
+test('LAY CABLE: tap one end, then the other', async ({ page }) => {
+  await open(page);
+  await page.getByRole('button', { name: /^NEW NIGHT/ }).tap();
+  await fast(page, 'reduce');
+  await page.evaluate(() => {
+    const w = window.__war!;
+    const s = w.seed('E2E-CABLE');
+    w.load({ ...s, tray: [{ uid: 900, id: 'CABLE' }], crisis: { ...s.crisis, lit: ['EDV', 'LNK', 'GUL', 'SHL', 'NWK', 'ICW', 'HRT', 'FLE'] } });
+  });
+  const slot = await framePoint(page, 120 + 26, 745 + 28);
+  await page.touchscreen.tap(slot.x, slot.y);
+  await expect(page.locator('.readout-layer .armed-prompt')).toBeVisible();
+  await tapRegion(page, 'EDV');
+  await expect(page.locator('.readout-layer .armed-prompt')).toHaveText('Now the other end.');
+  await tapRegion(page, 'LNK');
+  await expect(page.locator('.readout-layer .armed-prompt')).toHaveCount(0);
+  const s = await page.evaluate(() => {
+    const st = window.__war!.state()!;
+    return { cables: st.world.cables, tray: st.tray.length, armed: st.armed };
+  });
+  expect(s).toEqual({ cables: [['EDV', 'LNK']], tray: 0, armed: null });
 });
 
 // ---------------------------------------------------------------- endings
@@ -322,6 +524,68 @@ test('the menu quits to the title', async ({ page }) => {
   expect(await page.evaluate(() => window.__war!.state())).toBeNull();
 });
 
+test('switching MOTION back to FULL mid-night: the Big Board keeps painting every total', async ({ page }) => {
+  await open(page);
+  await page.getByRole('button', { name: /^NEW NIGHT/ }).tap();
+  await page.evaluate(async () => {
+    const w = window.__war!;
+    w.speed(4);
+    w.motion('reduce');
+    w.pin(['LNK', 'GUL', 'SHL']);
+    await w.sweep();
+  });
+  await expect.poll(() => paintedTotal(page)).toBe('180');
+  // The player turns full motion back on from the menu.
+  await page.getByRole('button', { name: 'Menu', exact: true }).tap();
+  const menu = page.getByRole('dialog', { name: 'Menu' });
+  await menu.getByRole('radiogroup', { name: 'Motion' }).getByRole('radio', { name: 'FULL' }).tap();
+  await menu.getByRole('button', { name: 'RESUME', exact: true }).tap();
+  await expect(menu).toHaveCount(0);
+  await tapRegions(page, ['NWK', 'FRM', 'WNM', 'WMS']);
+  await sweepButton(page).tap();
+  await idle(page);
+  await expect.poll(() => paintedTotal(page)).toBe('452');
+  await page.getByRole('button', { name: /^NEXT CRISIS/ }).tap();
+  expect((await runInfo(page))!.total).toBe('0');
+  await expect.poll(() => paintedTotal(page)).toBe('0');
+});
+
+test("the phone's back button asks before it drops a night, and never leaves the app", async ({ page }) => {
+  await open(page);
+  const home = page.url();
+  await page.getByRole('button', { name: /^NEW NIGHT/ }).tap();
+  await expect(page.locator('canvas.map-canvas')).toBeVisible();
+  await tapRegion(page, 'LNK');
+  const confirm = page.getByRole('alertdialog', { name: 'Quit this night?' });
+
+  // Back opens the quit question; STAY carries on with the night as it was.
+  await page.goBack();
+  await expect(confirm).toBeVisible();
+  expect(page.url()).toBe(home);
+  await confirm.getByRole('button', { name: 'STAY', exact: true }).tap();
+  await expect(confirm).toHaveCount(0);
+  expect((await runInfo(page))!.pins).toEqual(['LNK']);
+
+  // Back with the menu open closes the menu; back again asks; back once more closes the question.
+  await page.getByRole('button', { name: 'Menu', exact: true }).tap();
+  await expect(page.getByRole('dialog', { name: 'Menu' })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole('dialog', { name: 'Menu' })).toHaveCount(0);
+  await page.goBack();
+  await expect(confirm).toBeVisible();
+  await page.goBack();
+  await expect(confirm).toHaveCount(0);
+  expect(page.url()).toBe(home);
+  expect((await runInfo(page))!.phase).toBe('crisis');
+
+  // QUIT goes home to the title.
+  await page.goBack();
+  await confirm.getByRole('button', { name: 'QUIT', exact: true }).tap();
+  await expect(page.getByRole('button', { name: /^NEW NIGHT/ })).toBeVisible();
+  expect(await page.evaluate(() => window.__war!.state())).toBeNull();
+  expect(page.url()).toBe(home);
+});
+
 // ---------------------------------------------------------------- reduced motion
 
 test.describe('reduced motion', () => {
@@ -330,7 +594,7 @@ test.describe('reduced motion', () => {
   test('a sweep, and a sweep that clears, each finish in 1.2 s or less', async ({ page }) => {
     await open(page);
     await page.getByRole('button', { name: /^NEW NIGHT/ }).tap();
-    await expect(boardHint(page)).toHaveText('Tap a lit region.', { timeout: 5_000 });
+    await expect(coach(page)).toHaveText('Tap a lit region. The red ring scores twice.', { timeout: 8_000 });
 
     /** Press SWEEP and time it until the war room accepts input again. */
     const timedSweep = () =>

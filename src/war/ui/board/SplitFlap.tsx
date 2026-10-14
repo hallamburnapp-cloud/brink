@@ -1,11 +1,15 @@
 /**
- * Split-flap tiles (STYLE 5.2). Each tile flips through a few intermediate characters to its new
- * one: the upper leaf falls about the cut, then the lower leaf lands with a small overshoot.
- * Tiles flip right to left in a cascade. Reduced motion swaps characters with a short fade.
- * Separators (',' '.' ':') are narrow plates whose slot glows with the board's backlight.
+ * Split-flap tiles (STYLE 5.2). Each tile flips to its new character: the upper leaf falls about the
+ * cut, then the lower leaf lands with a small overshoot. A tile only ever passes through characters
+ * that lie between the old and the new one (a digit counting up, a unit stepping K, M, B, T), so a
+ * flip never shows a number that is not on its way. Tiles flip right to left in a cascade. Reduced
+ * motion swaps characters with a short fade. Separators (',' '.' ':') are narrow plates whose slot
+ * glows with the board's backlight.
  */
 import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
+import { audio } from '../../../audio';
+import { flipPath } from './flip';
 
 export interface FlapStyle {
   /** Tile width and height in px, glyph size in px. */
@@ -29,11 +33,11 @@ export interface FlapMotion {
   /** No flips: characters swap with a 120 ms fade. */
   instant: boolean;
   reduced: boolean;
+  /** Play a flap click at this intensity as each leaf lands (the Big Board's clatter). */
+  click?: number;
 }
 
 const SEPARATORS = new Set([',', '.', ':']);
-const DIGITS = '0123456789';
-const LETTERS = 'ABCDEFGHIKLMNOPRSTUVWY';
 
 /** Splits text into tiles, padding blank tiles on the left up to `minTiles`. */
 export function tilesOf(text: string, minTiles: number): string[] {
@@ -49,13 +53,15 @@ interface RowProps {
   minTiles?: number;
   /** Fit the row into this width by narrowing the tiles. */
   maxWidth?: number;
-  /** On mount, start from this text and flip to `text` with `fromMotion` (the boxes' base flip). */
+  /** On mount, start from this text and flip to `text` with `fromMotion`. */
   from?: string;
   fromMotion?: FlapMotion;
+  /** Draw the blank padding tiles unpowered (no backlight behind them, darker steel). */
+  unlitPadding?: boolean;
   class?: string;
 }
 
-export function FlapRow({ text, style, motion, minTiles = 0, maxWidth, from, fromMotion, class: cls }: RowProps): JSX.Element {
+export function FlapRow({ text, style, motion, minTiles = 0, maxWidth, from, fromMotion, unlitPadding, class: cls }: RowProps): JSX.Element {
   // `from` applies to the row's first render only; tiles added later just appear.
   const rowMounted = useRef(false);
   useEffect(() => {
@@ -74,6 +80,7 @@ export function FlapRow({ text, style, motion, minTiles = 0, maxWidth, from, fro
   const fromTiles =
     from === undefined || rowMounted.current ? null : tilesOf(from, chars.length).filter((c) => !SEPARATORS.has(c)).reverse();
   let tileFromRight = 0;
+  const textTiles = nTiles - (chars.length - Array.from(text).length);
   const cells = chars.map((c, i) => ({ c, key: chars.length - 1 - i })).reverse();
   const out = cells.map(({ c, key }) => {
     if (SEPARATORS.has(c)) {
@@ -83,8 +90,9 @@ export function FlapRow({ text, style, motion, minTiles = 0, maxWidth, from, fro
     const initial = fromTiles ? (fromTiles[i] ?? ' ') : undefined;
     const m = initial !== undefined && fromMotion ? fromMotion : motion;
     const delay = m.instant ? 0 : i * m.stagger;
+    const unlit = !!unlitPadding && i >= textTiles;
     return (
-      <Flap key={`t${key}`} ch={c} initial={initial} w={w} h={style.h} size={size} delay={delay} motion={m} skin={style.skin} />
+      <Flap key={`t${key}`} ch={c} initial={initial} w={w} h={style.h} size={size} delay={delay} motion={m} skin={style.skin} unlit={unlit} />
     );
   });
   out.reverse();
@@ -122,15 +130,19 @@ interface FlapProps {
   delay: number;
   motion: FlapMotion;
   skin: FlapStyle['skin'];
+  /** A padding tile with no power behind it. */
+  unlit: boolean;
 }
 
 /** One tile. Animates imperatively: a flip touches four layers and must not re-render the row. */
-function Flap({ ch, initial, w, h, size, delay, motion, skin }: FlapProps): JSX.Element {
+function Flap({ ch, initial, w, h, size, delay, motion, skin, unlit }: FlapProps): JSX.Element {
   const root = useRef<HTMLDivElement>(null);
   const shownCh = useRef(initial ?? ch);
   const mounted = useRef(false);
   const timers = useRef<number[]>([]);
   const anims = useRef<Animation[]>([]);
+  /** Reduced motion's swap fade (never a flip). */
+  const fade = useRef<Animation | null>(null);
 
   /** Layers: 'fh top' / 'fh bot' are the static halves, 'fl top' / 'fl bot' the moving leaves. */
   const layer = (name: string) => root.current?.querySelector<HTMLElement>(`.${name.replace(' ', '.')}`) ?? null;
@@ -152,54 +164,59 @@ function Flap({ ch, initial, w, h, size, delay, motion, skin }: FlapProps): JSX.
     timers.current = [];
     anims.current.forEach((a) => a.cancel());
     anims.current = [];
+    fade.current?.cancel();
+    fade.current = null;
   };
 
   useEffect(() => () => cancel(), []);
 
+  // The latest character asked for, and the latest motion: a flip under way always lands (with its
+  // click), then the tile carries on towards whatever is wanted by then. On a slow frame rate the
+  // tile skips steps rather than cutting leaves short.
+  const want = useRef(ch);
+  const motionNow = useRef(motion);
+  motionNow.current = motion;
+  /** The leaves still to show on the way to `to`. */
+  const plan = useRef<{ to: string; seq: string[] }>({ to: ch, seq: [] });
+
   useLayoutEffect(() => {
     const first = !mounted.current;
     mounted.current = true;
+    want.current = ch;
     // The glyph layers are written here, never by render, so a re-render can't cut a flip short.
     if (first) settle(shownCh.current);
-    const flipping = timers.current.length > 0 || anims.current.length > 0;
-    if (ch === shownCh.current && !flipping) return;
-    cancel();
     const el = root.current;
     if (!el) return;
-    if (ch === shownCh.current) {
-      // A flip was heading elsewhere and the target came back: stop on this character.
-      settle(ch);
-      return;
-    }
-    if ((motion.instant && !first) || motion.reduced || typeof el.animate !== 'function') {
+    const m = motionNow.current;
+    if ((m.instant && !first) || m.reduced || typeof el.animate !== 'function') {
+      cancel();
+      plan.current = { to: ch, seq: [] };
       const from = shownCh.current;
       settle(ch);
-      if (motion.reduced && from !== ch && typeof el.animate === 'function') {
-        anims.current.push(el.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 120, easing: 'ease-out' }));
+      if (m.reduced && from !== ch && typeof el.animate === 'function') {
+        // The fade is not a flip, so it is kept apart from the flips: a finished fade must never hold
+        // up the flips that come after it (motion can be switched back to full mid-run).
+        fade.current?.cancel();
+        fade.current = el.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 120, easing: 'ease-out' });
       }
       return;
     }
-    // The flip sequence: a few intermediate digits, then the new character.
-    // Letters flip through letters, everything else through digits, like a real drum.
-    const pool = /[A-Z]/.test(ch) ? LETTERS : DIGITS;
-    const seq: string[] = [];
-    for (let i = 0; i < motion.flips - 1; i++) {
-      const prev = seq[i - 1] ?? shownCh.current;
-      let d = pool[Math.floor(Math.random() * pool.length)];
-      if (d === prev) d = pool[(pool.indexOf(d) + 3) % pool.length];
-      seq.push(d);
-    }
-    seq.push(ch);
-    const step = (i: number) => {
-      if (i >= seq.length) {
-        timers.current = [];
-        anims.current = [];
-        return;
-      }
-      flipOnce(seq[i], () => step(i + 1));
-    };
-    timers.current.push(window.setTimeout(() => step(0), delay));
+    if (timers.current.length > 0 || anims.current.length > 0 || ch === shownCh.current) return;
+    timers.current.push(window.setTimeout(advance, delay));
   }, [ch]);
+
+  /** Flip one leaf towards the wanted character, then keep going until it is on show. */
+  function advance(): void {
+    timers.current = [];
+    anims.current = [];
+    // A new target replans from the character on show: only characters on the way to it.
+    if (plan.current.to !== want.current || !plan.current.seq.length) {
+      plan.current = { to: want.current, seq: flipPath(shownCh.current, want.current, motionNow.current.flips) };
+    }
+    const next = plan.current.seq.shift();
+    if (next === undefined) return;
+    flipOnce(next, advance);
+  }
 
   /** One flip from the character on show to `next`. */
   function flipOnce(next: string, done: () => void): void {
@@ -214,8 +231,8 @@ function Flap({ ch, initial, w, h, size, delay, motion, skin }: FlapProps): JSX.
     root.current?.classList.toggle('blank', false);
     top.style.visibility = 'visible';
     bot.style.visibility = 'hidden';
-    const fall = motion.flipMs * 0.55;
-    const land = motion.flipMs - fall;
+    const fall = motionNow.current.flipMs * 0.55;
+    const land = motionNow.current.flipMs - fall;
     const a = top.animate(
       [
         { transform: 'perspective(70px) rotateX(0deg)', filter: 'brightness(1)' },
@@ -236,6 +253,8 @@ function Flap({ ch, initial, w, h, size, delay, motion, skin }: FlapProps): JSX.
       );
       anims.current.push(b);
       b.onfinish = () => {
+        const click = motionNow.current.click;
+        if (click) audio.play('flap', { intensity: click });
         setText('fh bot', next);
         shownCh.current = next;
         bot.style.visibility = 'hidden';
@@ -248,7 +267,7 @@ function Flap({ ch, initial, w, h, size, delay, motion, skin }: FlapProps): JSX.
   return (
     <div
       ref={root}
-      class={`flap ${skin}${(initial ?? ch) === ' ' ? ' blank' : ''}`}
+      class={`flap ${skin}${(initial ?? ch) === ' ' ? ' blank' : ''}${unlit ? ' unlit' : ''}`}
       style={{ width: `${w}px`, height: `${h}px`, fontSize: `${size}px`, '--fh': `${h}px` } as JSX.CSSProperties}
     >
       <div class="fh top">

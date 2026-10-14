@@ -42,7 +42,11 @@ export type Sfx =
   | 'accident'
   | 'accident_clear'
   | 'capital'
-  | 'retrigger';
+  | 'retrigger'
+  | 'flap'
+  | 'stamp'
+  | 'pin'
+  | 'thump';
 
 export type Recipe = (v: Voice, intensity: number) => void;
 
@@ -605,6 +609,56 @@ export const RECIPES: Record<Sfx, Recipe> = {
     // to 60%, and never the sub drop.
     slam(v, v.t0, i, { level: 0.5, pitch: 1.5, tail: 0.6, sub: false });
   },
+
+  /* ── the war room's physical sounds ── */
+
+  flap(v, i) {
+    // One split-flap leaf landing: 8 ms of noise band-passed around 3 kHz (Q 2, ±8% so a run of
+    // flaps never sounds machine-identical) with a 1 ms high-passed transient on top.
+    const t = v.t0;
+    const f = 3000 * (0.92 + Math.random() * 0.16);
+    const out = v.gain(0);
+    const bp = v.filter('bandpass', f, 2, out);
+    v.play(v.noise(bp), t, pluck(out.gain, t, 0.08 + 0.16 * i, 0.001, 0.0025));
+    click(v, t, 0.03 + 0.05 * i, 6500);
+  },
+
+  stamp(v, i) {
+    // A dry rubber stamp: a 30 ms puff of noise low-passed at 1.4 kHz over a short wooden knock
+    // (230 → 120 Hz). No pitch, no tail: it must never be mistaken for the slam.
+    const t = v.t0;
+    const out = v.gain(0);
+    const lp = v.filter('lowpass', 1400, 0.9, out);
+    v.play(v.noise(lp), t, pluck(out.gain, t, 0.12 + 0.12 * i, 0.002, 0.012));
+    thud(v, t, 0.1 + 0.12 * i, 230, 120, 0.03, 0.018);
+  },
+
+  pin(v, i) {
+    // A brass pin pushed into glass: a short glassy tick (two sines, the upper inharmonic and
+    // quicker) over a tiny 320 Hz knock. Intensity lifts the pitch a little (1.9 → 2.5 kHz).
+    const t = v.t0;
+    const f = 1900 + 600 * i;
+    const a = v.gain(0);
+    v.play(v.osc('sine', f, a), t, pluck(a.gain, t, 0.07, 0.001, 0.02));
+    const b = v.gain(0);
+    v.play(v.osc('sine', f * 1.51, b), t, pluck(b.gain, t, 0.035, 0.001, 0.008));
+    thud(v, t, 0.08, 320, 210, 0.02, 0.012);
+  },
+
+  thump(v, i) {
+    // A body that phone speakers can play: a square at 250 → 160 Hz (falling further with
+    // intensity) band-passed around 280 Hz, plus a low-passed noise knock. Layered under the slam
+    // and a multiplier landing; intensity deepens and lengthens it.
+    const t = v.t0;
+    const out = v.gain(0);
+    const bp = v.filter('bandpass', 280, 1.4, out);
+    const o = v.osc('square', 250, bp);
+    glide(o.frequency, t, 250, 160 - 40 * i, 0.06 + 0.08 * i);
+    v.play(o, t, pluck(out.gain, t, 0.12 + 0.16 * i, 0.003, 0.03 + 0.05 * i));
+    const knock = v.gain(0);
+    const lp = v.filter('lowpass', 700, 0.8, knock);
+    v.play(v.noise(lp), t, pluck(knock.gain, t, 0.06 + 0.08 * i, 0.002, 0.015));
+  },
 };
 
 /** One line per sound, for the docs. */
@@ -635,4 +689,8 @@ export const DESCRIPTIONS: Record<Sfx, string> = {
   accident_clear: 'Accident avoided: a soft two-note sine exhale stepping down G4 → E4, ~300 ms.',
   capital: 'Political capital gained: a coin-like ping of two sines at 2.1 and 3.2 kHz with fast decays.',
   retrigger: 'Retrigger: the slam echoed at half level, transposed up a fifth with a shortened tail and no sub.',
+  flap: 'Split-flap leaf: an 8 ms noise click band-passed around 3 kHz (±8% per flap) with a 1 ms transient.',
+  stamp: 'Rubber stamp: a dry 30 ms low-passed noise puff over a short wooden knock (230 → 120 Hz).',
+  pin: 'Pin into glass: a short glassy tick (1.9 → 2.5 kHz with intensity, plus an inharmonic partial) over a small knock.',
+  thump: 'Body thump: a band-passed square falling from 250 Hz with a noise knock, deep enough for phone speakers.',
 };

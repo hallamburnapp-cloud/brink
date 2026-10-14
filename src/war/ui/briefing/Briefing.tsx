@@ -4,63 +4,59 @@
  * NEXT CRISIS; the in-tray and the clear's receipt along the bottom. Long-press an offer to see
  * where it acts on the map. While an Order is being placed, the tray drops away.
  */
-import type { JSX } from 'preact';
-import { useEffect, useRef } from 'preact/hooks';
+import type { ComponentChildren, JSX } from 'preact';
+import { useRef, useState } from 'preact/hooks';
 import { actsOn, armedView, formatShort, shopView, type CardView, type OfferView, type RunState, type ShopView } from '../../engine';
 import { PATTERN, type PatternId } from '../../content/patterns';
-import { STAFF_DEF, type StaffId } from '../../content/staff';
+import { STAFF_DEF, type StaffId, type StaffTiming } from '../../content/staff';
 import type { OrderId } from '../../content/orders';
 import { Glyph, OrderIcon, PaperIcon, StaffIcon } from '../art';
-import { buyOffer, nextCrisis, openFolder, pickCard, rerollOffers, skipFolder } from '../app/actions';
-import { busy, highlight, reduced, speed } from '../app/store';
+import { BRIEFING_TOAST, buyOffer, nextCrisis, openFolder, pickCard, rerollOffers, skipFolder } from '../app/actions';
+import { busy, pressHighlight, reduced, showToast, speed } from '../app/store';
 import { FOLDER_CARD_X, R, type Rect } from '../common/layout';
 import { Chip, Funds, RuleText } from '../common/text';
-import { FitText } from '../common/FitText';
+import { FitText, useFitBox } from '../common/FitText';
 import { TraySlots } from '../controls/Controls';
 import { buzz } from '../fx/shake';
+import { Coach } from '../sheets/Coach';
 
-const TIMING_LABEL: Record<string, string> = {
-  pin: 'PIN',
-  desk: 'DESK',
+/** When a staff fires, in words a newcomer reads (the card's top-left tag). */
+const TIMING_LABEL: Record<StaffTiming, string> = {
+  pin: 'EACH PIN',
+  desk: 'EACH SWEEP',
   again: 'AGAIN',
-  standby: 'STANDBY',
-  rule: 'RULE',
+  standby: 'UNPINNED',
+  rule: 'ALWAYS',
   copy: 'COPY',
   clear: 'ON CLEAR',
 };
+
+/** What a taken offer's empty well is stamped with. */
+const TAKEN_STAMP: Record<CardView['kind'], string> = { staff: 'HIRED', order: 'FILED', playbook: 'APPLIED' };
 
 const LONG_PRESS_MS = 300;
 
 export function Briefing({ s }: { s: RunState }): JSX.Element | null {
   const shop = shopView(s);
-  const tray = useRef<HTMLDivElement>(null);
   const armed = armedView(s);
-  const peek = highlight.value !== null;
-
-  useEffect(() => {
-    const el = tray.current;
-    if (!el || reduced.value || typeof el.animate !== 'function') return;
-    el.animate([{ transform: 'translateY(393px)' }, { transform: 'translateY(0)' }], {
-      duration: 300 / speed.value,
-      easing: 'cubic-bezier(.22,1,.36,1)',
-    });
-  }, []);
+  const peek = pressHighlight.value !== null;
+  // What each offer slot last held (it outlives an open folder), so a taken slot is stamped for it.
+  const held = useRef<Array<CardView['kind'] | null>>([null, null]);
+  // The rise is a CSS animation, so the first frame painted is already off-screen (no flash).
+  const rise = reduced.value ? undefined : { animationDuration: `${300 / speed.value}ms` };
 
   if (!shop) return null;
+  const folderOpen = shop.folder.status === 'open';
   return (
     <>
-      <div ref={tray} class={`layer tray-layer${armed ? ' away' : ''}${peek ? ' peek' : ''}`}>
+      <div class={`layer tray-layer${reduced.value ? '' : ' rising'}${armed ? ' away' : ''}${peek ? ' peek' : ''}`} style={rise}>
+        <Coach at="tray" />
         <div class="tray" />
         <i class="grab abs" />
         <Header shop={shop} />
-        {shop.folder.status === 'open' ? <OpenFolder shop={shop} /> : <Offers s={s} shop={shop} />}
+        {folderOpen ? <OpenFolder shop={shop} /> : <Offers s={s} shop={shop} held={held.current} />}
         <FolderCard shop={shop} />
-        <button class={`btn-outline reroll abs${shop.canReroll ? '' : ' poor'}`} style={rect(R.reroll)} onClick={rerollOffers}>
-          <span class="btn-title">REROLL</span>
-          <span class={`cost${shop.canReroll ? '' : ' short'}`}>
-            <Funds n={shop.rerollCost} size={9} />
-          </span>
-        </button>
+        <Reroll shop={shop} folderOpen={folderOpen} />
         <button class="brass next abs" style={rect(R.next)} onClick={nextCrisis}>
           <span class="btn-title">NEXT CRISIS</span>
           <span class="arrow">
@@ -110,22 +106,35 @@ function Header({ shop }: { shop: ShopView }): JSX.Element {
   );
 }
 
-function Offers({ s, shop }: { s: RunState; shop: ShopView }): JSX.Element {
+function Offers({ s, shop, held }: { s: RunState; shop: ShopView; held: Array<CardView['kind'] | null> }): JSX.Element {
   return (
     <>
       {shop.offers.map((o, slot) => {
         const r = slot === 0 ? R.offer0 : R.offer1;
         if (!o) {
           return (
-            <div key={`taken${slot}`} class="offer-taken abs" style={rect(r)}>
-              <span>TAKEN</span>
+            <div key={`taken${slot}`} class="offer-taken abs" style={rect(r)} aria-label="Taken">
+              <span class="taken-stamp">{TAKEN_STAMP[held[slot] ?? 'staff']}</span>
             </div>
           );
         }
+        held[slot] = o.kind;
         return <OfferCard key={`${slot}-${o.kind}-${o.id}`} s={s} o={o} r={r} />;
       })}
     </>
   );
+}
+
+/** A refusal lands on the thing tapped: its price tag shakes and flushes red. */
+function useRefusal(): [number, () => void] {
+  const [n, setN] = useState(0);
+  return [
+    n,
+    () => {
+      buzz(20);
+      setN((k) => k + 1);
+    },
+  ];
 }
 
 /** Long-press shows where a card acts; a short tap buys it. */
@@ -170,27 +179,43 @@ function usePress(onTap: () => void, onLong: () => void, onLongEnd: () => void) 
 }
 
 function OfferCard({ s, o, r }: { s: RunState; o: OfferView; r: Rect }): JSX.Element {
+  const [refused, refuse] = useRefusal();
   const press = usePress(
-    () => buyOffer(o.slot, r),
+    () => buyOffer(o.slot) || refuse(),
     () => {
       const offer = s.shop?.offers[o.slot];
-      if (offer) highlight.value = actsOn(s, offer);
+      if (offer) pressHighlight.value = actsOn(s, offer);
     },
-    () => (highlight.value = null),
+    () => (pressHighlight.value = null),
   );
   const poor = o.reason === 'Not enough Funds.';
   const blocked = !!o.reason && !poor;
   const cls = `offer abs ${o.kind}${o.rarity ? ` ${o.rarity}` : ''}${poor ? ' poor' : ''}${blocked ? ' blocked' : ''}`;
   return (
-    <div class={cls} style={rect(r)} role="button" aria-label={`${o.name}, ${o.price} Funds. ${o.rule}`} {...press}>
-      <CardFace c={o} price={o.price} poor={poor} size="large" level={o.kind === 'playbook' ? s.world.levels[o.id as PatternId] : 0} />
+    <div class={cls} style={rect(r)} role="button" aria-label={`${o.name}, ${o.price} Funds. ${o.rule}${o.reason ? ` ${o.reason}` : ''}`} {...press}>
+      <CardFace c={o} price={o.price} poor={poor} refused={refused} size="large" level={o.kind === 'playbook' ? s.world.levels[o.id as PatternId] : 0} />
     </div>
   );
 }
 
 /** The face of a card: staff on felt, an Order on linen, a Playbook. */
-function CardFace({ c, price, poor, size, level }: { c: CardView; price: number | null; poor: boolean; size: 'large' | 'small'; level: number }): JSX.Element {
+function CardFace({
+  c,
+  price,
+  poor,
+  refused = 0,
+  size,
+  level,
+}: {
+  c: CardView;
+  price: number | null;
+  poor: boolean;
+  refused?: number;
+  size: 'large' | 'small';
+  level: number;
+}): JSX.Element {
   const icon = size === 'large' ? 48 : 40;
+  const tag = price !== null ? <Price n={price} poor={poor} refused={refused} /> : <TakeTag />;
   if (c.kind === 'staff') {
     const def = STAFF_DEF[c.id as StaffId];
     return (
@@ -211,11 +236,10 @@ function CardFace({ c, price, poor, size, level }: { c: CardView; price: number 
         <span class="name">
           <FitText text={c.name} max={size === 'large' ? 14 : 12} min={9} />
         </span>
-        <span class="rule-text">
-          {size === 'large' && <i class="price-room" />}
+        <RuleBox size={size} fit={c.id}>
           <RuleText rule={c.rule} />
-        </span>
-        {price !== null ? <Price n={price} poor={poor} /> : <TakeTag />}
+        </RuleBox>
+        {tag}
       </div>
     );
   }
@@ -231,11 +255,10 @@ function CardFace({ c, price, poor, size, level }: { c: CardView; price: number 
         <span class="name">
           <FitText text={c.name} max={size === 'large' ? 14 : 12} min={9} />
         </span>
-        <span class="rule-text">
-          {size === 'large' && <i class="price-room" />}
+        <RuleBox size={size} fit={c.id}>
           <RuleText rule={c.rule} />
-        </span>
-        {price !== null ? <Price n={price} poor={poor} /> : <TakeTag />}
+        </RuleBox>
+        {tag}
       </div>
     );
   }
@@ -250,16 +273,26 @@ function CardFace({ c, price, poor, size, level }: { c: CardView; price: number 
       <span class="name">
         <FitText text={p.name} max={size === 'large' ? 14 : 12} min={9} />
       </span>
-      <span class="rule-text">
-        {size === 'large' && <i class="price-room" />}
+      <RuleBox size={size} fit={c.id}>
         <span class="lv num">
           Lv {level} <Glyph name="arrow" size={7} /> {level + 1}
         </span>
         <br />
         <b class="c-inf">+{p.influencePerLevel} Influence</b>, <b class="c-mom">+{p.momentumPerLevel} Momentum</b>
-      </span>
-      {price !== null && <Price n={price} poor={poor} />}
+      </RuleBox>
+      {price !== null && tag}
     </div>
+  );
+}
+
+/** A card's rule: it wraps round the price tag in the corner, and steps its size down rather than clip. */
+function RuleBox({ size, fit, children }: { size: 'large' | 'small'; fit: string; children: ComponentChildren }): JSX.Element {
+  const box = useFitBox(size === 'large' ? 9 : 8.5, fit);
+  return (
+    <span ref={box} class="rule-text">
+      <i class="price-room" />
+      {children}
+    </span>
   );
 }
 
@@ -268,9 +301,9 @@ function TakeTag(): JSX.Element {
   return <span class="price take">TAKE</span>;
 }
 
-function Price({ n, poor }: { n: number; poor: boolean }): JSX.Element {
+function Price({ n, poor, refused = 0 }: { n: number; poor: boolean; refused?: number }): JSX.Element {
   return (
-    <span class={`price${poor ? ' poor' : ''}`}>
+    <span key={refused} class={`price${poor ? ' poor' : ''}${refused ? ' refused' : ''}`}>
       {poor && (
         <span class="lock">
           <Glyph name="lock" size={9} />
@@ -283,6 +316,7 @@ function Price({ n, poor }: { n: number; poor: boolean }): JSX.Element {
 
 function FolderCard({ shop }: { shop: ShopView }): JSX.Element {
   const f = shop.folder;
+  const [refused, refuse] = useRefusal();
   if (f.status === 'open') {
     return (
       <button class="btn-outline skip abs" style={rect([16, 651, 171, 40])} onClick={skipFolder}>
@@ -292,14 +326,15 @@ function FolderCard({ shop }: { shop: ShopView }): JSX.Element {
   }
   const used = f.status === 'used';
   const poor = f.reason === 'Not enough Funds.';
+  const blocked = !used && !!f.reason && !poor;
   return (
     <div
-      class={`folder abs${used ? ' used' : ''}${poor ? ' poor' : ''}`}
+      class={`folder abs${used ? ' used' : ''}${poor ? ' poor' : ''}${blocked ? ' blocked' : ''}`}
       style={rect(R.folder)}
       role="button"
-      aria-label={`${f.name}, ${f.price} Funds. ${f.rule}`}
+      aria-label={`${f.name}, ${f.price} Funds. ${f.rule}${f.reason && !used ? ` ${f.reason}` : ''}`}
       onPointerDown={(e) => e.stopPropagation()}
-      onClick={() => !used && openFolder()}
+      onClick={() => !used && (openFolder() || refuse())}
     >
       <i class="peek p1" />
       <i class="peek p2" />
@@ -311,7 +346,7 @@ function FolderCard({ shop }: { shop: ShopView }): JSX.Element {
         <span class="folder-stamp" aria-hidden="true">
           {f.kind === 'recruit' ? 'RECRUIT' : 'ORDERS'}
         </span>
-        {used ? <span class="filed">FILED</span> : <Price n={f.price} poor={poor} />}
+        {used ? <span class="filed">FILED</span> : <Price n={f.price} poor={poor} refused={refused} />}
       </div>
     </div>
   );
@@ -320,23 +355,50 @@ function FolderCard({ shop }: { shop: ShopView }): JSX.Element {
 function OpenFolder({ shop }: { shop: ShopView }): JSX.Element {
   return (
     <>
-      {shop.folder.cards.map((c, i) => {
-        const r: Rect = [FOLDER_CARD_X[i], 489, 110, 150];
-        return (
-          <div
-            key={`${c.kind}-${c.id}`}
-            class={`offer small abs ${c.kind}${c.rarity ? ` ${c.rarity}` : ''}${c.reason ? ' blocked' : ''}`}
-            style={{ ...rect(r), animationDelay: `${i * 70}ms` }}
-            role="button"
-            aria-label={`${c.name}. ${c.rule}`}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={() => pickCard(c.index, r)}
-          >
-            <CardFace c={c} price={null} poor={false} size="small" level={0} />
-          </div>
-        );
-      })}
+      {shop.folder.cards.map((c, i) => (
+        <FolderPick key={`${c.kind}-${c.id}`} c={c} r={[FOLDER_CARD_X[i], 489, 110, 150]} delay={i * 70} />
+      ))}
     </>
+  );
+}
+
+/** One of an open folder's cards: a tap takes it; a refusal shakes the card. */
+function FolderPick({ c, r, delay }: { c: ShopView['folder']['cards'][number]; r: Rect; delay: number }): JSX.Element {
+  const [refused, refuse] = useRefusal();
+  return (
+    <div
+      key={refused}
+      class={`offer small abs ${c.kind}${c.rarity ? ` ${c.rarity}` : ''}${c.reason ? ' blocked' : ''}${refused ? ' refused' : ''}`}
+      style={{ ...rect(r), animationDelay: refused ? '0ms' : `${delay}ms` }}
+      role="button"
+      aria-label={`${c.name}. ${c.rule}${c.reason ? ` ${c.reason}` : ''}`}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={() => pickCard(c.index) || refuse()}
+    >
+      <CardFace c={c} price={null} poor={false} size="small" level={0} />
+    </div>
+  );
+}
+
+/** REROLL ◆n. While a folder is open its cards are the choice on the table, so REROLL waits. */
+function Reroll({ shop, folderOpen }: { shop: ShopView; folderOpen: boolean }): JSX.Element {
+  const [refused, refuse] = useRefusal();
+  const off = folderOpen || !shop.canReroll;
+  const onClick = () => {
+    if (folderOpen) {
+      refuse();
+      showToast('Take a card or SKIP first.', BRIEFING_TOAST);
+      return;
+    }
+    if (!rerollOffers()) refuse();
+  };
+  return (
+    <button key={refused} class={`btn-outline reroll abs${off ? ' poor' : ''}${refused ? ' refused' : ''}`} style={rect(R.reroll)} onClick={onClick}>
+      <span class="btn-title">REROLL</span>
+      <span class={`cost${shop.canReroll ? '' : ' short'}`}>
+        <Funds n={shop.rerollCost} size={9} />
+      </span>
+    </button>
   );
 }
 

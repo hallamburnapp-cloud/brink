@@ -208,6 +208,34 @@ describe('the Briefing', () => {
     expect(got.tray.map((p) => p.id)).toEqual(['RETIRE']);
   });
 
+  it('never sells a folder with no room for its cards, and never rerolls under an open folder', () => {
+    const full = tweak(firstBriefing('FOLDER-FULL', 30), (d) => {
+      d.shop!.folder = { kind: 'recruit', price: 4, contents: ['HOTLINE', 'QM', 'COURIER'], status: 'sealed' };
+      d.staff = (['DUTY', 'HARBOUR', 'SURVEYOR', 'GOVERNOR', 'TREASURER'] as const).map((id, i) => ({ uid: 800 + i, id, count: 0 }));
+    });
+    expect(buyFolder(full)).toMatchObject({ ok: false, reason: 'No free seat. Sell someone first.' });
+    expect(full.funds).toBe(30);
+
+    const trayFull = tweak(firstBriefing('FOLDER-TRAY', 30), (d) => {
+      d.shop!.folder = { kind: 'orders', price: 4, contents: ['ECHO', 'RETIRE', 'AIRLIFT'], status: 'sealed' };
+      d.tray = [
+        { uid: 901, id: 'ECHO' },
+        { uid: 902, id: 'RELAY' },
+      ];
+    });
+    expect(buyFolder(trayFull)).toMatchObject({ ok: false, reason: 'In-tray full. Use or sell a paper first.' });
+
+    const open = must(
+      buyFolder(
+        tweak(firstBriefing('FOLDER-OPEN', 30), (d) => {
+          d.shop!.folder = { kind: 'recruit', price: 4, contents: ['HOTLINE', 'QM', 'COURIER'], status: 'sealed' };
+        }),
+      ),
+    );
+    expect(reroll(open)).toMatchObject({ ok: false, reason: 'Take a card or SKIP first.' });
+    expect(must(reroll(must(skipFolder(open)))).funds).toBe(open.funds - open.shop!.rerollCost);
+  });
+
   it('draws Recruit and Orders folders about 50/50 after the first Briefing', () => {
     let recruit = 0;
     for (let i = 0; i < 300; i++) {

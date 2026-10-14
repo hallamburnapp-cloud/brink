@@ -17,9 +17,31 @@ import { paintPlate } from './land';
 import { blurredShape, makeLayer, type Layer } from './static';
 import { drawPulse, drawThread, joinCurve } from './threads';
 
-/** Flashpoint ring start radius (STYLE 5.9: the art's 72 pt) and the cooled ring's radius. */
-export const RING_R0 = 72;
-const RING_COOLED = 13;
+/** The cooled ring's radius (STYLE 5.9): a record of where the night was won. */
+export const RING_COOLED = 13;
+/** Reticle ticks run from r + 3 to r + 8. */
+const TICK_IN = 3;
+const TICK_OUT = 8;
+
+const ringRadii = new Map<RegionId, number>();
+
+/**
+ * The flashpoint ring's radius for a region: it marks that one region, so it hugs its pin. Islands
+ * ring their 24 pt disc; on the mainland it reaches half way to the nearest other pin (22 to 32 pt),
+ * and it always stays inside the plate, clear of the bearing strip.
+ */
+export function ringRadius(id: RegionId): number {
+  let r = ringRadii.get(id);
+  if (r === undefined) {
+    const def = REGION[id];
+    let nearest = Infinity;
+    for (const o of Object.values(REGION)) if (o.id !== id) nearest = Math.min(nearest, Math.hypot(o.x - def.x, o.y - def.y));
+    r = def.island ? 27 : Math.min(32, Math.max(22, nearest / 2));
+    r = Math.min(r, def.x - 4, W - def.x - 4, def.y - 8, H - def.y - 4);
+    ringRadii.set(id, r);
+  }
+  return r;
+}
 
 function regionFill(g: Gfx, id: RegionId, color: string): void {
   g.ctx.fillStyle = color;
@@ -84,23 +106,72 @@ function scanSprite(k: number) {
 
 // ---------------------------------------------------------------- under the threads
 
-/** An armed Order or a long-press highlight: the rest of the table recedes, targets glow. */
+/**
+ * An armed Order, a long-press highlight or a spotlight: the rest of the table recedes a little,
+ * and each valid target breathes (a soft light on its plate and a turning ring round its pin, plus
+ * a linen edge when there are only a few) rather than every border lighting up. Chosen targets
+ * take brass.
+ */
 export function paintTargets(g: Gfx, s: Scene, fadeIn: number): void {
   const valid = s.armed ? new Set(s.armed.valid) : s.highlight;
   if (!valid) return;
+  const { ctx } = g;
   const chosen = new Set(s.armed?.chosen ?? []);
-  const pulse = s.reduced ? 0.7 : 0.55 + 0.45 * Math.sin((s.now / 1100) * Math.PI * 2);
+  const breath = s.reduced ? 0.6 : 0.5 + 0.5 * Math.sin((s.now / 1200) * Math.PI * 2);
   for (const r of s.list) {
-    if (valid.has(r.id) || chosen.has(r.id)) continue;
-    regionFill(g, r.id, css(INK, 0.42 * fadeIn));
+    if (valid.has(r.id) || chosen.has(r.id) || r.status === 'retired') continue;
+    regionFill(g, r.id, css(INK, 0.15 * fadeIn));
   }
+  // An edge marks a few targets well; on many it would turn the borders into a wireframe.
+  const edges = valid.size <= 8;
   for (const id of valid) {
     if (chosen.has(id)) continue;
-    innerGlow(g, id, (a) => css(LINEN, Math.min(1, a * (0.45 + 0.4 * pulse) * fadeIn)), 2.5, 4);
+    regionFill(g, id, css(LINEN, (0.04 + 0.05 * breath) * fadeIn));
+    if (edges) innerGlow(g, id, (a) => css(LINEN, Math.min(0.85, a * (0.5 + 0.35 * breath)) * fadeIn), 2, 3);
+    // A few targets get a slowly turning dashed ring round the pin, linen over a dark rim so it
+    // reads on a bright lit plate as well as a dark one; many targets get a quiet thin ring.
+    const def = REGION[id];
+    const ring = (r: number) => {
+      ctx.beginPath();
+      ctx.arc(def.x, def.y, r, 0, Math.PI * 2);
+      ctx.stroke();
+    };
+    ctx.save();
+    if (edges) {
+      ctx.strokeStyle = css(INK, 0.45 * fadeIn);
+      ctx.lineWidth = 2.8;
+      ring(17 + 1.5 * breath);
+      ctx.setLineDash([4, 3]);
+      ctx.lineDashOffset = s.reduced ? 0 : -s.now / 60;
+      ctx.strokeStyle = css(LINEN, (0.6 + 0.35 * breath) * fadeIn);
+      ctx.lineWidth = 1.3;
+      ring(17 + 1.5 * breath);
+    } else {
+      ctx.strokeStyle = css(LINEN, (0.35 + 0.25 * breath) * fadeIn);
+      ctx.lineWidth = 1;
+      ring(11 + breath);
+    }
+    ctx.restore();
   }
   for (const id of chosen) {
     regionFill(g, id, css(BRASS.hi, 0.12 * fadeIn));
-    innerGlow(g, id, (a) => css(BRASS.a, Math.min(1, a * 0.95 * fadeIn)), 3.5, 4);
+    innerGlow(g, id, (a) => css(BRASS.a, Math.min(1, a * 0.95 * fadeIn)), 3, 4);
+  }
+}
+
+/** A deal: each region warms up from dark as its lamp comes on, with a glow off its pin. */
+export function paintLightUps(g: Gfx, s: Scene): void {
+  const { ctx } = g;
+  for (const r of s.list) {
+    if (r.warm >= 1 || r.status !== 'lit') continue;
+    regionFill(g, r.id, css(INK, 0.7 * (1 - r.warm)));
+    const glow = ctx.createRadialGradient(r.def.x, r.def.y, 2, r.def.x, r.def.y, 26);
+    glow.addColorStop(0, `rgba(255,240,210,${(0.55 * Math.sin(Math.PI * r.warm)).toFixed(3)})`);
+    glow.addColorStop(1, 'rgba(255,240,210,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(r.def.x, r.def.y, 26, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 
@@ -301,9 +372,11 @@ export function paintPulses(g: Gfx, s: Scene, fx: FxState): void {
 }
 
 /**
- * The flashpoint ring (STYLE 5.9): radius = ring x 72 pt, 2 pt alarm red with a glow, four reticle
- * ticks and a soft inner bloom. It breathes slowly while live. Once the crisis is cleared and the
- * collapse has finished, a cooled blue ring stays at 13 pt.
+ * The flashpoint ring (STYLE 5.9): 2 pt alarm red with a glow and four reticle ticks, hugging its
+ * region (ringRadius). Its arc is the crisis's progress bar: it starts whole at the top and empties
+ * clockwise as the total climbs (the spent part stays as a faint track), so it never grows over a
+ * neighbour. Once the flashpoint itself is swept it dims to 40%. On a clear it closes in to the
+ * cooled ring and turns blue; the cooled ring stays at 13 pt.
  */
 export function paintFlashpoint(g: Gfx, s: Scene, fx: FxState): void {
   const id = s.flashpoint;
@@ -313,43 +386,67 @@ export function paintFlashpoint(g: Gfx, s: Scene, fx: FxState): void {
   const out = fx.lightsOut ? clamp01((s.now - fx.lightsOut.start) / fx.lightsOut.dur) : 0;
   if (out >= 1) return;
   const def = REGION[id];
-  const cooled = s.cooled;
-  const rad = cooled ? RING_COOLED : s.ring * RING_R0;
-  if (rad <= 0.2) return;
-  const col: RGB = cooled ? STANDBY : ALARM;
-  const breath = s.reduced || cooled ? 0.5 : 0.5 + 0.5 * Math.sin((s.now / 1800) * Math.PI * 2);
+  const r0 = ringRadius(id);
   ctx.save();
   ctx.globalAlpha = 1 - out;
-  if (!cooled) {
-    const grad = ctx.createRadialGradient(def.x, def.y, rad * 0.4, def.x, def.y, rad + 8);
-    grad.addColorStop(0, css(ALARM, 0));
-    grad.addColorStop(0.8, css(ALARM, 0.12 + 0.08 * breath));
-    grad.addColorStop(1, css(ALARM, 0));
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(def.x, def.y, rad + 8, 0, Math.PI * 2);
-    ctx.fill();
+  if (s.collapse !== null || s.cooled) {
+    const p = s.collapse === null ? 1 : easeInOut(s.collapse);
+    ringShape(g, def.x, def.y, lerp(r0, RING_COOLED, p), mix(STANDBY, ALARM, p), 1, p >= 1 ? 0.5 : 1 - 0.5 * p, 1 - p);
+    ctx.restore();
+    return;
   }
-  const circle = () => {
-    ctx.beginPath();
-    ctx.arc(def.x, def.y, rad, 0, Math.PI * 2);
-    ctx.stroke();
-  };
-  glowStroke(ctx, circle, (a) => css(col, Math.min(1, a * (1.3 + 0.6 * breath))), 2, (6 + 4 * breath) / 3);
-  ctx.strokeStyle = css(col);
-  ctx.lineWidth = 2;
-  circle();
-  ctx.strokeStyle = css(col, 0.95);
-  ctx.lineWidth = 1.5;
+  const breath = s.reduced ? 0.5 : 0.5 + 0.5 * Math.sin((s.now / 1800) * Math.PI * 2);
+  if (s.flashpointSpent) ctx.globalAlpha *= 0.4;
+  // A faint bloom inside the ring only: neighbours are never tinted.
+  const grad = ctx.createRadialGradient(def.x, def.y, r0 * 0.45, def.x, def.y, r0);
+  grad.addColorStop(0, css(ALARM, 0));
+  grad.addColorStop(1, css(ALARM, (0.06 + 0.04 * breath) * s.ring));
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(def.x, def.y, r0, 0, Math.PI * 2);
+  ctx.fill();
+  ringShape(g, def.x, def.y, r0, ALARM, s.ring, breath, 1);
+  ctx.restore();
+}
+
+/**
+ * A ring of radius `rad` whose arc covers `share` of the circle from the top, clockwise, over a
+ * faint full track; `glow` 0..1 breathes the glow; `ticks` 0..1 fades the reticle ticks.
+ */
+function ringShape(g: Gfx, x: number, y: number, rad: number, col: RGB, share: number, glow: number, ticks: number): void {
+  const { ctx } = g;
+  const top = -Math.PI / 2;
   ctx.lineCap = 'round';
+  ctx.strokeStyle = css(col, 0.22);
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(x, y, rad, 0, Math.PI * 2);
+  ctx.stroke();
+  if (share > 0.002) {
+    const arc = () => {
+      ctx.beginPath();
+      ctx.arc(x, y, rad, top, top + Math.PI * 2 * Math.min(1, share));
+      ctx.stroke();
+    };
+    glowStroke(ctx, arc, (a) => css(col, Math.min(1, a * (1.3 + 0.6 * glow))), 2, (6 + 4 * glow) / 3);
+    ctx.strokeStyle = css(col);
+    ctx.lineWidth = 2;
+    arc();
+  }
+  if (ticks <= 0) return;
+  ctx.strokeStyle = css(col, 0.95 * ticks);
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
   for (let i = 0; i < 4; i++) {
     const a = (i * Math.PI) / 2;
-    ctx.moveTo(def.x + Math.cos(a) * (rad + 3), def.y + Math.sin(a) * (rad + 3));
-    ctx.lineTo(def.x + Math.cos(a) * (rad + 8), def.y + Math.sin(a) * (rad + 8));
+    const ox = x + Math.cos(a) * (rad + TICK_OUT);
+    const oy = y + Math.sin(a) * (rad + TICK_OUT);
+    // A tick that would leave the plate (or run under the bearing strip) is left out.
+    if (ox < 2 || ox > W - 2 || oy < 10 || oy > H - 2) continue;
+    ctx.moveTo(x + Math.cos(a) * (rad + TICK_IN), y + Math.sin(a) * (rad + TICK_IN));
+    ctx.lineTo(ox, oy);
   }
   ctx.stroke();
-  ctx.restore();
 }
 
 /** Where the scan line is right now (it snaps back on AGAIN). */
@@ -415,6 +512,23 @@ export function paintStampPulses(g: Gfx, s: Scene, fx: FxState): void {
       }
       ctx.restore();
     }
+  }
+}
+
+/** A brass pin has landed: a brass ring spreads from the tack (left of the pin) and fades. */
+export function paintRipples(g: Gfx, fx: FxState, now: number): void {
+  const { ctx } = g;
+  for (const e of fx.ripples) {
+    if (now < e.start) continue;
+    const p = progress(e, now);
+    const r = REGION[e.id];
+    ctx.save();
+    ctx.strokeStyle = css(BRASS.hi, 0.9 * (1 - p));
+    ctx.lineWidth = 1.6 * (1 - p) + 0.4;
+    ctx.beginPath();
+    ctx.arc(r.x - 14.5, r.y + 2, 5 + 22 * easeOut(p), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
   }
 }
 
@@ -507,15 +621,27 @@ export function paintPops(g: Gfx, s: Scene, fx: FxState): void {
   }
 }
 
-/** Slam at r >= 10: the whole table flashes in the top region's colour. */
+/**
+ * Slam at r >= 10: light blooms out of the top region's pin across the table in its colour, fast
+ * (120 ms to reach the far edge) and decaying, added on top so the plates and sea stay readable.
+ */
 export function paintMapFlash(g: Gfx, s: Scene, fx: FxState): void {
   const f = fx.mapFlash;
   if (!f) return;
-  const p = progress(f, s.now);
+  const el = s.now - f.start;
+  if (el < 0) return;
   const { ctx } = g;
+  const reach = 90 + 420 * easeOut(clamp01(el / (f.dur * 0.2)));
+  const level = Math.min(1, el / (f.dur * 0.07)) * Math.exp(-el / (f.dur * 0.3));
+  if (level < 0.01) return;
+  const tint = mix(f.rgb, WHITE, 0.45);
   ctx.save();
-  ctx.globalCompositeOperation = 'screen';
-  ctx.fillStyle = css(mix(f.rgb, WHITE, 0.85), 0.75 * Math.pow(1 - p, 1.6));
+  ctx.globalCompositeOperation = 'lighter';
+  const grad = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, reach);
+  grad.addColorStop(0, css(tint, 0.6 * level));
+  grad.addColorStop(0.35, css(tint, 0.26 * level));
+  grad.addColorStop(1, css(tint, 0));
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
   ctx.restore();
 }

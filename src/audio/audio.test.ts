@@ -32,6 +32,10 @@ const ALL: Sfx[] = [
   'accident_clear',
   'capital',
   'retrigger',
+  'flap',
+  'stamp',
+  'pin',
+  'thump',
 ];
 
 function stubStorage(initial: Record<string, string> = {}): Map<string, string> {
@@ -99,6 +103,9 @@ describe('audio without an AudioContext', () => {
       audio.setVolume(7);
       audio.setMuted(true);
       audio.setMuted(false);
+      audio.suspend();
+      audio.play('tick');
+      audio.resume();
     }).not.toThrow();
     expect(audio.isMuted()).toBe(false);
     expect(vi.getTimerCount()).toBe(0);

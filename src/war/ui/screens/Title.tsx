@@ -16,7 +16,11 @@ import { mapViewOf, NO_EXTRAS } from '../table/view';
 
 const WORD: FlapStyle = { w: 50, h: 72, size: 60, gap: 5, sep: 10, skin: 'steel' };
 
-export function Title(): JSX.Element {
+/**
+ * `leaving`: the war room is already mounted underneath (the title is its curtain until the table
+ * has drawn); `lifting`: the curtain fades away.
+ */
+export function Title({ leaving = false, lifting = false }: { leaving?: boolean; lifting?: boolean }): JSX.Element {
   const [word, setWord] = useState(' '.repeat(BRAND.name.length));
   const [muted, setMuted] = useState(audio.isMuted());
   useEffect(() => {
@@ -26,7 +30,7 @@ export function Title(): JSX.Element {
   const first = !prefs.value.playedFirstNight;
 
   return (
-    <div class="title-screen">
+    <div class={`title-screen${leaving ? ' leaving' : ''}${lifting ? ' lifting' : ''}`} aria-hidden={leaving ? 'true' : undefined}>
       <TitleMap />
       <div class="title-veil" />
       <div class="title-board abs">
@@ -40,7 +44,7 @@ export function Title(): JSX.Element {
         </div>
         <div class="title-kicker">THE WAR-ROOM ROGUELIKE</div>
       </div>
-      <p class="premise abs">Each crisis lights eight regions. Pin the shape that holds them, and hold the world until dawn.</p>
+      <p class="premise abs">Each crisis lights eight regions. Pin the shape that holds them, and hold until 01:00: three hours, nine crises.</p>
 
       <div class="orders-card abs">
         <div class="oc-head">
@@ -50,16 +54,16 @@ export function Title(): JSX.Element {
         <ol>
           <li>
             <b>PIN</b>
-            <span>Tap lit regions, up to 5. Pins that touch join up.</span>
+            <span>Tap lit regions, up to 5. Neighbours join: by border, bridge or sea lane.</span>
           </li>
           <li>
             <b>SHAPE</b>
-            <span>The shape they make is the pattern. Bigger shapes score far more.</span>
+            <span>The shape they make is the pattern. Bigger shapes multiply.</span>
           </li>
           <li>
             <b>SWEEP</b>
             <span>
-              <i class="c-inf-ink">Influence</i> × <i class="c-mom-ink">Momentum</i> must reach the target in 4 sweeps.
+              <i class="c-inf-ink">Influence</i> × <i class="c-mom-ink">Momentum</i> must reach the target in 4&nbsp;sweeps, or the world tips.
             </span>
           </li>
         </ol>
@@ -84,7 +88,7 @@ export function Title(): JSX.Element {
       </button>
       <button class="btn-outline title-sand abs" style={{ left: '199px' }} onClick={() => startSandbox('mid')}>
         <span class="btn-title">MID SHIFT</span>
-        <span class="btn-sub">01:00 · three staff</span>
+        <span class="btn-sub">a desk of three staff</span>
       </button>
       <div class="title-foot abs">
         <button
@@ -139,6 +143,8 @@ const TITLE_THREADS = [
 /** The plotting table behind the title: a night already in play, quietly glowing. */
 function TitleMap(): JSX.Element {
   const canvas = useRef<HTMLCanvasElement>(null);
+  // The lamp comes on once the table has drawn: it fades in, never pops in after a dark hole.
+  const [lit, setLit] = useState(false);
   useEffect(() => {
     const c = canvas.current!;
     const map = createMap(c, { reducedMotion: true, speed: 1 }) as MapControllerPlus;
@@ -147,10 +153,15 @@ function TitleMap(): JSX.Element {
       Object.entries(view.regions).map(([id, r]) => [id, { ...r, status: TITLE_LIT.has(id) ? ('lit' as const) : ('dark' as const) }]),
     );
     map.update({ ...view, regions, threads: TITLE_THREADS, flashpoint: null });
-    return () => map.destroy();
+    let live = true;
+    void map.ready().then(() => live && setLit(true));
+    return () => {
+      live = false;
+      map.destroy();
+    };
   }, []);
   return (
-    <div class="title-map abs">
+    <div class={`title-map abs${lit ? ' lit' : ''}`}>
       <canvas ref={canvas} style={{ width: '390px', height: '520px' }} aria-hidden="true" />
     </div>
   );

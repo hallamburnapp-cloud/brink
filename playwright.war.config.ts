@@ -11,7 +11,8 @@ import { existsSync } from 'node:fs';
  * Only Chromium is configured: it is the one browser installed in this sandbox. The determinism
  * test is written to run unchanged under WebKit and Firefox projects when those are available.
  */
-const PORT = 4180;
+// WAR_E2E_PORT picks another port when 4180 is taken (another server, a parallel run).
+const PORT = Number(process.env.WAR_E2E_PORT ?? 4180);
 const DEV = process.env.WAR_E2E_DEV === '1';
 const OUT = 'dist-war-e2e';
 // Local sandboxes may carry a pre-installed Chromium at a fixed path; CI installs its own.

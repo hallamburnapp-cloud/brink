@@ -3,8 +3,8 @@
  * balloon in the Briefing (USE / SELL), the Summit chip's rule, and the one-line refusals.
  */
 import type { JSX } from 'preact';
-import { boardLabels, seatViews, trayViews, type RunState } from '../../engine';
-import { STAFF_DEF, type StaffId } from '../../content/staff';
+import { boardLabels, seatViews, trayViews, twistInForce, type RunState } from '../../engine';
+import { STAFF_DEF, type StaffId, type StaffTiming } from '../../content/staff';
 import { armSlot, sellSeat, sellTray } from '../app/actions';
 import { balloon, toast } from '../app/store';
 import { clampBalloonX, R, SEAT_X, SEAT_W } from '../common/layout';
@@ -21,6 +21,10 @@ export function Balloons({ s }: { s: RunState }): JSX.Element | null {
 function stop(e: Event): void {
   e.stopPropagation();
 }
+
+const ORDINAL = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh'];
+/** Staff whose turn comes in seat order during a sweep (rule and on-clear staff never take a turn). */
+const FIRES_IN_ORDER = new Set<StaffTiming>(['pin', 'desk', 'again', 'standby', 'copy']);
 
 function SeatBalloon({ s, seat }: { s: RunState; seat: number }): JSX.Element | null {
   const v = seatViews(s)[seat];
@@ -41,7 +45,14 @@ function SeatBalloon({ s, seat }: { s: RunState; seat: number }): JSX.Element | 
         <RuleText rule={v.rule} />
         {v.id === 'DEPUTY' && <span class="b-note">{copies ? ` Now copying the ${copies}.` : ' Nothing to its right to copy.'}</span>}
         {v.id === 'OLDHAND' && <span class="b-note"> Count: {v.count}.</span>}
+        {v.id === 'FERRY' && twistInForce(s)?.kind === 'GRIDLOCK' && <span class="b-note alarm"> Off duty under GRIDLOCK.</span>}
       </div>
+      {s.staff.length > 1 && (
+        <div class="b-drag">
+          {FIRES_IN_ORDER.has(STAFF_DEF[v.id as StaffId].timing) ? `Fires ${ORDINAL[seat]}.` : `Seat ${seat + 1}.`} Hold a seat and drag to
+          reorder.
+        </div>
+      )}
       {canSell && (
         <button class="mini-btn brass-mini sell" onClick={() => sellSeat(seat)}>
           SELL <Funds n={v.sell} size={8} />

@@ -80,7 +80,7 @@ const ROWS: Row[] = [
   [
     'AIRLIFT',
     'AIRLIFT',
-    'During a crisis, pin 1 unlit region. It counts towards your 5.',
+    'Crisis only: pin 1 unlit region. It counts towards your 5.',
     'a white pin',
     'unlit',
     1,

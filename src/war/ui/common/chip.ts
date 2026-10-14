@@ -8,7 +8,11 @@ import type { StaffId } from '../../content/staff';
 export type ChipTone = 'inf' | 'mom' | 'funds' | 'plain' | 'muted';
 export type GlyphChar = 'anchor' | 'star' | 'diamond' | 'atMost';
 
-export type ChipPart = { text: string; tone: ChipTone } | { glyph: GlyphChar; tone: ChipTone };
+/**
+ * A run of chip text, a glyph, or a unit letter: the I (Influence) or M (Momentum) after a number,
+ * set small and raised so '+30I' never reads as '+301' and '+4M' never as four million.
+ */
+export type ChipPart = { text: string; tone: ChipTone } | { glyph: GlyphChar; tone: ChipTone } | { unit: 'I' | 'M'; tone: ChipTone };
 
 const GLYPH_OF: Record<string, GlyphChar> = { '⚓': 'anchor', '★': 'star', '◆': 'diamond', '≤': 'atMost' };
 
@@ -48,6 +52,11 @@ export function parseChip(chip: string, tone: ChipTone): ChipPart[] {
   for (const ch of Array.from(chip)) {
     if (ch === '·' || ch === '≤') qualifier = true;
     const t: ChipTone = qualifier ? 'muted' : tone;
+    if ((ch === 'I' || ch === 'M') && /\d$/.test(run)) {
+      flush();
+      parts.push({ unit: ch, tone: t });
+      continue;
+    }
     const g = GLYPH_OF[ch];
     if (g) {
       flush();
@@ -81,4 +90,20 @@ export function parseRich(s: string): RichPart[] {
   }
   if (run) out.push({ text: run });
   return out;
+}
+
+/** A coach line's runs: '*starred*' words are emphasised (typed in stamp ink). */
+export function emphasis(text: string): Array<{ text: string; em: boolean }> {
+  return text
+    .split('*')
+    .map((t, i) => ({ text: t, em: i % 2 === 1 }))
+    .filter((p) => p.text);
+}
+
+/**
+ * A rule with its map terms marked: 'Port' and 'Capital' get the anchor and the star the map
+ * draws beside those regions' numbers, so the word points at what to look for.
+ */
+export function markTerms(rule: string): string {
+  return rule.replace(/\b(Ports?|Capitals?)\b(?!\u2009[⚓★])/g, (w) => `${w}\u2009${w.startsWith('Port') ? '⚓' : '★'}`);
 }

@@ -50,12 +50,6 @@ export function centre(r: Rect): { x: number; y: number } {
   return { x: r[0] + r[2] / 2, y: r[1] + r[3] / 2 };
 }
 
-/** Where a staff's icon sits (the fling starts there). */
-export function seatCentre(seat: number): { x: number; y: number } {
-  const x = SEAT_X[Math.max(0, Math.min(SEAT_X.length - 1, seat))];
-  return { x: x + SEAT_W / 2, y: SEAT_Y + 24 };
-}
-
 /** Which seat slot a dragged seat's centre x falls in. */
 export function slotAt(centreX: number, count: number): number {
   let best = 0;
@@ -86,16 +80,25 @@ export function clampBalloonX(centreX: number, w: number): number {
  * Uniform scale that fits the frame in a window, plus the frame's top-left. The status band
  * (0-47) and the home band (807-844) are the frame's own safe areas; if the device's insets are
  * larger than those bands at this scale, the frame shrinks to keep the war room clear of them.
+ * On a desktop (`desk`) there is no OS chrome to clear: the live area alone (47-807) is fitted,
+ * with a margin of room around it, and the bands fall outside the console's edge.
  */
 export function fitFrame(
   winW: number,
   winH: number,
   insets: { top: number; bottom: number; left: number; right: number } = { top: 0, bottom: 0, left: 0, right: 0 },
+  desk = false,
 ): { scale: number; left: number; top: number } {
-  const availW = Math.max(1, winW - insets.left - insets.right);
-  let scale = Math.min(availW / FRAME_W, winH / FRAME_H);
   const topBand = R.safeTop[3];
   const bottomBand = R.home[3];
+  if (desk) {
+    const liveH = FRAME_H - topBand - bottomBand;
+    const margin = Math.max(12, Math.min(28, winH * 0.025));
+    const s = Math.max(0.1, Math.min((winW - 2 * margin) / FRAME_W, (winH - 2 * margin) / liveH));
+    return { scale: s, left: (winW - FRAME_W * s) / 2, top: (winH - liveH * s) / 2 - topBand * s };
+  }
+  const availW = Math.max(1, winW - insets.left - insets.right);
+  let scale = Math.min(availW / FRAME_W, winH / FRAME_H);
   // The live area (47..807) must clear the insets.
   const live = FRAME_H - topBand - bottomBand;
   const need = (s: number) => Math.max(insets.top - topBand * s, 0) + Math.max(insets.bottom - bottomBand * s, 0);

@@ -149,7 +149,7 @@ describe('Orders', () => {
     expect(lifted.crisis.pile).toContain('PBB');
     const swapped = must(swap(pinAll(s, ['ICW'])));
     expect(swapped.crisis.pins).toEqual(['PBB']);
-    expect(swap(s)).toMatchObject({ ok: false, reason: 'Select lit regions to swap.' });
+    expect(swap(s)).toMatchObject({ ok: false, reason: 'Pin the regions you want to swap out.' });
     const b = briefingWith('AIRLIFT');
     expect(armOrder(b, 0)).toMatchObject({ ok: false, reason: 'AIRLIFT works only during a crisis.' });
     expect(useOrder(b, 0, ['PBB'])).toMatchObject({ ok: false, reason: 'AIRLIFT works only during a crisis.' });

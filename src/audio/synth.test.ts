@@ -131,6 +131,12 @@ class FakeAudioContext {
     this.state = 'running';
     return Promise.resolve();
   }
+  suspended = 0;
+  suspend(): Promise<void> {
+    this.suspended++;
+    this.state = 'suspended';
+    return Promise.resolve();
+  }
   createGain(): FakeGain {
     return this.make(new FakeGain());
   }
@@ -181,6 +187,10 @@ const ALL: Sfx[] = [
   'accident_clear',
   'capital',
   'retrigger',
+  'flap',
+  'stamp',
+  'pin',
+  'thump',
 ];
 
 async function boot() {
@@ -286,6 +296,26 @@ describe('audio against a fake AudioContext', () => {
     }
     const oscs = sources.filter((s): s is FakeOsc => s instanceof FakeOsc);
     expect(oscs.map((o) => o.frequency.value)).toContain(55);
+  });
+
+  it('suspend() in the background silences the context and drops one-shots until resume()', async () => {
+    const { audio } = await boot();
+    audio.unlock();
+    const c = ctx();
+    audio.suspend();
+    expect(c.state).toBe('suspended');
+    expect(c.suspended).toBe(1);
+    const before = c.created.length;
+    audio.play('commit');
+    // A one-shot while hidden neither sounds nor wakes the context.
+    expect(c.created.length).toBe(before);
+    expect(c.state).toBe('suspended');
+    audio.unlock();
+    expect(c.state).toBe('suspended');
+    audio.resume();
+    expect(c.state).toBe('running');
+    audio.play('commit');
+    expect(c.created.length).toBeGreaterThan(before);
   });
 
   it('drops one-shots while muted and ramps the master to 0 / back', async () => {

@@ -6,7 +6,7 @@ import type { JSX } from 'preact';
 import { useState } from 'preact/hooks';
 import { audio } from '../../../audio';
 import { boardLabels, formatShort, patternTable, type RunState } from '../../engine';
-import { PATTERN } from '../../content/patterns';
+import { PATTERN, PATTERNS } from '../../content/patterns';
 import { Glyph } from '../art';
 import { quitToTitle } from '../app/actions';
 import { prefs, reduced, screen, setPrefs, sheet } from '../app/store';
@@ -117,6 +117,12 @@ function Menu(): JSX.Element {
         <Glyph name="arrow" size={10} />
       </button>
       {inGame && (
+        <button class="row-btn" onClick={() => (sheet.value = 'runinfo')}>
+          <span>PATTERNS AND LEVELS</span>
+          <Glyph name="arrow" size={10} />
+        </button>
+      )}
+      {inGame && (
         <button class="row-btn alarm" onClick={() => (sheet.value = 'quit')}>
           <span>QUIT TO TITLE</span>
           <Glyph name="home" size={14} />
@@ -132,7 +138,7 @@ function QuitConfirm(): JSX.Element {
       <div class="sheet-title">QUIT THIS NIGHT?</div>
       <p class="sheet-line">The run ends here. Nothing is saved.</p>
       <div class="confirm-row">
-        <button class="btn-outline" onClick={() => (sheet.value = 'menu')}>
+        <button class="btn-outline" onClick={() => (sheet.value = null)}>
           <span class="btn-title">STAY</span>
         </button>
         <button class="btn-outline alarm" onClick={quitToTitle}>
@@ -184,16 +190,15 @@ function RunInfo({ s }: { s: RunState }): JSX.Element {
             BEST SWEEP <b>{PATTERN[best.pattern].name}</b> <span class="num">{formatShort(best.leverage, 9)}</span>
           </span>
         ) : (
-          <span>The highest pattern your pins make is the one that scores.</span>
+          <span>Your pins score as their best pattern: the biggest Influence × Momentum.</span>
         )}
       </div>
     </div>
   );
 }
 
-/** How to play: three steps and the ladder. */
+/** How to play: three steps, then every public rung of the ladder with the shape it takes. */
 export function HowTo({ onClose }: { onClose: () => void }): JSX.Element {
-  const ladder = ['SINGLE', 'LINK', 'CHAIN', 'FRONT', 'SURROUND', 'NETWORK', 'BLOC'] as const;
   return (
     <div class="sheet howto" onClick={stop} role="dialog" aria-label="How to play">
       <div class="sheet-head">
@@ -204,36 +209,35 @@ export function HowTo({ onClose }: { onClose: () => void }): JSX.Element {
       </div>
       <ol class="steps">
         <li>
-          <b>Pin lit regions.</b> Each crisis lights 8 regions. Tap up to 5. Pins that touch join up.
+          <b>Pin lit regions.</b> Each crisis lights 8. Tap up to 5. Neighbours join: by border, bridge or sea lane.
         </li>
         <li>
-          <b>Make a shape.</b> The shape is the pattern. Bigger shapes score far more.
+          <b>Make a shape.</b> The shape is the pattern. Bigger shapes multiply.
         </li>
         <li>
           <b>Sweep.</b> <span class="c-inf">Influence</span> × <span class="c-mom">Momentum</span> adds to your total. Reach the
-          target within 4 sweeps. Hire staff between crises; they fire left to right.
+          target in 4 sweeps, or the world tips and the night ends. Staff fire seat 1 to 5: hold one and drag to reorder.
         </li>
       </ol>
       <div class="mini-ladder">
-        {ladder.map((id) => {
-          const p = PATTERN[id];
-          return (
-            <div key={id} class="mini-rung">
-              <span class="rung-name">{p.name}</span>
-              <span class="rung-val num">
-                <span class="c-inf">{p.baseInfluence}</span>
-                <span class="c-muted"> × </span>
-                <span class="c-mom">{p.baseMomentum}</span>
-              </span>
-            </div>
-          );
-        })}
+        {PATTERNS.filter((p) => !p.secret).map((p) => (
+          <div key={p.id} class="mini-rung">
+            <span class="rung-name">{p.name}</span>
+            <span class="rung-val num">
+              <span class="c-inf">{p.baseInfluence}</span>
+              <span class="c-muted"> × </span>
+              <span class="c-mom">{p.baseMomentum}</span>
+            </span>
+            <span class="rung-shape">{p.shape}</span>
+          </div>
+        ))}
         <div class="mini-rung secret">
           <span class="rung-name">??? · ???</span>
           <span class="rung-val num c-muted">two secrets</span>
+          <span class="rung-shape">Found by redrawing the map.</span>
         </div>
       </div>
-      <p class="sheet-line">Hold the world together from 22:00 until 01:00. Miss a target and it tips.</p>
+      <p class="sheet-line">Hold until 01:00: three hours, nine crises.</p>
     </div>
   );
 }

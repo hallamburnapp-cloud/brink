@@ -23,11 +23,13 @@ import {
   paintFlashpoint,
   paintInk,
   paintLightsOut,
+  paintLightUps,
   paintLiveThreads,
   paintMapFlash,
   paintPops,
   paintPulses,
   paintRinged,
+  paintRipples,
   paintScan,
   paintScanCursor,
   paintShockwave,
@@ -74,6 +76,43 @@ export interface MapDevHooks {
   stats(): { frames: number; bakes: number; lastFrameMs: number; lastBakeMs: number };
 }
 
+/**
+ * The layers that never change at a given backing scale (sea, terrain, glass) are shared by every
+ * controller: the title's table bakes them, and the game's table, mounted next, draws at once.
+ */
+interface StaticLayers {
+  base: Layer;
+  terrain: Layer;
+  glass: Layer;
+}
+const staticLayers = new Map<number, StaticLayers>();
+
+function staticAt(k: number): StaticLayers {
+  const key = Math.round(k * 100);
+  let l = staticLayers.get(key);
+  if (!l) {
+    const base = makeLayer(k);
+    paintSea(base);
+    const terrain = makeLayer(k);
+    paintTerrain(terrain);
+    const glass = makeLayer(k);
+    paintGlass(glass);
+    // One scale at a time: a resize to a new scale drops the old bake.
+    staticLayers.clear();
+    l = { base, terrain, glass };
+    staticLayers.set(key, l);
+  }
+  return l;
+}
+
+/** A face arrived after the glass was baked: its bearing strip has text, so bake it again. */
+function rebakeGlass(k: number): Layer {
+  const l = staticAt(k);
+  l.glass = makeLayer(k);
+  paintGlass(l.glass);
+  return l.glass;
+}
+
 const IDLE_FPS = 15;
 const FINGER_FPS = 30;
 /** Crossfade when the view changes the land (a region lighting up or going spent). */
@@ -97,7 +136,7 @@ const EMPTY_VIEW: MapViewPlus = {
 export function createMapController(
   canvas: HTMLCanvasElement,
   opts: CreateMapOptions,
-  deps: ControllerDeps = { clock: realClock, maxScale: 3 },
+  deps: ControllerDeps = { clock: realClock, maxScale: 4 },
 ): MapControllerPlus & MapDevHooks {
   const { clock } = deps;
   const ctx = canvas.getContext('2d')!;
@@ -151,12 +190,7 @@ export function createMapController(
     canvas.height = Math.round(H * k);
     if (!canvas.style.width) canvas.style.width = `${W}px`;
     if (!canvas.style.height) canvas.style.height = `${H}px`;
-    base = makeLayer(k);
-    paintSea(base);
-    terrain = makeLayer(k);
-    paintTerrain(terrain);
-    glass = makeLayer(k);
-    paintGlass(glass);
+    ({ base, terrain, glass } = staticAt(k));
     land = makeLayer(k);
     landPrev = makeLayer(k);
     landSig = null;
@@ -217,6 +251,12 @@ export function createMapController(
     const now = clock.now();
     const busy = fx.prune(now);
     ensureScale();
+    // A region whose turn in the deal has come: repaint just its plate (it warms up in an overlay).
+    for (const l of fx.lightUps.values()) {
+      if (l.applied || now < l.start) continue;
+      l.applied = true;
+      pendingFade ??= 0;
+    }
     const scene = buildScene(view, fx, now, reduced);
     const sig = landSignature(scene);
     const changed = changedRegions(landSig, sig);
@@ -256,6 +296,7 @@ export function createMapController(
 
     const targetsIn = reduced ? 1 : clamp01((now - targetsSince) / 150);
     paintTargets(g, scene, targetsIn);
+    paintLightUps(g, scene);
     paintLightsOut(g, scene, fx);
     paintInk(g, scene, fx);
     paintFlashes(g, scene, fx);
@@ -267,10 +308,14 @@ export function createMapController(
     paintFlashpoint(g, scene, fx);
     paintScan(g, scene, fx);
     paintStampPulses(g, scene, fx);
+    paintRipples(g, fx, now);
     paintShockwave(g, scene, fx);
     paintCableDrag(g, scene);
 
-    if (fx.lightsOut) for (const r of scene.list) r.dimNow *= lightsLeft(fx, r.id, now);
+    for (const r of scene.list) {
+      if (fx.lightsOut) r.dimNow *= lightsLeft(fx, r.id, now);
+      r.dimNow *= r.warm;
+    }
     paintMarkers(g, scene, {
       pinDrop: (id) => {
         const t = fx.pinDrops.get(id);
@@ -330,10 +375,7 @@ export function createMapController(
   /** A face arrived later: the baked bearing strip has text, the rest is drawn each frame. */
   function onFontsChanged(): void {
     if (destroyed || !fontsOk) return;
-    if (glass) {
-      glass = makeLayer(k);
-      paintGlass(glass);
-    }
+    if (glass) glass = rebakeGlass(k);
     requestFrame();
   }
 
@@ -401,7 +443,7 @@ export function createMapController(
         if (!had.has(key)) fx.joinSnaps.set(key, now);
       }
     }
-    // The flashpoint ring shrinks with the total (300 ms) and collapses on a clear; a new crisis resets it at once.
+    // The flashpoint ring's arc empties with the total (300 ms); a new crisis resets it at once.
     const shown = currentRing(now);
     if (next.flashpoint === prev.flashpoint && next.ring < shown - 1e-4 && !reduced) {
       fx.ring = { start: now, dur: 300 / speed, from: shown, to: next.ring };
@@ -425,8 +467,10 @@ export function createMapController(
     return (d ?? fallback) / speed;
   }
 
-  function addPop(text: string, tone: 'influence' | 'momentum' | 'again', x: number, y: number, start: number, dur: number) {
-    fx.pops.push({ text, tone, x, y, start, dur });
+  /** A pop on the map, kept inside the plate (its width estimated from the text). */
+  function addPop(text: string, tone: 'influence' | 'momentum' | 'again', x: number, y: number, start: number, dur: number, key?: string) {
+    const half = (text.length * (tone === 'again' ? 7.2 : 6.8)) / 2 + 3;
+    fx.pops.push({ text, tone, x: Math.min(W - half, Math.max(half, x)), y: Math.max(16, y), start, dur, key });
   }
 
   const controller: MapControllerPlus & MapDevHooks = {
@@ -461,6 +505,24 @@ export function createMapController(
       }
       requestFrame();
     },
+    lightUp(ids, gapMs, delayMs = 0) {
+      if (reduced) return;
+      const now = clock.now() + delayMs / speed;
+      const gap = gapMs / speed;
+      ids.forEach((id, i) => fx.lightUps.set(id, { id, start: now + i * gap, dur: 150 / speed, applied: false }));
+      requestFrame();
+    },
+    collapseRing(d) {
+      if (reduced) return;
+      fx.collapse = { start: clock.now(), dur: ms(d, 300) };
+      requestFrame();
+    },
+    bloom(from, colour, d) {
+      if (reduced) return;
+      const r = REGION[from];
+      fx.mapFlash = { rgb: hex(colour), x: r?.x ?? W / 2, y: r?.y ?? H / 2, start: clock.now(), dur: ms(d, 600) };
+      requestFrame();
+    },
     fx: {
       dimExcept(ids, d) {
         const now = clock.now();
@@ -473,6 +535,7 @@ export function createMapController(
         const same = !!was && !!next && was.size === next.size && [...next].every((id) => was.has(id));
         if (!same) {
           fx.scored.clear();
+          fx.agains.clear();
           fx.lastFlashed = null;
         }
         fx.scoring = next;
@@ -492,13 +555,19 @@ export function createMapController(
         fx.scanX = x;
         fx.scanJumpAt = now;
         fx.scanSnap = reduced ? null : { start: now, dur: 80 / speed, from: from !== null && from !== x ? from : x - 26, to: x };
-        // The AGAIN tag sits above the pin being scored again.
+        // The AGAIN tag sits up and to the left of the pin being scored again ('+w' rises straight
+        // up, a stamp pops to the right), counting up when the same pin goes again.
         const id =
           fx.lastFlashed && REGION[fx.lastFlashed].x === x
             ? fx.lastFlashed
             : [...(fx.scoring ?? [])].sort((a, b) => Math.abs(REGION[a].x - x) - Math.abs(REGION[b].x - x))[0];
         const r = id ? REGION[id] : null;
-        addPop('AGAIN', 'again', r ? r.x : x, r ? r.y - 18 : 30, now, 640 / speed);
+        const count = id ? (fx.agains.get(id) ?? 0) + 1 : 1;
+        if (id) {
+          fx.agains.set(id, count);
+          fx.pops = fx.pops.filter((p) => !(p.tone === 'again' && p.key === id));
+        }
+        addPop(count > 1 ? `AGAIN ×${count}` : 'AGAIN', 'again', r ? r.x - 34 - (count > 1 ? 10 : 0) : x, r ? r.y - 13 : 30, now, 700 / speed, id ?? undefined);
         requestFrame();
       },
       flash(id) {
@@ -518,8 +587,8 @@ export function createMapController(
         fx.stampPulses.push({ id, start: now, dur: 360 / speed });
         const stamp = view.regions[id]?.stamp;
         const r = REGION[id];
-        if (stamp === 'FORTIFY') addPop('+20', 'influence', r.x, r.y - 19, now, 600 / speed);
-        if (stamp === 'RELAY') addPop('×1.5', 'momentum', r.x, r.y - 19, now, 600 / speed);
+        if (stamp === 'FORTIFY') addPop('+20', 'influence', r.x + 32, r.y - 16, now, 600 / speed);
+        if (stamp === 'RELAY') addPop('×1.5', 'momentum', r.x + 34, r.y - 16, now, 600 / speed);
         requestFrame();
       },
       standbyPulse(id) {
@@ -534,7 +603,7 @@ export function createMapController(
       },
       mapFlash(colour, d) {
         if (reduced) return;
-        fx.mapFlash = { rgb: hex(colour), start: clock.now(), dur: ms(d, 600) };
+        fx.mapFlash = { rgb: hex(colour), x: W / 2, y: H / 2, start: clock.now(), dur: ms(d, 600) };
         requestFrame();
       },
       shockwave(from, d) {
@@ -551,6 +620,11 @@ export function createMapController(
         const now = clock.now();
         const dur = 310 / speed;
         fx.drops.push({ id, start: now, dur });
+        // It lands 250 ms in: a brass ripple off the tack, and what it is worth from now on.
+        const landed = now + 250 / speed;
+        fx.ripples.push({ id, start: landed, dur: 420 / speed });
+        const r = REGION[id];
+        if (r) addPop('BRASS +5', 'influence', r.x - 15, r.y - 16, landed, 900 / speed);
         return waitFor(now + dur);
       },
       lightsOut(d) {

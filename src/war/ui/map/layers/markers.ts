@@ -8,14 +8,17 @@ import type { Colour } from '../contract';
 import { GLYPH } from '../data';
 import { anchor, easeIn, FONT_LABEL, FONT_MONO, glyphPath, starPath, text, textWidth, withShadow, type Gfx } from '../draw';
 import {
+  ALARM,
   BLOC,
   BRASS,
   css,
   GOLD,
   HALO,
   hex,
+  INFLUENCE,
   LINEN,
   mix,
+  MOMENTUM,
   PEWTER,
   scale,
   SEA,
@@ -138,6 +141,9 @@ function blit(g: Gfx, l: Layer, x: number, y: number, alpha: number, s = 1): voi
 /** Breathing period for lit heads (ms); each region is offset so the table never pulses in unison. */
 const BREATH_MS = 2600;
 
+/** The breathing ring on a lit region that would join the pins (quicker than the lit breath). */
+const JOIN_BREATH_MS = 1100;
+
 function litHalo(g: Gfx, x: number, y: number, alpha: number, breath: number): void {
   const { ctx } = g;
   const r = 15 + 1.6 * breath;
@@ -210,6 +216,17 @@ function paintBrass(g: Gfx, x: number, y: number, n: number, alpha: number, drop
   }
 }
 
+/** A rounded rectangle path (no roundRect: older Safari). */
+function pill(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
 export interface MarkerTiming {
   /** Pin-drop progress per region (0..1), for pins just pushed in. */
   pinDrop: (id: string) => number | null;
@@ -254,8 +271,19 @@ function paintRegionMarker(g: Gfx, r: RegionVis, s: Scene, t: MarkerTiming): voi
   } else if (r.status === 'lit') {
     if (r.stamp === 'ECHO') blit(g, headSprite(r.colour, g.k), x + 5.5, y - 5, 0.75 * a, 0.92);
     const breath = s.reduced ? 0.5 : 0.5 + 0.5 * Math.sin((s.now / BREATH_MS) * Math.PI * 2 + r.def.index * 1.7);
-    litHalo(g, x, y, a * (r.blackout ? 0.5 : 1), breath);
+    litHalo(g, x, y, a * (r.blackout ? 0.5 : 1) * (r.joinable ? 1.4 : 1), breath);
     blit(g, headSprite(r.colour, g.k), x, y, a * (r.blackout ? 0.7 : 1));
+    // It would join the pins already down: a ring breathes round its head.
+    if (r.joinable) {
+      const jb = s.reduced ? 0.6 : 0.5 + 0.5 * Math.sin((s.now / JOIN_BREATH_MS) * Math.PI * 2);
+      ctx.save();
+      ctx.strokeStyle = css(LINEN, (0.35 + 0.45 * jb) * a);
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(x, y, 11 + 2 * jb, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
   } else if (r.status === 'spent') {
     ctx.save();
     ctx.strokeStyle = css(LINEN, 0.42 * Math.max(a, 0.6));
@@ -288,14 +316,30 @@ function paintRegionMarker(g: Gfx, r: RegionVis, s: Scene, t: MarkerTiming): voi
   const wFont = big ? `800 11px ${FONT_MONO}` : `700 8.5px ${FONT_MONO}`;
   const spent = r.status === 'spent';
   const wA = big ? a : spent ? 0.32 : 0.62 * Math.max(a, 0.5) * (r.blackout ? 0.6 : 1);
-  const label = String(r.def.weight);
+  // While choosing, a pin that will score shows what it adds, in Influence cyan: its number (plus 5
+  // per brass pin) becomes '+10', so choosing a 10 over a 3 reads before the sweep. Loose and
+  // blacked-out pins add nothing and keep the plain number; during a sweep the pops carry it.
+  const adds = held && r.order !== null && !r.loose && !r.blackout && !s.sweeping;
+  const label = adds ? `+${r.def.weight + 5 * r.brass}` : String(r.def.weight);
   text(ctx, label, wx, y + 0.5, {
     font: wFont,
-    color: css(weightInk(r.colour, big), wA),
+    color: adds ? css(INFLUENCE, a) : css(weightInk(r.colour, big), wA),
     align: 'left',
     halo: [`rgba(6,11,17,${0.85 * Math.max(a, 0.4)})`, big ? 3 : 2.4],
   });
   const tagX = wx + textWidth(ctx, label, wFont) + (big ? 5 : 4);
+  // BLACKOUT: the region adds nothing this crisis, so its number is struck out in alarm red.
+  if (r.blackout && big) {
+    ctx.save();
+    ctx.strokeStyle = css(ALARM, 0.95 * a);
+    ctx.lineWidth = 1.6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(wx - 1.5, y + 3.5);
+    ctx.lineTo(tagX - 3, y - 3.5);
+    ctx.stroke();
+    ctx.restore();
+  }
   const tagA = big ? a : spent ? 0.3 : 0.5 * Math.max(a, 0.5) * (r.blackout ? 0.6 : 1);
   if (r.capital) {
     ctx.save();
@@ -312,12 +356,36 @@ function paintRegionMarker(g: Gfx, r: RegionVis, s: Scene, t: MarkerTiming): voi
   }
 
   if (lit) {
-    text(ctx, r.def.name.toUpperCase(), x, y + 15.5, {
-      font: `600 9px ${FONT_LABEL}`,
-      color: css(LINEN, 0.92 * a),
-      halo: [`rgba(6,11,17,${0.8 * a})`, 2.6],
-      tracking: 0.6,
-    });
+    const name = r.def.name.toUpperCase();
+    const nameFont = `600 9px ${FONT_LABEL}`;
+    text(ctx, name, x, y + 15.5, { font: nameFont, color: css(LINEN, 0.92 * a), halo: [`rgba(6,11,17,${0.8 * a})`, 2.6], tracking: 0.6 });
+    // The flashpoint scores twice: say so where the player is looking, beside its name.
+    if (r.id === s.flashpoint && !s.cooled && s.collapse === null) {
+      const nameW = textWidth(ctx, name, nameFont) + 0.6 * name.length;
+      text(ctx, '×2', x + nameW / 2 + 3, y + 15.5, {
+        font: `800 8.5px ${FONT_MONO}`,
+        color: css(MOMENTUM, a),
+        align: 'left',
+        halo: [`rgba(20,10,2,${0.9 * a})`, 2.6],
+      });
+    }
+  }
+
+  // A loose pin is spent by the sweep but scores nothing: it says so where the order badge would be.
+  if (held && r.loose && a > 0.5) {
+    const font = `700 7px ${FONT_LABEL}`;
+    const w = textWidth(ctx, 'LOOSE', font) + 0.8 * 5 + 6;
+    const bx = x - 7 - w;
+    const by = y - 13;
+    ctx.save();
+    ctx.fillStyle = 'rgba(20,24,30,0.92)';
+    pill(ctx, bx, by - 5, w, 10, 2.5);
+    ctx.fill();
+    ctx.strokeStyle = css(PEWTER.base, 0.8);
+    ctx.lineWidth = 0.7;
+    ctx.stroke();
+    ctx.restore();
+    text(ctx, 'LOOSE', bx + w / 2, by + 0.4, { font, color: css(PEWTER.hi, 0.95), tracking: 0.8 });
   }
 
   if (r.order !== null && a > 0.5) {

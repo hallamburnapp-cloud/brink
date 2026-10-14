@@ -17,4 +17,4 @@ export const createMap: CreateMap = (canvas, opts) => createMapController(canvas
 
 export { createMapController, realClock, type Clock, type ControllerDeps, type MapDevHooks } from './controller';
 export type { MapControllerPlus, MapViewExtras, MapViewPlus } from './extensions';
-export { RING_R0 } from './layers/overlays';
+export { RING_COOLED, ringRadius } from './layers/overlays';

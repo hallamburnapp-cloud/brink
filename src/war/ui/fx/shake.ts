@@ -2,7 +2,7 @@
  * Screen shake and haptics. The shake moves the whole war room (not the letterbox): random offsets
  * re-picked every 16 ms, decaying linearly to zero over the shake (STYLE 7). The room also punches
  * in by just enough that an offset never uncovers the frame's edge. Reduced motion never shakes.
- * Haptics go through navigator.vibrate wherever it exists.
+ * Haptics go through navigator.vibrate wherever it exists (not on iOS Safari, which has none).
  */
 import { FRAME_W } from '../common/layout';
 
@@ -56,11 +56,24 @@ export function stopShake(): void {
   if (el) el.style.transform = '';
 }
 
-/** A haptic pulse, where supported. */
-export function buzz(ms: number): void {
+/** Two pulses closer than this would cancel each other: only the stronger one is sent. */
+const BUZZ_COALESCE_MS = 40;
+let lastBuzz = { at: -Infinity, strength: 0 };
+
+/**
+ * A haptic pulse (ms) or pattern (on, off, on... ms), where supported. navigator.vibrate replaces
+ * whatever is still running, so a weaker pulse inside 40 ms of a stronger one is dropped rather
+ * than cutting it short.
+ */
+export function buzz(pattern: number | number[]): void {
+  const now = performance.now();
+  const p = typeof pattern === 'number' ? [pattern] : pattern;
+  const strength = p.reduce((sum, ms, i) => (i % 2 === 0 ? sum + ms : sum), 0);
+  if (now - lastBuzz.at < BUZZ_COALESCE_MS && strength <= lastBuzz.strength) return;
+  lastBuzz = { at: now, strength };
   try {
-    const nav = navigator as Navigator & { vibrate?: (p: number) => boolean };
-    if (typeof nav.vibrate === 'function') nav.vibrate(ms);
+    const nav = navigator as Navigator & { vibrate?: (p: number | number[]) => boolean };
+    if (typeof nav.vibrate === 'function') nav.vibrate(typeof pattern === 'number' ? pattern : p);
   } catch {
     /* some browsers throw outside a user gesture */
   }

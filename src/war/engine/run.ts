@@ -277,7 +277,7 @@ export function swapProblem(s: RunState): string | null {
   if (bad) return bad;
   const c = s.crisis;
   if (c.swapsLeft <= 0) return 'No swaps left.';
-  if (!c.pins.some((r) => r !== c.airlift)) return 'Select lit regions to swap.';
+  if (!c.pins.some((r) => r !== c.airlift)) return 'Pin the regions you want to swap out.';
   return null;
 }
 
@@ -519,6 +519,8 @@ export function buyOffer(s: RunState, slot: number): Result {
 export function reroll(s: RunState): Result {
   const bad = inBriefing(s);
   if (bad) return no(s, bad);
+  // The offers are under the open folder: a reroll would spend Funds on cards nobody can see.
+  if (s.shop!.folder.status === 'open') return no(s, 'Take a card or SKIP first.');
   const cost = s.shop!.rerollCost;
   if (s.funds < cost) return no(s, NO_FUNDS);
   const d = draft(s);
@@ -546,6 +548,9 @@ export function folderProblem(s: RunState): string | null {
   if (bad) return bad;
   const f = s.shop!.folder;
   if (f.status !== 'sealed') return f.status === 'open' ? 'Already open.' : 'Folder already used.';
+  // Never take Funds for a folder whose every card would be refused.
+  if (f.kind === 'recruit' && s.staff.length >= s.seatCount) return NO_SEAT;
+  if (f.kind === 'orders' && s.tray.length >= s.traySlots) return NO_TRAY;
   if (s.funds < f.price) return NO_FUNDS;
   return null;
 }

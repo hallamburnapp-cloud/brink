@@ -37,6 +37,10 @@ export interface RegionVis {
   orderDone: boolean;
   /** Its colour is blacked out (Summit BLACKOUT). */
   blackout: boolean;
+  /** Lighting up on a deal: 0 just lit, 1 fully warm (1 for everything else). */
+  warm: number;
+  /** Lit, unpinned, and a pin here would join the pins already down. */
+  joinable: boolean;
 }
 
 export interface ThreadVis {
@@ -75,6 +79,10 @@ export interface Scene {
   ring: number;
   /** The crisis is cleared and the collapse has finished: the cooled ring shows. */
   cooled: boolean;
+  /** The clear's collapse, 0..1, while it plays (null otherwise). */
+  collapse: number | null;
+  /** The flashpoint has been swept (its ring dims: it cannot score again this crisis). */
+  flashpointSpent: boolean;
   armed: MapView['armed'];
   highlight: Set<RegionId> | null;
   finger: RegionId | null;
@@ -122,6 +130,7 @@ export function buildScene(view: MapViewPlus, fx: FxState, now: number, reduced:
   const scoring = fx.scoring;
   const dimP = easeOut(progress(fx.dimTween, now));
   const looseSet = new Set(view.loose ?? []);
+  const joinableSet = new Set(scoring ? [] : (view.joinable ?? []));
   const cableKeys = new Set(view.cables.map(([a, b]) => pairKey(a, b)));
 
   // Ink spreads in progress show the old colour outside the ink.
@@ -139,7 +148,10 @@ export function buildScene(view: MapViewPlus, fx: FxState, now: number, reduced:
   const list: RegionVis[] = [];
   for (const def of REGIONS) {
     const v = view.regions[def.id];
-    const status: RegionStatus = v?.status ?? 'dark';
+    // A region still waiting for its turn in the deal shows dark.
+    const light = fx.lightUps.get(def.id);
+    const waiting = !!light && now < light.start;
+    const status: RegionStatus = waiting ? 'dark' : (v?.status ?? 'dark');
     const pinned = !!v?.pinned;
     const airlift = !!v?.airlift;
     const colour = inkBefore.get(def.id) ?? fx.colourOverride.get(def.id)?.colour ?? v?.colour ?? def.colour;
@@ -170,6 +182,8 @@ export function buildScene(view: MapViewPlus, fx: FxState, now: number, reduced:
       order: (pinned || airlift) && o ? o : null,
       orderDone: !!scoring && fx.scored.has(def.id),
       blackout: view.blackout !== null && colour === view.blackout,
+      warm: light && !waiting ? easeOut(progress(light, now)) : 1,
+      joinable: status === 'lit' && !pinned && !airlift && joinableSet.has(def.id),
     };
     regions[def.id] = vis;
     list.push(vis);
@@ -222,7 +236,9 @@ export function buildScene(view: MapViewPlus, fx: FxState, now: number, reduced:
     blackout: view.blackout,
     flashpoint: view.flashpoint,
     ring: Math.max(0, ring),
-    cooled: !!view.flashpoint && view.ring <= 0 && !fx.ring,
+    cooled: !!view.flashpoint && view.ring <= 0 && !fx.ring && !fx.collapse && !view.ringHold,
+    collapse: fx.collapse ? progress(fx.collapse, now) : null,
+    flashpointSpent: !!view.flashpoint && view.regions[view.flashpoint]?.status === 'spent',
     armed: view.armed,
     highlight: view.highlight ? new Set(view.highlight) : null,
     finger: view.finger,

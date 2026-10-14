@@ -4,7 +4,7 @@
  */
 import type { JSX } from 'preact';
 import { Glyph, type GlyphName } from '../art';
-import { parseChip, parseRich, STAFF_TONE, type ChipTone } from './chip';
+import { markTerms, parseChip, parseRich, STAFF_TONE, type ChipTone } from './chip';
 import type { StaffId } from '../../content/staff';
 
 const TONE_CLASS: Record<ChipTone, string> = {
@@ -21,7 +21,11 @@ export function Chip({ id, chip }: { id: StaffId; chip: string }): JSX.Element {
   return (
     <span class="chip-text">
       {parts.map((p, i) =>
-        'glyph' in p ? (
+        'unit' in p ? (
+          <span key={i} class={`chip-unit ${TONE_CLASS[p.tone]}`}>
+            {p.unit}
+          </span>
+        ) : 'glyph' in p ? (
           <span key={i} class={`chip-glyph ${TONE_CLASS[p.tone]}`}>
             <Glyph name={p.glyph} size={p.glyph === 'star' ? 7.5 : 8} />
           </span>
@@ -65,10 +69,11 @@ export function Funds({ n, size = 10, class: cls }: { n: number; size?: number; 
 }
 
 /**
- * A rule with its effect picked out in its meaning colour ('Each Port that scores:
- * <b>+15 Influence</b>'), as on the Briefing cards.
+ * A rule with its effect picked out in its meaning colour ('Each Port ⚓ that scores:
+ * <b>+15 Influence</b>'), as on the Briefing cards; Ports and Capitals carry the map's marks.
  */
-export function RuleText({ rule }: { rule: string }): JSX.Element {
+export function RuleText({ rule: plain }: { rule: string }): JSX.Element {
+  const rule = markTerms(plain);
   const m = /([+x×]\s?[\d.]+\s(?:Influence|Momentum)|\+\d+\sFunds|scores twice|triple|joined to each other|counts as a Capital|Copies)/.exec(rule);
   if (!m) return <Rich text={rule} />;
   const tone = /Momentum/.test(m[0]) ? 'mom' : /Influence|triple/.test(m[0]) ? 'inf' : /Funds/.test(m[0]) ? 'funds' : 'plain';

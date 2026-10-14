@@ -28,12 +28,23 @@ export interface Pop extends Timed {
   tone: 'influence' | 'momentum' | 'again';
   x: number;
   y: number;
+  /** A pop that a newer one replaces (an AGAIN tag counting up on its region). */
+  key?: string;
 }
 export interface RegionPulse extends Timed {
   id: RegionId;
 }
 export interface MapFlash extends Timed {
   rgb: RGB;
+  /** Where the light radiates from (map points). */
+  x: number;
+  y: number;
+}
+/** A region lighting up on the deal: dark until `start`, then warming up over `dur`. */
+export interface LightUp extends Timed {
+  id: RegionId;
+  /** The land layer has been repainted with this region lit. */
+  applied: boolean;
 }
 export interface Shockwave extends Timed {
   from: RegionId;
@@ -94,6 +105,8 @@ export class FxState {
   mapFlash: MapFlash | null = null;
   shock: Shockwave | null = null;
   drops: RegionPulse[] = [];
+  /** A brass pin landing: a brass ripple spreads from the tack. */
+  ripples: RegionPulse[] = [];
   lightsOut: LightsOut | null = null;
   inks: InkSpread[] = [];
   /**
@@ -106,6 +119,12 @@ export class FxState {
   /** Pins being pushed into the glass. */
   pinDrops = new Map<RegionId, number>();
   ring: Tween | null = null;
+  /** The clear: the spent ring closes in to the cooled radius and turns blue. */
+  collapse: Timed | null = null;
+  /** Regions lighting up one by one on a deal or refill. */
+  lightUps = new Map<RegionId, LightUp>();
+  /** AGAINs per region this sweep, for the 'AGAIN x2' count. */
+  agains = new Map<RegionId, number>();
   private waiters: Waiter[] = [];
 
   /** A promise that resolves at `end` (or on reset). */
@@ -122,11 +141,14 @@ export class FxState {
     this.stampPulses = live(this.stampPulses);
     this.standby = live(this.standby);
     this.drops = live(this.drops);
+    this.ripples = live(this.ripples);
     this.inks = live(this.inks);
     if (this.mapFlash && now >= this.mapFlash.start + this.mapFlash.dur) this.mapFlash = null;
     if (this.shock && now >= this.shock.start + this.shock.dur + 120) this.shock = null;
     if (this.scanSnap && now >= this.scanSnap.start + this.scanSnap.dur) this.scanSnap = null;
     if (this.ring && now >= this.ring.start + this.ring.dur) this.ring = null;
+    if (this.collapse && now >= this.collapse.start + this.collapse.dur) this.collapse = null;
+    for (const [id, l] of this.lightUps) if (now >= l.start + l.dur) this.lightUps.delete(id);
     for (const [key, t] of this.joinSnaps) if (now >= t + 420) this.joinSnaps.delete(key);
     for (const [id, t] of this.pinDrops) if (now >= t + 200) this.pinDrops.delete(id);
     const due = this.waiters.filter((w) => now >= w.end);
@@ -146,11 +168,14 @@ export class FxState {
       this.stampPulses.length > 0 ||
       this.standby.length > 0 ||
       this.drops.length > 0 ||
+      this.ripples.length > 0 ||
       this.inks.length > 0 ||
       this.mapFlash !== null ||
       this.shock !== null ||
       this.scanSnap !== null ||
       this.ring !== null ||
+      this.collapse !== null ||
+      this.lightUps.size > 0 ||
       this.joinSnaps.size > 0 ||
       this.pinDrops.size > 0 ||
       this.waiters.length > 0 ||
@@ -183,11 +208,15 @@ export class FxState {
     this.mapFlash = null;
     this.shock = null;
     this.drops = [];
+    this.ripples = [];
     this.lightsOut = null;
     this.inks = [];
     this.joinSnaps.clear();
     this.pinDrops.clear();
     this.ring = null;
+    this.collapse = null;
+    this.lightUps.clear();
+    this.agains.clear();
     const waiters = this.waiters;
     this.waiters = [];
     for (const w of waiters) w.resolve();

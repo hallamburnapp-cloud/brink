@@ -6,7 +6,7 @@
  */
 import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { preview, seatViews, type RunState, type SeatView } from '../../engine';
+import { preview, seatViews, twistInForce, type RunState, type SeatView } from '../../engine';
 import type { StaffId } from '../../content/staff';
 import { StaffIcon } from '../art';
 import { moveSeat } from '../app/actions';
@@ -31,6 +31,8 @@ export function StaffRail({ s }: { s: RunState }): JSX.Element {
   const [drag, setDrag] = useState<Drag | null>(null);
   const order = drag ? dragOrder(seats.length, drag.from, drag.to) : seats.map((_, i) => i);
   const open = balloon.value?.kind === 'seat' ? balloon.value.index : -1;
+  // GRIDLOCK suspends the Ferry Master: its seat shows it off duty.
+  const gridlock = twistInForce(s)?.kind === 'GRIDLOCK';
 
   return (
     <>
@@ -61,6 +63,7 @@ export function StaffRail({ s }: { s: RunState }): JSX.Element {
             dragging={dragging}
             sliding={!!drag && !dragging}
             ready={firing.has(v.seat)}
+            suspended={gridlock && v.id === 'FERRY'}
             open={open === v.seat}
             count={seats.length}
             onDrag={setDrag}
@@ -78,12 +81,13 @@ interface SeatProps {
   dragging: boolean;
   sliding: boolean;
   ready: boolean;
+  suspended: boolean;
   open: boolean;
   count: number;
   onDrag: (d: Drag | null) => void;
 }
 
-function Seat({ v, number, left, dragging, sliding, ready, open, count, onDrag }: SeatProps): JSX.Element {
+function Seat({ v, number, left, dragging, sliding, ready, suspended, open, count, onDrag }: SeatProps): JSX.Element {
   const el = useRef<HTMLDivElement>(null);
   const press = useRef<{ x: number; y: number; timer: number; dragging: boolean; to: number; id: number } | null>(null);
   const hop = hops.value[v.seat] ?? 0;
@@ -179,6 +183,7 @@ function Seat({ v, number, left, dragging, sliding, ready, open, count, onDrag }
     dragging ? 'dragging' : '',
     sliding ? 'sliding' : '',
     ready ? 'ready' : '',
+    suspended ? 'suspended' : '',
     lit ? 'firing' : '',
     open ? 'open' : '',
   ]

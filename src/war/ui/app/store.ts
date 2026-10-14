@@ -81,8 +81,12 @@ export function showToast(text: string, at?: { x: number; bottom: number }): voi
   toastTimer = window.setTimeout(() => (toast.value = null), 2400);
 }
 
-/** Long-press highlight of where an offer or staff acts. */
-export const highlight = signal<RegionId[] | null>(null);
+/** Long-press highlight of where an offer acts (the Briefing). */
+export const pressHighlight = signal<RegionId[] | null>(null);
+/** A teaching spotlight: the regions a first-night line is about (the pins and what joins them). */
+export const spotlight = signal<RegionId[] | null>(null);
+/** What the map lights up: a long-press wins over the teaching spotlight. */
+export const highlight = computed(() => pressHighlight.value ?? spotlight.value);
 
 /** LAY CABLE drag in progress, in map points. */
 export const cableDrag = signal<{ from: RegionId; x: number; y: number } | null>(null);
