@@ -2,7 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 import { existsSync } from 'node:fs';
 
 /**
- * End-to-end tests for the war room (VITE_GAME=war) on a phone-sized Chromium.
+ * End-to-end tests for WIN THE WORLD (VITE_GAME=war) on a 390 x 844 phone in Chromium; the
+ * desktop tests set their own viewport (e2e/war.spec.ts).
  *
  * By default the tests run against a production build with the window.__war hook compiled in
  * (VITE_WAR_HOOK=1), served by `vite preview`: what ships is what is tested. WAR_E2E_DEV=1 runs
@@ -38,6 +39,9 @@ export default defineConfig({
       name: 'war',
       use: {
         ...devices['Pixel 7'],
+        // The spec's phone: the 390 x 844 frame at 3x.
+        viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 3,
         launchOptions: localChromium ? { executablePath: localChromium } : {},
       },
     },
@@ -52,6 +56,8 @@ export default defineConfig({
     env: {
       VITE_GAME: 'war',
       VITE_WAR_HOOK: '1',
+      // A review build: the title offers the CROWN DEMO (SPEC 13).
+      VITE_WAR_REVIEW: '1',
       BRINK_BASE: './',
     },
   },

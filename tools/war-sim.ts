@@ -1,104 +1,118 @@
 /**
- * The war-room simulator CLI (spec sections 7 and 14).
+ * The WIN THE WORLD simulator CLI (SPEC section 16).
  *
- *   npx tsx tools/war-sim.ts --runs 1000
+ *   npx tsx tools/war-sim.ts --games 2000
  *
- * Prints the CALIBRATION table, the five simulator gates and the choice spread, each beside the
- * Python reference result, plus full-run survival for a greedy bot and a builder bot.
- * Work is spread over worker processes (--jobs). With --crosscheck it also replays crises in
- * the Python reference (docs/war/reference) on the same deck orders and compares every sweep.
+ * Replays every case of docs/war/v2/reference/fixtures.json through the engine, plays N games per bot
+ * (ports of docs/war/v2/reference/bots.py driving the TypeScript engine), and prints the 17 gates and
+ * the outcomes beside the reference's own results (docs/war/v2/reference/RESULTS.txt). Games are
+ * spread over worker processes (--jobs). With --replay N the unmodified Python reference plays N games
+ * per bot again on the engine's own random streams (src/war/sim/replay.py) and every turn is compared.
  */
 import { fork, type ChildProcess } from 'node:child_process';
 import { availableParallelism } from 'node:os';
 import { writeFileSync } from 'node:fs';
 import { BRAND } from '../src/config';
 import {
-  calibrationTable,
+  BOT_NAMES,
   collect,
+  crosscheckFixtures,
+  crosscheckText,
+  curveTable,
+  detailTable,
   gatesTable,
+  isBotName,
+  loadReference,
+  outcomesTable,
   planJobs,
   runJob,
-  runsReport,
-  spreadReport,
+  runReplay,
+  staffLine,
+  type BotName,
   type Executor,
+  type Format,
   type Job,
   type JobResult,
   type SimOptions,
 } from '../src/war/sim';
-import { PY_RERUN } from '../src/war/sim/reference';
-import { runCrosscheck } from '../src/war/sim/crosscheck';
 
 const USAGE = `usage: npx tsx tools/war-sim.ts [options]
-  --runs N         crises per calibration row and gate (default 1000)
-  --deals N        fresh deals for the choice spread (default 40 x runs)
-  --full-runs N    full runs of the slice per bot, greedy and builder (default 200; 0 skips)
-  --seed S         seed base (default war-sim)
-  --jobs J         worker processes (default: CPUs - 1, at most 4; 1 runs in this process)
-  --json PATH      also write the raw results as JSON
-  --crosscheck N   replay N crises per bot in the Python reference and compare (needs python3)
-  --reference-ties cross-check against the reference's own Surround tie-break, not the spec's
-  --strict         exit 1 if a gate fails or the cross-check finds a difference
-  --quiet          no progress lines
+  --games N     games per bot (default 2000; --runs N is the same)
+  --bots LIST   bots to play, comma-separated (default: all six; the gates need all six)
+                random, novice, greedy, preview, sensible, breaker
+  --seed P      seed prefix: the games are P0 ... P{N-1} for every bot (default W, as the reference)
+  --jobs J      worker processes (default: CPUs - 1, at most 4; 1 plays in this process)
+  --md          print the tables as Markdown
+  --json PATH   also write the statistics and gates as JSON
+  --replay N    also play N games per bot again in the Python reference, on the same random
+                streams, and compare every turn and calibrate.py's own gates (needs python3)
+  --strict      exit 1 if a gate fails or a cross-check finds a difference
+  --quiet       no progress lines
   --help`;
 
 interface Args {
-  runs: number;
-  deals: number | null;
-  fullRuns: number;
-  seed: string;
+  games: number;
+  bots: BotName[];
+  prefix: string;
   jobs: number;
+  format: Format;
   json: string | null;
-  crosscheck: number;
-  referenceTies: boolean;
+  replay: number;
   strict: boolean;
   quiet: boolean;
 }
 
-function parseArgs(argv: string[]): Args {
+function fail(msg: string): never {
+  console.error(`${msg}\n${USAGE}`);
+  process.exit(2);
+}
+
+function parseArgs(argv: readonly string[]): Args {
   const a: Args = {
-    runs: 1000,
-    deals: null,
-    fullRuns: 200,
-    seed: 'war-sim',
+    games: 2000,
+    bots: [...BOT_NAMES],
+    prefix: 'W',
     jobs: Math.max(1, Math.min(4, availableParallelism() - 1)),
+    format: 'text',
     json: null,
-    crosscheck: 0,
-    referenceTies: false,
+    replay: 0,
     strict: false,
     quiet: false,
   };
-  const num = (v: string | undefined, flag: string) => {
+  const whole = (v: string | undefined, flag: string, min: number) => {
     const n = Number(v);
-    if (!Number.isInteger(n) || n < 0) fail(`${flag} needs a whole number`);
+    if (!Number.isInteger(n) || n < min) fail(`${flag} needs a whole number of at least ${min}`);
     return n;
   };
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
-    const val = () => argv[++i];
+    const value = () => argv[++i] ?? fail(`${flag} needs a value`);
     switch (flag) {
+      case '--games':
       case '--runs':
-        a.runs = Math.max(1, num(val(), flag));
+        a.games = whole(value(), flag, 1);
         break;
-      case '--deals':
-        a.deals = Math.max(1, num(val(), flag));
+      case '--bots': {
+        const names = value().split(',').map((x) => x.trim());
+        const bad = names.filter((x) => !isBotName(x));
+        if (bad.length) fail(`unknown bot ${bad.join(', ')}`);
+        a.bots = names as BotName[];
         break;
-      case '--full-runs':
-        a.fullRuns = num(val(), flag);
-        break;
+      }
       case '--seed':
-        a.seed = val() ?? fail('--seed needs a value');
+        a.prefix = value();
         break;
       case '--jobs':
-        a.jobs = Math.max(1, num(val(), flag));
+        a.jobs = whole(value(), flag, 1);
+        break;
+      case '--md':
+        a.format = 'md';
         break;
       case '--json':
-        a.json = val() ?? fail('--json needs a path');
+        a.json = value();
         break;
-      case '--crosscheck':
-        a.crosscheck = num(val(), flag);
-        break;
-      case '--reference-ties':
-        a.referenceTies = true;
+      case '--replay':
+        a.replay = whole(value(), flag, 0);
         break;
       case '--strict':
         a.strict = true;
@@ -116,12 +130,7 @@ function parseArgs(argv: string[]): Args {
   return a;
 }
 
-function fail(msg: string): never {
-  console.error(`${msg}\n${USAGE}`);
-  process.exit(2);
-}
-
-/** A pool of forked copies of this script, each running one job at a time. */
+/** A pool of forked copies of this script, each playing one job at a time. */
 function pool(size: number): Executor {
   return (jobs, onDone) =>
     new Promise<JobResult[]>((resolve, reject) => {
@@ -158,81 +167,79 @@ function pool(size: number): Executor {
     });
 }
 
-function inProcessWithProgress(): Executor {
-  return async (jobs, onDone) => {
-    const out: JobResult[] = [];
-    for (const job of jobs) {
-      out.push(runJob(job));
-      onDone?.(out.length, jobs.length);
-    }
-    return out;
-  };
-}
+const inThisProcess: Executor = async (jobs, onDone) => {
+  const out: JobResult[] = [];
+  for (const job of jobs) {
+    out.push(runJob(job));
+    onDone?.(out.length, jobs.length);
+  }
+  return out;
+};
 
-/** JSON with bigints written as strings. */
+/** JSON with bigints as strings. */
 const toJson = (v: unknown) => JSON.stringify(v, (_k, x) => (typeof x === 'bigint' ? x.toString() : x), 2);
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
-  const opts: SimOptions = {
-    seed: args.seed,
-    crises: args.runs,
-    deals: args.deals ?? 40 * args.runs,
-    runs: args.fullRuns > 0 ? { greedy: args.fullRuns, builder: args.fullRuns } : {},
-  };
+  const ref = loadReference();
+  const fmt = args.format;
+  const out: string[] = [];
+  const say = (...lines: string[]) => out.push(...lines);
+
+  const cross = crosscheckFixtures();
+  const replay = args.replay > 0 ? runReplay(args.replay, args.prefix) : null;
+
+  const opts: SimOptions = { games: args.games, bots: args.bots, prefix: args.prefix };
   const jobs: Job[] = planJobs(opts);
-  const exec = args.jobs > 1 ? pool(args.jobs) : inProcessWithProgress();
+  const exec = args.jobs > 1 ? pool(args.jobs) : inThisProcess;
   const started = Date.now();
   let shown = -1;
   const progress = (done: number, total: number) => {
-    const p = Math.floor((20 * done) / total);
-    if (args.quiet || p === shown) return;
-    shown = p;
-    process.stderr.write(`  ${String(5 * p).padStart(3)}%  ${done}/${total} jobs  ${((Date.now() - started) / 1000).toFixed(0)} s\n`);
+    const step = Math.floor((20 * done) / total);
+    if (args.quiet || step === shown) return;
+    shown = step;
+    process.stderr.write(`  ${String(5 * step).padStart(3)}%  ${done}/${total} jobs  ${((Date.now() - started) / 1000).toFixed(0)} s\n`);
   };
-  const results = collect(opts.seed, await exec(jobs, progress));
-  const seconds = (Date.now() - started) / 1000;
+  const res = collect(opts, await exec(jobs, progress));
+  const secs = (Date.now() - started) / 1000;
 
-  const int = (n: number) => n.toLocaleString('en-GB');
-  const out: string[] = [];
-  out.push(`${BRAND.name} WAR ROOM SIMULATOR`);
-  out.push(
-    `seed ${opts.seed} · ${int(opts.crises)} crises per row · ${int(opts.deals)} deals · ` +
-      `${int(args.fullRuns)} full runs per bot · ${seconds.toFixed(0)} s on ${args.jobs} process${args.jobs > 1 ? 'es' : ''}`,
+  const n = args.games.toLocaleString('en-GB');
+  say(
+    `${BRAND.name} · WIN THE WORLD SIMULATOR`,
+    `${n} games per bot (${args.bots.join(', ')}), seeds ${args.prefix}0-${args.prefix}${args.games - 1} · ` +
+      `${secs.toFixed(0)} s on ${args.jobs} process${args.jobs > 1 ? 'es' : ''}`,
+    `Reference: docs/war/v2/reference/RESULTS.txt (${ref.games.toLocaleString('en-GB')} games per bot, the Python reference's own streams)`,
+    '',
+    'CROSS-CHECK: docs/war/v2/reference/fixtures.json replayed through the engine',
+    crosscheckText(cross),
+    '',
   );
-  out.push('');
-  out.push('CALIBRATION (spec section 7): greedy bot, one crisis from a fresh map, no Airlift');
-  out.push(calibrationTable(results.tallies, PY_RERUN));
-  out.push("Gap: this sim minus the reference re-run. '!' marks a gap beyond sampling noise (2 standard errors).");
-  out.push('');
-  out.push('GATES (spec section 14), reference results in brackets');
-  out.push(gatesTable(results.gates));
-  out.push('');
-  out.push('CHOICE SPREAD (spec section 14): every legal play of a fresh deal');
-  out.push(spreadReport(results.spread));
-  if (args.fullRuns > 0) {
-    out.push('');
-    out.push('FULL RUNS: share of runs that cleared each crisis of the slice');
-    out.push(runsReport(results.runs));
+  if (replay) say(`REPLAY: ${args.replay.toLocaleString('en-GB')} games per bot played again by the Python reference on the same random streams`, replay.text, '');
+  say(
+    'GATES (SPEC section 16): this sim beside the reference',
+  );
+  const gatesOk = res.gates.length === 17 && res.gates.every((g) => g.pass);
+  if (res.gates.length) {
+    say(gatesTable(res.gates, ref, fmt));
+    say(gatesOk ? '=> ALL GATES PASS' : res.gates.length < 17 ? `=> ${res.gates.length} of 17 gates played (the rest need all six bots)` : '=> SOME GATES FAIL');
+  } else {
+    say('(no gate can be judged without its bots)');
   }
-
-  let crossOk = true;
-  if (args.crosscheck > 0) {
-    out.push('');
-    const ties = args.referenceTies ? 'reference' : 'spec';
-    out.push(
-      `CROSS-CHECK: the same deck orders replayed in the Python reference, ${args.crosscheck} crises per row ` +
-        `(Surround ties broken the ${ties === 'spec' ? "spec's way, westmost" : "reference's way"})`,
-    );
-    const cc = runCrosscheck({ seed: `${opts.seed}-xc`, crises: args.crosscheck, deals: 4 * args.crosscheck, ties });
-    out.push(cc.text);
-    crossOk = cc.ok;
+  say('', 'OUTCOMES: this sim (reference)', outcomesTable(res.stats, ref, fmt));
+  if (res.stats.sensible || res.stats.preview || res.stats.breaker) say('', 'DETAIL: this sim (reference)', detailTable(res.stats, ref, fmt));
+  for (const bot of ['sensible', 'preview', 'breaker'] as const) {
+    const s = res.stats[bot];
+    if (s) say(`Staff in the final line-ups of held games, ${bot}: ${staffLine(s)}`);
+  }
+  for (const bot of ['sensible', 'greedy'] as const) {
+    const points = res.curves[bot];
+    if (points?.length) say('', `${bot.toUpperCase()} BY TURN (games still going)`, curveTable(points, fmt));
   }
   console.log(out.join('\n'));
-  if (args.json) writeFileSync(args.json, toJson(results));
+  if (args.json) writeFileSync(args.json, toJson({ ...res, crosscheck: cross, replay }));
 
-  const gatesOk = results.gates.every((g) => g.pass);
-  if (args.strict && (!gatesOk || !crossOk)) process.exit(1);
+  const allBots = BOT_NAMES.every((b) => args.bots.includes(b));
+  if (args.strict && (!cross.ok || (replay && !replay.ok) || (allBots && !gatesOk))) process.exit(1);
 }
 
 if (process.argv.includes('--worker')) {

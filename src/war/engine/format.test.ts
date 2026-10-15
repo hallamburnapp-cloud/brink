@@ -60,16 +60,19 @@ describe('formatShort (the Big Board: 7 glyphs at most)', () => {
 });
 
 describe('formatM10', () => {
-  it('shows Momentum from tenths', () => {
-    expect(formatM10(40n)).toBe('4');
+  it('shows the multiplier from tenths with one decimal', () => {
+    expect(formatM10(20n)).toBe('2.0');
+    expect(formatM10(40n)).toBe('4.0');
     expect(formatM10(45n)).toBe('4.5');
-    expect(formatM10(12_345n)).toBe('1,234.5');
-    expect(formatM10(290_105_960n)).toBe('29,010,596');
+    expect(formatM10(13_814n)).toBe('1,381.4');
+    expect(formatM10(290_105_960n)).toBe('29,010,596.0');
   });
 
-  it('shortens for the Momentum box', () => {
+  it('shortens for the MULTIPLIER box', () => {
     expect(formatM10Short(45n)).toBe('4.5');
-    expect(formatM10Short(400n)).toBe('40');
+    expect(formatM10Short(400n)).toBe('40.0');
+    expect(formatM10Short(13_814n, 7)).toBe('1,381.4');
+    expect(formatM10Short(1_399_680n, 7)).toBe('139,968');
     expect(formatM10Short(290_105_960n)).toBe('29.0M');
   });
 });

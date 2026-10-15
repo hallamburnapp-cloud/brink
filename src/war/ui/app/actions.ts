@@ -1,26 +1,82 @@
 /**
- * Everything the player can do, as one function each. Taps, drags and the dev hook all come
- * through here, so they share one code path. Each calls the engine, stores the new run, and on a
- * refusal shows the engine's reason as a short toast.
+ * Everything the player can do, as one function each. Taps, keys and the dev hook all come through
+ * here, so they share one code path. Each calls the engine, stores the new game, saves it when the
+ * spec says to (after every SEND and every shop action), and on a refusal shows the engine's reason
+ * as a short toast above the control that was tapped.
+ *
+ * SEND is the seam with the director: the resolved game is stored at once, the pre-send game stays
+ * on show, and director().playSend(prev, next) plays the cascade and the outcome (playback.ts).
  */
+import { batch } from '@preact/signals';
 import { audio } from '../../../audio';
 import * as E from '../../engine';
-import type { RegionId, Result, RunState } from '../../engine';
-import { REGION } from '../../content/map';
-import { ORDER } from '../../content/orders';
+import type { GameState, RegionId, Result } from '../../engine';
 import { centre, R, type Rect } from '../common/layout';
-import { droneFor, isPlaying, playSweep, skip } from '../director/play';
-import { resetAnim, trayLeaving } from '../fx/anim';
 import { buzz } from '../fx/shake';
 import { getMap } from '../table/mapRef';
 import { dropCurtain, raiseCurtain, veil, VEIL_MS } from './curtain';
-import { hintsAfter, hintsStart, hintsStop, hintTap } from './hints';
-import { balloon, busy, cableDrag, pressHighlight, pressNote, prefs, receiptOpen, reduced, run, screen, setPrefs, sheet, showToast, shown, speed } from './store';
+import { coachAfter, coachSend, coachStart, coachStop } from './hints';
+import { finishIntro, introRunning, startIntro, stopIntro } from './intro';
+import { director, resetPlayback } from './playback';
+import {
+  balloon,
+  busy,
+  pressHighlight,
+  prefs,
+  reduced,
+  replacing,
+  run,
+  saved,
+  screen,
+  setPrefs,
+  sheet,
+  showToast,
+  shown,
+  speed,
+  trayLeaving,
+} from './store';
+import { clearSave, readSave, writeSave } from './storage';
+import { turnOneStep } from './teach';
 
 /** Where a refusal toast should sit: above the control that was tapped. */
 export function above(r: Rect): { x: number; bottom: number } {
   return { x: centre(r).x, bottom: r[1] - 6 };
 }
+
+/** Shop refusals are said just above the tray, never over the cards. */
+export const TRAY_TOAST = { x: 195, bottom: R.tray[1] - 8 };
+
+/** The pause after an outcome before the next turn is dealt (1x). */
+const OUTCOME_HOLD_MS = 700;
+/** The tray's slide away before the next turn is shown (1x). */
+const TRAY_LEAVE_MS = 220;
+
+// ---------------------------------------------------------------- saving
+
+function persist(s: GameState): void {
+  writeSave(s);
+  saved.value = s.phase !== 'over';
+}
+
+/** Save the game on show (the page is being hidden). The intro's scenes are never saved. */
+export function saveNow(): void {
+  const s = run.value;
+  if (s && screen.value === 'game' && !introRunning()) persist(s);
+}
+
+// ---------------------------------------------------------------- the drone
+
+/** The room's drone follows the war: it rises at 8 and 9 red. Off outside a game. */
+export function droneFor(s: GameState | null): void {
+  if (!s || s.phase === 'over') {
+    audio.drone(false);
+    return;
+  }
+  const red = E.goalView(s).red;
+  audio.drone(true, Math.min(1, 0.15 + 0.045 * red + (red >= 8 ? 0.3 : 0)));
+}
+
+// ---------------------------------------------------------------- the store
 
 /** Store a result; on refusal, say why. Returns true when the action happened. */
 function commit(r: Result, at?: { x: number; bottom: number }): boolean {
@@ -29,14 +85,25 @@ function commit(r: Result, at?: { x: number; bottom: number }): boolean {
     return false;
   }
   const prev = run.value;
-  run.value = r.state;
-  shown.value = r.state;
-  hintsAfter(prev, r.state);
+  batch(() => {
+    run.value = r.state;
+    shown.value = r.state;
+  });
+  coachAfter(prev, r.state);
   return true;
 }
 
-function current(): RunState | null {
-  return busy.value ? null : run.value;
+/** The game, when the player may act on it (not while a send plays, not during the intro). */
+function current(): GameState | null {
+  return busy.value || introRunning() ? null : run.value;
+}
+
+function clearTransient(): void {
+  batch(() => {
+    balloon.value = null;
+    replacing.value = null;
+    pressHighlight.value = null;
+  });
 }
 
 // ---------------------------------------------------------------- starting and leaving
@@ -48,45 +115,108 @@ function randomSeed(): string {
   } catch {
     for (let i = 0; i < 4; i++) bytes[i] = Math.floor(Math.random() * 256);
   }
-  return `NIGHT-${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+  return `WORLD-${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
 }
 
-function begin(s: RunState): void {
+/** Put a game on the table. */
+function begin(s: GameState): void {
   // From the title, the title stays up until the war room's table has drawn.
   if (screen.value === 'title') raiseCurtain();
-  skip();
-  cancelLeaving();
-  cancelQuit();
-  resetAnim();
+  stopIntro();
+  director().skip();
+  cancelTimers();
+  resetPlayback();
   getMap()?.fx.reset();
-  balloon.value = null;
-  receiptOpen.value = null;
-  pressHighlight.value = null;
-  pressNote.value = null;
-  sheet.value = null;
-  run.value = s;
-  shown.value = s;
-  screen.value = 'game';
-  hintsStart(s);
+  clearTransient();
+  batch(() => {
+    sheet.value = null;
+    busy.value = false;
+    run.value = s;
+    shown.value = s;
+    screen.value = 'game';
+  });
+  persist(s);
+  coachStart(s);
   droneFor(s);
 }
 
-/** NEW NIGHT: the scripted first night on first launch, a fresh seed after that. */
-export function newNight(): void {
-  begin(E.newRun(prefs.value.playedFirstNight ? randomSeed() : E.FIRST_NIGHT_SEED));
+/** The first game on a device is FIRST-WORLD (coached); every game after it is a fresh world. */
+function freshGame(): GameState {
+  return prefs.value.playedFirst ? E.newGame(randomSeed()) : E.newGame(E.FIRST_WORLD_SEED);
 }
 
-export function startSeed(seed: string): void {
-  begin(E.newRun(seed));
+/** The intro on the game screen, over a game in progress or from the title. */
+function runIntro(then: 'play' | 'rules', done: () => void): void {
+  if (screen.value === 'title') raiseCurtain();
+  coachStop();
+  clearTransient();
+  sheet.value = null;
+  screen.value = 'game';
+  audio.drone(false);
+  startIntro(then, () => {
+    setPrefs({ introSeen: true });
+    done();
+  });
 }
 
-export function startSandbox(kind: 'late' | 'mid'): void {
-  begin(E.newSandbox(kind));
+/** PLAY: on a first launch the intro, then the coached first game; after that a new world. */
+export function play(): void {
+  if (!prefs.value.introSeen) {
+    runIntro('play', () => begin(E.newGame(E.FIRST_WORLD_SEED)));
+    return;
+  }
+  newGameNow();
 }
 
-/** Tests and screenshots only (the dev hook): put any engine state on the table as a fresh start. */
-export function loadState(s: RunState): void {
-  begin(s);
+/** NEW GAME (the title with a save, the end card): a new deal at once. */
+export function newGameNow(): void {
+  clearSave();
+  saved.value = false;
+  begin(freshGame());
+}
+
+/** CONTINUE: the saved game, where it was left. A finished turn deals the next one. */
+export function continueGame(): void {
+  const s = readSave();
+  if (!s) {
+    saved.value = false;
+    return;
+  }
+  const r = s.phase === 'outcome' ? E.nextTurn(s) : null;
+  begin(r?.ok ? r.state : s);
+}
+
+/** PRACTICE (the rules sheet): the coached first game again. */
+export function practice(): void {
+  begin(E.newGame(E.FIRST_WORLD_SEED));
+}
+
+/** CROWN DEMO: Example 3, the break, set up at turn 14. */
+export function crownDemo(): void {
+  begin(E.newGame(E.CROWN_SEED, { demo: 'crown' }));
+}
+
+/** HOW TO PLAY (title or menu): the three intro screens, then the rules sheet. */
+export function howToPlay(): void {
+  if (busy.value) director().skip();
+  const fromGame = screen.value === 'game' && run.value !== null;
+  runIntro('rules', () => {
+    if (fromGame && run.value) {
+      shown.value = run.value;
+      coachStart(run.value);
+      droneFor(run.value);
+    } else {
+      dropCurtain();
+      screen.value = 'title';
+      shown.value = null;
+    }
+    sheet.value = 'rules';
+  });
+}
+
+/** Leave the intro (SKIP, the back button). */
+export function skipIntro(): void {
+  finishIntro();
 }
 
 let quitting = 0;
@@ -97,20 +227,16 @@ function cancelQuit(): void {
   veil.value = false;
 }
 
-/** Back to the title: the war room fades to the table colour, then the title comes up. */
+/** Back to the title: the game is saved, the war room fades to the table colour, the title comes up. */
 export function quitToTitle(): void {
-  const s = run.value;
-  // A first night left after its first sweep has done its teaching: the next night is a fresh map.
-  if (s?.firstNight && s.sweepsTaken > 0 && !prefs.value.playedFirstNight) setPrefs({ playedFirstNight: true });
-  skip();
-  cancelLeaving();
-  hintsStop();
+  saveNow();
+  director().skip();
+  stopIntro();
+  coachStop();
+  cancelTimers();
   audio.drone(false);
-  balloon.value = null;
-  receiptOpen.value = null;
+  clearTransient();
   sheet.value = null;
-  pressHighlight.value = null;
-  pressNote.value = null;
   if (screen.value !== 'game' || reduced.value) {
     leaveGame();
     return;
@@ -123,73 +249,37 @@ export function quitToTitle(): void {
 function leaveGame(): void {
   cancelQuit();
   dropCurtain();
-  resetAnim();
-  screen.value = 'title';
-  run.value = null;
-  shown.value = null;
+  resetPlayback();
+  batch(() => {
+    busy.value = false;
+    screen.value = 'title';
+    run.value = null;
+    shown.value = null;
+  });
 }
 
-// ---------------------------------------------------------------- the table
+// ---------------------------------------------------------------- the turn
 
-/** A tap on the map: pin or unpin, or feed the armed Order. */
+/** A tap on the map: pin or lift. On the coached first turn only what the step names can be tapped. */
 export function tapRegion(id: RegionId): void {
   const s = current();
-  if (!s) return;
+  if (!s || s.phase !== 'choose') return;
   balloon.value = null;
-  if (s.armed) {
-    const { order, chosen } = s.armed;
-    const r = E.tapArmed(s, id);
-    if (commit(r, above(R.readout)) && !r.state.armed) afterOrder(order, [...chosen, id], s, r.state);
+  const step = turnOneStep(s);
+  if (step?.tappable && !step.tappable.includes(id)) {
+    showToast('Tap the white ring first.', above(R.readout));
     return;
   }
-  if (s.phase !== 'crisis') return;
-  const pinned = s.crisis.pins.includes(id);
-  const r = E.togglePin(s, id);
-  if (commit(r, above(R.readout))) {
-    buzz(pinned ? 4 : 8);
-    // A brass pin into glass, a step brighter per pin; the tally tick is kept for the scoring.
-    audio.play('pin', { intensity: pinned ? 0.1 : Math.min(1, 0.2 * r.state.crisis.pins.length) });
-    // A blacked-out region still makes the shape but adds nothing: say so as it goes down.
-    const t = E.twistInForce(s);
-    if (!pinned && t?.kind === 'BLACKOUT' && s.world.colour[id] === t.colour) showToast('BLACKOUT: this region adds nothing.', above(R.readout));
+  const lifting = s.deal.pins.includes(id);
+  if (commit(E.togglePin(s, id), above(R.readout))) {
+    buzz(lifting ? 4 : 8);
+    audio.play('pin', { intensity: lifting ? 0.1 : Math.min(1, 0.2 * (run.value?.deal.pins.length ?? 1)) });
   }
-}
-
-/** Effects of an Order that just applied: its thunk, the map's ink, and a line naming where it went. */
-function afterOrder(order: E.OrderId, targets: RegionId[], before: RunState, after: RunState): void {
-  if (after.tray.length >= before.tray.length && order !== 'AIRLIFT') return;
-  audio.play('tally_slam', { intensity: 0.15 });
-  buzz(12);
-  const names = [...new Set(targets)].map((id) => REGION[id].name);
-  if (names.length) showToast(`${ORDER[order].name} → ${names.join(order === 'CABLE' ? ' – ' : ', ')}`, above(R.readout));
-  if (order === 'DEFECT') {
-    const changed = Object.keys(after.world.colour).filter((id) => after.world.colour[id] !== before.world.colour[id]);
-    if (changed.length) void getMap()?.fx.inkSpread(targets[0], changed);
-  }
-}
-
-export async function sweepNow(): Promise<void> {
-  const s = current();
-  if (!s || isPlaying()) return;
-  balloon.value = null;
-  receiptOpen.value = null;
-  const r = E.sweep(s);
-  if (!r.ok) {
-    showToast(r.reason, above(R.sweep));
-    return;
-  }
-  // The lines about choosing have done their work once the lever is pulled.
-  hintTap();
-  if (s.firstNight && !prefs.value.playedFirstNight && (r.state.crisis.cleared || r.state.phase === 'missed')) {
-    setPrefs({ playedFirstNight: true });
-  }
-  run.value = r.state;
-  await playSweep(s, r.state);
 }
 
 export function swapNow(): void {
   const s = current();
-  if (!s) return;
+  if (!s || s.phase !== 'choose') return;
   balloon.value = null;
   if (commit(E.swap(s), above(R.swap))) {
     audio.play('slide', { intensity: 0.5 });
@@ -197,165 +287,151 @@ export function swapNow(): void {
   }
 }
 
-// ---------------------------------------------------------------- Orders
+let advanceTimer = 0;
 
-export function armSlot(slot: number, at: Rect): void {
-  const s = current();
-  if (!s) return;
-  if (commit(E.armOrder(s, slot), above(at))) audio.play('tick', { intensity: 0.3 });
-}
-
-export function confirmOrder(): void {
-  const s = current();
-  if (!s) return;
-  const armed = s.armed;
-  const r = E.confirmArmed(s);
-  if (armed && commit(r, above(R.readout))) afterOrder(armed.order, armed.chosen, s, r.state);
-}
-
-export function cancelOrder(): void {
-  const s = current();
-  if (!s || !s.armed) return;
-  commit(E.disarm(s));
-  cableDrag.value = null;
-}
-
-/** Drop a dragged paper (or finish a LAY CABLE drag) with explicit targets. */
-export function applyOrder(slot: number, targets: RegionId[]): boolean {
-  const s = current();
-  if (!s) return false;
-  const order = s.tray[slot]?.id;
-  const r = E.useOrder(s, slot, targets);
-  if (order && commit(r, above(R.readout))) {
-    afterOrder(order, targets, s, r.state);
-    return true;
-  }
-  return false;
-}
-
-// ---------------------------------------------------------------- the Briefing
-
-/**
- * Where a Briefing refusal is said: one reserved spot on the map just above the tray, never over
- * the cards (the card tapped shakes its own price tag).
- */
-export const BRIEFING_TOAST = above(R.tray);
-
-/** Each returns false on a refusal, so the thing tapped can show it. */
-export function buyOffer(slot: number): boolean {
-  const s = current();
-  if (!s) return false;
-  if (!commit(E.buyOffer(s, slot), BRIEFING_TOAST)) return false;
-  audio.play('capital', { intensity: 0.6 });
-  buzz(12);
-  return true;
-}
-
-export function openFolder(): boolean {
-  const s = current();
-  if (!s) return false;
-  if (!commit(E.buyFolder(s), BRIEFING_TOAST)) return false;
-  audio.play('offer', { intensity: 0.6 });
-  return true;
-}
-
-export function pickCard(i: number): boolean {
-  const s = current();
-  if (!s) return false;
-  if (!commit(E.pickFromFolder(s, i), BRIEFING_TOAST)) return false;
-  audio.play('capital', { intensity: 0.6 });
-  buzz(12);
-  return true;
-}
-
-export function skipFolder(): void {
-  const s = current();
-  if (!s) return;
-  commit(E.skipFolder(s), BRIEFING_TOAST);
-}
-
-export function rerollOffers(): boolean {
-  const s = current();
-  if (!s) return false;
-  if (!commit(E.reroll(s), BRIEFING_TOAST)) return false;
-  audio.play('offer', { intensity: 0.5 });
-  return true;
-}
-
-/** The tray's slide away before a new crisis is shown (1x). */
-const TRAY_LEAVE_MS = 220;
-let leaving = 0;
-
-function cancelLeaving(): void {
-  clearTimeout(leaving);
-  leaving = 0;
+function cancelTimers(): void {
+  clearTimeout(advanceTimer);
+  clearTimeout(leaveTimer);
+  advanceTimer = 0;
+  leaveTimer = 0;
   trayLeaving.value = false;
 }
 
-/**
- * NEXT CRISIS: the run moves on at once, and the screen follows once the tray has slid away, so the
- * new crisis arrives whole: a blank board, an empty rule, and eight regions lighting one by one.
- */
-export function nextCrisis(): void {
+/** SEND: resolve the turn, play it, then show the outcome (and deal the next turn, or open the shop). */
+export async function sendNow(): Promise<void> {
   const s = current();
-  if (!s || leaving) return;
-  const r = E.nextCrisis(s);
-  if (!r.ok) {
-    showToast(r.reason, BRIEFING_TOAST);
+  if (!s || s.phase !== 'choose') return;
+  const step = turnOneStep(s);
+  if (step && !step.send) {
+    showToast(`Beat ${E.formatInt(s.deal.target)} first: add regions.`, above(R.send));
     return;
   }
-  resetAnim();
+  const r = E.send(s);
+  if (!r.ok) {
+    showToast(r.reason, above(R.send));
+    return;
+  }
+  const next = r.state;
+  clearTransient();
+  coachSend();
+  if (s.mode === 'first' && !prefs.value.playedFirst) setPrefs({ playedFirst: true });
+  busy.value = true;
+  run.value = next;
+  persist(next);
+  try {
+    await director().playSend(s, next);
+  } catch (e) {
+    console.error('[war] playback failed', e);
+  }
+  // The game was left or replaced while it played.
+  if (run.value !== next) return;
+  batch(() => {
+    resetPlayback();
+    shown.value = next;
+    busy.value = false;
+  });
+  coachAfter(s, next);
+  droneFor(next);
+  if (next.phase === 'outcome') {
+    advanceTimer = window.setTimeout(() => {
+      if (run.value === next) advance(next);
+    }, OUTCOME_HOLD_MS / speed.value);
+  }
+}
+
+/** Deal the next turn. */
+function advance(s: GameState): void {
+  const prev = s;
+  const r = E.nextTurn(s);
+  if (!r.ok) return;
   getMap()?.fx.reset();
-  receiptOpen.value = null;
-  run.value = r.state;
-  const show = () => {
-    leaving = 0;
-    trayLeaving.value = false;
-    // A tap on the table during the slide has already put the new crisis on show.
-    if (run.value !== r.state || shown.value === r.state) return;
+  clearTransient();
+  batch(() => {
+    run.value = r.state;
     shown.value = r.state;
-    hintsAfter(s, r.state);
-    audio.play('tally_slam', { intensity: 0.2 });
-    droneFor(r.state);
-  };
-  if (reduced.value) {
-    show();
+  });
+  persist(r.state);
+  coachAfter(prev, r.state);
+  droneFor(r.state);
+  audio.play('flap', { intensity: 0.4 });
+}
+
+let leaveTimer = 0;
+
+/** NEXT TURN (the shop): the tray slides away, then the next turn is dealt. */
+export function nextTurnNow(): void {
+  const s = current();
+  if (!s || (s.phase !== 'shop' && s.phase !== 'outcome') || leaveTimer) return;
+  if (s.phase === 'outcome' || reduced.value) {
+    advance(s);
     return;
   }
   trayLeaving.value = true;
   audio.play('slide', { intensity: 0.6 });
-  leaving = window.setTimeout(show, TRAY_LEAVE_MS / speed.value);
+  leaveTimer = window.setTimeout(() => {
+    leaveTimer = 0;
+    trayLeaving.value = false;
+    if (run.value === s) advance(s);
+  }, TRAY_LEAVE_MS / speed.value);
 }
 
-export function keepGoing(): void {
+// ---------------------------------------------------------------- the shop
+
+/** Hire offer `slot` (into the leftmost free seat, or in place of `replaceSeat`). False on a refusal. */
+export function buyOffer(slot: number, replaceSeat?: number): boolean {
   const s = current();
-  if (!s) return;
-  if (commit(E.keepGoing(s), above(R.endButton))) resetAnim();
+  if (!s) return false;
+  if (!commit(E.buy(s, slot, replaceSeat), TRAY_TOAST)) return false;
+  clearTransient();
+  persist(run.value!);
+  audio.play('capital', { intensity: 0.6 });
+  buzz(12);
+  return true;
 }
 
 export function sellSeat(seat: number): void {
   const s = current();
   if (!s) return;
-  if (commit(E.sellStaff(s, seat), BRIEFING_TOAST)) {
-    balloon.value = null;
+  if (commit(E.sell(s, seat), TRAY_TOAST)) {
+    clearTransient();
+    persist(run.value!);
     audio.play('capital', { intensity: 0.4 });
   }
 }
 
-export function sellTray(slot: number): void {
+export function rerollOffers(): boolean {
   const s = current();
-  if (!s) return;
-  if (commit(E.sellPaper(s, slot), above(slot === 0 ? R.tray0 : R.tray1))) {
-    balloon.value = null;
-    audio.play('capital', { intensity: 0.4 });
-  }
+  if (!s) return false;
+  if (!commit(E.reroll(s), TRAY_TOAST)) return false;
+  replacing.value = null;
+  persist(run.value!);
+  audio.play('offer', { intensity: 0.5 });
+  return true;
 }
 
 export function moveSeat(from: number, to: number): void {
   const s = current();
   if (!s || from === to) return;
   if (commit(E.moveSeat(s, from, to), above(R.rail))) {
+    if (balloon.value) balloon.value = { seat: to };
+    if (s.phase === 'shop') persist(run.value!);
     audio.play('tick', { intensity: 0.2 });
     buzz(8);
   }
+}
+
+// ---------------------------------------------------------------- tests and screenshots
+
+/** The dev hook's setOwner: redraw who owns what (the turn is dealt again on the new map). */
+export function setOwnersNow(owners: string | Partial<Record<RegionId, E.Owner>>): boolean {
+  const s = run.value;
+  if (!s || busy.value || !commit(E.setOwners(s, owners))) return false;
+  persist(run.value!);
+  droneFor(run.value);
+  return true;
+}
+
+/** The dev hook: start a game from a seed. */
+export function startSeed(seed: string): void {
+  begin(E.newGame(seed));
 }

@@ -1,200 +1,81 @@
 /**
- * The Big Board (spec 10: 0,47,390,60): the clock, the crisis and its dots, the Summit chip, the
- * crisis total in split-flap over the target and the sweeps left, the Funds coin and the progress
- * rule. The goal is always on show: nothing ever covers the leverage module. After a slam the total
- * rolls up like an odometer, one flap click per leaf. The menu button lives on the clock module so
- * there is always a way home.
+ * The Big Board (SPEC section 10: 0,47,390,60), the goal display, always on show: GOLD n/30 with a
+ * 30-segment bar on the left, WAR n/10 with a 10-segment bar on the right, the menu button between
+ * them. Ghost segments show what the current pins would do before SEND; at war 8 or 9 the last
+ * segments pulse. Both counts are text as well as bars, so colour is never the only signal.
  */
 import type { JSX } from 'preact';
-import { useEffect, useRef, useState } from 'preact/hooks';
-import { boardLabels, formatShort, type RunState } from '../../engine';
-import { Coin } from '../art';
-import { balloon, reduced, sheet } from '../app/store';
-import * as A from '../fx/anim';
-import { layoutOf, rollSteps } from './odometer';
-import { FlapRow, tilesOf, type FlapMotion, type FlapStyle } from './SplitFlap';
+import { goalView, type GameState } from '../../engine';
+import * as P from '../app/playback';
+import { reduced, sheet } from '../app/store';
+import { R, rectStyle } from '../common/layout';
+import { segments, warDanger, type Seg } from './bars';
+import { FlapRow, type FlapStyle } from './SplitFlap';
 
-const CLOCK: FlapStyle = { w: 12, h: 20, size: 17, gap: 1.5, sep: 6, skin: 'steel' };
-const TOTAL: FlapStyle = { w: 21.5, h: 32, size: 28, gap: 2, sep: 6, skin: 'steel' };
-/** The total's tiles sit right-aligned in 112,60,124,32. */
-const TOTAL_RIGHT = 236;
-const TOTAL_W = 124;
+const COUNT: FlapStyle = { w: 17, h: 26, size: 22, gap: 1.5, sep: 5, skin: 'steel' };
 
-export function BigBoard({ s }: { s: RunState }): JSX.Element {
-  const b = boardLabels(s);
-  const heat = A.heat.value;
-  const cleared = s.crisis.cleared && !A.holdCleared.value;
-  const totalNow = A.totalShown.value ?? s.crisis.total;
-  const target = s.crisis.target;
-  const progress = share(totalNow, target);
-  const funds = A.fundsShown.value ?? s.funds;
-  const roll = A.boardRoll.value;
-  // During the sweep events the rule shows a ghost of what this sweep has made so far.
-  const live = A.boxes.value;
-  const ghost = live && A.slam.value === 'idle' && s.phase === 'crisis' ? share(totalNow + (live.I * live.M10) / 10n, target) : null;
-  const sweepsLeft = s.phase === 'crisis' && !s.crisis.cleared ? s.crisis.sweepsLeft : null;
-  // A new crisis gets a fresh row and an empty rule at once: the last crisis's total never stands
-  // against the new target, and the rule never drains back across the board.
-  const crisisKey = `${s.crisis.hour}:${s.crisis.index}`;
-
+export function BigBoard({ s }: { s: GameState }): JSX.Element {
+  const g = goalView(s);
+  const shownGoal = P.goal.value;
+  const gold = shownGoal?.gold ?? g.gold;
+  const red = shownGoal?.red ?? g.red;
+  // Ghosts only while choosing, and never while the outcome is being counted.
+  const after = shownGoal ? null : g.after;
+  const glow = P.goalGlow.value;
+  // A miss preview: the WAR bar's next segment blinks; in the final push the board ghosts CEASEFIRE.
+  const missing = !!after && after.red > red;
+  const ceasefire = !!after && s.phase === 'choose' && s.deal.finalPush && after.gold === gold;
+  const danger = warDanger(red, g.warLimit);
   return (
     <div class="layer board-layer">
-      <div class={`board${heat ? ' heat' : ''}`}>
-        <div class="board-backlight" />
-        <i class="divider" style={{ left: '104px' }} />
-        <i class="divider" style={{ left: '299px' }} />
+      <div class="board">
         <i class="rivet" style={{ left: '5px', top: '5px' }} />
         <i class="rivet" style={{ right: '5px', top: '5px' }} />
-        <i class="rivet" style={{ left: '5px', bottom: '9px' }} />
-        <i class="rivet" style={{ right: '5px', bottom: '9px' }} />
+        <i class="rivet" style={{ left: '5px', bottom: '5px' }} />
+        <i class="rivet" style={{ right: '5px', bottom: '5px' }} />
       </div>
 
-      <div class="backlit soft abs" style={{ left: '16px', top: '51px', width: '57px', height: '20px' }} />
-      <div class="abs" style={{ left: '16px', top: '51px' }}>
-        <FlapRow text={b.clock} style={CLOCK} motion={{ flips: 3, flipMs: 70, stagger: 30, instant: false, reduced: reduced.value, click: 0.4 }} />
+      <div class={`goal-count gold abs${glow === 'gold' ? ' glow' : ''}`} style={rectStyle(R.goldCount)} aria-label={`Gold: ${gold} of ${g.goldGoal} regions`}>
+        <span class="goal-label">GOLD</span>
+        <FlapRow text={String(gold)} style={COUNT} motion={{ flips: 2, flipMs: 70, stagger: 30, instant: false, reduced: reduced.value, click: 0.5 }} minTiles={2} unlitPadding />
+        <span class="goal-of num">/{g.goldGoal}</span>
       </div>
+
       <MenuButton />
-      <div class="crisis-line abs">
-        <span>{b.crisis}</span>
-        <span class="dots">
-          {[0, 1, 2].map((i) => {
-            const state = i < b.crisisIndex || (i === b.crisisIndex && s.crisis.cleared) ? 'done' : i === b.crisisIndex ? 'live' : 'todo';
-            return <i key={i} class={`dot ${state}`} />;
-          })}
-        </span>
-      </div>
-      <button
-        class={`summit-chip abs${b.twistNow ? ' now' : ''}`}
-        onClick={() => (balloon.value = balloon.value?.kind === 'summit' ? null : { kind: 'summit', index: 0 })}
-        aria-label={`${b.summitChip}. ${b.twistRule}`}
-      >
-        {b.summitChip}
-      </button>
 
-      <div class="label abs" style={{ left: '112px', top: '50px' }}>
-        LEVERAGE
-      </div>
-      <TotalTiles key={crisisKey} total={totalNow} target={target} roll={roll} heat={heat} />
       <div
-        key={crisisKey}
-        class={`target abs${reduced.value ? '' : ' arrive'}${heat ? ' hot' : ''}`}
-        style={{ fontSize: targetSize(target) }}
+        class={`goal-count war abs${glow === 'war' ? ' glow' : ''}${danger ? ' danger' : ''}`}
+        style={rectStyle(R.warCount)}
+        aria-label={`War: ${red} of ${g.warLimit} regions`}
       >
-        <span class="slash">/</span>
-        <span class="num">{formatShort(target, 7)}</span>
-      </div>
-      {sweepsLeft !== null && (
-        <div class={`sweeps-left abs${sweepsLeft === 1 ? ' last' : ''}`}>
-          {sweepsLeft} SWEEP{sweepsLeft === 1 ? '' : 'S'} LEFT
-        </div>
-      )}
-      {cleared && <div key={A.clearedStamp.value} class={`stamp-cleared abs${reduced.value ? ' still' : ''}`}>CLEARED</div>}
-      {cleared && (
-        <div class="sweeps-left total-line abs">
-          TOTAL <span class="num">{formatShort(totalNow, 7)}</span>
-        </div>
-      )}
-
-      <div class="funds abs">
-        <Coin size={20} class="coin" />
-        <span class="amount num">{funds}</span>
+        <span class="goal-label">WAR</span>
+        <FlapRow text={String(red)} style={COUNT} motion={{ flips: 2, flipMs: 70, stagger: 30, instant: false, reduced: reduced.value, click: 0.5 }} minTiles={2} unlitPadding />
+        <span class="goal-of num">/{g.warLimit}</span>
       </div>
 
-      <div key={crisisKey} class={`rule${progress >= 1 ? ' done' : ''}${progress <= 0 ? ' empty' : ''}`}>
-        {ghost !== null && ghost > progress && <div class={`ghost${ghost >= 1 ? ' full' : ''}`} style={{ width: `${(ghost * 100).toFixed(2)}%` }} />}
-        <div class="fill" style={{ width: `${(progress * 100).toFixed(2)}%`, transitionDuration: roll ? `${Math.round(roll.ms)}ms` : undefined }} />
-      </div>
+      <Bar kind="gold" segs={segments(g.goldGoal, gold, after?.gold ?? null)} glow={glow === 'gold'} />
+      <Bar kind="war" segs={segments(g.warLimit, red, after?.red ?? null)} glow={glow === 'war'} danger={danger} blink={missing} />
+      {ceasefire && <div class="ceasefire-ghost abs">CEASEFIRE</div>}
     </div>
   );
 }
 
-/** total / target, 0..1. */
-function share(total: bigint, target: bigint): number {
-  return target > 0n ? Math.min(1, Number((total * 10_000n) / target) / 10_000) : 0;
-}
-
-function targetSize(target: bigint): string {
-  const len = formatShort(target, 7).length;
-  return len <= 5 ? '14px' : len === 6 ? '12.5px' : '11px';
-}
-
-/** How many digit tiles a number needs on the board ('1,350' needs 4, '600M' needs 4). */
-function tileCount(text: string): number {
-  return tilesOf(text, 0).filter((c) => c !== ',' && c !== '.').length;
-}
-
-/**
- * The text the board shows while a roll plays: each odometer step in turn, sent `lead` ms early so
- * that its leaf lands on the step's moment (and the last one as the roll ends).
- */
-function useRoll(roll: A.BoardRoll | null, lead: number): string | null {
-  const [text, setText] = useState<{ n: number; text: string } | null>(null);
-  useEffect(() => {
-    if (!roll) return;
-    const timers = rollSteps(roll.from, roll.to, roll.ms).map((step) =>
-      window.setTimeout(() => setText({ n: roll.n, text: step.text }), Math.max(0, step.at - lead)),
-    );
-    return () => timers.forEach((t) => clearTimeout(t));
-  }, [roll?.n]);
-  if (!roll) return null;
-  return text?.n === roll.n ? text.text : formatShort(roll.from, 7);
-}
-
-/**
- * The leverage tiles: as many as the target has digits, the unused ones unpowered, and a zero shown
- * dim until the first sweep lands (an idle board, not dead digits). The backlight sits only behind
- * the powered tiles.
- */
-function TotalTiles({ total, target, roll, heat }: { total: bigint; target: bigint; roll: A.BoardRoll | null; heat: boolean }): JSX.Element {
-  // A roll steps the value: every changed tile flips one leaf per step, all together, so the row
-  // only ever shows a step's value (never a lagging tile's old digit beside a new one).
-  const stepMs = roll ? roll.ms / Math.max(2, Math.floor(roll.ms / 70)) : 0;
-  const rollFlipMs = Math.max(30, Math.min(60, stepMs * 0.85));
-  const rolled = useRoll(roll, rollFlipMs);
-  const flash = useLanded();
-  const text = rolled ?? formatShort(total, 7);
-  const minTiles = tileCount(formatShort(target, 7));
-  const chars = tilesOf(text, minTiles);
-  const nTiles = tileCount(chars.join(''));
-  const nSeps = chars.length - nTiles;
-  const need = nTiles * TOTAL.w + nSeps * TOTAL.sep + (chars.length - 1) * TOTAL.gap;
-  const w = need > TOTAL_W ? (TOTAL_W - nSeps * TOTAL.sep - (chars.length - 1) * TOTAL.gap) / nTiles : TOTAL.w;
-  // The backlight sits behind the powered tiles; under HEAT the whole row burns.
-  const lit = heat ? nTiles : tileCount(text);
-  const litW = lit * w + nSeps * TOTAL.sep + (lit + nSeps - 1) * TOTAL.gap;
-  const motion: FlapMotion = roll
-    ? { flips: 1, flipMs: rollFlipMs, stagger: 0, instant: false, reduced: reduced.value, click: 0.8, atomic: true }
-    : { flips: 2, flipMs: 70, stagger: 30, instant: false, reduced: reduced.value, click: 0.6 };
+function Bar({ kind, segs, glow, danger = false, blink = false }: { kind: 'gold' | 'war'; segs: Seg[]; glow: boolean; danger?: boolean; blink?: boolean }): JSX.Element {
+  const r = kind === 'gold' ? R.goldBar : R.warBar;
   return (
-    <>
-      <div class={`backlit abs${heat ? ' hot' : ''}`} style={{ left: `${TOTAL_RIGHT - litW + 7}px`, top: '60px', width: `${litW - 7}px`, height: '32px' }} />
-      <div class={`total abs${heat ? ' hot' : ''}${total === 0n && !roll ? ' idle' : ''}${flash ? ' landed' : ''}`}>
-        <FlapRow key={layoutOf(text)} text={text} style={TOTAL} motion={motion} minTiles={minTiles} maxWidth={TOTAL_W} unlitPadding class="right" />
-      </div>
-    </>
+    <div class={`goal-bar ${kind} abs${glow ? ' glow' : ''}${danger ? ' danger' : ''}${blink ? ' blink' : ''}`} style={rectStyle(r)} aria-hidden="true">
+      {segs.map((seg, i) => (
+        <i key={i} class={`seg ${seg}`} />
+      ))}
+    </div>
   );
-}
-
-/** True for a moment after the total lands at the end of a roll (the tiles flash white once). */
-function useLanded(): boolean {
-  const n = A.totalLanded.value;
-  const seen = useRef(n);
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    if (n === seen.current || reduced.value) return;
-    seen.current = n;
-    setOn(true);
-    const t = window.setTimeout(() => setOn(false), 180);
-    return () => clearTimeout(t);
-  }, [n]);
-  return on;
 }
 
 function MenuButton(): JSX.Element {
   return (
-    <button class="menu-btn abs" aria-label="Menu" onClick={() => (sheet.value = 'menu')}>
-      <svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true">
-        <path d="M5 6.5 H15 M5 10 H15 M5 13.5 H15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+    <button class="menu-btn abs" style={rectStyle(R.menu)} aria-label="Menu" onClick={() => (sheet.value = 'menu')}>
+      <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
+        <path d="M4.5 6 H15.5 M4.5 10 H15.5 M4.5 14 H15.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
       </svg>
     </button>
   );

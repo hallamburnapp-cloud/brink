@@ -1,7 +1,7 @@
 /**
- * The portrait layout (spec section 10). Rects are [x, y, w, h] in frame px on the 390 x 844
- * logical screen. Components position themselves from these, and the director aims flying
- * numbers with them, so nothing needs to measure the DOM.
+ * The portrait layout (SPEC sections 9 and 10). Rects are [x, y, w, h] in frame px on the 390 x 844
+ * logical screen. Components position themselves from these, and the director aims flying numbers
+ * with them, so nothing needs to measure the DOM.
  */
 
 export type Rect = readonly [x: number, y: number, w: number, h: number];
@@ -11,43 +11,62 @@ export const FRAME_H = 844;
 
 export const R = {
   safeTop: [0, 0, 390, 47],
+  // The Big Board: the goal display (section 10).
   board: [0, 47, 390, 60],
-  rule: [0, 103, 390, 4],
+  goldCount: [16, 50, 150, 26],
+  menu: [179, 50, 32, 32],
+  warCount: [224, 50, 150, 26],
+  goldBar: [16, 84, 209, 16],
+  warBar: [245, 84, 129, 16],
   rail: [0, 107, 390, 64],
   map: [0, 171, 390, 520],
+  /** The intro's SKIP, top right of the map (a 44 pt hit height). */
+  skip: [322, 179, 52, 32],
+  // The readout.
   readout: [0, 691, 390, 48],
-  inf: [196, 695, 86, 40],
-  mom: [300, 695, 74, 40],
+  target: [16, 693, 170, 20],
+  need: [16, 717, 170, 16],
+  points: [196, 695, 86, 40],
+  mult: [300, 695, 74, 40],
+  // The controls.
   controls: [0, 739, 390, 68],
-  swap: [16, 745, 96, 56],
-  tray0: [120, 745, 52, 56],
-  tray1: [178, 745, 52, 56],
-  sweep: [238, 745, 136, 56],
+  swap: [16, 745, 104, 56],
+  coins: [128, 745, 70, 56],
+  send: [206, 745, 168, 56],
   home: [0, 807, 390, 37],
+  // The shop, in the Briefing tray.
   tray: [0, 451, 390, 356],
-  offer0: [16, 489, 171, 150],
-  offer1: [203, 489, 171, 150],
-  folder: [16, 651, 171, 88],
-  reroll: [203, 651, 171, 40],
-  next: [203, 699, 171, 40],
+  offer0: [16, 485, 110, 180],
+  offer1: [140, 485, 110, 180],
+  offer2: [264, 485, 110, 180],
+  reroll: [16, 677, 171, 44],
+  next: [203, 677, 171, 44],
+  receipt: [16, 729, 358, 28],
+  // The end screens.
   endCard: [24, 200, 342, 300],
-  endButton: [24, 520, 342, 56],
+  endNew: [24, 520, 342, 56],
+  endHome: [24, 584, 342, 44],
 } as const satisfies Record<string, Rect>;
+
+export const OFFER_RECTS: readonly Rect[] = [R.offer0, R.offer1, R.offer2];
 
 /** Seat x positions (spec: 17, 90, 163, 236, 309), y 110, 64 x 58. */
 export const SEAT_X = [17, 90, 163, 236, 309] as const;
 export const SEAT_Y = 110;
 export const SEAT_W = 64;
 export const SEAT_H = 58;
-
-/** Open folder cards: 110 x 150 at x 16, 140, 264, y 489. */
-export const FOLDER_CARD_X = [16, 140, 264] as const;
+export const SEATS = 5;
 
 export const MAP_X = R.map[0];
 export const MAP_Y = R.map[1];
 
 export function centre(r: Rect): { x: number; y: number } {
   return { x: r[0] + r[2] / 2, y: r[1] + r[3] / 2 };
+}
+
+/** A rect as absolute-position CSS. */
+export function rectStyle(r: Rect): { left: string; top: string; width: string; height: string } {
+  return { left: `${r[0]}px`, top: `${r[1]}px`, width: `${r[2]}px`, height: `${r[3]}px` };
 }
 
 /** Which seat slot a dragged seat's centre x falls in. */

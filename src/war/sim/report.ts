@@ -1,171 +1,131 @@
 /**
- * Plain-text tables for the simulator CLI and the report: calibration beside the reference,
- * the five gates, the choice spread and the full-run survival curve.
+ * Tables for the simulator CLI and docs/war/v2/SIM-REPORT.md: the 17 gates and the outcomes beside
+ * the reference (RESULTS.txt), a few details per shopping bot, and the by-turn curve. Plain text for
+ * the terminal, or Markdown.
  */
-import { PATTERN, PATTERN_IDS } from '../content/patterns';
-import { STAFF_DEF, type StaffId } from '../content/staff';
-import { CRISIS_NAME, clockOf, formatInt, hourLabel, hourTargets, type CrisisKind } from '../engine';
-import { CALIBRATION, median, type RowTally } from './calibration';
-import type { GateResult } from './gates';
-import { LAST_HOUR, type RunBot, type RunOutcome } from './builder';
-import { SPREAD_REF, type RefRate } from './reference';
-import type { SpreadStats } from './spread';
+import type { BotName } from './bots';
+import type { GateResult, StatsByBot } from './gates';
+import type { Reference } from './reference';
+import { BOT_NAMES } from './roster';
+import type { BotStats, CurvePoint } from './summary';
 
 type Align = 'l' | 'r';
+export type Format = 'text' | 'md';
 
-/** A monospaced table: header row, a rule, then rows. */
-export function table(head: string[], rows: string[][], align: Align[]): string {
+export function table(head: readonly string[], rows: readonly string[][], align: readonly Align[], format: Format = 'text'): string {
+  if (format === 'md') {
+    const line = (cells: readonly string[]) => `| ${cells.join(' | ')} |`;
+    return [line(head), line(align.map((a) => (a === 'r' ? '--:' : '---'))), ...rows.map(line)].join('\n');
+  }
   const widths = head.map((h, i) => Math.max(h.length, ...rows.map((r) => r[i].length)));
-  const line = (cells: string[]) =>
+  const line = (cells: readonly string[]) =>
     cells.map((c, i) => (align[i] === 'r' ? c.padStart(widths[i]) : c.padEnd(widths[i]))).join('  ').trimEnd();
   return [line(head), widths.map((w) => '-'.repeat(w)).join('  '), ...rows.map(line)].join('\n');
 }
 
-export const pct = (x: number, digits = 1): string => `${(100 * x).toFixed(digits)}%`;
-const int = (n: number): string => formatInt(BigInt(Math.round(n)));
+export const pct = (x: number | undefined): string => (x === undefined || Number.isNaN(x) ? '-' : `${(100 * x).toFixed(1)}%`);
+const one = (x: number | null | undefined): string => (x === null || x === undefined || Number.isNaN(x) ? '-' : x.toFixed(1));
+const int = (x: number | undefined): string => (x === undefined || Number.isNaN(x) ? '-' : Math.round(x).toLocaleString('en-GB'));
+/** 'ours (reference)' */
+const pair = (ours: string, ref: string): string => `${ours} (${ref})`;
 
-/**
- * Is the gap between two measured shares bigger than sampling noise? A two-proportion test
- * with the pooled share, at about 2 standard errors.
- */
-export function beyondNoise(p1: number, n1: number, p2: number, n2: number): boolean {
-  const pooled = (p1 * n1 + p2 * n2) / (n1 + n2);
-  const se = Math.sqrt(pooled * (1 - pooled) * (1 / n1 + 1 / n2));
-  return Math.abs(p1 - p2) > 2 * se;
+export function gatesTable(gates: readonly GateResult[], ref: Reference, format: Format = 'text'): string {
+  const refText = new Map(ref.gates.map((g) => [g.id, g.text]));
+  const rows = gates.map((g) => [
+    `${g.id} ${g.title}`,
+    g.threshold,
+    g.text,
+    refText.get(g.id) ?? '-',
+    g.pass ? 'PASS' : g.passLoose ? 'FAIL (within noise)' : 'FAIL',
+  ]);
+  return table(['Gate', 'Threshold', 'This sim', `Reference`, 'Result'], rows, ['l', 'l', 'r', 'r', 'l'], format);
 }
 
-const TWIST_LABEL: Record<string, string> = { GRIDLOCK: 'Gridlock', BLACKOUT: 'Blackout', FULL_TABLE: 'Full Table' };
-
-/**
- * The calibration table. `rerun` adds a column for a larger re-run of the Python reference
- * (the spec's figures come from 200 crises a row, which is +/-7 points at 95%).
- */
-export function calibrationTable(tallies: Readonly<Record<string, RowTally>>, rerun?: Readonly<Record<string, RefRate>>): string {
-  const head = ['Staff', 'Twist', 'Target', 'Spec', 'Reference', ...(rerun ? ['Ref re-run'] : []), 'This sim', 'Median total', 'Gap'];
-  const rows = CALIBRATION.filter((r) => tallies[r.id]).map((r) => {
-    const t = tallies[r.id];
-    const ours = t.cleared / t.n;
-    const big = rerun?.[r.id] ?? r.ref;
-    const gap = ours - big.pct / 100;
-    const noisy = beyondNoise(ours, t.n, big.pct / 100, big.n);
-    return [
-      r.build,
-      r.twist ? TWIST_LABEL[r.twist] : '-',
-      int(r.target),
-      `${r.spec}%`,
-      `${r.ref.pct.toFixed(1)}% (${int(r.ref.n)})`,
-      ...(rerun ? [rerun[r.id] ? `${rerun[r.id].pct.toFixed(1)}% (${int(rerun[r.id].n)})` : '-'] : []),
-      `${pct(ours)} (${int(t.n)})`,
-      int(median(t.totals)),
-      `${gap >= 0 ? '+' : ''}${(100 * gap).toFixed(1)}${noisy ? ' !' : ''}`,
-    ];
-  });
-  const align: Align[] = ['l', 'l', 'r', 'r', 'r', ...(rerun ? ['r' as Align] : []), 'r', 'r', 'r'];
-  return table(head, rows, align);
-}
-
-export function gatesTable(gates: readonly GateResult[]): string {
+/** Per bot, a row for this sim and a row for the reference. */
+export function outcomesTable(stats: StatsByBot, ref: Reference, format: Format = 'text'): string {
   const rows: string[][] = [];
-  for (const g of gates) {
-    g.checks.forEach((c, k) => {
-      const value = `${pct(c.value)}${k === 0 && g.note ? ` ${g.note}` : ''}`;
-      const slack = c.tolerance > 0 ? ` (+/-${(100 * c.tolerance).toFixed(1)})` : '';
-      rows.push([
-        k === 0 ? String(g.index) : '',
-        k === 0 ? g.title : `  ${c.label}`,
-        `${c.op} ${pct(c.threshold, 0)}${slack}`,
-        value,
-        `[${pct(c.reference, 0)}]`,
-        k === 0 ? (g.pass ? 'PASS' : 'FAIL') : c.pass ? '' : 'fail',
-      ]);
-    });
-  }
-  return table(['#', 'Gate', 'Needs', 'This sim', 'Ref', ''], rows, ['r', 'l', 'r', 'r', 'r', 'l']);
-}
-
-const q = (x: { p10: number; median: number; p90: number }, digits: number) =>
-  `${x.median.toFixed(digits)} (p10 ${x.p10.toFixed(digits)}, p90 ${x.p90.toFixed(digits)})`;
-
-export function spreadReport(s: SpreadStats): string {
-  const r = SPREAD_REF;
-  const lines = [
-    table(
-      ['Choice spread, 8 lit, no staff', `This sim (${int(s.deals)} deals)`, `Reference (${int(r.deals)})`],
-      [
-        ['Best play / median play', q(s.ratio, 1), q(r.ratio, 1)],
-        ['Best play >= 3x median', pct(s.atLeast3x), pct(r.atLeast3x)],
-        ['Best play / best other pattern', q(s.ratioNext, 2), q(r.ratioNext, 2)],
-        ['Best play leverage', q(s.bestScore, 0), q(r.bestScore, 0)],
-      ],
-      ['l', 'r', 'r'],
-    ),
-    '',
-    table(
-      ['Pattern', 'Can be made', 'Ref', 'Is the best play', 'Ref'],
-      PATTERN_IDS.map((p) => [
-        PATTERN[p].name,
-        pct(s.available[p]),
-        pct(r.available[p]),
-        pct(s.bestShare[p]),
-        pct(r.bestShare[p]),
-      ]),
-      ['l', 'r', 'r', 'r', 'r'],
-    ),
-  ];
-  return lines.join('\n');
-}
-
-const KINDS: readonly CrisisKind[] = ['FLARE_UP', 'STANDOFF', 'SUMMIT'];
-
-/** Survival through the night: share of runs that cleared each of the 9 crises. */
-export function runsReport(byBot: Partial<Record<RunBot, readonly RunOutcome[]>>): string {
-  const bots = (Object.keys(byBot) as RunBot[]).filter((b) => byBot[b]?.length);
-  const head = ['Crisis', 'Target', ...bots.map((b) => `${b === 'builder' ? 'Builder' : 'Greedy, no buying'} (${int(byBot[b]!.length)})`)];
-  const rows: string[][] = [];
-  for (let k = 0; k < 9; k++) {
-    const hour = Math.floor(k / 3);
-    const kind = KINDS[k % 3];
+  for (const bot of BOT_NAMES) {
+    const s = stats[bot];
+    if (!s) continue;
     rows.push([
-      `${clockOf(hour)} ${CRISIS_NAME[kind]}`,
-      int(Number(hourTargets(hour, null)[k % 3])),
-      ...bots.map((b) => pct(byBot[b]!.filter((o) => o.cleared > k).length / byBot[b]!.length)),
+      bot,
+      'this sim',
+      int(s.n),
+      pct(s.worldUnited),
+      pct(s.ceasefire),
+      pct(s.held),
+      pct(s.war),
+      int(s.stalls),
+      `${one(s.turns.median)} (${s.turns.p10}-${s.turns.p90})`,
+      `${one(s.minutes.first.median)} / ${one(s.minutes.first.p90)}`,
+    ]);
+    const r = ref.outcomes[bot];
+    if (!r) continue;
+    rows.push([
+      '',
+      'reference',
+      int(ref.games),
+      pct(r.worldUnited),
+      pct(r.ceasefire),
+      pct(r.held),
+      pct(r.war),
+      int(r.stall * ref.games),
+      `${one(r.turns.median)} (${r.turns.p10}-${r.turns.p90})`,
+      `${one(r.minutes.first[0])} / ${one(r.minutes.first[1])}`,
     ]);
   }
-  const out = [table(head, rows, ['l', 'r', ...bots.map(() => 'r' as Align)])];
+  return table(
+    ['Bot', '', 'Games', 'WORLD UNITED', 'CEASEFIRE', 'Holds', 'WAR', 'Stalls', 'Turns: median (p10-p90)', 'First-game minutes: median / p90'],
+    rows,
+    ['l', 'l', 'r', 'r', 'r', 'r', 'r', 'r', 'r', 'r'],
+    format,
+  );
+}
 
-  // After the slice: KEEP GOING, one row per Hour's Summit.
-  const later: string[][] = [];
-  for (let h = 3; h <= LAST_HOUR; h++) {
-    later.push([
-      `${hourLabel(h)} SUMMIT`,
-      int(Number(hourTargets(h, null)[2])),
-      ...bots.map((b) => pct(byBot[b]!.filter((o) => o.overtimeHours >= h - 2).length / byBot[b]!.length)),
-    ]);
-  }
-  out.push('');
-  out.push('After the slice, with KEEP GOING: share of runs that cleared each Hour');
-  out.push(table(['Hour', 'Summit', ...head.slice(2)], later, ['l', 'r', ...bots.map(() => 'r' as Align)]));
-  for (const b of bots) {
-    const runs = byBot[b]!;
-    const avg = (f: (o: RunOutcome) => number) => runs.reduce((a, o) => a + f(o), 0) / runs.length;
-    out.push('');
-    out.push(
-      `${b === 'builder' ? 'Builder' : 'Greedy, no buying'}: held until 01:00 in ${pct(runs.filter((o) => o.held).length / runs.length)}; ` +
-        `cleared ${avg((o) => o.cleared).toFixed(2)} of 9 crises on average; median best sweep ${int(median(runs.map((o) => o.bestLeverage)))}; ` +
-        `Funds left ${avg((o) => o.funds).toFixed(1)}.`,
-    );
-    if (b === 'builder') {
-      const counts = new Map<StaffId, number>();
-      for (const o of runs) for (const id of o.bought) counts.set(id, (counts.get(id) ?? 0) + 1);
-      const top = [...counts.entries()].sort((a, c) => c[1] - a[1]).slice(0, 8);
-      out.push(`Staff hired most (per run): ${top.map(([id, n]) => `${STAFF_DEF[id].name} ${(n / runs.length).toFixed(2)}`).join(', ')}.`);
-      out.push(`Staff hired per run: ${avg((o) => o.bought.length).toFixed(1)}; sold per run: ${avg((o) => o.sold.length).toFixed(1)}.`);
-      // The design's rule of thumb: no staff in more than 35% of winning builds.
-      const seated = new Map<StaffId, number>();
-      for (const o of runs) for (const id of new Set(o.staff)) seated.set(id, (seated.get(id) ?? 0) + 1);
-      const common = [...seated.entries()].sort((a, c) => c[1] - a[1]).slice(0, 8);
-      out.push(`Seated at the end (share of runs): ${common.map(([id, n]) => `${STAFF_DEF[id].name} ${pct(n / runs.length)}`).join(', ')}.`);
-    }
-  }
-  return out.join('\n');
+const sizeShare = (s: BotStats, pick: (k: number) => boolean): number => {
+  const total = s.sizes.reduce((n, [, c]) => n + c, 0);
+  return total ? s.sizes.filter(([k]) => pick(k)).reduce((n, [, c]) => n + c, 0) / total : NaN;
+};
+
+const refSizeShare = (sizes: Array<[number, number]> | undefined, pick: (k: number) => boolean): number | undefined =>
+  sizes ? sizes.filter(([k]) => pick(k)).reduce((n, [, x]) => n + x, 0) : undefined;
+
+/** Figures beyond the gates, for the bots that shop with a plan. */
+export function detailTable(stats: StatsByBot, ref: Reference, format: Format = 'text'): string {
+  const bots = (['sensible', 'preview', 'breaker'] as BotName[]).filter((b) => stats[b]);
+  const rows: Array<[string, (s: BotStats) => string, (b: BotName) => string]> = [
+    ['best send ≥ 2x the median send (turns)', (s) => pct(s.spread2), (b) => pct(ref.detail[b]?.spread2)],
+    ['best send wins where the median misses', (s) => pct(s.bestWinsMedianMisses), (b) => pct(ref.detail[b]?.bestWinsMedianMisses)],
+    ['sends that pin the crisis', (s) => pct(s.onCrisis), (b) => pct(ref.detail[b]?.onCrisis)],
+    ['games that reach the final push', (s) => pct(s.finalPush), (b) => pct(ref.detail[b]?.finalPush)],
+    ['best send per game, median', (s) => int(s.bestMedian), (b) => int(ref.detail[b]?.bestMedian)],
+    ['games with a 1,000,000+ send', (s) => pct(s.million), (b) => pct(ref.detail[b]?.million)],
+    ['games with a send that wins 5+ regions', (s) => pct(s.flood5), (b) => pct(ref.detail[b]?.flood5)],
+    ['winning sends that take 1 region', (s) => pct(sizeShare(s, (k) => k === 1)), (b) => pct(refSizeShare(ref.detail[b]?.sizes, (k) => k === 1))],
+    ['winning sends that take 2 regions', (s) => pct(sizeShare(s, (k) => k === 2)), (b) => pct(refSizeShare(ref.detail[b]?.sizes, (k) => k === 2))],
+    ['winning sends that take 3+ regions', (s) => pct(sizeShare(s, (k) => k >= 3)), (b) => pct(refSizeShare(ref.detail[b]?.sizes, (k) => k >= 3))],
+    ['held games where war reached 6+', (s) => pct(s.warPeak6InHeld), (b) => pct(ref.detail[b]?.warPeak6InHeld)],
+    ['close losses (WAR holding 18+ gold)', (s) => pct(s.closeLoss), (b) => pct(ref.detail[b]?.closeLoss)],
+    ['hopeless losses (WAR holding ≤ 8 gold)', (s) => pct(s.hopeless), (b) => pct(ref.detail[b]?.hopeless)],
+  ];
+  return table(
+    ['', ...bots],
+    rows.map(([label, ours, theirs]) => [label, ...bots.map((b) => pair(ours(stats[b]!), theirs(b)))]),
+    ['l', ...bots.map((): Align => 'r')],
+    format,
+  );
+}
+
+/** Staff in the final line-ups of held games, as shares of held games. */
+export function staffLine(s: BotStats): string {
+  return s.staffHeld.map(([id, n]) => `${id} ${pct(n / Math.max(1, s.heldGames))}`).join(', ');
+}
+
+export function curveTable(points: readonly CurvePoint[], format: Format = 'text'): string {
+  return table(
+    ['Turn', 'Target', 'Games', 'Median score', 'Sends that win', 'Median gold', 'Median war'],
+    points.map((p) => [String(p.turn), int(p.target), int(p.games), int(p.medianScore), pct(p.winShare), one(p.medianGold), one(p.medianRed)]),
+    ['r', 'r', 'r', 'r', 'r', 'r', 'r'],
+    format,
+  );
 }

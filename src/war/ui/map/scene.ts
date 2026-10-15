@@ -2,64 +2,61 @@
  * The scene: what to draw at time `now`, derived from the last MapView and the effect timeline.
  * Pure (no DOM). Painters read only this.
  */
-import type { Colour, MapView, RegionId, RegionStatus, Stamp } from './contract';
+import type { CrisisView, MapView, Owner, RegionId, RegionView } from './contract';
 import { LAND_JOINS, REGION, REGIONS, SEA_LANES, pairKey, type MapRegion } from './data';
 import { clamp01, easeOut, lerp } from './draw';
-import type { MapViewExtras, MapViewPlus, PinChipView } from './extensions';
-import { progress, tweenAt, type FxState } from './fx';
-import type { FillState } from './palette';
+import { progress, type FxState } from './fx';
 
-export type JoinKind = 'land' | 'lane' | 'cable' | 'ferry';
+/** A join between two pins: across a land border or causeway, or a dashed sea lane. */
+export type JoinKind = 'land' | 'lane';
 
 export interface RegionVis {
   id: RegionId;
   def: MapRegion;
-  /** Colour as drawn (the view's, or an ink spread's while it runs). */
-  colour: Colour;
-  status: RegionStatus;
+  /** Owner as drawn (the view's, or the old owner outside a running ink spread). */
+  owner: Owner;
+  /** In this turn's deal (and its turn in the light-up has come). */
+  lit: boolean;
+  /**
+   * Lit and in play: pinned, or a pin here would be legal. Its lamp is on and its socket bright.
+   * A lit region that cannot be added drops to the dark plate at once, its marks at 30%.
+   */
+  live: boolean;
   pinned: boolean;
-  airlift: boolean;
+  /** Breathes: a pin here would join the group, or the pointer is over it. */
+  joinable: boolean;
   capital: boolean;
   port: boolean;
-  stamp: Stamp;
-  brass: number;
-  glow: number;
-  fill: FillState;
-  /** Dim the land layer is baked at (1 = full light; spec 9 fades the rest to 30%). */
+  crisis: boolean;
+  preview: RegionView['preview'];
+  brass: boolean;
+  /** Flashed by the current send: its lamp holds bright. */
+  scored: boolean;
+  /** Dim the land layer is baked at (1 = full light; a send fades the rest). */
   dim: number;
   /** Dim right now, mid-transition (markers and overlays). */
   dimNow: number;
-  /** Pinned but not scoring: a grey pin. */
-  loose: boolean;
-  /** 1-based sweep order badge, or null. */
+  /** 1-based pin order badge, or null. */
   order: number | null;
   /** The badge turns to linen once the pin has scored. */
   orderDone: boolean;
-  /** Its colour is blacked out (Summit BLACKOUT). */
-  blackout: boolean;
   /** Lighting up on a deal: 0 just lit, 1 fully warm (1 for everything else). */
   warm: number;
-  /** Lit, unpinned, and a pin here would join the pins already down. */
-  joinable: boolean;
-  /** While choosing: what this scoring pin will add. */
-  chip: PinChipView | null;
 }
 
 export interface ThreadVis {
   a: RegionId;
   b: RegionId;
-  traffic: number;
   kind: JoinKind;
-}
-
-export interface LiveThread extends ThreadVis {
-  width: number;
-  /** A loose end: drawn thin and grey. */
-  grey: boolean;
-  /** HEAT, 0..1 (crossfades over 150 ms). */
-  hot: number;
   /** Snap-taut progress for a join that just formed, 0..1 (1 = settled). */
   snap: number;
+}
+
+export interface RingVis extends CrisisView {
+  /** The ×2 stamp, 0..1 while it plays. */
+  stamp: number | null;
+  /** The collapse, 0..1 while it plays; 1 once collapsed (the ring is gone). */
+  collapse: number | null;
 }
 
 export interface Scene {
@@ -67,162 +64,121 @@ export interface Scene {
   reduced: boolean;
   regions: Record<RegionId, RegionVis>;
   list: RegionVis[];
-  /** A sweep is playing (dimExcept with ids): the sea veil and quieter coasts. */
+  /** A send is playing (dimExcept with ids): the sea veil and quieter coasts. */
   sweeping: boolean;
-  oldThreads: ThreadVis[];
-  live: LiveThread[];
-  cables: Array<[RegionId, RegionId]>;
-  cableKeys: Set<string>;
-  gridlock: boolean;
-  ferry: boolean;
-  blackout: Colour | null;
-  flashpoint: RegionId | null;
-  /** Ring radius factor right now (animated). */
-  ring: number;
-  /** The crisis is cleared and the collapse has finished: the cooled ring shows. */
-  cooled: boolean;
-  /** The clear's collapse, 0..1, while it plays (null otherwise). */
-  collapse: number | null;
-  /** The flashpoint has been swept (its ring dims: it cannot score again this crisis). */
-  flashpointSpent: boolean;
-  armed: MapView['armed'];
+  threads: ThreadVis[];
+  ring: RingVis | null;
+  warNext: MapView['warNext'];
+  ceased: boolean;
   highlight: Set<RegionId> | null;
   finger: RegionId | null;
-  ringed: RegionId | null;
-  cableDrag: MapViewExtras['cableDrag'];
 }
 
-const STATIC_KIND = new Map<string, JoinKind>();
-for (const [a, b] of LAND_JOINS) STATIC_KIND.set(pairKey(a, b), 'land');
-for (const [a, b] of SEA_LANES) STATIC_KIND.set(pairKey(a, b), 'lane');
+const LANES = new Set(SEA_LANES.map(([a, b]) => pairKey(a, b)));
+const JOINS = new Set([...LAND_JOINS, ...SEA_LANES].map(([a, b]) => pairKey(a, b)));
 
-/** How a join is drawn: straight for land and lanes, bowed along a cable, arced for a ferry join. */
-export function joinKind(a: RegionId, b: RegionId, cableKeys: ReadonlySet<string>): JoinKind {
-  const key = pairKey(a, b);
-  return STATIC_KIND.get(key) ?? (cableKeys.has(key) ? 'cable' : 'ferry');
+export function joinKind(a: RegionId, b: RegionId): JoinKind {
+  return LANES.has(pairKey(a, b)) ? 'lane' : 'land';
 }
 
-/** Thread width by traffic (spec 1; STYLE 5.8). */
-export function threadWidth(traffic: number): number {
-  if (traffic >= 10) return 4.5;
-  if (traffic >= 6) return 3.5;
-  if (traffic >= 3) return 2.5;
-  return 1.5;
+export function isJoin(a: RegionId, b: RegionId): boolean {
+  return JOINS.has(pairKey(a, b));
 }
 
+/** West to east (by x, then y): the scoring order. */
 export function westEast(a: RegionId, b: RegionId): number {
   const ra = REGION[a];
   const rb = REGION[b];
   return ra.x - rb.x || ra.y - rb.y;
 }
 
-/** Spec 9: unpinned lit regions fade to 30%; the reference fades everything else to 55%. */
-export function dimTarget(scoring: ReadonlySet<RegionId> | null, id: RegionId, status: RegionStatus, pinned: boolean): number {
+/**
+ * During a send the scoring pins stay at full light; lit regions outside it fade to 30% and the
+ * rest of the world to 50%, so the world stays legible as a world while the pins blaze.
+ */
+function dimTarget(scoring: ReadonlySet<RegionId> | null, id: RegionId, lit: boolean): number {
   if (!scoring || scoring.has(id)) return 1;
-  return status === 'lit' || pinned ? 0.3 : 0.55;
+  return lit ? 0.3 : 0.5;
 }
 
-/** HEAT level 0..1 at `now`. */
-export function heatLevel(fx: FxState, now: number): number {
-  const p = progress(fx.heatTween, now);
-  return fx.heatOn ? p : 1 - p;
-}
+const EMPTY_REGION = (def: MapRegion): RegionView => ({
+  id: def.id,
+  colour: def.colour,
+  owner: 'grey',
+  lit: false,
+  pinned: false,
+  addable: false,
+  joinable: false,
+  capital: def.capital,
+  port: def.port,
+  preview: null,
+  brass: false,
+});
 
-export function buildScene(view: MapViewPlus, fx: FxState, now: number, reduced: boolean): Scene {
+export function buildScene(view: MapView, fx: FxState, now: number, reduced: boolean): Scene {
   const scoring = fx.scoring;
   const dimP = easeOut(progress(fx.dimTween, now));
-  const looseSet = new Set(view.loose ?? []);
-  const joinableSet = new Set(scoring ? [] : (view.joinable ?? []));
-  const cableKeys = new Set(view.cables.map(([a, b]) => pairKey(a, b)));
 
-  // Ink spreads in progress show the old colour outside the ink.
-  const inkBefore = new Map<RegionId, Colour>();
-  for (const ink of fx.inks) for (const [id, c] of ink.before) inkBefore.set(id, c);
+  // Ink spreads in progress show the old owner outside the ink.
+  const inkBefore = new Map<RegionId, Owner>();
+  for (const ink of fx.inks) for (const [id, o] of ink.before) inkBefore.set(id, o);
 
-  let order: Map<RegionId, number> | null = null;
-  if (scoring) {
-    order = new Map([...scoring].sort(westEast).map((id, i) => [id, i + 1]));
-  } else if (view.sweepOrder) {
-    order = new Map(Object.entries(view.sweepOrder));
-  }
-
+  const crisisId = view.crisis?.id ?? null;
   const regions: Record<RegionId, RegionVis> = {};
   const list: RegionVis[] = [];
   for (const def of REGIONS) {
-    const v = view.regions[def.id];
+    const v = view.regions[def.id] ?? EMPTY_REGION(def);
     // A region still waiting for its turn in the deal shows dark.
     const light = fx.lightUps.get(def.id);
     const waiting = !!light && now < light.start;
-    const status: RegionStatus = waiting ? 'dark' : (v?.status ?? 'dark');
-    const pinned = !!v?.pinned;
-    const airlift = !!v?.airlift;
-    const colour = inkBefore.get(def.id) ?? fx.colourOverride.get(def.id)?.colour ?? v?.colour ?? def.colour;
-    let fill: FillState;
-    if (status === 'retired') fill = 'retired';
-    else if (fx.scored.has(def.id)) fill = 'scored';
-    else if (pinned || airlift || status === 'lit') fill = 'lit';
-    else fill = status;
-    const target = dimTarget(scoring, def.id, status, pinned || airlift);
+    const lit = v.lit && !waiting;
+    const pinned = v.pinned;
+    const target = dimTarget(scoring, def.id, lit || pinned);
     const from = fx.dimFrom.get(def.id) ?? target;
-    const o = order?.get(def.id) ?? null;
+    const order = pinned ? (view.pinOrder?.[def.id] ?? null) : null;
     const vis: RegionVis = {
       id: def.id,
       def,
-      colour,
-      status,
+      owner: inkBefore.get(def.id) ?? fx.ownerOverride.get(def.id)?.owner ?? v.owner,
+      lit,
+      live: lit && (pinned || v.addable),
       pinned,
-      airlift,
-      capital: v?.capital ?? false,
-      port: v?.port ?? false,
-      stamp: v?.stamp ?? null,
-      brass: v?.brass ?? 0,
-      glow: clamp01((v?.glow ?? 0) / 0.4) * 0.4,
-      fill,
+      joinable: lit && !pinned && !scoring && (v.joinable || (view.hover === def.id && v.addable)),
+      capital: v.capital,
+      port: v.port,
+      crisis: def.id === crisisId,
+      preview: scoring ? null : v.preview,
+      brass: v.brass,
+      scored: fx.scored.has(def.id),
       dim: target,
       dimNow: lerp(from, target, dimP),
-      loose: (pinned || airlift) && (looseSet.has(def.id) || (!!scoring && !scoring.has(def.id))),
-      order: (pinned || airlift) && o ? o : null,
-      orderDone: !!scoring && fx.scored.has(def.id),
-      blackout: view.blackout !== null && colour === view.blackout,
+      order,
+      orderDone: order !== null && !!scoring && fx.scored.has(def.id),
       warm: light && !waiting ? easeOut(progress(light, now)) : 1,
-      joinable: status === 'lit' && !pinned && !airlift && (joinableSet.has(def.id) || (!scoring && view.hover === def.id)),
-      chip: (pinned || airlift) && !scoring ? (view.pinChips?.[def.id] ?? null) : null,
     };
     regions[def.id] = vis;
     list.push(vis);
   }
 
-  const traffic = new Map(view.threads.map((t) => [pairKey(t.a, t.b), t.traffic]));
-  const grow = fx.liveGrow ? easeOut(progress(fx.liveGrow, now)) : 0;
-  const hot = heatLevel(fx, now);
-  const live: LiveThread[] = [];
-  const liveKeys = new Set<string>();
+  const threads: ThreadVis[] = [];
+  const seen = new Set<string>();
   for (const [a, b] of view.joinedPins) {
     const key = pairKey(a, b);
-    if (liveKeys.has(key)) continue;
-    liveKeys.add(key);
-    const t = traffic.get(key) ?? 0;
-    const inSet = !scoring || (scoring.has(a) && scoring.has(b));
-    const grey = regions[a]?.loose || regions[b]?.loose || !inSet;
-    const base = threadWidth(t);
-    const width = grey ? 1 : scoring ? lerp(Math.max(1.5, base), Math.max(2, base), grow) : Math.max(1.5, base);
+    if (seen.has(key) || !REGION[a] || !REGION[b]) continue;
+    seen.add(key);
     const snapAt = fx.joinSnaps.get(key);
-    live.push({
-      a,
-      b,
-      traffic: t,
-      kind: joinKind(a, b, cableKeys),
-      width,
-      grey,
-      hot: scoring && inSet ? hot : 0,
-      snap: snapAt === undefined || reduced ? 1 : clamp01((now - snapAt) / 420),
-    });
+    threads.push({ a, b, kind: joinKind(a, b), snap: snapAt === undefined || reduced ? 1 : clamp01((now - snapAt) / 420) });
   }
-  const oldThreads: ThreadVis[] = view.threads
-    .filter((t) => t.traffic > 0 && !liveKeys.has(pairKey(t.a, t.b)))
-    .map((t) => ({ a: t.a, b: t.b, traffic: t.traffic, kind: joinKind(t.a, t.b, cableKeys) }));
 
-  const ring = fx.ring ? tweenAt(fx.ring, now, easeOut) : view.ring;
+  let ring: RingVis | null = null;
+  if (view.crisis && REGION[view.crisis.id]) {
+    const c = fx.ringCollapse && fx.ringCollapse.crisis === view.crisis.id ? fx.ringCollapse : null;
+    ring = {
+      ...view.crisis,
+      stamp: fx.ringStamp ? progress(fx.ringStamp, now) : null,
+      collapse: c ? progress(c, now) : null,
+    };
+  }
 
   return {
     now,
@@ -230,45 +186,34 @@ export function buildScene(view: MapViewPlus, fx: FxState, now: number, reduced:
     regions,
     list,
     sweeping: !!scoring,
-    oldThreads,
-    live,
-    cables: view.cables,
-    cableKeys,
-    gridlock: view.gridlock,
-    ferry: view.ferry && !view.gridlock,
-    blackout: view.blackout,
-    flashpoint: view.flashpoint,
-    ring: Math.max(0, ring),
-    cooled: !!view.flashpoint && view.ring <= 0 && !fx.ring && !fx.collapse && !view.ringHold,
-    collapse: fx.collapse ? progress(fx.collapse, now) : null,
-    flashpointSpent: !!view.flashpoint && view.regions[view.flashpoint]?.status === 'spent',
-    armed: view.armed,
+    threads,
+    ring,
+    warNext: view.warNext && REGION[view.warNext.id] ? view.warNext : null,
+    ceased: view.ceased,
     highlight: view.highlight ? new Set(view.highlight) : null,
-    finger: view.finger,
-    ringed: view.ringed ?? null,
-    cableDrag: view.cableDrag ?? null,
+    finger: view.finger && REGION[view.finger] ? view.finger : null,
   };
 }
 
 /**
  * The land layer only changes when this does. `global` covers everything that reaches across the
- * table (dims fade lanes and threads, ports move the ferry route); `regions` covers what stays
- * inside one plate, so a change there can be repainted in that plate's bounds alone.
+ * table (ownership: gold glows onto the sea; dims fade lanes and causeways); `regions` covers what
+ * stays inside one plate, so a change there can be repainted in that plate's bounds alone.
  */
 export interface LandSignature {
   global: string;
   regions: Record<RegionId, string>;
 }
 
+const OWNER_CODE: Record<Owner, string> = { grey: '.', gold: 'g', red: 'r' };
+
 export function landSignature(s: Scene): LandSignature {
-  const parts: string[] = [s.sweeping ? 'S' : '-', s.gridlock ? 'G' : '-', s.ferry ? 'F' : '-', s.blackout ?? '-'];
+  const parts: string[] = [s.sweeping ? 'S' : '-', s.ceased ? 'C' : '-'];
   const regions: Record<RegionId, string> = {};
   for (const r of s.list) {
-    parts.push(`${r.dim}${r.port ? 'p' : ''}`);
-    regions[r.id] = `${r.colour}${r.fill}${r.stamp ?? ''}${r.glow.toFixed(3)}`;
+    parts.push(`${OWNER_CODE[r.owner]}${r.dim}`);
+    regions[r.id] = `${r.live ? 'L' : '-'}${r.scored ? 'S' : '-'}`;
   }
-  for (const t of s.oldThreads) parts.push(`${t.a}${t.b}${t.traffic}`);
-  for (const [a, b] of s.cables) parts.push(`c${a}${b}`);
   return { global: parts.join('|'), regions };
 }
 

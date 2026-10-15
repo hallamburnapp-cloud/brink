@@ -4,12 +4,12 @@
  * Imported by vite.config.ts at build time, so it must stay free of DOM and import.meta.env.
  */
 export const WAR_META = {
-  /** One line for the manifest and the search snippet's lead. */
-  tagline: 'Hold the world together until 01:00.',
+  /** One line for the manifest, the search snippet's lead and the title screen. */
+  tagline: 'Turn the whole world gold before war takes ten regions.',
   /** The page's meta description and link-preview text. */
   description:
-    'A war-room roguelike. Each crisis lights eight regions of the map: pin the shape that holds them, ' +
-    'seat your staff, and hold until 01:00: three hours, nine crises.',
+    'Win the world: a short strategy game on a world map in a war room. Each turn a crisis flares; pin the regions ' +
+    'around it, beat the target and the crisis turns gold for good. Miss, and war takes it. About 15 minutes a game.',
   /** The table colour: theme colour, manifest background and the letterbox. */
   themeColor: '#0B0F14',
 } as const;

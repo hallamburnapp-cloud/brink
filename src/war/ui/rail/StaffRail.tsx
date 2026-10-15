@@ -1,72 +1,87 @@
 /**
- * The staff rail (spec 10: 0,107,390,64): five seats on leather. Each seat holds a staff's object
- * on felt in its rarity's metal rim, its seat number and its chip. Tap for the rule balloon;
- * long-press (300 ms) and drag to change seats while the others slide aside. Seats that would fire
- * for the current pins sit up a little; seats that fire during a sweep hop.
+ * The staff rail (SPEC 9: 0,107,390,64): five seats on leather, fired left to right. Each seat
+ * holds a staff's object on felt, its seat number and its chip (cyan for points, amber for
+ * multiplier; live values for the Surveyor and the Old Hand; COPY → name for the Deputy). Tap for
+ * the rule balloon; long-press (300 ms) and drag to change seats while the others slide aside. A
+ * hire glows 'NEW' until its first send. In the shop's full-table flow each seat shows the number
+ * it would make if replaced, and a tap hires into it.
  */
 import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { preview, seatViews, twistInForce, type RunState, type SeatView } from '../../engine';
-import type { StaffId } from '../../content/staff';
+import { formatShort, preview, seatViews, shopView, type GameState, type SeatView } from '../../engine';
 import { StaffIcon } from '../art';
-import { moveSeat } from '../app/actions';
-import { balloon, busy, frameScale, reduced, speed } from '../app/store';
-import { dragOrder, SEAT_X, SEAT_Y, slotAt } from '../common/layout';
+import { buyOffer, moveSeat } from '../app/actions';
+import { introSeat } from '../app/intro';
+import * as P from '../app/playback';
+import { balloon, busy, frameScale, reduced, replacing, speed } from '../app/store';
+import { dragOrder, SEAT_X, SEAT_Y, SEATS, slotAt } from '../common/layout';
 import { Chip } from '../common/text';
-import { hops } from '../fx/anim';
 import { buzz } from '../fx/shake';
 
 const LONG_PRESS_MS = 300;
 
 interface Drag {
   from: number;
-  /** Dragged seat's left edge, frame px. */
+  /** The dragged seat's left edge, frame px. */
   left: number;
   to: number;
 }
 
-export function StaffRail({ s }: { s: RunState }): JSX.Element {
+export function StaffRail({ s }: { s: GameState }): JSX.Element {
   const seats = seatViews(s);
-  const firing = s.phase === 'crisis' && s.crisis.pins.length > 0 ? new Set(preview(s).firingSeats) : new Set<number>();
+  const firing = new Set(preview(s)?.firing ?? []);
   const [drag, setDrag] = useState<Drag | null>(null);
   const order = drag ? dragOrder(seats.length, drag.from, drag.to) : seats.map((_, i) => i);
-  const open = balloon.value?.kind === 'seat' ? balloon.value.index : -1;
-  // GRIDLOCK suspends the Ferry Master: its seat shows it off duty.
-  const gridlock = twistInForce(s)?.kind === 'GRIDLOCK';
-
+  const open = balloon.value?.seat ?? -1;
+  const slot = replacing.value;
+  const offer = slot !== null ? shopView(s)?.offers[slot] : null;
+  const ghost = introSeat.value;
   return (
     <>
       <div class="rail">
         <i class="stitch" style={{ top: '2.5px' }} />
         <i class="stitch" style={{ top: '60.5px' }} />
       </div>
-      {Array.from({ length: s.seatCount }, (_, i) => i)
-        .filter((i) => i >= seats.length)
+      {Array.from({ length: SEATS }, (_, i) => i)
+        .filter((i) => i >= seats.length && ghost?.seat !== i)
         .map((i) => (
           <div key={`empty${i}`} class="seat empty abs" style={{ left: `${SEAT_X[i]}px`, top: `${SEAT_Y}px` }}>
             <div class="felt">
               <span class="no">{i + 1}</span>
-              <span class="vacant">VACANT</span>
+              <span class="vacant">EMPTY</span>
             </div>
           </div>
         ))}
+      {ghost && (
+        <div class="seat abs intro-seat" style={{ left: `${SEAT_X[ghost.seat]}px`, top: `${SEAT_Y}px` }} aria-hidden="true">
+          <div class="felt">
+            <span class="no">{ghost.seat + 1}</span>
+            <span class="obj">
+              <StaffIcon id={ghost.id} size={32} />
+            </span>
+            <span class="chip">
+              <Chip lines={[ghost.chip]} tone="multiplier" />
+            </span>
+          </div>
+        </div>
+      )}
       {seats.map((v) => {
-        const slot = order.indexOf(v.seat);
+        const at = order.indexOf(v.seat);
         const dragging = drag?.from === v.seat;
-        const left = dragging ? drag.left : SEAT_X[slot];
+        const tag = offer?.replace?.[v.seat] ?? null;
         return (
           <Seat
             key={v.uid}
             v={v}
-            number={slot + 1}
-            left={left}
+            number={at + 1}
+            left={dragging ? drag.left : SEAT_X[at]}
             dragging={dragging}
             sliding={!!drag && !dragging}
             ready={firing.has(v.seat)}
-            suspended={gridlock && v.id === 'FERRY'}
             open={open === v.seat}
             count={seats.length}
             onDrag={setDrag}
+            replace={tag && slot !== null ? { slot, text: formatShort(tag.after, 5), affordable: tag.affordable } : null}
           />
         );
       })}
@@ -81,19 +96,21 @@ interface SeatProps {
   dragging: boolean;
   sliding: boolean;
   ready: boolean;
-  suspended: boolean;
   open: boolean;
   count: number;
   onDrag: (d: Drag | null) => void;
+  /** The full-table flow: what replacing this seat would make. */
+  replace: { slot: number; text: string; affordable: boolean } | null;
 }
 
-function Seat({ v, number, left, dragging, sliding, ready, suspended, open, count, onDrag }: SeatProps): JSX.Element {
+function Seat({ v, number, left, dragging, sliding, ready, open, count, onDrag, replace }: SeatProps): JSX.Element {
   const el = useRef<HTMLDivElement>(null);
   const press = useRef<{ x: number; y: number; timer: number; dragging: boolean; to: number; id: number } | null>(null);
-  const hop = hops.value[v.seat] ?? 0;
+  const hop = P.hops.value[v.seat] ?? 0;
   const [lit, setLit] = useState(false);
 
   // A hop: 6 pt up in 50 ms, down in 70 ms with a one-frame squash; the chip lights for the beat.
+  // A new hire's first hop is drawn 1.5x larger (SPEC 4), so the jump is attributed to the hire.
   useEffect(() => {
     if (!hop) return;
     const rate = speed.value;
@@ -101,14 +118,15 @@ function Seat({ v, number, left, dragging, sliding, ready, suspended, open, coun
     const t = window.setTimeout(() => setLit(false), 260 / rate);
     const node = el.current;
     if (node && !reduced.value && typeof node.animate === 'function') {
+      const up = v.isNew ? 'translateY(-9px) scale(1.08)' : 'translateY(-6px)';
       node.animate(
         [
           { transform: 'translateY(0)', easing: 'cubic-bezier(.22,1,.36,1)' },
-          { transform: 'translateY(-6px)', offset: 0.42, easing: 'cubic-bezier(.55,0,1,.45)' },
+          { transform: up, offset: 0.42, easing: 'cubic-bezier(.55,0,1,.45)' },
           { transform: 'translateY(0) scaleY(0.94)', offset: 0.92 },
           { transform: 'translateY(0) scaleY(1)' },
         ],
-        { duration: 120 / rate },
+        { duration: (v.isNew ? 180 : 120) / rate },
       );
     }
     return () => clearTimeout(t);
@@ -116,7 +134,7 @@ function Seat({ v, number, left, dragging, sliding, ready, suspended, open, coun
 
   const end = () => {
     const p = press.current;
-    if (!p) return;
+    if (!p) return null;
     clearTimeout(p.timer);
     press.current = null;
     return p;
@@ -128,7 +146,7 @@ function Seat({ v, number, left, dragging, sliding, ready, suspended, open, coun
     const target = e.currentTarget as HTMLElement;
     const p = { x: e.clientX, y: e.clientY, timer: 0, dragging: false, to: v.seat, id: e.pointerId };
     p.timer = window.setTimeout(() => {
-      if (count < 2) return;
+      if (count < 2 || replace) return;
       p.dragging = true;
       buzz(10);
       try {
@@ -147,14 +165,11 @@ function Seat({ v, number, left, dragging, sliding, ready, suspended, open, coun
     if (!p) return;
     const scale = frameScale.value || 1;
     const dx = (e.clientX - p.x) / scale;
-    const dy = (e.clientY - p.y) / scale;
     if (!p.dragging) {
-      if (Math.hypot(dx, dy) > 10) end();
+      if (Math.hypot(dx, (e.clientY - p.y) / scale) > 10) end();
       return;
     }
-    const minLeft = SEAT_X[0] - 6;
-    const maxLeft = SEAT_X[count - 1] + 6;
-    const leftNow = Math.max(minLeft, Math.min(maxLeft, SEAT_X[v.seat] + dx));
+    const leftNow = Math.max(SEAT_X[0] - 6, Math.min(SEAT_X[count - 1] + 6, SEAT_X[v.seat] + dx));
     p.to = slotAt(leftNow + 32, count);
     onDrag({ from: v.seat, left: leftNow, to: p.to });
   };
@@ -168,7 +183,11 @@ function Seat({ v, number, left, dragging, sliding, ready, suspended, open, coun
       moveSeat(v.seat, p.to);
       return;
     }
-    balloon.value = open ? null : { kind: 'seat', index: v.seat };
+    if (replace) {
+      buyOffer(replace.slot, v.seat);
+      return;
+    }
+    balloon.value = open ? null : { seat: v.seat };
   };
 
   const onPointerCancel = () => {
@@ -179,13 +198,14 @@ function Seat({ v, number, left, dragging, sliding, ready, suspended, open, coun
   const cls = [
     'seat',
     'abs',
-    v.rarity,
+    v.tone,
     dragging ? 'dragging' : '',
     sliding ? 'sliding' : '',
     ready ? 'ready' : '',
-    suspended ? 'suspended' : '',
     lit ? 'firing' : '',
     open ? 'open' : '',
+    v.isNew ? 'new' : '',
+    replace ? 'replaceable' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -200,23 +220,24 @@ function Seat({ v, number, left, dragging, sliding, ready, suspended, open, coun
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
       role="button"
-      aria-label={`Seat ${number}: ${v.name}. ${v.rule}`}
+      aria-label={replace ? `Replace seat ${number}, ${v.name}: best last turn ${replace.text}` : `Seat ${number}: ${v.name}. ${v.rule}`}
     >
       <div class="felt">
         <span class="no">{number}</span>
         <span class="obj">
-          <StaffIcon id={v.id as StaffId} size={34} />
+          <StaffIcon id={v.id} size={v.chipLines.length > 1 ? 28 : 32} />
         </span>
-        {v.id === 'OLDHAND' && <span class="count-tag num">{v.count}</span>}
-        {v.id === 'DEPUTY' && v.copies && (
-          <span class="copy-tag">
-            <StaffIcon id={v.copies as StaffId} size={14} />
-          </span>
-        )}
-        <span class="chip">
-          <Chip id={v.id as StaffId} chip={v.chip} />
+        {v.isNew && <span class="new-tag">NEW</span>}
+        <span class={`chip${v.chipLines.length > 1 ? ' two' : ''}`}>
+          <Chip lines={v.chipLines} tone={v.tone} />
         </span>
       </div>
+      {replace && (
+        <span class={`replace-tag num${replace.affordable ? '' : ' poor'}`}>
+          <span class="rt-arrow">→</span>
+          {replace.text}
+        </span>
+      )}
     </div>
   );
 }

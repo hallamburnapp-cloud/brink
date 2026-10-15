@@ -1,14 +1,14 @@
 /**
- * StaffIcon: each of the 20 staff drawn as the object they keep (spec section 5).
- * No faces, hands or figures. Drawn at 34 px on the rail, 48 px on a Briefing card, 64 px and up for store art.
+ * StaffIcon: each of the 10 staff drawn as the object they keep (SPEC section 7).
+ * No faces, hands or figures. Drawn at 34 px on the rail, 40 px on a shop card, 64 px and up for store art.
  */
 import type { JSX } from 'preact';
 import type { StaffId } from '../../../content/staff';
 import { Frame, useIconUid, type Draw, type FrameProps } from '../kit';
-import { cashBox, diplomaticBag, satchel, supplyCrate } from './cases';
-import { deskLamp, morseKey, redPhone, shipsBell, telescope, theodolite } from './instruments';
-import { carbonPaper, clipboard, ferryTimetable, foldedMap, paperCrown, railTimetable } from './papers';
-import { signetRing, teacup, tinMug, waxSeal } from './table';
+import { supplyCrate } from './cases';
+import { deskLamp, shipsBell, theodolite } from './instruments';
+import { carbonPaper, foldedMap, paperCrown } from './papers';
+import { signetRing, tinMug, waxSeal } from './table';
 
 export type { StaffId };
 
@@ -16,24 +16,14 @@ export type { StaffId };
 export const STAFF_DRAWINGS: Readonly<Record<StaffId, Draw>> = {
   DUTY: deskLamp,
   QM: supplyCrate,
-  HARBOUR: shipsBell,
   SURVEYOR: theodolite,
-  HOTLINE: redPhone,
-  GOVERNOR: waxSeal,
-  TREASURER: cashBox,
   OLDHAND: tinMug,
-  RAILCLERK: railTimetable,
-  MEDIATOR: teacup,
-  STRATEGIST: foldedMap,
-  ENVOY: diplomaticBag,
-  COURIER: satchel,
-  FERRY: ferryTimetable,
-  SIGNALS: morseKey,
-  ADMIRAL: telescope,
-  CHIEF: clipboard,
-  DEPUTY: carbonPaper,
-  HERALD: paperCrown,
   SOVEREIGN: signetRing,
+  STRATEGIST: foldedMap,
+  GOVERNOR: waxSeal,
+  HARBOUR: shipsBell,
+  HERALD: paperCrown,
+  DEPUTY: carbonPaper,
 };
 
 export interface StaffIconProps extends Partial<FrameProps> {

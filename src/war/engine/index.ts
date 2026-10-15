@@ -1,135 +1,107 @@
 /**
- * The war-room rules engine: pure, deterministic, no DOM. See README.md in this folder.
+ * The WIN THE WORLD rules engine: pure, deterministic, no DOM. See README.md in this folder.
  * Import from here (and from '../content/*' for static data).
  */
 
 // State and records
 export type {
-  AgainReason,
-  Armed,
-  BestSweep,
-  ClearRecord,
+  BestSend,
   Colour,
-  Crisis,
-  CrisisKind,
-  Folder,
-  FolderKind,
-  FolderStatus,
-  HourPlan,
-  Offer,
-  OrderId,
-  Paper,
-  PatternId,
+  CrisisEvent,
+  Deal,
+  Ending,
+  GameState,
+  Mode,
+  Owner,
   Phase,
+  PinEvent,
   RegionId,
+  RegionStaffEvent,
   Result,
-  RunLogEntry,
-  RunMode,
-  RunState,
-  SeatedStaff,
+  Seat,
+  SendRecord,
   Shop,
+  SlamEvent,
+  StaffEvent,
   StaffId,
-  StampKind,
-  SweepRecord,
-  SweepSummary,
+  StaffOp,
   TraceEvent,
-  TraceOp,
-  TracePhase,
-  Twist,
-  TwistKind,
-  World,
+  TurnLog,
+  WarTake,
+  WonRegion,
 } from './types';
 
-// Starting a run
-export { FIRST_NIGHT_PILE, FIRST_NIGHT_SEED, newRun, newSandbox, startingWorld } from './run';
+// Starting a game
+export { newGame } from './run';
+export type { NewGameOptions } from './run';
+export { CROWN, CROWN_SEED, FIRST_WORLD, FIRST_WORLD_SEED } from './seeds';
 
 // Actions (each returns Result: { ok, state, reason? })
-export {
-  armOrder,
-  buyFolder,
-  buyOffer,
-  clearPins,
-  confirmArmed,
-  disarm,
-  keepGoing,
-  moveSeat,
-  nextCrisis,
-  pickFromFolder,
-  pin,
-  reroll,
-  sellPaper,
-  sellStaff,
-  skipFolder,
-  swap,
-  sweep,
-  tapArmed,
-  togglePin,
-  unpin,
-  useOrder,
-} from './run';
+export { buy, clearPins, moveSeat, nextTurn, pin, reroll, sell, send, setOwners, swap, togglePin, unpin } from './run';
 
 // Checks (a reason string, or null when allowed)
-export {
-  canConfirmArmed,
-  folderProblem,
-  offerProblem,
-  paperProblem,
-  pickProblem,
-  swapProblem,
-  sweepProblem,
-} from './run';
+export { buyProblem, sendProblem, swapProblem } from './run';
 
-// Reading the board
-export { boardOf, scorePins, twistInForce } from './run';
+// Views for the screens (memoised per state)
 export {
   actsOn,
-  armedView,
-  boardLabels,
-  endLabels,
-  isCapital,
-  isPort,
-  litHasJoin,
-  mapFlags,
-  nextCrisisInfo,
-  patternExample,
-  patternTable,
-  pinChips,
+  controlsView,
+  endView,
+  goalView,
+  mapView,
+  menuView,
   preview,
-  progress,
+  readoutView,
+  receipt,
   regionViews,
-  ringFactor,
   seatViews,
+  sendLabel,
   shopView,
-  threadViews,
-  trayViews,
 } from './view';
 export type {
-  ArmedView,
-  BoardLabels,
-  CardView,
-  FolderView,
-  NextCrisisInfo,
+  ControlsView,
+  EndView,
+  GoalView,
+  LivePreview,
+  MenuView,
   OfferView,
-  PaperView,
-  PatternRow,
-  PinChip,
-  Preview,
+  PreviewLine,
+  ReadoutView,
   SeatView,
+  SendLabel,
   ShopView,
 } from './view';
 
-// Lower level: scoring, patterns, the join graph, hours, Orders
-export { scoreSelection } from './score';
-export type { ScoreInput, ScoreOptions, ScoreResult } from './score';
-export { baseProduct, components, detectPattern, listCandidates, startingLevels } from './patterns';
-export type { Candidate, Detection, PatternBoard } from './patterns';
-export { buildBoard, resolveStaff } from './board';
-export type { ActingStaff, Board } from './board';
-export { CRISIS_NAME, TWIST_NAME, clockOf, hourLabel, hourTargets, isOvertime, twistRule } from './hours';
-export { armedPrompt, statusOf, targetProblem, targetsProblem, validTargets } from './orders';
-export { playbookPool } from './shop';
-export { HOUR_TARGETS, RULES } from './rules';
+// The shop
+export { bestOnOpening, bestScore, dealFeatures, drawOffers, nextShopAfter, previewNumber, price, sellValue, shopDue } from './shop';
+export type { PreviewNumber } from './shop';
 
-// Display and determinism
+// Rules underneath: the graph, legal groups, scoring, the ladder, ownership, the deal
+export { ADJ, IDS, distance, isJoined, isLane, pathBetween, westToEast } from './board';
+export { canAdd, groupMasks, groups, legal, lift, pinnable, touching } from './groups';
+export { Scorer, effective, featuresOf, goldCount, maskFeatures, scorePins } from './score';
+export type { Features, ScoreResult } from './score';
+export { marks, nextMark, regionsWon, target } from './ladder';
+export {
+  countOwner,
+  crisisPool,
+  decodeOwners,
+  encodeOwners,
+  freshOwners,
+  regionsOf,
+  warSource,
+  warSpreadTarget,
+  winOrder,
+} from './world';
+export type { OwnerMap } from './world';
+export { deal, dealPool, scriptedDeal, swapLit } from './deck';
+export { RULES } from './rules';
+
+// Saving, display and determinism
+export { SAVE_KEY, loadGame, saveGame } from './save';
 export { formatFunds, formatInt, formatM10, formatM10Short, formatShort } from './format';
 export { canonical, hashState, hashText, hashTrace } from './hash';
+
+// Test and bot helpers
+export { medianScore, must, ownersFrom, pinAll, position, sendOptions, tapOrder } from './testkit';
+export type { SendOption } from './testkit';

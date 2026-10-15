@@ -1,270 +1,118 @@
 import { describe, expect, it } from 'vitest';
-import { Rng } from '../../engine/rng';
-import { STAFF_DEF, type StaffId } from '../content/staff';
-import {
-  buyFolder,
-  buyOffer,
-  moveSeat,
-  newRun,
-  nextCrisis,
-  pickFromFolder,
-  reroll,
-  sellPaper,
-  sellStaff,
-  skipFolder,
-  sweep,
-} from './run';
-import { openBriefing, playbookPool, rollStaff } from './shop';
-import { draft } from './draft';
-import { must, pinAll, tweak } from './testkit';
-import type { Offer, RunState, Shop } from './types';
+import type { StaffId } from '../content/staff';
+import { STAFF_DEF } from '../content/staff';
+import { RULES } from './rules';
+import { buy, moveSeat, newGame, nextTurn, reroll, sell, send } from './run';
+import { nextShopAfter, shopDue } from './shop';
+import { must, pinAll } from './testkit';
+import type { GameState } from './types';
+import { shopView } from './view';
 
-/** Clear the first crisis of a seed and stand in its Briefing. */
-function firstBriefing(seed: string, funds = 30): RunState {
-  const s = tweak(newRun(seed), (d) => {
-    d.crisis.target = 1n;
-  });
-  const cleared = must(sweep(pinAll(s, [s.crisis.lit[0]])));
-  return tweak(cleared, (d) => {
-    d.funds = funds;
-  });
+/** FIRST-WORLD after turn 2 (the first shop), with these seats and coins. */
+function firstShop(seats: readonly StaffId[] = [], coins = 8): GameState {
+  let s = newGame('FIRST-WORLD');
+  s = must(send(pinAll(s, ['SHL', 'LNK', 'PBB', 'MRM', 'TRN'])));
+  s = must(send(pinAll(must(nextTurn(s)), ['TRN', 'MRD', 'EDV', 'LNK', 'SHL'])));
+  return { ...s, seats: seats.map((id, i) => ({ uid: 100 + i, id })), coins };
 }
 
-/** A Briefing whose two offers are exactly these. */
-function withOffers(s: RunState, offers: Array<Offer | null>): RunState {
-  return tweak(s, (d) => {
-    d.shop!.offers = offers;
-  });
-}
-
-describe('the Briefing', () => {
-  it('opens after a clear with 2 offers, a folder and reroll at ◆4', () => {
-    const s = firstBriefing('SHOP-1');
-    expect(s.phase).toBe('briefing');
-    const shop = s.shop!;
-    expect(shop.briefing).toBe(1);
-    expect(shop.offers).toHaveLength(2);
-    expect(shop.rerollCost).toBe(4);
-    // The first Briefing always holds a Recruit Folder of 3 different staff.
-    expect(shop.folder.kind).toBe('recruit');
-    expect(shop.folder.price).toBe(4);
-    expect(new Set(shop.folder.contents).size).toBe(3);
+describe('the shop', () => {
+  it('opens after turns 2, 4, 6 ...', () => {
+    expect([1, 2, 3, 4, 5, 6, 7, 8].map(shopDue)).toEqual([false, true, false, true, false, true, false, true]);
+    expect([1, 2, 3, 9, 10].map(nextShopAfter)).toEqual([2, 2, 4, 10, 10]);
   });
 
-  it('never offers seated staff, staff already on the table, or the Sovereign', () => {
+  it("FIRST-WORLD's first shop offers Duty Officer, Quartermaster, Harbourmaster", () => {
+    expect(firstShop().shop).toEqual({ visit: 1, offers: ['DUTY', 'QM', 'HARBOUR'], rerollCost: 2 });
+  });
+
+  it('never offers a seated staff, and offers 3 different staff', () => {
+    let s = firstShop(['DUTY', 'SOVEREIGN', 'HERALD', 'DEPUTY'], 10_000);
     for (let i = 0; i < 60; i++) {
-      const s = tweak(firstBriefing(`SHOP-SEATED-${i}`), (d) => {
-        d.staff = (['DUTY', 'QM', 'HARBOUR', 'SURVEYOR', 'HOTLINE'] as StaffId[]).map((id, uid) => ({ uid: 100 + uid, id, count: 0 }));
-      });
-      const d = draft(s);
-      d.briefings = 1; // not the first Briefing any more
-      openBriefing(d);
-      const shop = d.shop!;
-      const offered = shop.offers.flatMap((o) => (o?.kind === 'staff' ? [o.id] : []));
-      const folder = shop.folder.kind === 'recruit' ? shop.folder.contents : [];
-      const all = [...offered, ...folder];
-      expect(new Set(all).size).toBe(all.length);
-      for (const id of all) {
-        expect(['DUTY', 'QM', 'HARBOUR', 'SURVEYOR', 'HOTLINE']).not.toContain(id);
-        expect(id).not.toBe('SOVEREIGN');
-      }
+      s = must(reroll(s));
+      const offers = s.shop!.offers as StaffId[];
+      expect(offers).toHaveLength(3);
+      expect(new Set(offers).size).toBe(3);
+      for (const id of offers) expect(['DUTY', 'SOVEREIGN', 'HERALD', 'DEPUTY']).not.toContain(id);
     }
   });
 
-  it('weights offer types 70 / 15 / 15 and rarities 70 / 25 / 5', () => {
-    const kinds = { staff: 0, order: 0, playbook: 0 };
-    let s = firstBriefing('SHOP-WEIGHTS', 100_000);
-    for (let i = 0; i < 1500; i++) {
-      s = must(reroll(tweak(s, (d) => (d.shop!.rerollCost = 0))));
-      for (const o of s.shop!.offers) kinds[o!.kind]++;
+  it('hires into the leftmost free seat and marks the hire new', () => {
+    const s = must(buy(firstShop(['GOVERNOR']), 0));
+    expect(s.seats.map((x) => x.id)).toEqual(['GOVERNOR', 'DUTY']);
+    expect(s.coins).toBe(5);
+    expect(s.shop!.offers).toEqual([null, 'QM', 'HARBOUR']);
+    expect(s.hiredSinceSend).toEqual([s.seats[1].uid]);
+    expect(buy(s, 0)).toMatchObject({ ok: false, reason: 'Already hired.' });
+    expect(buy(s, 2)).toMatchObject({ ok: false, reason: 'Not enough coins.' });
+  });
+
+  it('with a full table, replaces a seat: the old staff sells for half (rounded down) first', () => {
+    const full = firstShop(['QM', 'SURVEYOR', 'STRATEGIST', 'GOVERNOR', 'DEPUTY'], 4);
+    expect(buy(full, 2)).toMatchObject({ ok: false, reason: 'No free seat. Tap a seat to replace.' });
+    expect(buy(full, 2, 0)).toMatchObject({ ok: false, reason: 'Not enough coins.' }); // 4 + 1 < 6
+    const s = must(buy(full, 2, 4)); // Deputy sells for 3: 4 + 3 - 6 = 1
+    expect(s.seats.map((x) => x.id)).toEqual(['QM', 'SURVEYOR', 'STRATEGIST', 'GOVERNOR', 'HARBOUR']);
+    expect(s.coins).toBe(1);
+    const view = shopView(full)!;
+    expect(view.fullTable).toBe(true);
+    expect(view.offers[2].replace!.map((r) => r.affordable)).toEqual([false, true, true, true, true]);
+  });
+
+  it('sells for half the price, rounded down, only in the shop', () => {
+    const s = must(sell(firstShop(['GOVERNOR', 'DUTY'], 0), 0));
+    expect(s.seats.map((x) => x.id)).toEqual(['DUTY']);
+    expect(s.coins).toBe(STAFF_DEF.GOVERNOR.sell);
+    expect(sell(newGame('X'), 0)).toMatchObject({ ok: false, reason: 'Sell in the shop.' });
+    expect(sell(firstShop([]), 0)).toMatchObject({ ok: false, reason: 'No one in that seat.' });
+  });
+
+  it('rerolls for ◆2, then ◆3, ◆4, and back to ◆2 at the next visit', () => {
+    let s = firstShop([], 20);
+    for (const cost of [2, 3, 4]) {
+      expect(s.shop!.rerollCost).toBe(cost);
+      const before = s.coins;
+      s = must(reroll(s));
+      expect(s.coins).toBe(before - cost);
     }
-    const n = 3000;
-    expect(kinds.staff / n).toBeGreaterThan(0.64);
-    expect(kinds.staff / n).toBeLessThan(0.76);
-    expect(kinds.order / n).toBeGreaterThan(0.11);
-    expect(kinds.playbook / n).toBeGreaterThan(0.11);
-
-    const rng = new Rng('RARITY');
-    const tally = { common: 0, uncommon: 0, rare: 0, legendary: 0 };
-    for (let i = 0; i < 20_000; i++) tally[STAFF_DEF[rollStaff(rng, new Set())!].rarity]++;
-    expect(tally.common / 20_000).toBeCloseTo(0.7, 1);
-    expect(tally.uncommon / 20_000).toBeCloseTo(0.25, 1);
-    expect(tally.rare / 20_000).toBeCloseTo(0.05, 1);
-    expect(tally.legendary).toBe(0);
-  });
-
-  it('falls back to the next rarity down when a rarity is used up', () => {
-    const rng = new Rng('FALLBACK');
-    const noRares = new Set<StaffId>(['SIGNALS', 'ADMIRAL', 'CHIEF', 'DEPUTY', 'HERALD']);
-    for (let i = 0; i < 500; i++) expect(STAFF_DEF[rollStaff(rng, noRares)!].rarity).not.toBe('rare');
-    const onlyRares = new Set<StaffId>(['DUTY', 'QM', 'HARBOUR', 'SURVEYOR', 'HOTLINE', 'GOVERNOR', 'TREASURER', 'OLDHAND']);
-    // No commons left: a Common roll goes up rather than offering nothing.
-    for (let i = 0; i < 200; i++) expect(rollStaff(rng, onlyRares)).not.toBeNull();
-  });
-
-  it('buys staff into the leftmost free seat and takes the Funds', () => {
-    const s = withOffers(firstBriefing('BUY', 10), [
-      { kind: 'staff', id: 'DUTY', price: 3 },
-      { kind: 'staff', id: 'HARBOUR', price: 4 },
-    ]);
-    const a = must(buyOffer(s, 1));
-    expect(a.staff.map((x) => x.id)).toEqual(['HARBOUR']);
-    expect(a.funds).toBe(6);
-    expect(a.shop!.offers[1]).toBeNull();
-    expect(buyOffer(a, 1)).toMatchObject({ ok: false, reason: 'Nothing there.' });
-    const b = must(buyOffer(a, 0));
-    expect(b.staff.map((x) => x.id)).toEqual(['HARBOUR', 'DUTY']);
-    expect(b.funds).toBe(3);
-  });
-
-  it('refuses without Funds or a free seat or tray slot', () => {
-    const poor = withOffers(firstBriefing('POOR', 2), [{ kind: 'staff', id: 'DUTY', price: 3 }, null]);
-    expect(buyOffer(poor, 0)).toMatchObject({ ok: false, reason: 'Not enough Funds.' });
-
-    const full = tweak(withOffers(firstBriefing('FULL', 30), [{ kind: 'staff', id: 'ENVOY', price: 7 }, { kind: 'order', id: 'ECHO', price: 3 }]), (d) => {
-      d.staff = (['DUTY', 'QM', 'HARBOUR', 'SURVEYOR', 'HOTLINE'] as StaffId[]).map((id, uid) => ({ uid: 100 + uid, id, count: 0 }));
-      d.tray = [
-        { uid: 200, id: 'FORTIFY' },
-        { uid: 201, id: 'RELAY' },
-      ];
-    });
-    expect(buyOffer(full, 0)).toMatchObject({ ok: false, reason: 'No free seat. Sell someone first.' });
-    expect(buyOffer(full, 1)).toMatchObject({ ok: false, reason: 'In-tray full. Use or sell a paper first.' });
-    const sold = must(sellStaff(full, 2));
-    expect(sold.funds).toBe(30 + 2);
-    expect(sold.staff.map((x) => x.id)).toEqual(['DUTY', 'QM', 'SURVEYOR', 'HOTLINE']);
-    expect(must(buyOffer(sold, 0)).staff.at(-1)!.id).toBe('ENVOY');
-    const soldPaper = must(sellPaper(full, 0));
-    expect(soldPaper.funds).toBe(31);
-    expect(soldPaper.tray.map((p) => p.id)).toEqual(['RELAY']);
-    expect(must(buyOffer(soldPaper, 1)).tray.map((p) => p.id)).toEqual(['RELAY', 'ECHO']);
-  });
-
-  it('applies a Playbook the moment it is bought', () => {
-    const s = withOffers(firstBriefing('BOOK', 10), [{ kind: 'playbook', pattern: 'NETWORK', price: 3 }, null]);
-    const after = must(buyOffer(s, 0));
-    expect(after.world.levels.NETWORK).toBe(2);
-    expect(after.tray).toEqual([]);
-    expect(after.funds).toBe(7);
-  });
-
-  it('offers secret Playbooks only after that pattern was made this run', () => {
-    const s = firstBriefing('SECRET');
-    expect(playbookPool(s)).not.toContain('WHOLE_BLOC');
-    expect(playbookPool(s)).not.toContain('AROUND_THE_WORLD');
-    expect(playbookPool(s)).toHaveLength(9);
-    const made = tweak(s, (d) => (d.made.WHOLE_BLOC = 1));
-    expect(playbookPool(made)).toContain('WHOLE_BLOC');
-    expect(playbookPool(made)).not.toContain('AROUND_THE_WORLD');
-    // And never in offers before that.
-    let r = tweak(s, (d) => (d.funds = 100_000));
-    for (let i = 0; i < 400; i++) {
-      r = must(reroll(tweak(r, (d) => (d.shop!.rerollCost = 0))));
-      for (const o of r.shop!.offers) if (o?.kind === 'playbook') expect(['WHOLE_BLOC', 'AROUND_THE_WORLD']).not.toContain(o.pattern);
-    }
-  });
-
-  it('rerolls the two offers at 4, 5, 6 ... and resets the price next Briefing', () => {
-    let s = firstBriefing('REROLL', 20);
-    const folder = s.shop!.folder;
-    s = must(reroll(s));
-    expect(s.funds).toBe(16);
     expect(s.shop!.rerollCost).toBe(5);
-    s = must(reroll(s));
-    expect(s.funds).toBe(11);
-    expect(s.shop!.rerollCost).toBe(6);
-    expect(s.shop!.folder).toEqual(folder);
-    s = must(reroll(s));
-    expect(s.funds).toBe(5);
-    expect(reroll(s)).toMatchObject({ ok: false, reason: 'Not enough Funds.' });
-    // Next Briefing: back to 4.
-    s = must(nextCrisis(s));
-    s = tweak(s, (d) => (d.crisis.target = 1n));
-    s = must(sweep(pinAll(s, [s.crisis.lit[0]])));
-    expect(s.shop!.briefing).toBe(2);
-    expect(s.shop!.rerollCost).toBe(4);
+    s = must(nextTurn(s));
+    s = must(send(pinAll(s, [s.deal.crisis])));
+    expect(s.phase).toBe('outcome');
+    s = must(nextTurn(s));
+    s = must(send(pinAll(s, [s.deal.crisis])));
+    expect(s.turn).toBe(4);
+    expect(s.shop).toMatchObject({ visit: 2, rerollCost: RULES.reroll });
+    expect(reroll({ ...s, coins: 1 })).toMatchObject({ ok: false, reason: 'Not enough coins.' });
   });
 
-  it('opens a folder, then picks one card or skips', () => {
-    const s = tweak(firstBriefing('FOLDER', 10), (d) => {
-      d.shop!.folder = { kind: 'recruit', price: 4, contents: ['HOTLINE', 'QM', 'COURIER'], status: 'sealed' };
-    });
-    expect(pickFromFolder(s, 0)).toMatchObject({ ok: false, reason: 'Open the folder first.' });
-    const open = must(buyFolder(s));
-    expect(open.funds).toBe(6);
-    expect(open.shop!.folder.status).toBe('open');
-    expect(buyFolder(open)).toMatchObject({ ok: false });
-    const picked = must(pickFromFolder(open, 2));
-    expect(picked.staff.map((x) => x.id)).toEqual(['COURIER']);
-    expect(picked.shop!.folder.status).toBe('used');
-    const skipped = must(skipFolder(open));
-    expect(skipped.staff).toEqual([]);
-    expect(skipped.shop!.folder.status).toBe('used');
-
-    const orders = tweak(firstBriefing('FOLDER-2', 10), (d) => {
-      d.shop!.folder = { kind: 'orders', price: 4, contents: ['ECHO', 'RETIRE', 'AIRLIFT'], status: 'sealed' };
-    });
-    const got = must(pickFromFolder(must(buyFolder(orders)), 1));
-    expect(got.tray.map((p) => p.id)).toEqual(['RETIRE']);
+  it('resets the Old Hand to ×1.0 when it is sold or replaced', () => {
+    const grown = { ...firstShop(['OLDHAND', 'DUTY'], 10), oldHandM10: 16 };
+    expect(must(sell(grown, 0)).oldHandM10).toBe(10);
+    const full = { ...firstShop(['OLDHAND', 'QM', 'SURVEYOR', 'STRATEGIST', 'GOVERNOR'], 10), oldHandM10: 16 };
+    expect(must(buy(full, 0, 0)).oldHandM10).toBe(10);
+    expect(must(buy(full, 0, 1)).oldHandM10).toBe(16);
   });
 
-  it('never sells a folder with no room for its cards, and never rerolls under an open folder', () => {
-    const full = tweak(firstBriefing('FOLDER-FULL', 30), (d) => {
-      d.shop!.folder = { kind: 'recruit', price: 4, contents: ['HOTLINE', 'QM', 'COURIER'], status: 'sealed' };
-      d.staff = (['DUTY', 'HARBOUR', 'SURVEYOR', 'GOVERNOR', 'TREASURER'] as const).map((id, i) => ({ uid: 800 + i, id, count: 0 }));
-    });
-    expect(buyFolder(full)).toMatchObject({ ok: false, reason: 'No free seat. Sell someone first.' });
-    expect(full.funds).toBe(30);
-
-    const trayFull = tweak(firstBriefing('FOLDER-TRAY', 30), (d) => {
-      d.shop!.folder = { kind: 'orders', price: 4, contents: ['ECHO', 'RETIRE', 'AIRLIFT'], status: 'sealed' };
-      d.tray = [
-        { uid: 901, id: 'ECHO' },
-        { uid: 902, id: 'RELAY' },
-      ];
-    });
-    expect(buyFolder(trayFull)).toMatchObject({ ok: false, reason: 'In-tray full. Use or sell a paper first.' });
-
-    const open = must(
-      buyFolder(
-        tweak(firstBriefing('FOLDER-OPEN', 30), (d) => {
-          d.shop!.folder = { kind: 'recruit', price: 4, contents: ['HOTLINE', 'QM', 'COURIER'], status: 'sealed' };
-        }),
-      ),
-    );
-    expect(reroll(open)).toMatchObject({ ok: false, reason: 'Take a card or SKIP first.' });
-    expect(must(reroll(must(skipFolder(open)))).funds).toBe(open.funds - open.shop!.rerollCost);
+  it('moves seats; the others slide aside', () => {
+    const s = firstShop(['QM', 'DUTY', 'STRATEGIST']);
+    expect(must(moveSeat(s, 0, 2)).seats.map((x) => x.id)).toEqual(['DUTY', 'STRATEGIST', 'QM']);
+    expect(must(moveSeat(s, 2, 0)).seats.map((x) => x.id)).toEqual(['STRATEGIST', 'QM', 'DUTY']);
+    expect(moveSeat(s, 4, 0)).toMatchObject({ ok: false, reason: 'No one in that seat.' });
   });
 
-  it('draws Recruit and Orders folders about 50/50 after the first Briefing', () => {
-    let recruit = 0;
-    for (let i = 0; i < 300; i++) {
-      const d = draft(firstBriefing(`FOLDERS-${i}`));
-      d.briefings = 3;
-      openBriefing(d);
-      if ((d.shop as Shop).folder.kind === 'recruit') recruit++;
-    }
-    expect(recruit / 300).toBeGreaterThan(0.38);
-    expect(recruit / 300).toBeLessThan(0.62);
-  });
-
-  it('moves seats: the others slide aside', () => {
-    const s = tweak(firstBriefing('SEATS'), (d) => {
-      d.staff = (['DUTY', 'QM', 'HARBOUR', 'SURVEYOR'] as StaffId[]).map((id, uid) => ({ uid: 100 + uid, id, count: 0 }));
-    });
-    expect(must(moveSeat(s, 0, 3)).staff.map((x) => x.id)).toEqual(['QM', 'HARBOUR', 'SURVEYOR', 'DUTY']);
-    expect(must(moveSeat(s, 3, 1)).staff.map((x) => x.id)).toEqual(['DUTY', 'SURVEYOR', 'QM', 'HARBOUR']);
-    expect(must(moveSeat(s, 3, 1)).staff.map((x) => x.uid)).toEqual([100, 103, 101, 102]);
-    expect(moveSeat(s, 4, 0)).toMatchObject({ ok: false, reason: 'That seat is empty.' });
-  });
-
-  it('closes the shop when the next crisis is dealt', () => {
-    const s = must(nextCrisis(firstBriefing('NEXT')));
-    expect(s.phase).toBe('crisis');
-    expect(s.shop).toBeNull();
-    expect(s.crisis.kind).toBe('STANDOFF');
-    expect(s.crisis.target).toBe(450n);
-    expect(s.crisis.sweepsLeft).toBe(4);
-    expect(buyOffer(s, 0)).toMatchObject({ ok: false, reason: 'The Briefing is closed.' });
+  it('shows the cards with their preview lines and the receipt', () => {
+    const view = shopView(firstShop())!;
+    expect(view.title).toBe('SHOP · NEXT TARGET 140');
+    expect(view.offers.map((o) => [o.name, o.priceText, o.preview!.text])).toEqual([
+      ['Duty Officer', '◆3', '390 → 702'],
+      ['Quartermaster', '◆3', '390 → 590'],
+      ['Harbourmaster', '◆6', '390 → 2,343'],
+    ]);
+    expect(view.offers.every((o) => o.affordable)).toBe(true);
+    expect(view.reroll).toEqual({ cost: 2, text: 'REROLL ◆2', enabled: true });
+    expect(view.receipt).toEqual({ line: 'LAST TURN · WIN 2 · +◆2', spread: null });
+    expect(view.nothingAffordable).toBe(false);
+    expect(shopView(firstShop([], 0))!.nothingAffordable).toBe(true);
   });
 });

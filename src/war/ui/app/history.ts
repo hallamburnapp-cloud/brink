@@ -1,34 +1,28 @@
 /**
- * The phone's back button (and the browser's back, and the edge swipe). While a night is on the
- * table, or a sheet is open, the war room keeps one history entry of its own, so back never drops
- * a run on the floor: it closes what is open (a sheet, a balloon, an armed Order) or asks whether to
- * quit the night. A finished night goes home. On the bare title, back leaves as usual. In the
- * native shells the hardware button walks the web view's history, so the same entry catches it.
+ * The phone's back button (and the browser's back, and the edge swipe), SPEC section 11. While a
+ * game is on the table, or a sheet is open, the war room keeps one history entry of its own, so
+ * back never drops a game on the floor: it closes what is open (a sheet, a balloon) and otherwise
+ * opens the menu, from which QUIT TO TITLE goes home. During the intro it skips the intro. On the
+ * bare title back leaves as usual (the native shell exits). The shop and the end card are inside
+ * the game: back opens the menu over them.
  */
 import { effect } from '@preact/signals';
-import { skip } from '../director/play';
-import { cancelOrder, quitToTitle } from './actions';
-import { balloon, busy, run, screen, sheet } from './store';
+import { skipIntro } from './actions';
+import { introRunning } from './intro';
+import { director } from './playback';
+import { balloon, busy, screen, sheet } from './store';
 
-/** What back does now. Returns false when it should leave (nothing of ours is open). */
-export type BackStep = 'skip-and-ask' | 'close-sheet' | 'close-balloon' | 'cancel-order' | 'go-home' | 'ask-quit' | 'leave';
+/** What back does now. 'leave' means nothing of ours is open. */
+export type BackStep = 'close-sheet' | 'skip-intro' | 'skip-and-menu' | 'close-balloon' | 'menu' | 'leave';
 
 /** The step back takes from the current screen (pure, for tests). */
-export function backStep(o: {
-  screen: 'title' | 'game';
-  sheetOpen: boolean;
-  balloonOpen: boolean;
-  armed: boolean;
-  busy: boolean;
-  over: boolean;
-}): BackStep {
+export function backStep(o: { screen: 'title' | 'game'; sheetOpen: boolean; intro: boolean; balloonOpen: boolean; busy: boolean }): BackStep {
   if (o.sheetOpen) return 'close-sheet';
   if (o.screen !== 'game') return 'leave';
-  if (o.busy) return 'skip-and-ask';
+  if (o.intro) return 'skip-intro';
+  if (o.busy) return 'skip-and-menu';
   if (o.balloonOpen) return 'close-balloon';
-  if (o.armed) return 'cancel-order';
-  if (o.over) return 'go-home';
-  return 'ask-quit';
+  return 'menu';
 }
 
 /** Our entry is on top of the history. */
@@ -42,7 +36,7 @@ function wanted(): boolean {
 
 function push(): void {
   try {
-    history.pushState({ war: 'night' }, '');
+    history.pushState({ war: 'game' }, '');
     guarded = true;
   } catch {
     /* a sandboxed frame without history: back behaves as the host decides */
@@ -56,34 +50,29 @@ function onPop(): void {
   }
   if (!guarded) return;
   guarded = false;
-  const s = run.value;
   const step = backStep({
     screen: screen.value,
     sheetOpen: sheet.value !== null,
+    intro: introRunning(),
     balloonOpen: balloon.value !== null,
-    armed: !!s?.armed,
     busy: busy.value,
-    over: !!s && (s.phase === 'missed' || s.phase === 'sliceEnd'),
   });
   switch (step) {
     case 'close-sheet':
       sheet.value = null;
       break;
-    case 'skip-and-ask':
-      skip();
-      sheet.value = 'quit';
+    case 'skip-intro':
+      skipIntro();
+      break;
+    case 'skip-and-menu':
+      director().skip();
+      sheet.value = 'menu';
       break;
     case 'close-balloon':
       balloon.value = null;
       break;
-    case 'cancel-order':
-      cancelOrder();
-      break;
-    case 'go-home':
-      quitToTitle();
-      break;
-    case 'ask-quit':
-      sheet.value = 'quit';
+    case 'menu':
+      sheet.value = 'menu';
       break;
     case 'leave':
       return;

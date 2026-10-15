@@ -1,6 +1,6 @@
 /**
- * The war-room slice's entry point: fonts (self-hosted), material textures, styles, the app, and
- * in development the window.__war scripting hook.
+ * WIN THE WORLD's entry point: fonts (self-hosted), material textures, styles, the app, and in
+ * development (or with VITE_WAR_HOOK=1) the window.__war scripting hook.
  */
 import { render } from 'preact';
 import { BRAND } from '../config';

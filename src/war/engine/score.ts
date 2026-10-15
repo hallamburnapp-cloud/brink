@@ -1,288 +1,296 @@
 /**
- * The scoring engine (spec section 4). Pure and deterministic, all BigInt.
- * Influence (I) is a whole number; Momentum is held in tenths (M10). 'x1.5' floors to tenths.
- *
- * Order: twist (already in the Board) -> pattern base -> sweep, pin by pin west to east
- * (weight + brass, threads on the first pass, stamp, pin staff; again for each extra pass)
- * -> standby -> desk -> leverage = I x M10 / 10.
+ * Scoring (SPEC section 6). SCORE = POINTS x MULTIPLIER, rounded down, built in this order, which
+ * is also the animation order:
+ *  1. each pin, west to east: +its number to POINTS, +1 to MULTIPLIER;
+ *  2. each staff, seat 1 to 5 (a Deputy fires as the staff to its right); a per-region staff
+ *     (Governor, Harbourmaster, Sovereign) fires once per matching pin, west to east;
+ *  3. the crisis region pinned: x2 MULTIPLIER.
+ * POINTS is a whole number; the MULTIPLIER is held in tenths (M10) and every step floors to a
+ * tenth. scorePins() is the exact, traced scorer; Scorer is the fast one for enumerating sends
+ * (bots, the shop's preview number). Both agree on every input (score.test.ts).
  */
-import { REGION, compareWestEast, type RegionId } from '../content/map';
-import { patternValues, type PatternId } from '../content/patterns';
+import { REGION, type RegionId } from '../content/map';
 import type { StaffId } from '../content/staff';
-import { components, detectPattern } from './patterns';
-import type { ActingStaff, Board } from './board';
+import { IDS, westToEast } from './board';
 import { RULES } from './rules';
-import type { AgainReason, StampKind, TraceEvent } from './types';
+import type { Owner, StaffEvent, TraceEvent } from './types';
 
-export interface ScoreInput {
-  /** The pinned set (1-5 regions, including an Airlift pin). */
-  pins: readonly RegionId[];
-  /** The lit regions (for standby). */
-  lit: readonly RegionId[];
-  flashpoint: RegionId | null;
+/** What each seat fires as: a Deputy fires as the staff to its right (nothing at the far right). */
+export function effective(seats: readonly StaffId[]): Array<StaffId | null> {
+  return seats.map((s, i) => {
+    if (s !== 'DEPUTY') return s;
+    const right = seats[i + 1];
+    return right !== undefined && right !== 'DEPUTY' ? right : null;
+  });
 }
 
-export interface ScoreOptions {
-  /** Build the trace (default true). Bots and the CLEARS lamp turn it off for speed. */
-  trace?: boolean;
+export function goldCount(owner: Readonly<Record<RegionId, Owner>>): number {
+  let n = 0;
+  for (const r of IDS) if (owner[r] === 'gold') n++;
+  return n;
+}
+
+/** '1.5' for 15, '2' for 20, '1.0' for an Old Hand at 10. */
+function factorLabel(tenths: number, keepPoint: boolean): string {
+  const whole = Math.floor(tenths / 10);
+  const frac = tenths % 10;
+  return frac === 0 && !keepPoint ? `${whole}` : `${whole}.${frac}`;
 }
 
 export interface ScoreResult {
-  leverage: bigint;
-  pattern: PatternId;
-  level: number;
-  /** The pins that score, in sweep order (west to east). */
-  scoringSet: RegionId[];
-  /** Pinned but not scoring. */
-  loose: RegionId[];
-  topRegion: RegionId;
-  ringed: RegionId | null;
-  baseInfluence: bigint;
-  baseM10: bigint;
-  influence: bigint;
+  score: bigint;
+  points: bigint;
   m10: bigint;
-  /** Joined pairs inside the scoring set: each gains +1 traffic on commit. */
-  threads: Array<[RegionId, RegionId]>;
-  /** How many times each scoring region scored (passes; blacked-out pins score 0). */
-  passes: Record<RegionId, number>;
-  /** Influence each scoring pin's (a)-(d) steps added. */
-  contributions: Record<RegionId, bigint>;
-  /** Seats that fired at least once (pin, again, standby, desk, or tripled threads). */
-  firedSeats: number[];
-  trace: TraceEvent[];
+  /** Present when asked for. */
+  trace?: TraceEvent[];
 }
 
-const x1_5 = (m10: bigint) => (m10 * 3n) / 2n;
-
-interface AgainSource {
-  reason: AgainReason;
-  seat?: number;
-  staffId?: StaffId;
-  viaDeputy?: boolean;
-}
-
-export function scoreSelection(board: Board, input: ScoreInput, opts: ScoreOptions = {}): ScoreResult {
-  const wantTrace = opts.trace ?? true;
-  const { world } = board;
-  const pins = [...new Set(input.pins)];
-  const det = detectPattern(pins, board, world.levels);
-  const base = patternValues(det.pattern, det.level);
-  const baseInfluence = BigInt(base.influence);
-  const baseM10 = BigInt(base.momentum) * 10n;
-  let I = baseInfluence;
-  let M10 = baseM10;
-
-  const trace: TraceEvent[] = [];
-  const fired = new Set<number>();
-  const emit = (e: Omit<TraceEvent, 'i' | 'I' | 'M10'>) => {
-    if (e.seat !== undefined) fired.add(e.seat);
-    if (wantTrace) trace.push({ i: trace.length, ...e, I: I.toString(), M10: M10.toString() } as TraceEvent);
-  };
-
-  emit({ phase: 'pattern', op: 'base', amount: baseInfluence.toString(), pattern: det.pattern, level: det.level });
-
-  // Seats that apply a rule (a Deputy with nothing to its right applies none).
-  const acting = board.acting.filter((s): s is ActingStaff & { id: StaffId } => s.id !== null);
-  const railClerk = acting.find((s) => s.id === 'RAILCLERK');
-  const threadFactor = railClerk ? 3 : 1;
-  const blackout = board.twist?.kind === 'BLACKOUT' ? board.twist.colour : null;
-  const order = det.scoring; // already west to east
-  const scored: RegionId[] = [];
-  const contributions: Record<RegionId, bigint> = {};
-  const passes: Record<RegionId, number> = {};
-
-  order.forEach((p, step) => {
-    const def = REGION[p];
-    contributions[p] = 0n;
-    passes[p] = 0;
-    if (blackout && board.colourOf(p) === blackout) {
-      emit({ phase: 'pin', region: p, step, pass: 0, op: '+I', amount: '0', dark: true });
-      return; // counts for the pattern but adds nothing, triggers nothing, and is never 'scored'
-    }
-    const stamp: StampKind | undefined = world.stamps[p];
-    const capital = board.isCapital(p);
-    const port = board.isPort(p);
-
-    const agains: AgainSource[] = [];
-    if (p === input.flashpoint) agains.push({ reason: 'flashpoint' });
-    if (stamp === 'ECHO') agains.push({ reason: 'echo' });
-    for (const s of acting) {
-      const from = { seat: s.seat, staffId: s.id, viaDeputy: s.viaDeputy };
-      if (s.id === 'COURIER' && step === 0) agains.push({ reason: 'courier', ...from });
-      if (s.id === 'SIGNALS' && capital) agains.push({ reason: 'signals', ...from });
-    }
-
-    const gain = BigInt(def.weight + RULES.brassInfluence * (world.brass[p] ?? 0));
-    for (let pass = 0; pass <= agains.length; pass++) {
-      if (pass > 0) {
-        const src = agains[pass - 1];
-        emit({ phase: 'again', region: p, step, pass, op: 'again', amount: 'AGAIN', ...src });
-      }
-      // (a) weight and brass pins
-      I += gain;
-      contributions[p] += gain;
-      passes[p] += 1;
-      emit({ phase: 'pin', region: p, step, pass, op: '+I', amount: gain.toString() });
-
-      // (b) threads back to pins already scored this sweep (first pass only)
-      if (pass === 0) {
-        for (const q of scored) {
-          if (!board.joined(p, q)) continue;
-          const t = BigInt(board.traffic(p, q) * threadFactor);
-          I += t;
-          contributions[p] += t;
-          const tripled = railClerk && t > 0n ? { seat: railClerk.seat, staffId: railClerk.id } : {};
-          emit({ phase: 'thread', region: p, other: q, step, op: '+I', amount: t.toString(), ...tripled });
-        }
-      }
-
-      // (c) stamp
-      if (stamp === 'FORTIFY') {
-        I += 20n;
-        contributions[p] += 20n;
-        emit({ phase: 'stamp', region: p, step, pass, stamp, op: '+I', amount: '20' });
-      } else if (stamp === 'RELAY') {
-        M10 = x1_5(M10);
-        emit({ phase: 'stamp', region: p, step, pass, stamp, op: 'xM', amount: '1.5' });
-      }
-
-      // (d) pin staff, seat order
-      for (const s of acting) {
-        const at = { phase: 'staff' as const, region: p, step, pass, seat: s.seat, staffId: s.id, viaDeputy: s.viaDeputy };
-        switch (s.id) {
-          case 'HARBOUR':
-            if (port) {
-              I += 15n;
-              contributions[p] += 15n;
-              emit({ ...at, op: '+I', amount: '15' });
-            }
-            break;
-          case 'SURVEYOR':
-            if (def.weight <= 4) {
-              I += 15n;
-              contributions[p] += 15n;
-              emit({ ...at, op: '+I', amount: '15' });
-            }
-            break;
-          case 'GOVERNOR':
-            if (capital) {
-              M10 += 50n;
-              emit({ ...at, op: '+M', amount: '5' });
-            }
-            break;
-          case 'ADMIRAL':
-            if (port) {
-              M10 = x1_5(M10);
-              emit({ ...at, op: 'xM', amount: '1.5' });
-            }
-            break;
-          case 'SOVEREIGN':
-            if (capital) {
-              M10 *= 2n;
-              emit({ ...at, op: 'xM', amount: '2' });
-            }
-            break;
-          default:
-            break;
-        }
-      }
-    }
-    scored.push(p);
-  });
-
-  // STANDBY: lit regions left unpinned, west to east.
-  const pinned = new Set(pins);
-  const standby = input.lit.filter((r) => !pinned.has(r)).sort(compareWestEast);
-  for (const r of standby) {
-    if (blackout && board.colourOf(r) === blackout) continue;
-    if (!board.isCapital(r)) continue;
-    for (const s of acting) {
-      if (s.id !== 'CHIEF') continue;
-      M10 = x1_5(M10);
-      emit({ phase: 'standby', region: r, seat: s.seat, staffId: s.id, viaDeputy: s.viaDeputy, op: 'xM', amount: '1.5' });
-    }
+/**
+ * Score a set of pins with the seated staff (seat order). `owner` is the map when SEND is pressed
+ * (the Governor's gold pins and the Surveyor's count), `oldHandM10` the Old Hand's multiplier.
+ */
+export function scorePins(
+  pins: readonly RegionId[],
+  seats: readonly StaffId[],
+  owner: Readonly<Record<RegionId, Owner>>,
+  crisis: RegionId,
+  oldHandM10: number = RULES.oldHandStartM10,
+  opts: { trace?: boolean } = {},
+): ScoreResult {
+  const trace: TraceEvent[] | null = opts.trace ? [] : null;
+  const order = westToEast(pins);
+  const held = goldCount(owner);
+  const herald = seats.includes('HERALD');
+  let pts = 0n;
+  let m10 = 0n;
+  for (const r of order) {
+    const n = REGION[r].weight;
+    pts += BigInt(n);
+    m10 += 10n;
+    trace?.push({ kind: 'pin', region: r, amount: n, label: `+${n}`, points: pts, m10 });
   }
-
-  // DESK, seat order.
-  const biggestGroup = components(order, board.adj)[0]?.length ?? 0;
-  const colourCount = new Set(order.map((r) => board.colourOf(r))).size;
-  for (const s of acting) {
-    const at = { phase: 'desk' as const, seat: s.seat, staffId: s.id, viaDeputy: s.viaDeputy };
-    switch (s.id) {
+  effective(seats).forEach((s, seat) => {
+    if (s === null || s === 'HERALD') return;
+    const viaDeputy = seats[seat] === 'DEPUTY';
+    const once = (op: StaffEvent['op'], amount: number, label: string) =>
+      trace?.push({ kind: 'staff', seat, staff: s, viaDeputy, op, amount, label, points: pts, m10 });
+    switch (s) {
       case 'DUTY':
-        M10 += 40n;
-        emit({ ...at, op: '+M', amount: '4' });
+        m10 += 40n;
+        once('+M', 40, '+4');
         break;
       case 'QM':
-        I += 30n;
-        emit({ ...at, op: '+I', amount: '30' });
+        pts += 20n;
+        once('+P', 20, '+20');
         break;
-      case 'HOTLINE':
-        if (biggestGroup >= 3) {
-          M10 += 80n;
-          emit({ ...at, op: '+M', amount: '8' });
-        }
+      case 'SURVEYOR': {
+        const add = 10 * Math.floor(held / 3);
+        m10 += BigInt(add);
+        once('+M', add, `+${add / 10}`);
         break;
-      case 'MEDIATOR':
-        if (pins.length <= 3) {
-          M10 *= 3n;
-          emit({ ...at, op: 'xM', amount: '3' });
-        }
+      }
+      case 'OLDHAND':
+        m10 = (m10 * BigInt(oldHandM10)) / 10n;
+        once('xM', oldHandM10, `×${factorLabel(oldHandM10, true)}`);
         break;
       case 'STRATEGIST':
-        if (biggestGroup >= 4) {
-          M10 *= 2n;
-          emit({ ...at, op: 'xM', amount: '2' });
+        if (order.length >= 4) {
+          m10 *= 3n;
+          once('xM', 30, '×3');
         }
         break;
-      case 'ENVOY':
-        if (colourCount >= 4) {
-          M10 *= 2n;
-          emit({ ...at, op: 'xM', amount: '2' });
+      case 'GOVERNOR':
+      case 'HARBOUR':
+      case 'SOVEREIGN': {
+        const hits = order.filter((r) =>
+          s === 'GOVERNOR' ? owner[r] === 'gold' : s === 'HARBOUR' ? herald || REGION[r].port : herald || REGION[r].capital,
+        );
+        for (const r of hits) {
+          if (s === 'SOVEREIGN') m10 *= 2n;
+          else m10 = (m10 * 15n) / 10n;
+          const amount = s === 'SOVEREIGN' ? 20 : 15;
+          trace?.push({
+            kind: 'regionStaff',
+            seat,
+            staff: s,
+            viaDeputy,
+            region: r,
+            op: 'xM',
+            amount,
+            label: `×${factorLabel(amount, false)}`,
+            points: pts,
+            m10,
+          });
         }
+        break;
+      }
+      default:
+        throw new Error(`unknown staff ${String(s)}`);
+    }
+  });
+  if (order.includes(crisis)) {
+    m10 *= 2n;
+    trace?.push({ kind: 'crisisX2', region: crisis, amount: 20, label: '×2', points: pts, m10 });
+  }
+  const score = (pts * m10) / 10n;
+  trace?.push({ kind: 'slam', score, points: pts, m10 });
+  return trace ? { score, points: pts, m10, trace } : { score, points: pts, m10 };
+}
+
+// ---------------------------------------------------------------- the fast scorer
+
+/** Everything a score depends on, given the line-up. */
+export interface Features {
+  points: number;
+  pins: number;
+  capitals: number;
+  ports: number;
+  gold: number;
+  crisis: boolean;
+}
+
+export function featuresOf(pins: readonly RegionId[], owner: Readonly<Record<RegionId, Owner>>, crisis: RegionId): Features {
+  const f: Features = { points: 0, pins: pins.length, capitals: 0, ports: 0, gold: 0, crisis: false };
+  for (const r of pins) {
+    const d = REGION[r];
+    f.points += d.weight;
+    if (d.capital) f.capitals++;
+    if (d.port) f.ports++;
+    if (owner[r] === 'gold') f.gold++;
+    if (r === crisis) f.crisis = true;
+  }
+  return f;
+}
+
+const WEIGHT_BY_INDEX = IDS.map((id) => REGION[id].weight);
+const CAPITAL_MASK = IDS.reduce((m, id, i) => (REGION[id].capital ? m | (1 << i) : m), 0);
+const PORT_MASK = IDS.reduce((m, id, i) => (REGION[id].port ? m | (1 << i) : m), 0);
+
+function popcount(x: number): number {
+  let n = 0;
+  for (let v = x >>> 0; v; v &= v - 1) n++;
+  return n;
+}
+
+/** Features of a region mask (bit i is IDS[i]); `goldMask` and `crisisMask` describe the map. */
+export function maskFeatures(mask: number, goldMask: number, crisisMask: number): Features {
+  let points = 0;
+  for (let i = 0; i < WEIGHT_BY_INDEX.length; i++) if (mask & (1 << i)) points += WEIGHT_BY_INDEX[i];
+  return {
+    points,
+    pins: popcount(mask),
+    capitals: popcount(mask & CAPITAL_MASK),
+    ports: popcount(mask & PORT_MASK),
+    gold: popcount(mask & goldMask),
+    crisis: (mask & crisisMask) !== 0,
+  };
+}
+
+/** (x * factor) / 10 floored, in safe integers; null when it would leave the exact range. */
+function mulFloor10(x: number, factor: number): number | null {
+  const y = x * factor;
+  if (!Number.isSafeInteger(y)) return null;
+  return (y - (y % 10)) / 10;
+}
+
+function fastScore(f: Features, eff: ReadonlyArray<StaffId | null>, herald: boolean, held: number, old: number): number | null {
+  let pts = f.points;
+  const n = f.pins;
+  const caps = herald ? n : f.capitals;
+  const ports = herald ? n : f.ports;
+  let m10: number | null = 10 * n;
+  for (const s of eff) {
+    if (m10 === null) return null;
+    switch (s) {
+      case 'DUTY':
+        m10 += 40;
+        break;
+      case 'QM':
+        pts += 20;
+        break;
+      case 'SURVEYOR':
+        m10 += 10 * Math.floor(held / 3);
         break;
       case 'OLDHAND':
-        if (s.count > 0) {
-          I += BigInt(s.count);
-          emit({ ...at, op: '+I', amount: String(s.count) });
-        }
+        m10 = mulFloor10(m10, old);
+        break;
+      case 'STRATEGIST':
+        if (n >= 4) m10 = mulFloor10(m10, 30);
+        break;
+      case 'GOVERNOR':
+        for (let i = 0; i < f.gold && m10 !== null; i++) m10 = mulFloor10(m10, 15);
+        break;
+      case 'HARBOUR':
+        for (let i = 0; i < ports && m10 !== null; i++) m10 = mulFloor10(m10, 15);
+        break;
+      case 'SOVEREIGN':
+        for (let i = 0; i < caps && m10 !== null; i++) m10 = mulFloor10(m10, 20);
         break;
       default:
-        break;
+        break; // null (an idle Deputy) and the Herald do nothing
     }
   }
+  if (m10 === null) return null;
+  if (f.crisis) m10 *= 2;
+  return mulFloor10(m10, pts);
+}
 
-  const leverage = (I * M10) / 10n;
-  emit({ phase: 'slam', op: 'slam', amount: leverage.toString() });
-
-  // topRegion: most Influence from (a)-(d); order is west to east, so ties keep the westmost.
-  let topRegion = order[0];
-  for (const r of order) if (contributions[r] > contributions[topRegion]) topRegion = r;
-
-  const threads: Array<[RegionId, RegionId]> = [];
-  for (let a = 0; a < order.length; a++) {
-    for (let b = a + 1; b < order.length; b++) {
-      if (board.joined(order[a], order[b])) threads.push([order[a], order[b]]);
-    }
-  }
-
-  const scoringSet = new Set(order);
-  return {
-    leverage,
-    pattern: det.pattern,
-    level: det.level,
-    scoringSet: order,
-    loose: pins.filter((r) => !scoringSet.has(r)).sort(compareWestEast),
-    topRegion,
-    ringed: det.ringed ?? null,
-    baseInfluence,
-    baseM10,
-    influence: I,
-    m10: M10,
-    threads,
-    passes,
-    contributions,
-    firedSeats: [...fired].sort((a, b) => a - b),
-    trace,
+/** The same arithmetic in BigInt, for the rare line-up that leaves the safe-integer range. */
+function bigScore(f: Features, eff: ReadonlyArray<StaffId | null>, herald: boolean, held: number, old: number): bigint {
+  let pts = BigInt(f.points);
+  const n = f.pins;
+  const caps = herald ? n : f.capitals;
+  const ports = herald ? n : f.ports;
+  let m10 = BigInt(10 * n);
+  const times = (k: number, num: bigint) => {
+    for (let i = 0; i < k; i++) m10 = (m10 * num) / 10n;
   };
+  for (const s of eff) {
+    if (s === 'DUTY') m10 += 40n;
+    else if (s === 'QM') pts += 20n;
+    else if (s === 'SURVEYOR') m10 += BigInt(10 * Math.floor(held / 3));
+    else if (s === 'OLDHAND') m10 = (m10 * BigInt(old)) / 10n;
+    else if (s === 'STRATEGIST') times(n >= 4 ? 1 : 0, 30n);
+    else if (s === 'GOVERNOR') times(f.gold, 15n);
+    else if (s === 'HARBOUR') times(ports, 15n);
+    else if (s === 'SOVEREIGN') times(caps, 20n);
+  }
+  if (f.crisis) m10 *= 2n;
+  return (pts * m10) / 10n;
+}
+
+function featureKey(f: Features): number {
+  return f.points + 64 * (f.pins + 8 * (f.capitals + 8 * (f.ports + 8 * (f.gold + 8 * (f.crisis ? 1 : 0)))));
+}
+
+/**
+ * Scores feature sets for one line-up on one map, cached by features (equal to scorePins on the
+ * same pins). `gold` is the number of gold regions held (the Surveyor's count).
+ */
+export class Scorer {
+  private readonly eff: ReadonlyArray<StaffId | null>;
+  private readonly herald: boolean;
+  private readonly cache = new Map<number, bigint>();
+
+  constructor(
+    seats: readonly StaffId[],
+    private readonly gold: number,
+    private readonly oldHandM10: number = RULES.oldHandStartM10,
+  ) {
+    this.eff = effective(seats);
+    this.herald = seats.includes('HERALD');
+  }
+
+  score(f: Features): bigint {
+    const packable = f.points < 64 && f.pins < 8;
+    const key = packable ? featureKey(f) : -1;
+    if (packable) {
+      const hit = this.cache.get(key);
+      if (hit !== undefined) return hit;
+    }
+    const fast = fastScore(f, this.eff, this.herald, this.gold, this.oldHandM10);
+    const v = fast === null ? bigScore(f, this.eff, this.herald, this.gold, this.oldHandM10) : BigInt(fast);
+    if (packable) this.cache.set(key, v);
+    return v;
+  }
 }

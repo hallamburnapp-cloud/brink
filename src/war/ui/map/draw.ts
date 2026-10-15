@@ -166,6 +166,17 @@ export function anchor(ctx: Ctx, x: number, y: number, s: number, color: string,
   ctx.restore();
 }
 
+/** A rounded rectangle path (no ctx.roundRect: older Safari lacks it). */
+export function roundRect(ctx: Ctx, x: number, y: number, w: number, h: number, r: number): void {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
 export function clamp01(t: number): number {
   return t < 0 ? 0 : t > 1 ? 1 : t;
 }

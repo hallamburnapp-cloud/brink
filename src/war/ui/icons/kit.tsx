@@ -20,29 +20,19 @@ export const MAT = {
   brass: ['#F1D28A', '#C9A35B', '#8A6A2E'],
   gun: ['#5B636E', '#363C45', '#1F2329'],
   red: ['#F06A57', '#C93A2E', '#82211B'],
-  ivory: ['#F6F0E2', '#E2D8C2', '#B9AC8E'],
   paper: ['#F4EEDF', '#DDD2B8', '#B3A585'],
-  leather: ['#B97A43', '#8C5630', '#5A3418'],
   steel: ['#DFE5EC', '#A5AEB9', '#66707C'],
   lens: ['#D6ECFF', '#9DB8D9', '#56708F'],
   wood: ['#C68E52', '#9A6634', '#5E3B1C'],
   gold: ['#FFE9A6', '#F2C94C', '#A37C16'],
-  linen: ['#F2ECDF', '#E9E2D2', '#D8CFBB'],
-  kraft: ['#C8A26A', '#B8915C', '#8C6A3D'],
   /** Carbon paper: blue-black, with a lit edge so it still reads on navy felt. */
   carbon: ['#56648A', '#2C3550', '#171C2C'],
-  /** The ferry line's printed blue. */
-  ferry: ['#8EC1EE', '#3F7FBF', '#24527F'],
 } as const satisfies Record<string, Tones>;
 
-/** Rubber-stamp ink on paper (Orders, folders). */
-export const STAMP_INK = '#C4372C';
-/** Typewriter ink on linen. */
-export const TYPE_INK = '#2A2520';
 /** The thread red, used for routes drawn on paper. */
 export const THREAD = '#E0483C';
 /** The lamp's light (STYLE 6: only the Duty Officer's lamp may glow). */
-export const MOMENTUM = '#FFB547';
+export const LAMP_LIGHT = '#FFB547';
 
 type PathAttrs = JSX.SVGAttributes<SVGPathElement>;
 

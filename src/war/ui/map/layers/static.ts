@@ -179,7 +179,7 @@ export function paintTerrain(g: Gfx): void {
   ctx.restore();
 }
 
-/** Bearing strip at map y 0-10 (spec 1): ticks every 39 pt and 'W → SWEEP → E'. */
+/** Bearing strip at map y 0-10: ticks every 39 pt and 'W — SCORING —▸ E' (pins score west to east). */
 function paintBearing(ctx: Ctx): void {
   ctx.save();
   const g = ctx.createLinearGradient(0, 0, 0, 12);
@@ -207,25 +207,25 @@ function paintBearing(ctx: Ctx): void {
   ctx.stroke();
   const cx = W / 2;
   ctx.fillStyle = 'rgba(4,7,11,0.95)';
-  ctx.fillRect(cx - 52, 0, 104, 10);
+  ctx.fillRect(cx - 62, 0, 124, 10);
   const ls = 'rgba(233,226,210,0.42)';
   const font = `600 8px ${FONT_LABEL}`;
-  text(ctx, 'W', cx - 45, 5.4, { font, color: ls });
-  text(ctx, 'SWEEP', cx, 5.4, { font, color: ls, tracking: 1.4 });
-  text(ctx, 'E', cx + 45, 5.4, { font, color: ls });
+  text(ctx, 'W', cx - 55, 5.4, { font, color: ls });
+  text(ctx, 'SCORING', cx, 5.4, { font, color: ls, tracking: 1.4 });
+  text(ctx, 'E', cx + 55, 5.4, { font, color: ls });
   ctx.strokeStyle = ls;
   ctx.lineWidth = 0.8;
   ctx.beginPath();
-  ctx.moveTo(cx - 39, 5);
-  ctx.lineTo(cx - 17, 5);
-  ctx.moveTo(cx + 17, 5);
-  ctx.lineTo(cx + 38, 5);
+  ctx.moveTo(cx - 49, 5);
+  ctx.lineTo(cx - 25, 5);
+  ctx.moveTo(cx + 25, 5);
+  ctx.lineTo(cx + 48, 5);
   ctx.stroke();
   ctx.fillStyle = ls;
   ctx.beginPath();
-  ctx.moveTo(cx + 39.5, 5);
-  ctx.lineTo(cx + 36, 3);
-  ctx.lineTo(cx + 36, 7);
+  ctx.moveTo(cx + 49.5, 5);
+  ctx.lineTo(cx + 46, 3);
+  ctx.lineTo(cx + 46, 7);
   ctx.closePath();
   ctx.fill();
   ctx.restore();

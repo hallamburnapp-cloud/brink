@@ -1,22 +1,22 @@
 /**
- * Dev harness for the map renderer (not shipped). Serve with `npx vite --port 5201 --strictPort`
+ * Dev harness for the map renderer (not shipped). Serve with `npx vite --port 5301 --strictPort`
  * and open /src/war/ui/map/dev.html?state=<name>. Named states render on a frozen clock at a fixed
- * moment (for screenshots, window.__ready turns true when drawn); ?state=play is a live table you
- * can tap, with a mock sweep that exercises every effect at real speed.
+ * moment (for screenshots, window.__ready turns true when drawn); ?state=play is a live table with
+ * a mock turn loop (touching pins, a preview, the send's cascade, gold and red ink, war spreading
+ * every 3rd turn) that exercises every effect at real speed. The mock rules only approximate the
+ * engine's; they are here to watch the map, not to play the game.
  */
-import type { RegionId } from './contract';
+import type { InkColour, MapController, Owner, RegionId } from './contract';
 import { createMapController, realClock, type Clock, type MapDevHooks } from './controller';
-import { REGION, REGIONS, pairKey } from './data';
+import { LAND_JOINS, REGION, REGIONS, SEA_LANES } from './data';
 import { MAP_FONTS } from './draw';
-import type { MapControllerPlus } from './extensions';
-import { eventTimes, joinsAmong, makeView, SCENARIOS, type ViewSpec } from './dev-states';
+import { canAdd, makeView, SCENARIOS, type ViewSpec } from './dev-states';
+import { westEast } from './scene';
 
 declare global {
   interface Window {
     __ready?: boolean;
-    __map?: MapControllerPlus & MapDevHooks;
-    /** Play mode's mock table, for scripted checks. */
-    __table?: () => { lit: RegionId[]; pinned: RegionId[]; flashpoint: RegionId };
+    __map?: MapController & MapDevHooks;
   }
 }
 
@@ -40,7 +40,7 @@ function nav(): void {
     states.appendChild(a);
   }
   document.getElementById('caption')!.textContent =
-    stateName === 'play' ? 'Tap lit regions to pin them, then SWEEP.' : (SCENARIOS[stateName]?.title ?? 'Unknown state');
+    stateName === 'play' ? 'Tap lit regions that touch, then SEND.' : (SCENARIOS[stateName]?.title ?? 'Unknown state');
 }
 
 function button(label: string, onClick: () => void): void {
@@ -79,18 +79,44 @@ function showStats(map: MapDevHooks): void {
     `frames ${s.frames} · bakes ${s.bakes} · last frame ${s.lastFrameMs.toFixed(1)} ms · last bake ${s.lastBakeMs.toFixed(1)} ms`;
 }
 
-// ------------------------------------------------------------------ play mode
+// ------------------------------------------------------------------ play mode (a mock turn loop)
 
-interface Table {
-  lit: RegionId[];
-  pinned: RegionId[];
-  spent: RegionId[];
-  traffic: Map<string, number>;
-  brass: Record<RegionId, number>;
-  scored: Record<RegionId, number>;
-  flashpoint: RegionId;
-  total: number;
-  target: number;
+const ADJ = new Map<RegionId, RegionId[]>(REGIONS.map((r) => [r.id, []]));
+for (const [a, b] of [...LAND_JOINS, ...SEA_LANES]) {
+  ADJ.get(a)!.push(b);
+  ADJ.get(b)!.push(a);
+}
+
+function joinsFrom(src: RegionId): Map<RegionId, number> {
+  const d = new Map([[src, 0]]);
+  const todo = [src];
+  while (todo.length) {
+    const x = todo.shift()!;
+    for (const n of ADJ.get(x)!) {
+      if (d.has(n)) continue;
+      d.set(n, d.get(x)! + 1);
+      todo.push(n);
+    }
+  }
+  return d;
+}
+
+/** The shortest chain of joins between two regions, both ends included. */
+function chain(a: RegionId, b: RegionId): RegionId[] {
+  const prev = new Map<RegionId, RegionId>([[a, a]]);
+  const todo = [a];
+  while (todo.length) {
+    const x = todo.shift()!;
+    if (x === b) break;
+    for (const n of ADJ.get(x)!) {
+      if (prev.has(n)) continue;
+      prev.set(n, x);
+      todo.push(n);
+    }
+  }
+  const out = [b];
+  while (out[0] !== a) out.unshift(prev.get(out[0])!);
+  return out;
 }
 
 function shuffle<T>(xs: T[]): T[] {
@@ -102,139 +128,183 @@ function shuffle<T>(xs: T[]): T[] {
   return a;
 }
 
-function deal(prev?: Table): Table {
-  const ids = shuffle(REGIONS.map((r) => r.id));
-  return {
-    lit: ids.slice(0, 8),
-    pinned: [],
-    spent: [],
-    traffic: prev?.traffic ?? new Map(),
-    brass: prev?.brass ?? {},
-    scored: prev?.scored ?? {},
-    flashpoint: ids[0],
-    total: 0,
-    target: 300,
-  };
+interface Game {
+  owner: Record<RegionId, Owner>;
+  turn: number;
+  crisis: RegionId;
+  lit: RegionId[];
+  pins: RegionId[];
+  brass: RegionId[];
 }
 
-function specOf(t: Table, ring: number): ViewSpec {
+const target = (t: number) => Math.round(64 * Math.pow(1.5, t - 1));
+const ids = (g: Game, o: Owner) => REGIONS.map((r) => r.id).filter((id) => g.owner[id] === o);
+
+function score(g: Game): number {
+  const pts = g.pins.reduce((s, id) => s + REGION[id].weight, 0);
+  return pts * g.pins.length * (g.pins.includes(g.crisis) ? 2 : 1);
+}
+
+function regionsWon(g: Game): number {
+  const T = target(g.turn);
+  const s = score(g);
+  let n = 0;
+  for (let mark = T, i = 0; s >= mark; i++, mark = i < 2 ? mark * 4 : mark * 2) n++;
+  return n;
+}
+
+function winOrder(g: Game, k: number): RegionId[] {
+  const d = joinsFrom(g.crisis);
+  const cand = REGIONS.filter((r) => r.id !== g.crisis && g.owner[r.id] !== 'gold').sort(
+    (a, b) =>
+      d.get(a.id)! - d.get(b.id)! ||
+      (g.owner[a.id] === 'red' ? 0 : 1) - (g.owner[b.id] === 'red' ? 0 : 1) ||
+      b.weight - a.weight ||
+      a.x - b.x ||
+      a.y - b.y,
+  );
+  return [g.crisis, ...cand.slice(0, k - 1).map((r) => r.id)];
+}
+
+function warTarget(g: Game): RegionId | null {
+  const gold = ids(g, 'gold');
+  const cand = ids(g, 'grey').filter((id) => ADJ.get(id)!.some((n) => g.owner[n] === 'red'));
+  const near = (id: RegionId) => Math.min(...gold.map((x) => joinsFrom(id).get(x) ?? 99));
+  return cand.sort((a, b) => near(a) - near(b) || REGION[b].weight - REGION[a].weight)[0] ?? null;
+}
+
+function deal(g: Game): void {
+  const grey = ids(g, 'grey');
+  const touching = grey.filter((id) => ADJ.get(id)!.some((n) => g.owner[n] === 'gold'));
+  const push = ids(g, 'red').filter((id) => ADJ.get(id)!.some((n) => g.owner[n] === 'gold'));
+  g.crisis = shuffle(touching.length ? touching : grey.length ? grey : push)[0];
+  const d = joinsFrom(g.crisis);
+  g.lit = shuffle(REGIONS.map((r) => r.id).filter((id) => id !== g.crisis && g.owner[id] !== 'red' && d.get(id)! <= 3)).slice(0, 10);
+  g.pins = [];
+}
+
+function specOf(g: Game, warNext: RegionId | null): ViewSpec {
+  const won = regionsWon(g);
+  const turns = 3 - ((g.turn - 1) % 3);
   return {
-    lit: t.lit,
-    pinned: t.pinned,
-    spent: t.spent,
-    brass: t.brass,
-    glow: Object.fromEntries(Object.entries(t.scored).map(([id, n]) => [id, Math.min(0.4, 0.03 * n)])),
-    threads: [...t.traffic].map(([k, n]) => [...(k.split('|') as [string, string]), n] as [string, string, number]),
-    flashpoint: t.flashpoint,
-    ring,
-    sweepOrder: true,
+    gold: ids(g, 'gold'),
+    red: ids(g, 'red'),
+    lit: g.lit,
+    pinned: g.pins,
+    crisis: { id: g.crisis, target: target(g.turn).toLocaleString('en-GB') },
+    preview: g.pins.length ? (won ? winOrder(g, won) : 'miss') : null,
+    warNext: warNext ? { id: warNext, turns } : null,
+    brass: g.brass,
   };
 }
 
 function startPlay(): void {
   const map = createMapController(canvas, { reducedMotion: reduced, speed: Number(params.get('speed') ?? 1) });
   window.__map = map;
-  let table = deal();
+  const owner = Object.fromEntries(REGIONS.map((r) => [r.id, 'grey' as Owner]));
+  owner.LNK = 'gold';
+  for (const id of ['DNM', 'ORN', 'FLE']) owner[id] = 'red';
+  const game: Game = { owner, turn: 1, crisis: 'SHL', lit: [], pins: [], brass: [] };
   let busy = false;
-  const ring = () => Math.max(0, 1 - table.total / table.target);
-  const render = () => map.update(makeView(specOf(table, ring())));
-  render();
-  window.__table = () => ({ lit: table.lit, pinned: table.pinned, flashpoint: table.flashpoint });
+  const render = (spec?: Partial<ViewSpec>) => map.update(makeView({ ...specOf(game, warTarget(game)), ...spec }));
+  const newTurn = () => {
+    deal(game);
+    map.lightUp(game.lit, 110);
+    render();
+  };
+  newTurn();
 
   canvas.addEventListener('pointerdown', (e) => {
     if (busy) return;
     const rect = canvas.getBoundingClientRect();
     const id = map.hit(((e.clientX - rect.left) / rect.width) * 390, ((e.clientY - rect.top) / rect.height) * 520);
-    if (!id || !table.lit.includes(id)) return;
-    if (table.pinned.includes(id)) table.pinned = table.pinned.filter((p) => p !== id);
-    else if (table.pinned.length < 5) table.pinned = [...table.pinned, id];
+    if (!id || !(game.lit.includes(id) || id === game.crisis)) return;
+    if (game.pins.includes(id)) game.pins = game.pins.filter((p) => p !== id);
+    else if (canAdd(id, game.pins)) game.pins = [...game.pins, id];
     render();
   });
 
-  button('Sweep', () => void sweep());
-  button('New deal', () => {
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms / Number(params.get('speed') ?? 1)));
+
+  async function claim(id: RegionId, from: RegionId, colour: InkColour, ms: number): Promise<void> {
+    game.owner[id] = colour;
+    render({ crisis: null, pinned: [] });
+    await map.fx.inkSpread(from, [id], colour, ms);
+  }
+
+  async function send(): Promise<void> {
+    if (busy || !game.pins.length) return;
+    busy = true;
+    const won = regionsWon(game);
+    const order = [...game.pins].sort(westEast);
+    map.fx.dimExcept(order);
+    await sleep(150);
+    for (const [i, id] of order.entries()) {
+      map.fx.scanTo(REGION[id].x);
+      map.fx.flash(id);
+      if (i) map.fx.pulseThread(order[i - 1], id);
+      await sleep(260);
+    }
+    map.fx.scanTo(null);
+    if (game.pins.includes(game.crisis)) {
+      map.fx.ringStamp();
+      await sleep(320);
+    }
+    if (won >= 10 && game.pins.length) map.fx.bloom(game.crisis, '#F2D27A');
+    map.fx.dimExcept(null);
+    if (won) {
+      await map.fx.ringCollapse();
+      void map.fx.shockwave(game.crisis);
+      if (!game.brass.includes(game.crisis)) game.brass = [...game.brass, game.crisis];
+      await claim(game.crisis, game.crisis, 'gold', 600);
+      void map.fx.dropBrass(game.crisis);
+      for (const id of winOrder(game, won).slice(1)) {
+        const path = chain(game.crisis, id);
+        await map.fx.travel(path, 'gold');
+        await claim(id, path[path.length - 2], 'gold', 400);
+      }
+    } else {
+      const red = ADJ.get(game.crisis)!.find((n) => game.owner[n] === 'red');
+      await claim(game.crisis, red ?? game.crisis, 'red', 700);
+    }
+    if (game.turn % 3 === 0) {
+      const t = warTarget(game);
+      if (t) {
+        await sleep(500);
+        const from = ADJ.get(t)!.find((n) => game.owner[n] === 'red')!;
+        await claim(t, from, 'red', 700);
+      }
+    }
+    await sleep(400);
+    const red = ids(game, 'red').length;
+    const gold = ids(game, 'gold').length;
+    if (red >= 10) await map.fx.lightsOut();
+    else if (gold === 30) await map.fx.wave(game.crisis, 'gold', 1600);
+    else {
+      map.fx.reset();
+      game.turn++;
+      newTurn();
+    }
+    busy = false;
+  }
+
+  button('Send', () => void send());
+  button('Swap', () => {
     if (busy) return;
-    map.fx.reset();
-    table = deal(table);
+    const d = joinsFrom(game.crisis);
+    const fresh = shuffle(REGIONS.map((r) => r.id).filter((id) => id !== game.crisis && game.owner[id] !== 'red' && !game.lit.includes(id) && d.get(id)! <= 3));
+    const keep = game.lit.filter((id) => game.pins.includes(id));
+    const add = fresh.slice(0, game.lit.length - keep.length);
+    game.lit = [...keep, ...add];
+    map.lightUp(add, 110);
     render();
   });
-  button('Lights out', () => {
-    if (busy) return;
-    busy = true;
-    void map.fx.lightsOut().then(() =>
-      setTimeout(() => {
-        map.fx.reset();
-        busy = false;
-      }, 600),
-    );
-  });
-  button('Defect', () => {
-    if (busy || table.lit.length < 3) return;
-    const [src, a, b] = table.lit;
-    void map.fx.inkSpread(src, [a, b]);
-  });
+  button('Intro wave', () => void map.fx.wave('LNK', 'gold'));
   button('Speed 1/2/4', () => {
     const next = { 1: 2, 2: 4, 4: 1 }[Number(params.get('speed') ?? 1)] ?? 1;
     params.set('speed', String(next));
     map.setSpeed(next);
   });
-
-  async function sweep(): Promise<void> {
-    if (busy || table.pinned.length === 0) return;
-    busy = true;
-    const order = [...table.pinned].sort((a, b) => REGION[a].x - REGION[b].x || REGION[a].y - REGION[b].y);
-    const joins = new Set(joinsAmong(order).map(([a, b]) => pairKey(a, b)));
-    const times = eventTimes(order.length + (order.includes(table.flashpoint) ? 1 : 0));
-    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-    const t0 = performance.now();
-    const until = async (ms: number) => sleep(Math.max(0, ms - (performance.now() - t0)));
-    map.fx.dimExcept(order);
-    let k = 0;
-    let influence = 10;
-    for (const id of order) {
-      const passes = id === table.flashpoint ? 2 : 1;
-      for (let pass = 0; pass < passes; pass++) {
-        await until(times[k]);
-        if (pass === 0) map.fx.scanTo(REGION[id].x);
-        else map.fx.scanAgain(REGION[id].x);
-        map.fx.flash(id);
-        influence += REGION[id].weight;
-        if (k === 2) map.fx.heat(true);
-        if (pass === 0) {
-          await until(times[k] + 60);
-          for (const q of order.slice(0, order.indexOf(id))) if (joins.has(pairKey(id, q))) map.fx.pulseThread(q, id);
-        }
-        k++;
-      }
-    }
-    await until(times[times.length - 1] + 400);
-    const leverage = influence * (2 + joins.size);
-    map.fx.heat(false);
-    map.fx.scanTo(null);
-    map.fx.dimExcept(null);
-    for (const key of joins) table.traffic.set(key, (table.traffic.get(key) ?? 0) + 1);
-    for (const id of order) table.scored[id] = (table.scored[id] ?? 0) + 1;
-    table.total += leverage;
-    table.spent = [...table.spent, ...table.pinned];
-    table.lit = table.lit.filter((id) => !table.pinned.includes(id));
-    table.pinned = [];
-    const fresh = shuffle(REGIONS.map((r) => r.id).filter((id) => !table.lit.includes(id) && !table.spent.includes(id)));
-    table.lit = [...table.lit, ...fresh.slice(0, 8 - table.lit.length)];
-    render();
-    if (table.total >= table.target) {
-      await sleep(350);
-      const top = order.reduce((a, b) => (REGION[b].weight > REGION[a].weight ? b : a));
-      await map.fx.shockwave(table.flashpoint);
-      table.brass[top] = (table.brass[top] ?? 0) + 1;
-      render();
-      await map.fx.dropBrass(top);
-      await sleep(900);
-      map.fx.reset();
-      table = deal(table);
-      render();
-    }
-    busy = false;
-  }
 
   setInterval(() => showStats(map), 500);
   window.__ready = true;

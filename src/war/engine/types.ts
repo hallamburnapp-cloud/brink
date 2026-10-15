@@ -1,265 +1,231 @@
 /**
- * The run state and the records the engine hands to the UI, the audio and the bots.
- * State is plain data (BigInt for every score-sized number). Actions never mutate a state they
- * were given: each returns a new object, so a Preact signal can hold it and see every change.
+ * The game state and the records the engine hands to the UI, the director and the bots. State is
+ * plain data: BigInt for every score-sized number (POINTS, M10, scores, targets), numbers for
+ * coins and counts. Actions never mutate a state they were given: each returns a new object, so a
+ * Preact signal can hold it and see every change.
  */
 import type { RngState } from '../../engine/rng';
-import type { Colour, RegionId, Stamp } from '../ui/map/contract';
-import type { FolderKind, OrderId } from '../content/orders';
-import type { PatternId } from '../content/patterns';
 import type { StaffId } from '../content/staff';
+import type { Colour, Owner, RegionId } from '../ui/map/contract';
 
-export type { Colour, RegionId, PatternId, StaffId, OrderId, FolderKind };
-
-export type StampKind = Exclude<Stamp, null>;
-
-export type CrisisKind = 'FLARE_UP' | 'STANDOFF' | 'SUMMIT';
-export type TwistKind = 'GRIDLOCK' | 'BLACKOUT' | 'FULL_TABLE';
-export type Phase = 'crisis' | 'briefing' | 'missed' | 'sliceEnd';
-export type RunMode = 'run' | 'late' | 'mid';
-
-export interface Twist {
-  kind: TwistKind;
-  /** The blacked-out colour (BLACKOUT only), picked when the Hour starts. */
-  colour: Colour | null;
-}
-
-/** One Hour of the night: three crises and the Summit's twist. */
-export interface HourPlan {
-  /** 0 is 22:00, 1 is 23:00, 2 is 00:00, 3 is 01:00 ... 8 and later are Overtime. */
-  index: number;
-  /** Flare-up, Standoff and Summit targets. */
-  targets: [bigint, bigint, bigint];
-  twist: Twist;
-}
-
-/** Everything about the map that persists for the whole run. */
-export interface World {
-  /** Current colour of every region (DEFECT changes it). */
-  colour: Record<RegionId, Colour>;
-  /** Regions made Capitals by PROMOTE. */
-  promoted: RegionId[];
-  /** LAY CABLE joins, in the order laid. Both ends count as Ports. */
-  cables: Array<[RegionId, RegionId]>;
-  /** One stamp per region at most; only stamped regions have a key. */
-  stamps: Record<RegionId, StampKind>;
-  /** Brass pins per region (+5 Influence each when it scores); only regions with pins have a key. */
-  brass: Record<RegionId, number>;
-  /** Traffic per join, keyed by joinKey(a, b) ('AAA|BBB', sorted). */
-  traffic: Record<string, number>;
-  /** Regions out of the deck for the run (RETIRE). */
-  retired: RegionId[];
-  /** Pattern levels, all starting at 1. */
-  levels: Record<PatternId, number>;
-  /** Times each region has scored this run (drives the Influence glow). */
-  scored: Record<RegionId, number>;
-}
-
-export interface SeatedStaff {
-  /** Unique within the run; stable across seat moves (use it as a list key). */
-  uid: number;
-  id: StaffId;
-  /** The Old Hand's count (0 for everyone else). */
-  count: number;
-}
-
-export interface Paper {
-  uid: number;
-  id: OrderId;
-}
-
-/** A finished sweep, without its trace (kept on the crisis for the end screens). */
-export interface SweepSummary {
-  /** 1-based sweep number within its crisis. */
-  n: number;
-  pins: RegionId[];
-  pattern: PatternId;
-  level: number;
-  scoringSet: RegionId[];
-  topRegion: RegionId;
-  leverage: bigint;
-  totalBefore: bigint;
-  totalAfter: bigint;
-  target: bigint;
-  cleared: boolean;
-}
-
-export type TracePhase = 'pattern' | 'pin' | 'thread' | 'stamp' | 'staff' | 'again' | 'standby' | 'desk' | 'slam';
-export type TraceOp = 'base' | '+I' | '+M' | 'xM' | 'again' | 'slam';
-export type AgainReason = 'flashpoint' | 'echo' | 'courier' | 'signals';
+export type { Colour, Owner, RegionId, StaffId };
 
 /**
- * One step of a sweep, in animation order. I and M10 are the running values after the step.
- * `amount` is the human-sized change: Influence for '+I', whole Momentum for '+M' ('4'),
- * the factor for 'xM' ('1.5', '2', '3'), the leverage for 'slam', base Influence for 'pattern'.
+ * - 'choose':  a turn is dealt; pin, swap, send.
+ * - 'outcome': the send is resolved (lastSend holds it); no shop this turn. NEXT TURN deals the next.
+ * - 'shop':    the send is resolved and the shop is open (after turns 2, 4, 6 ...).
+ * - 'over':    the game has ended (ending is set).
  */
-export interface TraceEvent {
-  i: number;
-  phase: TracePhase;
-  region?: RegionId;
-  /** thread: the already-scored pin the thread runs back to. */
-  other?: RegionId;
-  /** Index into state.staff of the seat that fired (0 = leftmost). */
-  seat?: number;
-  /** The rule that fired. For a Deputy this is the copied staff's id (and viaDeputy is set). */
-  staffId?: StaffId;
-  op: TraceOp;
-  amount: string;
-  I: string;
-  M10: string;
-  /** pin / thread / stamp / staff / again: index of the pin in sweep order. */
-  step?: number;
-  /** pin / stamp / staff / again: 0 on the first pass, 1.. on each AGAIN. */
-  pass?: number;
-  /** again: why this pin scores again. */
-  reason?: AgainReason;
-  stamp?: StampKind;
-  viaDeputy?: boolean;
-  /** pin: BLACKOUT. The scan line passes this pin and it adds nothing. */
-  dark?: boolean;
-  /** pattern: the pattern made and its level. */
-  pattern?: PatternId;
-  level?: number;
+export type Phase = 'choose' | 'outcome' | 'shop' | 'over';
+export type Ending = 'WORLD UNITED' | 'CEASEFIRE' | 'WAR';
+/** 'first' is seed FIRST-WORLD (scripted turns 1-2 and first shop); 'crown' is the CROWN demo. */
+export type Mode = 'game' | 'first' | 'crown';
+
+export interface Seat {
+  /** Unique within the game and stable across seat moves (use it as a list key). */
+  uid: number;
+  id: StaffId;
 }
 
-/** The full record of the latest sweep, for the scoring animation. */
-export interface SweepRecord extends SweepSummary {
-  /** Base values at the pattern's level. */
-  baseInfluence: bigint;
-  baseM10: bigint;
-  influence: bigint;
-  m10: bigint;
-  /** The Surround's ringed region, if the pattern is SURROUND. */
-  ringed: RegionId | null;
-  /** Joined pairs inside the scoring set (each gained +1 traffic). */
-  threads: Array<[RegionId, RegionId]>;
-  /** Index of the crisis's Hour and the crisis in it, for labels. */
-  hour: number;
-  crisisIndex: number;
-  trace: TraceEvent[];
-}
-
-export interface ClearRecord {
-  hour: number;
-  crisisIndex: number;
-  reward: number;
-  unusedSweeps: number;
-  interest: number;
-  overwhelm: number;
-  treasurer: number;
-  /** The sum of the above. */
-  payout: number;
-  fundsBefore: number;
-  fundsAfter: number;
-  /** Where the brass pin dropped (topRegion of the clearing sweep). */
-  brass: RegionId;
-}
-
-export interface Crisis {
-  hour: number;
-  index: 0 | 1 | 2;
-  kind: CrisisKind;
+/** The turn being played (phase 'choose') or just played (the other phases). */
+export interface Deal {
+  crisis: RegionId;
   target: bigint;
-  total: bigint;
-  sweepsLeft: number;
-  swapsLeft: number;
-  flashpoint: RegionId;
-  /** Regions still to light, next first. */
-  pile: RegionId[];
-  /** Lit regions in the order they lit. */
+  /** No grey region was left when the turn began: the crisis is on red, a miss is a CEASEFIRE. */
+  finalPush: boolean;
+  /** Lit regions in light-up order (the crisis is lit too but not listed). */
   lit: RegionId[];
-  spent: RegionId[];
-  /** The current selection, in tap order (includes the Airlift pin). */
+  /** Regions a swap lights next, first on top. */
+  pile: RegionId[];
+  /** The lit regions as first dealt, before any swap (the shop's preview number rescores them). */
+  opening: RegionId[];
+  /** The current selection, in tap order. */
   pins: RegionId[];
-  /** The region pinned by AIRLIFT for the next sweep (not lit). */
-  airlift: RegionId | null;
-  /** The AIRLIFT paper, returned to the tray if that pin is lifted. */
-  airliftPaper: Paper | null;
-  sweeps: SweepSummary[];
-  cleared: boolean;
+  swapsLeft: number;
+  /** SWAP is switched off this turn (FIRST-WORLD turn 1). */
+  swapLocked: boolean;
 }
-
-export type Offer =
-  | { kind: 'staff'; id: StaffId; price: number }
-  | { kind: 'order'; id: OrderId; price: number }
-  | { kind: 'playbook'; pattern: PatternId; price: number };
-
-export type FolderStatus = 'sealed' | 'open' | 'used';
-
-export type Folder =
-  | { kind: 'recruit'; price: number; contents: StaffId[]; status: FolderStatus }
-  | { kind: 'orders'; price: number; contents: OrderId[]; status: FolderStatus };
 
 export interface Shop {
-  /** 1 for the run's first Briefing. */
-  briefing: number;
-  /** Two offer slots; null once bought. */
-  offers: Array<Offer | null>;
-  folder: Folder;
+  /** 1 for the first shop of the game. */
+  visit: number;
+  /** Three offer slots; null once hired. */
+  offers: Array<StaffId | null>;
   rerollCost: number;
 }
 
-/** An Order waiting for its targets. */
-export interface Armed {
-  slot: number;
-  order: OrderId;
-  chosen: RegionId[];
+/**
+ * One step of a send, in animation order. `points` and `m10` are the running POINTS and
+ * MULTIPLIER (in tenths) after the step.
+ */
+export type TraceEvent = PinEvent | StaffEvent | RegionStaffEvent | CrisisEvent | SlamEvent;
+
+/** A pin scores (west to east): +its number to POINTS, +1 to MULTIPLIER. */
+export interface PinEvent {
+  kind: 'pin';
+  region: RegionId;
+  /** The region's number (3-10). */
+  amount: number;
+  /** '+10' */
+  label: string;
+  points: bigint;
+  m10: bigint;
 }
 
-export interface RunLogEntry {
-  hour: number;
-  crisisIndex: number;
-  kind: CrisisKind;
+export type StaffOp = '+P' | '+M' | 'xM';
+
+/** A staff that fires once (Duty Officer, Quartermaster, Surveyor, Old Hand, Strategist). */
+export interface StaffEvent {
+  kind: 'staff';
+  /** The seat that fires, 0 = leftmost. */
+  seat: number;
+  /** The rule applied (for a Deputy, the staff it copies). */
+  staff: StaffId;
+  viaDeputy: boolean;
+  op: StaffOp;
+  /** '+P': points added. '+M': multiplier added, in tenths. 'xM': the factor, in tenths (30 = x3, 14 = x1.4). */
+  amount: number;
+  /** What flies into the box: '+20', '+4', '×3', '×1.4'. */
+  label: string;
+  points: bigint;
+  m10: bigint;
+}
+
+/** A per-region staff (Governor, Harbourmaster, Sovereign) fires from one matching pin. */
+export interface RegionStaffEvent {
+  kind: 'regionStaff';
+  seat: number;
+  staff: StaffId;
+  viaDeputy: boolean;
+  /** The pin it pops from. */
+  region: RegionId;
+  op: 'xM';
+  /** The factor in tenths: 15 (x1.5) or 20 (x2). */
+  amount: number;
+  /** '×1.5' or '×2'. */
+  label: string;
+  points: bigint;
+  m10: bigint;
+}
+
+/** The crisis region was pinned: x2 MULTIPLIER, applied last. */
+export interface CrisisEvent {
+  kind: 'crisisX2';
+  region: RegionId;
+  amount: 20;
+  label: '×2';
+  points: bigint;
+  m10: bigint;
+}
+
+/** SCORE = POINTS x MULTIPLIER, rounded down. */
+export interface SlamEvent {
+  kind: 'slam';
+  score: bigint;
+  points: bigint;
+  m10: bigint;
+}
+
+/** A region a win turned gold: in spread order, with the chain of joins the gold pulse travels. */
+export interface WonRegion {
+  id: RegionId;
+  /** 1 = the crisis. */
+  order: number;
+  /** It was war's (won back: red wipes to gold). */
+  wasRed: boolean;
+  /** Shortest chain of joins from the crisis to this region, both ends included. */
+  path: RegionId[];
+}
+
+/** Red ink running into a region: `from` is the war region it runs from (null: it blooms from the centre). */
+export interface WarTake {
+  id: RegionId;
+  from: RegionId | null;
+}
+
+/** The full record of the latest send, for the cascade, the outcome and the shop's receipt. */
+export interface SendRecord {
+  turn: number;
+  crisis: RegionId;
   target: bigint;
-  total: bigint;
-  sweepsUsed: number;
-  cleared: boolean;
-  bestPattern: PatternId | null;
-  bestLeverage: bigint;
-}
-
-export interface BestSweep {
-  leverage: bigint;
-  pattern: PatternId;
-  level: number;
+  finalPush: boolean;
+  /** The pins in scoring order (west to east). */
   pins: RegionId[];
-  scoringSet: RegionId[];
-  hour: number;
-  crisisIndex: number;
+  onCrisis: boolean;
+  points: bigint;
+  m10: bigint;
+  score: bigint;
+  /** Regions won (0 on a miss). */
+  regions: number;
+  result: 'win' | 'miss';
+  won: WonRegion[];
+  /** A miss outside the final push: the crisis turned red. */
+  lost: WarTake | null;
+  /** War spread by itself after this turn. */
+  spread: WarTake | null;
+  coinsBefore: number;
+  coinsAfter: number;
+  goldBefore: number;
+  redBefore: number;
+  gold: number;
+  red: number;
+  grey: number;
+  /** Seat uids hired since the previous send (their first firing is drawn larger, '+4 · new'). */
+  newHires: number[];
+  /** Set when this send ended the game. */
+  ending: Ending | null;
+  trace: TraceEvent[];
 }
 
-export interface RunState {
-  version: 1;
+/** One line per turn played, for the end card. */
+export interface TurnLog {
+  turn: number;
+  target: bigint;
+  score: bigint;
+  regions: number;
+  result: 'win' | 'miss';
+  spread: RegionId | null;
+  gold: number;
+  red: number;
+}
+
+/** The biggest winning send (the biggest miss while nothing has won). */
+export interface BestSend {
+  score: bigint;
+  target: bigint;
+  turn: number;
+  regions: number;
+}
+
+export interface GameState {
+  version: 2;
   seed: string;
-  mode: RunMode;
-  /** Seed 'FIRST-NIGHT': scripted first deal and first Briefing, first-night hints. */
-  firstNight: boolean;
-  rng: { deal: RngState; shop: RngState; twist: RngState };
+  mode: Mode;
+  rng: { war: RngState; crisis: RngState; deal: RngState; shop: RngState };
   phase: Phase;
-  hour: HourPlan;
-  /** The Hour whose Summit ends the slice (null after KEEP GOING). */
-  sliceEndHour: number | null;
-  funds: number;
-  seatCount: number;
-  traySlots: number;
-  /** Seated staff, left to right; empty seats are the slots past the end. */
-  staff: SeatedStaff[];
-  /** In-tray papers, slot order. */
-  tray: Paper[];
-  world: World;
-  crisis: Crisis;
-  shop: Shop | null;
-  armed: Armed | null;
-  lastSweep: SweepRecord | null;
-  lastClear: ClearRecord | null;
-  best: BestSweep | null;
-  log: RunLogEntry[];
-  /** How many times each pattern has been made this run. */
-  made: Record<PatternId, number>;
-  sweepsTaken: number;
-  briefings: number;
+  /** The turn being played (or just played), from 1. */
+  turn: number;
+  owner: Record<RegionId, Owner>;
+  coins: number;
+  /** Seated staff, left to right; empty seats are the slots past the end (5 seats). */
+  seats: Seat[];
+  /** The Old Hand's multiplier in tenths (10 = x1.0); back to 10 when it leaves. */
+  oldHandM10: number;
   nextUid: number;
+  /** Seat uids hired since the last send. */
+  hiredSinceSend: number[];
+  deal: Deal;
+  shop: Shop | null;
+  shopVisits: number;
+  ending: Ending | null;
+  lastSend: SendRecord | null;
+  log: TurnLog[];
+  best: BestSend | null;
+  /** The most regions war has held at once this game. */
+  peakWar: number;
+  /** Regions won as a crisis (a brass pin as decoration). */
+  brass: RegionId[];
 }
 
 /** What every action returns. On refusal the state is the one passed in, unchanged. */
-export type Result = { ok: true; state: RunState } | { ok: false; reason: string; state: RunState };
+export type Result = { ok: true; state: GameState } | { ok: false; reason: string; state: GameState };

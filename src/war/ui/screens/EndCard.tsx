@@ -1,127 +1,85 @@
 /**
- * End screens (spec 7 and 10): THE WORLD TIPPED after a miss, END OF SLICE after the 00:00 Summit.
- * A typed after-action report lies on the night map: the hour and crisis, the best sweep, the
- * night crisis by crisis, and the staff at the table. NEW NIGHT (and KEEP GOING after the slice).
+ * The end screens (SPEC section 9): the map stays behind a card that says how the world ended.
+ * WORLD UNITED ★★★ (30 of 30); CEASEFIRE ★★ or ★ (the push missed; the war stops where it
+ * stands); WAR (war took 10; with 3 or fewer grey left, those regions are picked out on the map).
+ * Then the best send, the biggest turn and the staff in seat order. NEW GAME and HOME.
  */
 import type { JSX } from 'preact';
-import { clockOf, endLabels, formatInt, formatShort, type RunState } from '../../engine';
-import { PATTERN } from '../../content/patterns';
-import type { StaffId } from '../../content/staff';
+import { endView, type EndView, type GameState } from '../../engine';
 import { StaffIcon } from '../art';
-import { keepGoing, newNight } from '../app/actions';
-import { R } from '../common/layout';
+import { newGameNow, quitToTitle } from '../app/actions';
+import { R, rectStyle } from '../common/layout';
 
-export function EndCard({ s }: { s: RunState }): JSX.Element {
-  const e = endLabels(s);
-  const tipped = s.phase === 'missed';
-  const best = s.best;
-  const hours = new Map<number, Array<boolean | null>>();
-  for (const l of s.log) {
-    const row = hours.get(l.hour) ?? [null, null, null];
-    row[l.crisisIndex] = l.cleared;
-    hours.set(l.hour, row);
-  }
-  const [x, y, w, h] = R.endCard;
+const KICKER: Record<EndView['ending'], string> = {
+  'WORLD UNITED': 'The whole world is yours',
+  CEASEFIRE: 'The war stops where it stands',
+  WAR: 'The war won',
+};
+
+export function EndCard({ s }: { s: GameState }): JSX.Element | null {
+  const e = endView(s);
+  if (!e) return null;
+  const tone = e.ending === 'WORLD UNITED' ? 'united' : e.ending === 'CEASEFIRE' ? 'ceasefire' : 'war';
+  // 'WORLD UNITED · 30 of 30': the ending large, the count under it.
+  const [head, tail] = e.title.split(' · ');
   return (
-    <>
-      <div class={`report abs${tipped ? ' tipped' : ' held'}`} style={{ left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px` }}>
-        <i class="clip" />
-        <div class="report-head">
-          <span>AFTER-ACTION REPORT</span>
-          <span class="num">{s.seed === 'FIRST-NIGHT' ? 'FIRST NIGHT' : s.mode === 'run' ? 'NIGHT SHIFT' : s.mode === 'late' ? 'LATE SHIFT' : 'MID SHIFT'}</span>
-        </div>
-        <div class="report-stamp">{e.title}</div>
-        <div class="report-line">{e.line}</div>
-        {tipped ? (
-          <div class="report-total num">
-            {formatInt(s.crisis.total)} <span class="of">of</span> {formatInt(s.crisis.target)}
+    <div class="layer end-layer">
+      <div class={`report abs ${tone}`} style={rectStyle(R.endCard)} role="dialog" aria-label={e.title}>
+        <div class="report-kicker">{KICKER[e.ending]}</div>
+        <Stars n={e.stars} />
+        <div class="report-title">{head}</div>
+        {tail && <div class="report-sub num">{tail}</div>}
+        {e.lines.map((l) => (
+          <div key={l} class="report-line">
+            {l}
           </div>
-        ) : (
-          <div class="report-total num">
-            {s.log.filter((l) => l.cleared).length} <span class="of">of</span> {s.log.length} <span class="of">crises held</span>
-          </div>
-        )}
-        <Gauge total={s.crisis.total} target={s.crisis.target} tipped={tipped} />
+        ))}
         <div class="report-rows">
+          <Row k="BEST SEND" v={e.best?.text ?? '–'} />
+          {e.biggestTurn && <Row k="BIGGEST TURN" v={e.biggestTurn.text} />}
           <div class="report-row">
-            <span class="k">BEST SWEEP</span>
-            <span class="v">
-              {best ? (
-                <>
-                  <b class="stencil">{PATTERN[best.pattern].name}</b> <span class="num lv">Lv {best.level}</span>{' '}
-                  <span class="num big">{formatShort(best.leverage, 9)}</span>
-                </>
-              ) : (
-                <span class="num">—</span>
-              )}
-            </span>
-          </div>
-          <div class="report-row">
-            <span class="k">THE NIGHT</span>
-            <span class="v night">
-              {[...hours.entries()].map(([hour, row]) => (
-                <span key={hour} class="hour">
-                  <span class="num">{clockOf(hour)}</span>
-                  {row.map((c, i) => (
-                    <i key={i} class={c === null ? 'todo' : c ? 'won' : 'lost'} />
-                  ))}
-                </span>
-              ))}
-            </span>
-          </div>
-          <div class="report-row">
-            <span class="k">AT THE TABLE</span>
+            <span class="k">STAFF</span>
             <span class="v staff">
-              {s.staff.length ? (
-                s.staff.map((st) => (
-                  <span key={st.uid} class="mini-seat">
-                    <StaffIcon id={st.id as StaffId} size={24} />
+              {e.staff.length ? (
+                e.staff.map((id, i) => (
+                  <span key={`${i}-${id}`} class="mini-seat">
+                    <StaffIcon id={id} size={24} />
                   </span>
                 ))
               ) : (
-                <span class="none">Nobody. Hire staff in the Briefing.</span>
+                <span class="none">Nobody hired.</span>
               )}
             </span>
           </div>
         </div>
       </div>
-      {tipped ? (
-        <button class="brass end-btn abs" style={{ left: `${R.endButton[0]}px`, top: `${R.endButton[1]}px`, width: `${R.endButton[2]}px`, height: `${R.endButton[3]}px` }} onClick={newNight}>
-          <span class="btn-title">NEW NIGHT</span>
-        </button>
-      ) : (
-        <>
-          <button class="brass end-btn abs" style={{ left: '24px', top: `${R.endButton[1]}px`, width: '200px', height: '56px' }} onClick={newNight}>
-            <span class="btn-title">NEW NIGHT</span>
-          </button>
-          <button class="btn-outline end-btn abs" style={{ left: '234px', top: `${R.endButton[1]}px`, width: '132px', height: '56px' }} onClick={keepGoing}>
-            <span class="btn-title">KEEP GOING</span>
-            <span class="btn-sub">into {clockOf(s.crisis.hour + 1)}</span>
-          </button>
-        </>
-      )}
-    </>
+      <button class="brass end-btn abs" style={rectStyle(R.endNew)} onClick={newGameNow}>
+        <span class="btn-title">NEW GAME</span>
+      </button>
+      <button class="btn-outline end-home abs" style={rectStyle(R.endHome)} onClick={quitToTitle}>
+        <span class="btn-title">HOME</span>
+      </button>
+    </div>
   );
 }
 
-/**
- * The deciding crisis as a typed gauge: how close the miss came, or how far the Summit was
- * overwhelmed. The tick marks the target; past it, the bar rescales so the tick moves left.
- */
-function Gauge({ total, target, tipped }: { total: bigint; target: bigint; tipped: boolean }): JSX.Element | null {
-  if (target <= 0n) return null;
-  const ratio = Number((total * 10_000n) / target) / 10_000;
-  const span = Math.max(1, ratio);
-  const fill = Math.min(1, ratio / span);
-  const tick = Math.max(0.2, 1 / span);
-  const label = tipped ? `${formatInt(target - total)} SHORT` : `+${formatShort(total - target, 9)} OVER`;
+function Stars({ n }: { n: number }): JSX.Element {
   return (
-    <div class="report-gauge" aria-label={label}>
-      <span class="track">
-        <i class="fill" style={{ width: `${(fill * 100).toFixed(1)}%` }} />
-        <i class="tick" style={{ left: `${(tick * 100).toFixed(1)}%` }} />
-      </span>
-      <span class="num">{label}</span>
+    <div class="report-stars" aria-label={n ? `${n} of 3 stars` : 'No stars'}>
+      {[0, 1, 2].map((i) => (
+        <svg key={i} viewBox="0 0 24 24" width="22" height="22" class={i < n ? 'on' : ''} aria-hidden="true">
+          <path d="M12 2.6 L14.8 8.9 L21.6 9.5 L16.4 14 L18 20.7 L12 17.1 L6 20.7 L7.6 14 L2.4 9.5 L9.2 8.9 Z" />
+        </svg>
+      ))}
+    </div>
+  );
+}
+
+function Row({ k, v }: { k: string; v: string }): JSX.Element {
+  return (
+    <div class="report-row">
+      <span class="k">{k}</span>
+      <span class="v num">{v}</span>
     </div>
   );
 }

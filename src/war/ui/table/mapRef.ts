@@ -1,19 +1,19 @@
 /**
- * The live map controller, for the director and the hit-testing of drags that start off the map.
- * Set by the Table component while it is mounted.
+ * The live map controller, for the director, the intro and the hit-testing of drags that start off
+ * the map. Set by the Table component while it is mounted.
  */
-import type { MapControllerPlus } from '../art';
+import type { MapController } from '../art';
 import { MAP_X, MAP_Y } from '../common/layout';
 
-let current: MapControllerPlus | null = null;
+let current: MapController | null = null;
 let canvasEl: HTMLCanvasElement | null = null;
 
-export function setMap(map: MapControllerPlus | null, canvas: HTMLCanvasElement | null): void {
+export function setMap(map: MapController | null, canvas: HTMLCanvasElement | null): void {
   current = map;
   canvasEl = canvas;
 }
 
-export function getMap(): MapControllerPlus | null {
+export function getMap(): MapController | null {
   return current;
 }
 

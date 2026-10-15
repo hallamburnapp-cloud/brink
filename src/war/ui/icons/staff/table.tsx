@@ -1,6 +1,6 @@
 /**
- * Small things on the table: Old Hand's tin mug, Mediator's teacup, Governor's wax seal,
- * the Sovereign's signet ring.
+ * Small things on the table: Old Hand's tin mug, the Governor's wax seal, the Sovereign's signet
+ * ring.
  */
 import { INK, MAT, OUT, highlight, line, rod, type Draw } from '../kit';
 import { blobPath, starPath } from '../shapes';
@@ -23,30 +23,6 @@ export const tinMug: Draw = () => {
       <path d="M36.4 23.9 Q38.6 23.6 39.4 22.9 M14.6 21.6 L15.8 22.4" stroke={gd} stroke-width="1.6" stroke-linecap="round" />
       {line('M13.8 19 Q17 16 24 15.6', sl, 1.4)}
       {highlight('M17 26 L17 46', 2)}
-    </>
-  );
-};
-
-/** Mediator: a china teacup of tea on its saucer. */
-export const teacup: Draw = () => {
-  const [il, im, id] = MAT.ivory;
-  const [, tea] = MAT.leather;
-  const bowl = 'M14 27 Q14 41.6 22 46.6 L38 46.6 Q46 41.6 46 27 Z';
-  return (
-    <>
-      <ellipse cx="32" cy="50" rx="25" ry="7.6" fill={im} {...OUT} />
-      <path d="M8.4 51.4 Q32 62 55.6 51.4 Q32 58.6 8.4 51.4 Z" fill={id} />
-      <ellipse cx="32" cy="49.4" rx="15.6" ry="4" fill="none" stroke={id} stroke-width="1.6" />
-      {line('M10.4 48 Q14 44.6 22 43.6', il, 1.6)}
-      <ellipse cx="32" cy="50" rx="25" ry="7.6" fill="none" {...OUT} />
-      {rod('M45.4 30 Q54.6 29.4 53.6 35.4 Q52.6 41 43.6 41.8', 3, im)}
-      <path d={bowl} fill={im} {...OUT} />
-      <path d="M16.4 29 Q16.8 39.6 23 45 L26 45 Q20.4 38.6 20 29 Z" fill={il} />
-      <path d="M40.6 29 L43.6 29 Q43.4 39 37.6 45 L35 45 Q40 38.4 40.6 29 Z" fill={id} />
-      <path d={bowl} fill="none" {...OUT} />
-      <ellipse cx="30" cy="27" rx="16" ry="4.6" fill={il} {...OUT} />
-      <ellipse cx="30" cy="27.6" rx="13.2" ry="3" fill={tea} />
-      {highlight('M18.4 31.6 Q19 36.6 21.2 40', 2)}
     </>
   );
 };

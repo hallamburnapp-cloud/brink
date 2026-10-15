@@ -11,8 +11,6 @@ import { poly } from './shapes';
 
 export type GlyphName =
   | 'swap'
-  | 'sweep'
-  | 'lamp'
   | 'speed'
   | 'info'
   | 'close'
@@ -28,8 +26,7 @@ export type GlyphName =
   | 'diamond'
   | 'anchor'
   | 'star'
-  | 'arrow'
-  | 'atMost';
+  | 'arrow';
 
 interface GlyphDef {
   /** viewBox width and height. */
@@ -64,30 +61,6 @@ const GLYPHS: Readonly<Record<GlyphName, GlyphDef>> = {
   swap: {
     box: [24, 24],
     draw: (c) => <path d="M4 8.5 H18.5 M15 5 L18.5 8.5 L15 12 M20 15.5 H5.5 M9 12 L5.5 15.5 L9 19" {...strokeProps(c)} />,
-  },
-  sweep: {
-    box: [24, 24],
-    draw: (c) => (
-      <>
-        <path d="M3 6 V18" {...strokeProps(c, 1.6)} stroke-opacity="0.35" />
-        <path d="M6 5 V19" {...strokeProps(c, 1.8)} stroke-opacity="0.6" />
-        <path d="M9.6 3.6 V20.4" {...strokeProps(c, 2.4)} />
-        <path d="M13.6 12 H21 M17.8 8.8 L21 12 L17.8 15.2" {...strokeProps(c)} />
-      </>
-    ),
-  },
-  lamp: {
-    box: [24, 24],
-    draw: (c) => (
-      <>
-        <path
-          d="M12 3.6 A6.2 6.2 0 0 1 15.8 14.7 Q14.6 15.6 14.6 17 L9.4 17 Q9.4 15.6 8.2 14.7 A6.2 6.2 0 0 1 12 3.6 Z"
-          {...strokeProps(c)}
-        />
-        <path d="M9.6 20 H14.4 M10.8 22.4 H13.2" {...strokeProps(c)} />
-        <path d="M10.4 9.2 Q10.8 7.6 12.4 7.2" {...strokeProps(c, 1.4)} />
-      </>
-    ),
   },
   speed: {
     box: [24, 24],
@@ -187,8 +160,6 @@ const GLYPHS: Readonly<Record<GlyphName, GlyphDef>> = {
     box: [14, 10],
     draw: (c) => <path d="M1 5 H12 M8.4 1.4 L12.2 5 L8.4 8.6" {...strokeProps(c, 1.6)} />,
   },
-  /** ≤, which the font subsets also lack (seat chips such as +15≤4). */
-  atMost: { box: [9, 12], draw: (c) => <path d="M7.6 1.8 L1.6 5.2 L7.6 8.6 M1.6 10.8 H7.6" {...strokeProps(c, 1.4)} /> },
 };
 
 export const GLYPH_NAMES = Object.keys(GLYPHS) as GlyphName[];

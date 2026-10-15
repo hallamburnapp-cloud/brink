@@ -1,13 +1,13 @@
 /**
- * The coach: one typed line on a strip of linen tape. In play it is pinned along the table's top
- * edge, just under the rail, so the Big Board's goal stays in view above it; in the Briefing it is
- * tucked under the tray's lip, beside the cards. A line drops in, and slips away when it ends.
+ * The coach: one typed line on a strip of linen tape. In play it is pinned along the map's top
+ * edge, just under the rail, so the goal on the Big Board stays in view above it; in the shop it
+ * is tucked under the tray's lip. A line drops in, and slips away when it ends.
  */
 import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { coach, type CoachLine, type CoachSpot } from '../app/hints';
+import { coach, type CoachLine } from '../app/hints';
 import { reduced } from '../app/store';
-import { emphasis } from '../common/chip';
+import type { CoachSpot } from '../app/teach';
 
 const OUT_MS = 160;
 
@@ -30,12 +30,15 @@ export function Coach({ at }: { at: CoachSpot }): JSX.Element | null {
 
   const line = live ?? leaving;
   if (!line) return null;
+  return <Strip key={line.n} text={line.text} at={at} out={!live} />;
+}
+
+/** The tape itself (the intro sets its own copy on it, larger). */
+export function Strip({ text, at, out = false, big = false }: { text: string; at: CoachSpot; out?: boolean; big?: boolean }): JSX.Element {
   return (
-    <div key={line.n} class={`coach abs on-${at}${live ? '' : ' out'}`} role="status" aria-live="polite">
+    <div class={`coach abs on-${at}${out ? ' out' : ''}${big ? ' big' : ''}`} role="status" aria-live="polite">
       <i class="tack" />
-      <span class="coach-text">
-        {emphasis(line.text).map((p, i) => (p.em ? <b key={i}>{p.text}</b> : <span key={i}>{p.text}</span>))}
-      </span>
+      <span class="coach-text">{text}</span>
       <i class="tack" />
     </div>
   );

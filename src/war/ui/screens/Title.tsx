@@ -1,20 +1,26 @@
 /**
- * The title: the war room with its lamp on. The name flaps in on the board, one line says what
- * the game is, a typed card says how to play, and three ways in: NEW NIGHT, and the LATE SHIFT and
- * MID SHIFT tables already set up. The plotting table glows behind it all.
+ * The title (SPEC section 9): the product name on the board, 'WIN THE WORLD' under it, one line
+ * that says what the game is, the world as every game starts (Lantern Key gold, war on three
+ * regions) glowing behind, and the ways in: PLAY (or CONTINUE and NEW GAME when a game is saved),
+ * HOW TO PLAY and, in review builds only (SPEC 13), the CROWN DEMO.
  */
 import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { audio } from '../../../audio';
 import { BRAND } from '../../../config';
-import { newRun } from '../../engine';
-import { createMap, Glyph, type MapControllerPlus } from '../art';
-import { newNight, startSandbox } from '../app/actions';
-import { prefs, reduced, sheet } from '../app/store';
+import { goalView, newGame } from '../../engine';
+import { WAR_META } from '../../meta';
+import { createMap, Glyph } from '../art';
+import { continueGame, crownDemo, howToPlay, newGameNow, play } from '../app/actions';
+import { prefs, reduced, saved, sheet } from '../app/store';
+import { readSave } from '../app/storage';
 import { FlapRow, type FlapStyle } from '../board/SplitFlap';
-import { mapViewOf, NO_EXTRAS } from '../table/view';
+import { mapViewFor, NO_EXTRAS } from '../table/view';
 
 const WORD: FlapStyle = { w: 50, h: 72, size: 60, gap: 5, sep: 10, skin: 'steel' };
+
+/** Review builds (development, and VITE_WAR_REVIEW=1 such as the owner's page) offer the CROWN DEMO. */
+const REVIEW = import.meta.env.DEV || import.meta.env.VITE_WAR_REVIEW === '1';
 
 /**
  * `leaving`: the war room is already mounted underneath (the title is its curtain until the table
@@ -27,10 +33,13 @@ export function Title({ leaving = false, lifting = false }: { leaving?: boolean;
     const t = window.setTimeout(() => setWord(BRAND.name), reduced.value ? 0 : 250);
     return () => clearTimeout(t);
   }, []);
-  const first = !prefs.value.playedFirstNight;
+  const hasSave = saved.value;
+  const first = !prefs.value.playedFirst;
+  // Without the demo button the stack sits a little lower, nearer the thumb.
+  const y = (top: number) => `${top + (REVIEW ? 0 : 24)}px`;
 
   return (
-    <div class={`title-screen${leaving ? ' leaving' : ''}${lifting ? ' lifting' : ''}`} aria-hidden={leaving ? 'true' : undefined}>
+    <div class={`title-screen${leaving ? ' leaving' : ''}${lifting ? ' lifting' : ''}${hasSave ? ' saved' : ''}`} aria-hidden={leaving ? 'true' : undefined}>
       <TitleMap />
       <div class="title-veil" />
       <div class="title-board abs">
@@ -42,54 +51,36 @@ export function Title({ leaving = false, lifting = false }: { leaving?: boolean;
         <div class="word">
           <FlapRow text={word} style={WORD} motion={{ flips: 5, flipMs: 70, stagger: 70, instant: false, reduced: reduced.value }} />
         </div>
-        <div class="title-kicker">THE WAR-ROOM ROGUELIKE</div>
+        <div class="title-kicker">WIN THE WORLD</div>
       </div>
-      <p class="premise abs">Each crisis lights eight regions. Pin the shape that holds them, and hold until 01:00: three hours, nine crises.</p>
+      <p class="premise abs">{WAR_META.tagline}</p>
+      <Legend />
 
-      <div class="orders-card abs">
-        <div class="oc-head">
-          <span>STANDING ORDERS</span>
-          <span class="oc-stamp">HOW TO PLAY</span>
-        </div>
-        <ol>
-          <li>
-            <b>PIN</b>
-            <span>Tap lit regions, up to 5. Neighbours join: by border, bridge or sea lane.</span>
-          </li>
-          <li>
-            <b>SHAPE</b>
-            <span>The shape they make is the pattern. Bigger shapes multiply.</span>
-          </li>
-          <li>
-            <b>SWEEP</b>
-            <span>
-              <i class="c-inf-ink">Influence</i> × <i class="c-mom-ink">Momentum</i> must reach the target in 4&nbsp;sweeps, or the world tips.
-            </span>
-          </li>
-        </ol>
-        <div class="oc-ladder">
-          <Rung n={2} name="LINK" v="10×2" />
-          <Rung n={3} name="CHAIN" v="30×3" />
-          <Rung n={4} name="FRONT" v="45×4" />
-          <Rung n={5} name="NETWORK" v="70×6" />
-        </div>
-        <button class="oc-more" onClick={() => (sheet.value = 'howto')}>
-          ALL PATTERNS <Glyph name="arrow" size={8} />
+      {hasSave ? (
+        <>
+          <button class="brass title-main abs" style={{ top: y(548) }} onClick={continueGame}>
+            <span class="btn-title">CONTINUE</span>
+            <span class="btn-sub">{saveLine()}</span>
+          </button>
+          <button class="btn-outline title-btn abs" style={{ top: y(614) }} onClick={newGameNow}>
+            <span class="btn-title">NEW GAME</span>
+          </button>
+        </>
+      ) : (
+        <button class="brass title-main abs" style={{ top: y(596) }} onClick={play}>
+          <span class="btn-title">PLAY</span>
+          <span class="btn-sub">{first ? 'A short how-to, then your first world' : 'A new world'}</span>
         </button>
-      </div>
-
-      <button class="brass title-new abs" onClick={newNight}>
-        <span class="btn-title">NEW NIGHT</span>
-        <span class="btn-sub">{first ? 'The first night · 22:00' : '22:00 · a fresh map'}</span>
+      )}
+      <button class="btn-outline title-btn abs" style={{ top: y(668) }} onClick={howToPlay}>
+        <span class="btn-title">HOW TO PLAY</span>
       </button>
-      <button class="btn-outline title-sand abs" style={{ left: '24px' }} onClick={() => startSandbox('late')}>
-        <span class="btn-title">LATE SHIFT</span>
-        <span class="btn-sub">a desk at full power</span>
-      </button>
-      <button class="btn-outline title-sand abs" style={{ left: '199px' }} onClick={() => startSandbox('mid')}>
-        <span class="btn-title">MID SHIFT</span>
-        <span class="btn-sub">a desk of three staff</span>
-      </button>
+      {REVIEW && (
+        <button class="btn-outline title-btn demo abs" style={{ top: '722px' }} onClick={crownDemo}>
+          <span class="btn-title">CROWN DEMO</span>
+          <span class="btn-sub">one huge turn, set up</span>
+        </button>
+      )}
       <div class="title-foot abs">
         <button
           class="foot-btn"
@@ -112,47 +103,42 @@ export function Title({ leaving = false, lifting = false }: { leaving?: boolean;
   );
 }
 
-/** A pattern as dots joined in a row, its base values beside it. */
-function Rung({ n, name, v }: { n: number; name: string; v: string }): JSX.Element {
-  const w = 8 + (n - 1) * 9;
+/** 'Turn 9 · GOLD 14 · WAR 4' for the CONTINUE button. */
+function saveLine(): string {
+  const s = readSave();
+  if (!s) return '';
+  const g = goalView(s);
+  return `Turn ${s.turn} · Gold ${g.gold} · War ${g.red}`;
+}
+
+/** The three colours, said once on the title: what the map means at a glance. */
+function Legend(): JSX.Element {
   return (
-    <span class="oc-rung">
-      <svg width={w} height="8" viewBox={`0 0 ${w} 8`} aria-hidden="true">
-        <path d={`M4 4 H${w - 4}`} stroke="#C4372C" stroke-width="1.4" />
-        {Array.from({ length: n }, (_, i) => (
-          <circle key={i} cx={4 + i * 9} cy="4" r="2.6" fill="#2A2520" />
-        ))}
-      </svg>
-      <b>{name}</b>
-      <span class="num">{v}</span>
-    </span>
+    <div class="title-legend abs" aria-label="Gold is yours, red is war, grey is free">
+      <span class="lg gold">
+        <i />
+        GOLD · yours
+      </span>
+      <span class="lg red">
+        <i />
+        RED · war
+      </span>
+      <span class="lg grey">
+        <i />
+        GREY · free
+      </span>
+    </div>
   );
 }
 
-/**
- * Lit on the title: the far south shows in the gap between the orders card and NEW NIGHT, so its
- * glass, pins and names read whole; everything under the card stays dark (a lit name half under
- * the card edge looks like a mistake).
- */
-const TITLE_LIT = new Set(['BRN', 'MRM', 'FLE']);
-const TITLE_THREADS = [
-  { a: 'BRN', b: 'MRM', traffic: 3 },
-  { a: 'MRM', b: 'FLE', traffic: 6 },
-];
-
-/** The plotting table behind the title: a night already in play, quietly glowing. */
+/** The world every game starts from, glowing behind the title. */
 function TitleMap(): JSX.Element {
   const canvas = useRef<HTMLCanvasElement>(null);
   // The lamp comes on once the table has drawn: it fades in, never pops in after a dark hole.
   const [lit, setLit] = useState(false);
   useEffect(() => {
-    const c = canvas.current!;
-    const map = createMap(c, { reducedMotion: true, speed: 1 }) as MapControllerPlus;
-    const view = mapViewOf(newRun('FIRST-NIGHT'), NO_EXTRAS);
-    const regions = Object.fromEntries(
-      Object.entries(view.regions).map(([id, r]) => [id, { ...r, status: TITLE_LIT.has(id) ? ('lit' as const) : ('dark' as const) }]),
-    );
-    map.update({ ...view, regions, threads: TITLE_THREADS, flashpoint: null });
+    const map = createMap(canvas.current!, { reducedMotion: true, speed: 1 });
+    map.update(mapViewFor(newGame('FIRST-WORLD'), { ...NO_EXTRAS, calm: true }));
     let live = true;
     void map.ready().then(() => live && setLit(true));
     return () => {

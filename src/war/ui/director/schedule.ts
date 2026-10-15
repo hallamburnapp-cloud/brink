@@ -1,134 +1,127 @@
 /**
- * The scoring animation as data (spec section 9). A sweep's trace becomes a list of timed cues;
- * the player (play.ts) turns cues into map effects, flying numbers, sounds and haptics. Keeping
- * the timing pure means it can be tested against the spec's reference durations without a DOM.
+ * The send, as data (SPEC section 8, "On SEND" and the outcomes). A send's trace becomes a list of
+ * timed cues for the cascade (dim, scan, pins, staff, the crisis ×2, the slam, the score flying into
+ * the ring), and its record becomes the outcome's cues (gold ink region by region, red ink, war
+ * spreading by itself, the ending). The player (play.ts) turns cues into map effects, flying
+ * numbers, sounds and haptics. Keeping the timing pure means it is tested without a DOM.
  *
  * All times are milliseconds at 1x. The player divides them by the speed (2x, 4x).
  */
-import type { RegionId, TraceEvent } from '../../engine';
 import type { Sfx } from '../../../audio';
+import { formatInt } from '../../engine';
+import type {
+  CrisisEvent,
+  Ending,
+  PinEvent,
+  RegionId,
+  RegionStaffEvent,
+  StaffEvent,
+  TraceEvent,
+  WarTake,
+  WonRegion,
+} from '../../engine';
 
-export type Box = 'inf' | 'mom';
-export type Anchor = { region: RegionId } | { seat: number };
+export type Box = 'points' | 'mult';
+/** Where a flying number starts: a pin on the map, under a seat's chip, or the ring's ×2 chip. */
+export type Anchor = { region: RegionId } | { seat: number } | { ringChip: RegionId };
+/** How a flying number is drawn: a pin's '+6', its smaller '+1', a staff's fling, a region's ×, the ring's ×2. */
+export type Look = 'pin' | 'one' | 'staff' | 'pop' | 'crisis';
 
 export type Cue =
+  /** The SEND lever goes down. */
   | { t: number; do: 'press' }
+  /** Everything but the pins fades (150 ms). */
   | { t: number; do: 'dim' }
-  | { t: number; do: 'stamp'; name: string; level: number }
-  | { t: number; do: 'base'; I: bigint; M10: bigint }
-  | { t: number; do: 'scan'; region: RegionId; again: boolean }
-  /** The pins are done: the scan line leaves the map while the rail and the desk take over. */
+  | { t: number; do: 'scan'; region: RegionId }
+  /** The pins are done: the scan line leaves the map while the rail takes over. */
   | { t: number; do: 'scanOff' }
   | { t: number; do: 'flash'; region: RegionId }
-  | { t: number; do: 'thread'; from: RegionId; to: RegionId; amount: number }
-  | { t: number; do: 'stampPulse'; region: RegionId }
-  | { t: number; do: 'standby'; region: RegionId }
-  | { t: number; do: 'hop'; seat: number }
-  /** A number pops at its source (`pop` ms, rising `rise` pt), then flies to its box. */
-  | { t: number; do: 'fly'; from: Anchor; box: Box; text: string; pop: number; rise: number; ms: number; big: boolean; weight: number }
+  /** A seat hops (`isNew`: its first firing since it was hired, drawn larger). */
+  | { t: number; do: 'hop'; seat: number; isNew: boolean }
+  /** A number pops at its source (`pop` ms, rising `rise` pt), then flies to the top edge of its box. */
+  | { t: number; do: 'fly'; from: Anchor; box: Box; text: string; look: Look; pop: number; rise: number; ms: number; weight: number; isNew: boolean }
+  /** A number lands: the box shows the running value and bumps. */
   | { t: number; do: 'land'; box: Box; value: bigint; mult: boolean; weight: number }
+  /** The crisis ring stamps its ×2. */
+  | { t: number; do: 'ringStamp' }
   | { t: number; do: 'sound'; sfx: Sfx; intensity: number }
-  | { t: number; do: 'buzz'; ms: number }
+  | { t: number; do: 'buzz'; pattern: number | number[] }
   | { t: number; do: 'shake'; px: number; ms: number }
-  | { t: number; do: 'heat'; on: boolean }
   /** The held breath before the slam: both boxes pulse once. */
   | { t: number; do: 'breath' }
   | { t: number; do: 'slide' }
   | { t: number; do: 'collide' }
-  | { t: number; do: 'mapFlash'; region: RegionId }
-  /** A slam of 10x the target or more: the product stamped big over the map. */
+  /** A score of 10x the target or more: gold light blooms from the crisis across the map. */
+  | { t: number; do: 'bloom' }
+  /** ...and the score is stamped big over the map. */
   | { t: number; do: 'showcase'; r: number }
-  /** The product flies from the readout (or the showcase) up to the Big Board. */
-  | { t: number; do: 'print'; from: 'plate' | 'map'; ms: number }
-  /** The board's total rolls up like an odometer; the progress rule and the ring follow. */
-  | { t: number; do: 'roll'; ms: number }
-  /** A clearing sweep: the clear's rising chord starts here so that it lands on CLEARED. */
+  /** The score leaves the readout (or the showcase) for the crisis ring. */
+  | { t: number; do: 'toRing'; from: 'plate' | 'showcase'; ms: number }
+  /** The crisis claim's rising chord starts here, so that it lands on the gold ink. */
   | { t: number; do: 'riser' }
   | { t: number; do: 'release' }
-  /** The roll has landed: the total flashes once and holds, readable. */
+  /** The score has landed in the ring: the crisis flashes. */
   | { t: number; do: 'landed' };
 
-export type CueKind = Cue['do'];
+// ---------------------------------------------------------------- the cascade's constants (1x)
 
-export interface SweepInput {
-  trace: readonly TraceEvent[];
-  leverage: bigint;
-  target: bigint;
-  totalBefore: bigint;
-  topRegion: RegionId;
-  /** The pattern's display name ('NETWORK'). */
-  patternName: string;
-  reduced: boolean;
-  /** The last sweep of a missed crisis: no slam flourish (no shake, no flash). */
-  quiet?: boolean;
-  /** This sweep clears the crisis: the clear's chord is started ahead so it lands on CLEARED. */
-  clears?: boolean;
-  /** Playback speed (1, 2, 4): the chord's riser lasts the same real time at any speed. */
-  rate?: number;
-}
-
-export interface Schedule {
-  cues: Cue[];
-  /** When the total has finished rolling up (the end of the scoring sequence). */
-  end: number;
-  /** When the boxes start sliding together. */
-  slamAt: number;
-  /** When the boxes collide (the slam lands). */
-  hitAt: number;
-  /** When HEAT switches on, or null if this sweep does not reach the target. */
-  heatAt: number | null;
-  /** leverage / (target - total before), the shake scale. */
-  r: number;
-  /** Number of sweep events (scoring passes, AGAINs included). */
-  events: number;
-  /** When the clear's riser starts, or null (not a clearing sweep). */
-  riserAt: number | null;
-}
-
-// ---------------------------------------------------------------- spec constants (1x)
-
-export const DIM_MS = 150;
-export const STAMP_AT = 150;
-export const EVENTS_AT = 450;
-const THREAD_AT = 60;
-const STAMP_PULSE_AT = 100;
-const STAFF_AT = 120;
-const STAFF_GAP = 60;
-/**
- * A number pops at its source for 60 ms, then flies 200 ms; a pin's '+w' rises 18 pt off the pin
- * and holds there for 100 ms, so it reads on the map before it leaves.
- */
-const POP_MS = 60;
+/** The pins start after the dim and a short lead-in. */
+const EVENTS_AT = 450;
+/** A pin's '+6' rises 18 pt off the pin and holds there 100 ms, so it reads on the map before it leaves. */
 const PIN_POP_MS = 100;
 const RISE_PT = 18;
+/** The '+1' for the multiplier rises less, beside the pin's number. */
+const ONE_RISE_PT = 8;
+/** It lands just after the pin's number, so the two boxes bump one after the other. */
+const ONE_LAG_MS = 30;
+/** A staff number pops under its seat for 60 ms, then flies 200 ms. */
+const POP_MS = 60;
 const FLY_MS = 200;
-const STANDBY_MS = 200;
-const DESK_MS = 250;
+/** Every staff fires in a 250 ms slot ('desk' timing). */
+const STAFF_MS = 250;
+/** A per-region staff pops once per matching pin, 150 ms apart (each pop adds to its slot). */
+const REGION_POP_MS = 150;
+/** The ring's ×2: a 250 ms slot; the number leaves the ring's chip after a short stamp. */
+const CRISIS_MS = 250;
+const CRISIS_POP_MS = 80;
+const CRISIS_FLY_MS = 220;
 /** The held breath: a beat between the last number landing and the boxes sliding together. */
 export const HOLD_MS = 240;
 /** After a multiplier the breath waits for its swell to finish, so the hold is longer. */
 export const HOLD_AFTER_MULT_MS = 320;
 /** No screen shake this close before the slam: the slam's own shake lands against stillness. */
 const STILL_BEFORE_SLAM_MS = 300;
-const SLIDE_MS = 200;
-/** After the hit the product leaves the plate (which keeps its copy) for the board. */
-const PRINT_AT = 60;
-const PRINT_MS = 200;
-/** A showcase slam (r >= 10) holds the big product over the map before it flies. */
-const SHOWCASE_HOLD = 360;
+export const SLIDE_MS = 200;
 const SHAKE_MS = 250;
-/** Reduced motion: the scoring in 0.65 s, so the whole sequence, clear included, stays under 1.2 s. */
-export const REDUCED_BUDGET = 650;
+/** The plate rolls up (260 ms) and holds, readable, before the score leaves for the ring. */
+export const PLATE_HOLD_MS = 520;
+/** A showcase score holds big over the map long enough to read before it flies. */
+export const SHOWCASE_HOLD_MS = 900;
+/** The score flies from the readout into the crisis ring. */
+export const TO_RING_MS = 300;
+/** The whole cascade fits in 8 s: longer ones play their events closer together. */
+export const CASCADE_CAP_MS = 8000;
+/**
+ * Reduced motion: the cascade in 0.55 s, so cascade and outcome together take 1.0 s and the whole
+ * send, with the browser's own frames and timers around it, stays under the spec's 1.2 s.
+ */
+export const REDUCED_BUDGET = 550;
 /** ante_smash's riser lasts 600 ms (real time) before its chord. */
 export const RISER_MS = 600;
 
-/** Duration of sweep event k (0-based): 320 ms, 6% quicker each, floor 120; from the 13th, 60 ms. */
+/** Duration of the k-th pin (0-based): 320 ms, 6% quicker each, floor 120; from the 13th, 60 ms. */
 export function eventDuration(k: number): number {
   if (k >= 12) return 60;
   return Math.max(120, Math.round(320 * Math.pow(0.94, k)));
 }
 
-/** Shake amplitude for a slam with share r of the target still left (spec 9). */
+/** score ÷ target, as a float good to 1e-4 (the slam's size). */
+export function ratio(score: bigint, target: bigint): number {
+  if (target <= 0n) return Infinity;
+  return Number((score * 10_000n) / target) / 10_000;
+}
+
+/** Shake amplitude for a slam of `r` times the target. */
 export function shakeFor(r: number): number {
   if (r < 0.25) return 0;
   if (r < 1) return 2;
@@ -136,41 +129,29 @@ export function shakeFor(r: number): number {
   return 9;
 }
 
-/** r = leverage / (target - total before), as a float good to 1e-4. */
-export function shareOfNeed(leverage: bigint, target: bigint, totalBefore: bigint): number {
-  const need = target - totalBefore;
-  if (need <= 0n) return Infinity;
-  return Number((leverage * 10_000n) / need) / 10_000;
+/** The showcase's line under the score: '466× THE TARGET · WINS 7' (floored, as the end card counts it). */
+export function showcaseLine(r: number, regions: number): string {
+  const times = r >= 100 ? formatInt(BigInt(Math.floor(r))) : (Math.floor(r * 10) / 10).toFixed(1);
+  return `${times}× THE TARGET · WINS ${regions}`;
 }
 
-/** log10(leverage) / 9, clamped to 0..1: the spec's measure of a slam's size. */
-export function sizeOf(leverage: bigint): number {
-  if (leverage <= 1n) return 0;
-  const digits = leverage.toString().length;
-  // log10 from the leading digits is plenty for a volume.
-  const lead = Number(leverage.toString().slice(0, 15));
-  const log = Math.log10(lead) + (digits - Math.min(digits, 15));
+/** log10(score) / 9, clamped to 0..1: a slam's size. */
+export function sizeOf(score: bigint): number {
+  if (score <= 1n) return 0;
+  const s = score.toString();
+  const lead = Number(s.slice(0, 15));
+  const log = Math.log10(lead) + (s.length - Math.min(s.length, 15));
   return Math.min(1, Math.max(0, log / 9));
 }
 
 /**
- * Slam loudness. The spec's log10(leverage) / 9 makes the first night's slams (180, 272) as quiet
- * as the lever's own thock, so the outcome leads: every slam starts at 0.45, a sweep that covers
- * what is left of the target adds 0.3, and size adds the last 0.25. A missed crisis's last sweep
- * keeps the plain size (no flourish).
+ * Slam loudness: every slam starts at 0.45, a score that beats the target adds 0.3, and size adds the
+ * last 0.25, so the outcome leads. A miss keeps the plain size (no flourish).
  */
-export function slamIntensity(leverage: bigint, r: number, quiet = false): number {
-  const size = sizeOf(leverage);
+export function slamIntensity(score: bigint, r: number, quiet = false): number {
+  const size = sizeOf(score);
   if (quiet) return size;
   return Math.min(1, Math.max(0.45, 0.45 + 0.3 * Math.min(1, r) + 0.25 * size));
-}
-
-/**
- * The roll on the Big Board: 320 ms, 400 when r >= 10. With the print before it this is spec 9's
- * cascade and tick, kept to 800 ms after the slam even for a showcase.
- */
-export function rollMs(r: number): number {
-  return r >= 10 ? 400 : 320;
 }
 
 /** tally_tick's pitch is 500 Hz x 4.4^i: the intensity that plays `hz`. */
@@ -186,11 +167,8 @@ function blipAt(hz: number): number {
 /** A major pentatonic from A5: A5 B5 C#6 E6 F#6 A6 B6. */
 const PENTATONIC = [880, 987.77, 1108.73, 1318.51, 1479.98, 1760, 1975.53];
 
-/**
- * The note for the k-th of n scoring passes: one climb up the pentatonic from A5 across the whole
- * sweep, so a short sweep climbs as far as a long one.
- */
-export function noteHz(k: number, n: number): number {
+/** The note for the k-th of n steps: one climb up the pentatonic, so a short run climbs as far as a long one. */
+function noteHz(k: number, n: number): number {
   const top = PENTATONIC.length - 1;
   return PENTATONIC[n <= 1 ? 0 : Math.round((Math.min(k, n - 1) * top) / (n - 1))];
 }
@@ -200,15 +178,10 @@ export function tickIntensity(k: number, n: number): number {
   return tickAt(noteHz(k, n));
 }
 
-/** An AGAIN's accent: a ping a fifth above the note it repeats. */
-export function fifthUp(hz: number): number {
-  return tickAt(hz * 1.5);
-}
-
 /**
- * One scoring note at `p` (0..1) of the way through the sweep: tally_tick on the scale, doubled
- * by tick at the same pitch and a glassy pin, so it plucks rather than blips; from halfway a body
- * thump grows under it, so the climb gets louder as well as higher (about 5 dB across a sweep).
+ * One note at `p` (0..1) of the way through a climb: tally_tick on the scale, doubled by tick at the
+ * same pitch and a glassy pin, so it plucks rather than blips; from halfway a body thump grows under
+ * it, so the climb gets louder as well as higher.
  */
 function noteCues(t: number, hz: number, p: number): Cue[] {
   const cues: Cue[] = [
@@ -220,16 +193,16 @@ function noteCues(t: number, hz: number, p: number): Cue[] {
   return cues;
 }
 
-/** A multiplier's size: x1.5 lands at 0.8, x2 at 1.0, x3 and up at 1.2. */
-export function multWeight(factor: string): number {
-  const f = Number(factor);
+/** A multiplier's size from its factor in tenths: ×1.5 lands at 0.9, ×2 at 1.0, ×3 and up at 1.2. */
+export function multWeight(amount10: number): number {
+  const f = amount10 / 10;
   if (!Number.isFinite(f)) return 1;
   return Math.min(1.2, Math.max(0.8, 0.6 + 0.2 * f));
 }
 
 /**
- * Each multiplier in a sweep lands higher than the last (tally_mult is 380 Hz x 3.5^i): a semitone
- * a step, or, in a sweep of many, an even climb that still reaches the top on the last one.
+ * Each multiplier in a send lands higher than the last (tally_mult is 380 Hz x 3.5^i): a semitone a
+ * step, or, in a send of many, an even climb that still reaches the top on the last one.
  */
 export function multPitch(nth: number, of = 1): number {
   const semitone = Math.log(Math.pow(2, 1 / 12)) / Math.log(3.5);
@@ -237,241 +210,188 @@ export function multPitch(nth: number, of = 1): number {
   return Math.min(1, 0.45 + step * nth);
 }
 
-// ---------------------------------------------------------------- trace grouping
+// ---------------------------------------------------------------- the trace in beats
 
-/** One sweep event: a scoring pass, with the again marker that started it (if any). */
-export interface PassGroup {
-  again: TraceEvent | null;
-  pin: TraceEvent;
-  threads: TraceEvent[];
-  stamps: TraceEvent[];
-  staff: TraceEvent[];
-}
+/** One beat of the cascade: a pin, a staff firing once, a per-region staff's pops, or the crisis ×2. */
+export type Beat =
+  | { kind: 'pin'; e: PinEvent }
+  | { kind: 'staff'; e: StaffEvent }
+  | { kind: 'pops'; seat: number; e: RegionStaffEvent[] }
+  | { kind: 'crisis'; e: CrisisEvent };
 
-export interface TraceParts {
-  pattern: TraceEvent | null;
-  passes: PassGroup[];
-  standby: TraceEvent[];
-  desk: TraceEvent[];
-  slam: TraceEvent | null;
-}
-
-/** Split a trace into the spec's phases. Every scoring pass, AGAINs included, is one event. */
-export function groupTrace(trace: readonly TraceEvent[]): TraceParts {
-  const parts: TraceParts = { pattern: null, passes: [], standby: [], desk: [], slam: null };
-  let pendingAgain: TraceEvent | null = null;
-  let cur: PassGroup | null = null;
+/** The trace grouped into beats: consecutive pops from the same seat are one staff's firing. */
+export function beatsOf(trace: readonly TraceEvent[]): Beat[] {
+  const out: Beat[] = [];
   for (const e of trace) {
-    switch (e.phase) {
-      case 'pattern':
-        parts.pattern = e;
-        break;
-      case 'again':
-        pendingAgain = e;
-        cur = null;
-        break;
-      case 'pin':
-        cur = { again: pendingAgain, pin: e, threads: [], stamps: [], staff: [] };
-        pendingAgain = null;
-        parts.passes.push(cur);
-        break;
-      case 'thread':
-        cur?.threads.push(e);
-        break;
-      case 'stamp':
-        cur?.stamps.push(e);
-        break;
-      case 'staff':
-        cur?.staff.push(e);
-        break;
-      case 'standby':
-        parts.standby.push(e);
-        break;
-      case 'desk':
-        parts.desk.push(e);
-        break;
-      case 'slam':
-        parts.slam = e;
-        break;
+    if (e.kind === 'pin') out.push({ kind: 'pin', e });
+    else if (e.kind === 'staff') out.push({ kind: 'staff', e });
+    else if (e.kind === 'crisisX2') out.push({ kind: 'crisis', e });
+    else if (e.kind === 'regionStaff') {
+      const last = out[out.length - 1];
+      if (last?.kind === 'pops' && last.seat === e.seat) last.e.push(e);
+      else out.push({ kind: 'pops', seat: e.seat, e: [e] });
     }
   }
-  return parts;
+  return out;
 }
 
-// ---------------------------------------------------------------- labels
-
-/** What a number flying to a box reads: '+15', '+4', 'x2', 'x1.5'. */
-export function flyText(e: TraceEvent): string {
-  if (e.op === 'xM') return `×${e.amount}`;
-  return `+${e.amount}`;
+/** What a staff number reads in its box: the engine's label ('+20', '+4', '×3', '×1.4'). */
+function boxOf(e: StaffEvent | RegionStaffEvent | CrisisEvent): Box {
+  return e.kind === 'staff' && e.op === '+P' ? 'points' : 'mult';
 }
 
-function boxOf(e: TraceEvent): Box {
-  return e.op === '+I' ? 'inf' : 'mom';
+// ---------------------------------------------------------------- the cascade
+
+export interface SendInput {
+  trace: readonly TraceEvent[];
+  score: bigint;
+  target: bigint;
+  /** The send wins (score ≥ target): the slam gets its flourish and the claim's chord rises into the ink. */
+  win: boolean;
+  /** Seats whose staff fires for the first time since it was hired: drawn 1.5x with '· new'. */
+  newSeats?: ReadonlySet<number>;
+  reduced: boolean;
+  /** Playback speed (1, 2, 4): the claim chord's riser lasts the same real time at any speed. */
+  rate?: number;
 }
 
-function valueOf(e: TraceEvent): bigint {
-  return BigInt(e.op === '+I' ? e.I : e.M10);
+export interface SendSchedule {
+  cues: Cue[];
+  /** The score has landed in the ring: the outcome starts here. */
+  end: number;
+  /** The boxes start sliding together. */
+  slamAt: number;
+  /** The boxes collide (the slam lands). */
+  hitAt: number;
+  /** score ÷ target. */
+  r: number;
+  /** Beats in the cascade (pins, staff firings, per-region staff, the crisis ×2). */
+  beats: number;
+  /** When the claim chord's riser starts, or null (a miss, or no time for it at this speed). */
+  riserAt: number | null;
 }
 
-// ---------------------------------------------------------------- the schedule
+/** The cascade from SEND pressed to the score landing in the crisis ring. */
+export function sendSchedule(input: SendInput): SendSchedule {
+  let s = buildSend(input, 1);
+  // Too long: play the beats closer together (never the slam, the hold or the flight to the ring).
+  // The flights do not shrink with the pace, so a couple of passes settle on the cap.
+  let pace = 1;
+  for (let pass = 0; pass < 4 && !input.reduced && s.end > CASCADE_CAP_MS; pass++) {
+    const span = s.slamAt - EVENTS_AT;
+    const fixed = s.end - span;
+    pace = Math.max(0.25, (pace * (CASCADE_CAP_MS - fixed)) / span);
+    s = buildSend(input, pace);
+  }
+  if (input.reduced && s.end > REDUCED_BUDGET) s = scaleSchedule(s, REDUCED_BUDGET / s.end);
+  return input.win && !input.reduced ? withRiser(s, input.rate ?? 1) : s;
+}
 
-/** The scoring sequence from SWEEP pressed to the total having rolled up. */
-export function sweepSchedule(input: SweepInput): Schedule {
-  const { trace, leverage, target, totalBefore, reduced } = input;
-  const parts = groupTrace(trace);
+/** `pace` scales the time between beats (1 normally; less for a very long send). */
+function buildSend(input: SendInput, pace: number): SendSchedule {
+  const { trace, score, target, reduced } = input;
+  const newSeats = input.newSeats ?? new Set<number>();
+  const beats = beatsOf(trace);
   const cues: Cue[] = [];
   const add = (c: Cue) => cues.push(c);
-  const pop = reduced ? 0 : POP_MS;
   const fly = reduced ? 0 : FLY_MS;
-  const need = target - totalBefore;
-  // Held in an object: it is set inside the helpers below.
-  const heat: { at: number | null } = { at: null };
   let lastLand = 0;
   let lastWasMult = false;
   let mults = 0;
-  const totalMults = trace.filter((e) => e.op === 'xM' && (e.phase === 'staff' || e.phase === 'standby' || e.phase === 'desk')).length;
-  /** The pass whose first multiplier has already shaken the room. */
-  let shookPass = -1;
+  const totalMults = trace.filter((e) => e.kind === 'crisisX2' || ((e.kind === 'staff' || e.kind === 'regionStaff') && e.op === 'xM')).length;
 
-  /** A number travels to its box and lands with its sound; reports the landing time. */
-  const send = (t: number, from: Anchor, e: TraceEvent, rise: number, big: boolean, sound: boolean, pass = -1): number => {
-    const box = boxOf(e);
-    const mult = e.op === 'xM';
-    const weight = mult ? multWeight(e.amount) : 1;
-    const held = reduced ? 0 : 'region' in from && e.phase === 'pin' ? PIN_POP_MS : pop;
-    const land = t + held + fly;
-    if (!reduced) add({ t, do: 'fly', from, box, text: flyText(e), pop: held, rise, ms: held + fly, big, weight });
-    add({ t: land, do: 'land', box, value: valueOf(e), mult, weight });
-    // The hit is heard and felt when the number arrives, never when it leaves.
-    if (sound && mult) {
+  const landAt = (t: number, box: Box, value: bigint, mult: boolean, weight: number) => {
+    add({ t, do: 'land', box, value, mult, weight });
+    if (t >= lastLand) {
+      lastLand = t;
+      lastWasMult = mult;
+    }
+  };
+
+  /** A number flies to its box and lands with its sound: the hit is heard when it arrives, never when it leaves. */
+  const fling = (t: number, from: Anchor, look: Look, text: string, box: Box, value: bigint, mult: boolean, weight: number, isNew: boolean, pop: number, rise: number, flyMs = fly) => {
+    const held = reduced ? 0 : pop;
+    const land = t + held + flyMs;
+    if (!reduced) add({ t, do: 'fly', from, box, text, look, pop: held, rise, ms: held + flyMs, weight, isNew });
+    landAt(land, box, value, mult, weight);
+    if (mult) {
       const nth = mults++;
       add({ t: land, do: 'sound', sfx: 'thump', intensity: 0.3 * weight });
       add({ t: land, do: 'sound', sfx: 'tally_mult', intensity: multPitch(nth, totalMults) });
-      add({ t: land, do: 'buzz', ms: 12 });
-      // The room kicks for a desk multiplier and for the first of each pass, less as the sweep goes
-      // on (4 px down to 2), so a long sweep does not shake the whole way through.
-      if (!reduced && (pass < 0 || pass !== shookPass)) {
-        shookPass = pass;
+      add({ t: land, do: 'buzz', pattern: 12 });
+      // A shudder on every ×, less as the send goes on (4 px down to 1.5), so a long one does not
+      // shake the whole way through.
+      if (!reduced) {
         const decay = totalMults > 1 ? nth / (totalMults - 1) : 0;
-        add({ t: land, do: 'shake', px: Math.round((4 - 2 * decay) * weight * 10) / 10, ms: 120 });
+        add({ t: land, do: 'shake', px: Math.round((4 - 2.5 * decay) * weight * 10) / 10, ms: 110 });
       }
-    } else if (sound) {
+    } else {
       add({ t: land, do: 'sound', sfx: 'tally_mult', intensity: 0.4 });
     }
-    if (land >= lastLand) {
-      lastLand = land;
-      lastWasMult = mult;
-    }
-    checkHeat(e, land);
-    return land;
-  };
-  const checkHeat = (e: TraceEvent, at: number) => {
-    if (heat.at !== null || need <= 0n) return;
-    if ((BigInt(e.I) * BigInt(e.M10)) / 10n >= need) heat.at = at;
   };
 
-  // t = 0: the lever drops with its thock, everything not scoring fades.
+  // t = 0: the lever drops with its thock, everything but the pins fades.
   add({ t: 0, do: 'press' });
   add({ t: 0, do: 'sound', sfx: 'commit', intensity: 0.6 });
-  add({ t: 0, do: 'buzz', ms: 15 });
+  add({ t: 0, do: 'buzz', pattern: 15 });
   add({ t: 0, do: 'dim' });
 
-  // 150 ms: the pattern stamps in and the boxes lock on the base values.
-  const base = parts.pattern;
-  if (base) {
-    add({ t: STAMP_AT, do: 'stamp', name: input.patternName, level: base.level ?? 1 });
-    add({ t: STAMP_AT, do: 'sound', sfx: 'stamp', intensity: 0.6 });
-    add({ t: STAMP_AT, do: 'base', I: BigInt(base.I), M10: BigInt(base.M10) });
-    checkHeat(base, STAMP_AT + 180);
-  }
-
-  // From 450 ms: the sweep events. The notes climb a pentatonic across the sweep's own passes; an
-  // AGAIN repeats its note with a ping a fifth above and a soft echo of the slam.
-  const plain = parts.passes.filter((g) => !g.again).length;
+  // From 450 ms: each pin, west to east, flashes and flings '+n' into POINTS and '+1' into MULTIPLIER.
+  // The notes climb a pentatonic across the pins.
+  const pins = beats.filter((b): b is Extract<Beat, { kind: 'pin' }> => b.kind === 'pin');
   let t = EVENTS_AT;
-  let plainK = 0;
-  let hz = noteHz(0, plain);
-  let climb = 0;
-  parts.passes.forEach((g, k) => {
-    const d = eventDuration(k);
-    const p = g.pin;
-    const region = p.region!;
-    // Sub-steps fit inside the event: compress their offsets when the event is short.
-    const lastOffset = g.staff.length ? STAFF_AT + STAFF_GAP * (g.staff.length - 1) : g.stamps.length ? STAMP_PULSE_AT : g.threads.length ? THREAD_AT : 0;
-    const f = lastOffset > 0 ? Math.min(1, Math.max(0, d - 20) / lastOffset) : 1;
-    const at = (offset: number) => t + Math.round(offset * f);
-
-    if (g.again) {
-      add({ t, do: 'scan', region, again: true });
-      add({ t, do: 'sound', sfx: 'retrigger', intensity: 0.05 });
-      add({ t, do: 'sound', sfx: 'tally_tick', intensity: fifthUp(hz) });
-      for (const c of noteCues(t, hz, climb)) add(c);
-      if (g.again.seat !== undefined) add({ t, do: 'hop', seat: g.again.seat });
-    } else {
-      hz = noteHz(plainK, plain);
-      climb = plain > 1 ? plainK / (plain - 1) : 0;
-      for (const c of noteCues(t, hz, climb)) add(c);
-      plainK++;
-      add({ t, do: 'scan', region, again: false });
-    }
+  pins.forEach((b, k) => {
+    const region = b.e.region;
+    for (const c of noteCues(t, noteHz(k, pins.length), pins.length > 1 ? k / (pins.length - 1) : 0)) add(c);
+    add({ t, do: 'scan', region });
     add({ t, do: 'flash', region });
-    add({ t, do: 'buzz', ms: 8 });
-    if (!p.dark && p.op === '+I') send(t, { region }, p, RISE_PT, false, false);
-
-    for (const th of g.threads) {
-      add({ t: at(THREAD_AT), do: 'thread', from: th.other!, to: region, amount: Number(th.amount) });
-      if (th.amount !== '0') {
-        // The pop shows on the thread; the box takes it just after the pin's own number lands.
-        const land = Math.max(at(THREAD_AT) + 100 + (reduced ? 0 : 40), t + (reduced ? 0 : PIN_POP_MS) + fly + 30);
-        add({ t: land, do: 'land', box: 'inf', value: BigInt(th.I), mult: false, weight: 1 });
-        lastLand = Math.max(lastLand, land);
-        checkHeat(th, land);
-      }
+    add({ t, do: 'buzz', pattern: 8 });
+    const held = reduced ? 0 : PIN_POP_MS;
+    if (!reduced) {
+      add({ t, do: 'fly', from: { region }, box: 'points', text: b.e.label, look: 'pin', pop: held, rise: RISE_PT, ms: held + fly, weight: 1, isNew: false });
+      add({ t: t + ONE_LAG_MS, do: 'fly', from: { region }, box: 'mult', text: '+1', look: 'one', pop: held, rise: ONE_RISE_PT, ms: held + fly, weight: 0.4, isNew: false });
     }
-    for (const st of g.stamps) {
-      const ts = at(STAMP_PULSE_AT);
-      add({ t: ts, do: 'stampPulse', region });
-      add({ t: ts, do: 'sound', sfx: 'tally_mult', intensity: 0.4 });
-      const land = ts + (reduced ? 0 : 200);
-      const mult = st.op === 'xM';
-      add({ t: land, do: 'land', box: boxOf(st), value: valueOf(st), mult, weight: mult ? multWeight(st.amount) : 1 });
-      lastLand = Math.max(lastLand, land);
-      checkHeat(st, land);
-    }
-    g.staff.forEach((st, j) => {
-      const ts = at(STAFF_AT + STAFF_GAP * j);
-      add({ t: ts, do: 'hop', seat: st.seat! });
-      send(ts, { seat: st.seat! }, st, 0, true, true, k);
-    });
-    t += d;
+    landAt(t + held + fly, 'points', b.e.points, false, 1);
+    landAt(t + held + fly + (reduced ? 0 : ONE_LAG_MS), 'mult', b.e.m10, false, 0.4);
+    t += Math.round(eventDuration(k) * pace);
   });
 
-  // Standby: 200 ms per firing region. Desk: 250 ms per firing staff.
-  if (parts.standby.length || parts.desk.length) add({ t, do: 'scanOff' });
-  for (const e of parts.standby) {
-    add({ t, do: 'standby', region: e.region! });
-    add({ t, do: 'hop', seat: e.seat! });
-    send(t, { region: e.region! }, e, 0, true, true, parts.passes.length);
-    t += STANDBY_MS;
-  }
-  for (const e of parts.desk) {
-    add({ t, do: 'hop', seat: e.seat! });
-    send(t, { seat: e.seat! }, e, 0, true, true);
-    t += DESK_MS;
+  // The staff, seat 1 to 5, each in its 250 ms slot; a per-region staff pops '×1.5' / '×2' from each
+  // matching pin on the map, 150 ms apart; then the ring stamps its ×2.
+  const rest = beats.filter((b) => b.kind !== 'pin');
+  if (rest.length) add({ t, do: 'scanOff' });
+  for (const b of rest) {
+    if (b.kind === 'staff') {
+      const isNew = newSeats.has(b.e.seat);
+      add({ t, do: 'hop', seat: b.e.seat, isNew });
+      const mult = b.e.op === 'xM';
+      const box = boxOf(b.e);
+      // An add to the multiplier bumps its box lighter than a ×.
+      const weight = mult ? multWeight(b.e.amount) : box === 'mult' ? 0.6 : 1;
+      fling(t, { seat: b.e.seat }, 'staff', b.e.label, box, box === 'points' ? b.e.points : b.e.m10, mult, weight, isNew, POP_MS, 0);
+      t += Math.round(STAFF_MS * pace);
+    } else if (b.kind === 'pops') {
+      const isNew = newSeats.has(b.seat);
+      b.e.forEach((e, j) => {
+        const at = t + Math.round(REGION_POP_MS * j * pace);
+        add({ t: at, do: 'hop', seat: b.seat, isNew });
+        add({ t: at, do: 'flash', region: e.region });
+        fling(at, { region: e.region }, 'pop', e.label, 'mult', e.m10, true, multWeight(e.amount), isNew && j === 0, PIN_POP_MS, RISE_PT);
+      });
+      t += Math.round((STAFF_MS + REGION_POP_MS * (b.e.length - 1)) * pace);
+    } else if (b.kind === 'crisis') {
+      add({ t, do: 'ringStamp' });
+      add({ t, do: 'sound', sfx: 'stamp', intensity: 0.7 });
+      fling(t, { ringChip: b.e.region }, 'crisis', b.e.label, 'mult', b.e.m10, true, multWeight(20) * 1.1, false, CRISIS_POP_MS, 0, reduced ? 0 : CRISIS_FLY_MS);
+      t += Math.round(CRISIS_MS * pace);
+    }
   }
 
-  // The held breath, then the slam. A multiplier landing last gets to swell before the breath.
-  const r = shareOfNeed(leverage, target, totalBefore);
+  // The held breath, then the slam, sized by score ÷ target.
+  const r = ratio(score, target);
+  const quiet = !input.win;
   const hold = reduced ? 0 : lastWasMult ? HOLD_AFTER_MULT_MS : HOLD_MS;
   const slamAt = Math.max(t, lastLand + hold);
-  if (heat.at !== null) {
-    // HEAT, the turn of the sweep: it ignites (a whoosh into a bright fifth) and the phone kicks.
-    add({ t: heat.at, do: 'heat', on: true });
-    add({ t: heat.at, do: 'sound', sfx: 'slide', intensity: 0.7 });
-    add({ t: heat.at + 90, do: 'sound', sfx: 'meter_up', intensity: 0.5 });
-    add({ t: heat.at, do: 'buzz', ms: 10 });
-  }
   if (!reduced) add({ t: Math.max(lastLand + (lastWasMult ? 240 : 40), slamAt - hold + 40), do: 'breath' });
   // The breath is still: no kicks in the last moments before the slam.
   for (let i = cues.length - 1; i >= 0; i--) {
@@ -481,56 +401,58 @@ export function sweepSchedule(input: SweepInput): Schedule {
   add({ t: slamAt, do: 'slide' });
   const hit = slamAt + (reduced ? 0 : SLIDE_MS);
   add({ t: hit, do: 'collide' });
-  const loud = slamIntensity(leverage, r, input.quiet);
+  const loud = slamIntensity(score, r, quiet);
   add({ t: hit, do: 'sound', sfx: 'tally_slam', intensity: loud });
   add({ t: hit, do: 'sound', sfx: 'thump', intensity: loud });
-  add({ t: hit, do: 'buzz', ms: 30 });
+  add({ t: hit, do: 'buzz', pattern: 30 });
   add({ t: hit, do: 'release' });
-  const showcase = !reduced && !input.quiet && r >= 10;
-  if (!reduced && !input.quiet) {
+  const showcase = !reduced && !quiet && r >= 10;
+  if (!reduced && !quiet) {
     const px = shakeFor(r);
     if (px > 0) add({ t: hit, do: 'shake', px, ms: SHAKE_MS });
-    if (r >= 10) add({ t: hit, do: 'mapFlash', region: input.topRegion });
+    if (r >= 10) add({ t: hit, do: 'bloom' });
   }
   if (showcase) add({ t: hit, do: 'showcase', r });
 
-  // The product flies up to the Big Board, then the total rolls up to meet it.
-  let rollAt = hit;
+  // The score leaves the readout (or the showcase) and lands in the crisis ring: the send lands on
+  // the place that changes.
+  let end = hit;
   if (!reduced) {
-    const printAt = hit + (showcase ? SHOWCASE_HOLD : PRINT_AT);
-    add({ t: printAt, do: 'print', from: showcase ? 'map' : 'plate', ms: PRINT_MS });
-    rollAt = printAt + PRINT_MS;
+    const leave = hit + (showcase ? SHOWCASE_HOLD_MS : PLATE_HOLD_MS);
+    add({ t: leave, do: 'toRing', from: showcase ? 'showcase' : 'plate', ms: TO_RING_MS });
+    end = leave + TO_RING_MS;
   }
-  const roll = rollMs(r);
-  add({ t: rollAt, do: 'roll', ms: roll });
-  const end = rollAt + roll;
-  // The total lands with a flash and a ping, and holds.
   add({ t: end, do: 'landed' });
-  add({ t: end, do: 'sound', sfx: 'tick', intensity: 0.9 });
+  add({ t: end, do: 'sound', sfx: 'thump', intensity: input.win ? 0.5 : 0.25 });
+  add({ t: end, do: 'sound', sfx: 'tick', intensity: input.win ? 0.9 : 0.3 });
 
   // A stable sort keeps same-time cues in the order they were added.
   cues.sort((a, b) => a.t - b.t);
-  let sched: Schedule = { cues, end, slamAt, hitAt: hit, heatAt: heat.at, r, events: parts.passes.length, riserAt: null };
-  if (reduced && end > REDUCED_BUDGET) sched = scaleSchedule(sched, REDUCED_BUDGET / end);
-  return input.clears ? withRiser(sched, input.rate ?? 1, reduced ? REDUCED_CLEARED_AT : CLEARED_AT) : sched;
+  return { cues, end, slamAt, hitAt: hit, r, beats: beats.length, riserAt: null };
 }
 
+/** The claim chord may land this much (real ms) after the ink rather than start before the slam. */
+export const RISER_SLACK_MS = 80;
+
 /**
- * Start the clear's rising chord so that it lands on CLEARED (`clearedAt` into the outcome): the
- * riser lasts RISER_MS of real time, so at 2x it starts twice as many schedule-ms ahead. It never
- * starts before the slam has landed.
+ * Start the claim's rising chord so that it lands on the crisis's gold ink (COLLAPSE_MS into the
+ * outcome): the riser lasts RISER_MS of real time, so at 2x it starts twice as many schedule-ms
+ * ahead. It never starts before the slam (it would muddy it): when that would make the chord more
+ * than RISER_SLACK_MS late (4x), the outcome plays a quick chord on the ink instead.
  */
-export function withRiser(s: Schedule, rate: number, clearedAt: number): Schedule {
-  const t = Math.max(s.hitAt, Math.round(s.end + clearedAt - RISER_MS * rate));
+function withRiser(s: SendSchedule, rate: number): SendSchedule {
+  const ideal = Math.round(s.end + COLLAPSE_MS - RISER_MS * rate);
+  if ((s.hitAt - ideal) / rate > RISER_SLACK_MS) return s;
+  const t = Math.max(s.hitAt, ideal);
   const cues = [...s.cues, { t, do: 'riser' } as Cue].sort((a, b) => a.t - b.t);
   return { ...s, cues, riserAt: t };
 }
 
-/** Scale every time (and every print / roll duration) by `k`. */
-export function scaleSchedule(s: Schedule, k: number): Schedule {
+/** Scale every time (and every flight) by `k`. */
+function scaleSchedule(s: SendSchedule, k: number): SendSchedule {
   const cues = s.cues.map((c): Cue => {
     const t = Math.round(c.t * k);
-    if (c.do === 'print' || c.do === 'roll') return { ...c, t, ms: Math.max(60, Math.round(c.ms * k)) };
+    if (c.do === 'toRing' || c.do === 'fly') return { ...c, t, ms: Math.max(60, Math.round(c.ms * k)) };
     return { ...c, t };
   });
   return {
@@ -539,103 +461,288 @@ export function scaleSchedule(s: Schedule, k: number): Schedule {
     end: Math.round(s.end * k),
     slamAt: Math.round(s.slamAt * k),
     hitAt: Math.round(s.hitAt * k),
-    heatAt: s.heatAt === null ? null : Math.round(s.heatAt * k),
+    riserAt: s.riserAt === null ? null : Math.round(s.riserAt * k),
   };
 }
 
-// ---------------------------------------------------------------- after the slam
+// ---------------------------------------------------------------- the outcome
 
 export type OutcomeCue =
-  | { t: number; do: 'collapse' }
-  | { t: number; do: 'shockwave' }
-  | { t: number; do: 'cleared' }
-  | { t: number; do: 'drop' }
-  | { t: number; do: 'coin'; funds: number }
-  | { t: number; do: 'rise' }
-  | { t: number; do: 'lightsOut'; ms: number }
-  | { t: number; do: 'card' }
+  /** The world comes back to full light (the score is in the ring). */
   | { t: number; do: 'settle' }
+  /** The ring collapses into the crisis. */
+  | { t: number; do: 'collapse'; ms: number }
+  | { t: number; do: 'shockwave'; region: RegionId }
+  /** A gold pulse travels the shortest chain of joins from the crisis. */
+  | { t: number; do: 'travel'; path: RegionId[]; stepMs: number }
+  /**
+   * A region turns gold: the view takes the new owner and gold ink floods it from `from` (itself for
+   * the crisis). The GOLD count (and WAR, for a region won back) shows `gold` / `red` from here.
+   */
+  | { t: number; do: 'claim'; region: RegionId; from: RegionId; ms: number; wasRed: boolean; gold: number; red: number }
+  /** A coin flies from a region won to the coin chip... */
+  | { t: number; do: 'coin'; region: RegionId; ms: number }
+  /** ...and lands: the chip shows `coins`. */
+  | { t: number; do: 'coins'; coins: number }
+  /** The crisis won gets its brass pin. */
+  | { t: number; do: 'brass'; region: RegionId }
+  /** War takes a region: red ink runs into it from `from` (itself: it blooms from the centre). */
+  | { t: number; do: 'take'; region: RegionId; from: RegionId; ms: number; gold: number; red: number }
+  /** The war tag moves to where war spreads next. */
+  | { t: number; do: 'tag' }
+  /** Everything has changed hands: the pins lift and the lamps go off, leaving the plain world. */
+  | { t: number; do: 'clear' }
+  /** A goal count on the Big Board glows (null: none). */
+  | { t: number; do: 'glow'; which: 'gold' | 'war' | null }
+  /** The drone dips (a miss) or falls silent (the war is over). */
+  | { t: number; do: 'drone'; level: number }
+  /** CEASEFIRE: red stops pulsing and fades. */
+  | { t: number; do: 'ceasefire' }
+  /** WORLD UNITED: sunrise sweeps the map from the east... */
+  | { t: number; do: 'sunrise'; ms: number }
+  /** ...then a gold wave rolls out from the last region won. */
+  | { t: number; do: 'wave'; region: RegionId; ms: number }
+  /** WAR: the grey regions go dark; gold stays lit. */
+  | { t: number; do: 'lightsOut'; ms: number }
   | { t: number; do: 'sound'; sfx: Sfx; intensity: number }
-  | { t: number; do: 'buzz'; pattern: number[] };
+  | { t: number; do: 'buzz'; pattern: number | number[] }
+  | { t: number; do: 'shake'; px: number; ms: number };
+
+type OutcomeKind = OutcomeCue['do'];
 
 export interface OutcomeInput {
-  kind: 'clear' | 'miss' | 'carryOn';
-  fundsBefore: number;
-  fundsAfter: number;
+  crisis: RegionId;
+  result: 'win' | 'miss';
+  /** Regions won, in spread order (the crisis first), each with its chain of joins from the crisis. */
+  won: readonly WonRegion[];
+  /** A miss: the crisis turned red (null in the final push, where a miss changes no region). */
+  lost: WarTake | null;
+  /** War spread by itself after this turn. */
+  spread: WarTake | null;
+  ending: Ending | null;
+  coinsBefore: number;
+  goldBefore: number;
+  redBefore: number;
   reduced: boolean;
-  /** The clear's riser already started during the roll (false after a skip: it starts here). */
-  riserPlayed?: boolean;
-  /**
-   * When the clear's chord lands, ms into the outcome. CLEARED waits for it: at 4x, or after a
-   * skip, the riser cannot start early enough for the usual moment.
-   */
-  chordAt?: number;
+  /** The claim's chord already rose during the cascade (false after a skip, or at 4x: a quick chord plays instead). */
+  riserPlayed: boolean;
+  /** How long the settled map holds before the screen moves on (no ending): 150 ms, SHOP_HOLD_MS before a shop. */
+  holdMs?: number;
 }
 
 export interface Outcome {
   cues: OutcomeCue[];
+  /** Everything has played: the screen may show the resolved game. */
   end: number;
+  /** When the last region changed hands (the ending, if any, follows). */
+  settled: number;
 }
 
-/**
- * CLEARED lands on the riser's chord, this far into the clear (reduced: at once). Before it the
- * total that cleared holds on the board, readable, for a moment of its own.
- */
-export const CLEARED_AT = 450;
-export const REDUCED_CLEARED_AT = 0;
-const COIN_GAP = 90;
-/** After the fifth coin the rest come quicker. */
-const COIN_GAP_FAST = 70;
+/** The ring collapses (300 ms) before the crisis floods. */
+export const COLLAPSE_MS = 300;
+/** The crisis: the ring collapses, then gold ink floods it (600 ms) as a white shockwave rolls. */
+const CRISIS_INK_MS = 600;
+/** The crisis takes 1.0 s; each further region 0.5 s more, the whole win capped at 5 s. */
+const CRISIS_WIN_MS = 1000;
+const REGION_WIN_MS = 500;
+export const WIN_CAP_MS = 5000;
+/** A further region: the pulse travels 150 ms a join (at most 450 ms), then gold ink floods it (400 ms). */
+const TRAVEL_STEP_MS = 150;
+const TRAVEL_MAX_MS = 450;
+const REGION_INK_MS = 400;
+/** A coin flies from the region to the coin chip. */
+const COIN_MS = 300;
+/** The brass pin drops onto the crisis as its ink settles. */
+const BRASS_AT = 750;
+/** A miss: red ink runs into the crisis (700 ms), the whole miss 0.8 s. */
+const MISS_INK_AT = 100;
+const WAR_INK_MS = 700;
+/** War spreads by itself 0.5 s after the outcome. */
+const SPREAD_GAP_MS = 500;
+/** Before the shop tray rises over the map, the new map holds long enough to be seen. */
+export const SHOP_HOLD_MS = 700;
+const SETTLE_HOLD_MS = 150;
+/** The ending begins a beat after the last region has changed hands. */
+const ENDING_GAP_MS = 300;
+const SUNRISE_MS = 900;
+const WAVE_MS = 1200;
+const LIGHTS_OUT_MS = 2000;
+const CEASEFIRE_HOLD_MS = 1100;
+/** Reduced motion: the whole outcome (endings included) within 0.45 s. */
+export const REDUCED_OUTCOME_BUDGET = 450;
 
-/** CLEAR, MISS or a plain carry-on, timed per spec 9. */
+/** The k-th further region's slot (1-based): 0.5 s each after the crisis, packed closer when many. */
+function regionSlot(further: number): number {
+  if (further <= 0) return REGION_WIN_MS;
+  return Math.min(REGION_WIN_MS, Math.floor((WIN_CAP_MS - CRISIS_WIN_MS) / further));
+}
+
+/** The outcome, from the score landing in the ring to the screen showing the resolved game. */
 export function outcomeSchedule(input: OutcomeInput): Outcome {
+  const o = input.reduced ? reducedOutcome(input) : fullOutcome(input);
+  o.cues.sort((a, b) => a.t - b.t);
+  return o;
+}
+
+function fullOutcome(input: OutcomeInput): Outcome {
   const cues: OutcomeCue[] = [];
   const add = (c: OutcomeCue) => cues.push(c);
-  const r = input.reduced;
-  if (input.kind === 'carryOn') {
-    add({ t: 0, do: 'settle' });
-    return { cues, end: r ? 60 : 180 };
-  }
-  if (input.kind === 'miss') {
-    add({ t: 0, do: 'settle' });
-    add({ t: 0, do: 'sound', sfx: 'ante_miss', intensity: 0.8 });
-    add({ t: 0, do: 'buzz', pattern: [60, 80, 140] });
-    const lights = r ? 120 : 2000;
-    add({ t: 0, do: 'lightsOut', ms: lights });
-    add({ t: lights + (r ? 50 : 150), do: 'card' });
-    return { cues, end: lights + (r ? 130 : 450) };
-  }
-  // CLEAR: the ring collapses and the shockwave rolls as the chord lands with CLEARED; the brass pin
-  // gets its own beat; then the coins, then the tray.
-  const clearedAt = r ? REDUCED_CLEARED_AT : Math.max(CLEARED_AT, Math.round(input.chordAt ?? 0));
+  let gold = input.goldBefore;
+  let red = input.redBefore;
+  let coins = input.coinsBefore;
+  let t = 0;
+
   add({ t: 0, do: 'settle' });
-  if (!input.riserPlayed) add({ t: 0, do: 'sound', sfx: 'ante_smash', intensity: 0.8 });
-  add({ t: Math.max(0, clearedAt - (r ? 0 : 150)), do: 'collapse' });
-  add({ t: Math.max(0, clearedAt - (r ? 0 : 150)), do: 'shockwave' });
-  add({ t: clearedAt, do: 'cleared' });
-  add({ t: clearedAt, do: 'buzz', pattern: [20, 40, 60] });
-  const dropAt = clearedAt + (r ? 40 : 250);
-  add({ t: dropAt, do: 'drop' });
-  // The pin lands 250 ms into its fall.
-  const landAt = dropAt + (r ? 0 : 250);
-  add({ t: landAt, do: 'sound', sfx: 'tally_slam', intensity: 0.3 });
-  add({ t: landAt, do: 'buzz', pattern: [20] });
-  const coinsAt = r ? dropAt + 20 : landAt + 60;
-  const coins = Math.max(0, input.fundsAfter - input.fundsBefore);
-  // Reduced motion: every coin still clicks, but all within a fifth of a second.
-  const gapAt = (i: number) => (r ? i * Math.min(30, Math.floor(200 / Math.max(1, coins))) : Math.min(i, 4) * COIN_GAP + Math.max(0, i - 4) * COIN_GAP_FAST);
-  // Each coin rings a step up the scale, the last one brighter.
-  for (let i = 0; i < coins; i++) {
-    const at = coinsAt + gapAt(i);
-    const last = i === coins - 1;
-    add({ t: at, do: 'coin', funds: input.fundsBefore + i + 1 });
-    add({ t: at, do: 'sound', sfx: 'capital', intensity: last ? 0.9 : 0.5 });
-    add({ t: at, do: 'sound', sfx: 'tick', intensity: blipAt(noteHz(i, coins)) });
+  add({ t: 0, do: 'collapse', ms: COLLAPSE_MS });
+
+  if (input.result === 'win' && input.won.length) {
+    const [crisis, ...further] = input.won;
+    const at = COLLAPSE_MS;
+    // The crisis: a white shockwave rolls from it as gold floods it, with the claim's chord.
+    gold++;
+    if (crisis.wasRed) red--;
+    add({ t: at, do: 'shockwave', region: crisis.id });
+    add({ t: at, do: 'claim', region: crisis.id, from: crisis.id, ms: CRISIS_INK_MS, wasRed: crisis.wasRed, gold, red });
+    add({ t: at, do: 'glow', which: 'gold' });
+    add({ t: at, do: 'buzz', pattern: [20, 40, 60] });
+    if (!input.riserPlayed) add({ t: at, do: 'sound', sfx: 'roll_success', intensity: 0.8 });
+    if (crisis.wasRed) addReclaim(add, at);
+    add({ t: at, do: 'coin', region: crisis.id, ms: COIN_MS });
+    add({ t: at + COIN_MS, do: 'coins', coins: ++coins });
+    add({ t: at + COIN_MS, do: 'sound', sfx: 'capital', intensity: 0.6 });
+    add({ t: BRASS_AT, do: 'brass', region: crisis.id });
+    // The brass pin lands 250 ms into its fall.
+    add({ t: BRASS_AT + 250, do: 'sound', sfx: 'stamp', intensity: 0.35 });
+    let last = at + CRISIS_INK_MS;
+
+    // Each further region: a gold pulse runs along the joins from the crisis, then gold floods it.
+    const slot = regionSlot(further.length);
+    further.forEach((w, i) => {
+      const start = CRISIS_WIN_MS + i * slot;
+      const joins = Math.max(1, w.path.length - 1);
+      const stepMs = Math.min(TRAVEL_STEP_MS, Math.floor(Math.min(TRAVEL_MAX_MS, slot) / joins));
+      const inkAt = start + stepMs * joins;
+      gold++;
+      if (w.wasRed) red--;
+      if (w.path.length > 1) add({ t: start, do: 'travel', path: w.path, stepMs });
+      add({ t: inkAt, do: 'claim', region: w.id, from: w.path.length > 1 ? w.path[w.path.length - 2] : input.crisis, ms: REGION_INK_MS, wasRed: w.wasRed, gold, red });
+      // Each region rings the next note up the scale; one won back from war adds a deeper chord.
+      for (const c of claimNote(inkAt, i + 1, input.won.length)) add(c);
+      if (w.wasRed) addReclaim(add, inkAt);
+      add({ t: inkAt, do: 'buzz', pattern: w.wasRed ? [18, 30, 24] : 14 });
+      add({ t: inkAt, do: 'coin', region: w.id, ms: COIN_MS });
+      add({ t: inkAt + COIN_MS, do: 'coins', coins: ++coins });
+      add({ t: inkAt + COIN_MS, do: 'sound', sfx: 'capital', intensity: 0.5 + (0.4 * (i + 1)) / Math.max(1, further.length) });
+      last = Math.max(last, inkAt + REGION_INK_MS);
+    });
+    t = Math.max(CRISIS_WIN_MS, last);
+    add({ t, do: 'glow', which: null });
+    // The tag follows the world: it moves once the regions have changed hands (after war's own
+    // spread, when that is still to come).
+    if (!input.spread) add({ t, do: 'tag' });
+  } else if (input.lost) {
+    // A miss: no flourish; the drone dips, red ink runs into the crisis, the room shudders.
+    add({ t: 0, do: 'sound', sfx: 'ante_miss', intensity: 0.7 });
+    add({ t: 0, do: 'drone', level: 0.05 });
+    red++;
+    add({ t: MISS_INK_AT, do: 'take', region: input.lost.id, from: input.lost.from ?? input.lost.id, ms: WAR_INK_MS, gold, red });
+    add({ t: MISS_INK_AT, do: 'glow', which: 'war' });
+    add({ t: MISS_INK_AT, do: 'shake', px: 2, ms: 220 });
+    add({ t: MISS_INK_AT, do: 'buzz', pattern: [60, 80, 140] });
+    t = MISS_INK_AT + WAR_INK_MS;
+    add({ t, do: 'glow', which: null });
+    if (!input.spread) add({ t, do: 'tag' });
+  } else {
+    // A miss in the final push: no region changes; the war simply stops (the ending follows).
+    add({ t: 0, do: 'sound', sfx: 'ante_miss', intensity: 0.6 });
+    add({ t: 0, do: 'drone', level: 0.05 });
+    t = COLLAPSE_MS + 200;
   }
-  const coinsEnd = coinsAt + gapAt(Math.max(0, coins - 1));
-  const riseAt = coinsEnd + (r ? 20 : 240);
-  add({ t: riseAt, do: 'rise' });
-  add({ t: riseAt, do: 'sound', sfx: 'offer', intensity: 0.5 });
-  cues.sort((a, b) => a.t - b.t);
-  return { cues, end: riseAt + (r ? 80 : 300) };
+
+  // War spreads by itself (after turns 3, 6, 9 ...): a low drum, red ink into the tagged region.
+  if (input.spread) {
+    const at = t + SPREAD_GAP_MS;
+    red++;
+    add({ t: at, do: 'sound', sfx: 'flashpoint_hit', intensity: 0.55 });
+    add({ t: at, do: 'sound', sfx: 'thump', intensity: 0.8 });
+    add({ t: at, do: 'buzz', pattern: [40, 60, 40] });
+    add({ t: at, do: 'take', region: input.spread.id, from: input.spread.from ?? input.spread.id, ms: WAR_INK_MS, gold, red });
+    add({ t: at, do: 'glow', which: 'war' });
+    t = at + WAR_INK_MS;
+    add({ t, do: 'glow', which: null });
+    add({ t, do: 'tag' });
+  }
+  const settled = t;
+  add({ t: settled, do: 'clear' });
+  add({ t: settled, do: 'sound', sfx: 'slide', intensity: 0.3 });
+
+  const end = input.ending ? endingCues(add, input, t + ENDING_GAP_MS) : t + (input.holdMs ?? SETTLE_HOLD_MS);
+  return { cues, end, settled };
+}
+
+/** A region won back from war: a deeper chord under the note. */
+function addReclaim(add: (c: OutcomeCue) => void, t: number): void {
+  add({ t, do: 'sound', sfx: 'tally_slam', intensity: 0.35 });
+  add({ t, do: 'sound', sfx: 'meter_up', intensity: 0.6 });
+}
+
+/** The note for the k-th region won (1 = the first after the crisis) of n: up the scale, like coins. */
+function claimNote(t: number, k: number, n: number): OutcomeCue[] {
+  const hz = noteHz(k, n);
+  return [
+    { t, do: 'sound', sfx: 'tally_tick', intensity: tickAt(hz) },
+    { t, do: 'sound', sfx: 'tick', intensity: blipAt(hz) },
+    { t, do: 'sound', sfx: 'pin', intensity: 0.5 },
+  ];
+}
+
+/** The ending's beats from `at`; returns when the end card may show. */
+function endingCues(add: (c: OutcomeCue) => void, input: OutcomeInput, at: number): number {
+  switch (input.ending) {
+    case 'WORLD UNITED': {
+      const last = input.won.length ? input.won[input.won.length - 1].id : input.crisis;
+      add({ t: at, do: 'sunrise', ms: SUNRISE_MS });
+      add({ t: at, do: 'sound', sfx: 'ante_smash', intensity: 1 });
+      add({ t: at, do: 'glow', which: 'gold' });
+      // The chord lands as the sunrise reaches the middle; the wave rolls out from the last region won.
+      const waveAt = at + RISER_MS;
+      add({ t: waveAt, do: 'wave', region: last, ms: WAVE_MS });
+      add({ t: waveAt, do: 'sound', sfx: 'reveal', intensity: 0.8 });
+      add({ t: waveAt, do: 'buzz', pattern: [30, 50, 30, 50, 60] });
+      add({ t: waveAt + WAVE_MS, do: 'glow', which: null });
+      add({ t: waveAt + WAVE_MS, do: 'drone', level: 0 });
+      return waveAt + WAVE_MS + 300;
+    }
+    case 'CEASEFIRE':
+      add({ t: at, do: 'ceasefire' });
+      add({ t: at, do: 'sound', sfx: 'accident_clear', intensity: 0.7 });
+      add({ t: at, do: 'drone', level: 0 });
+      add({ t: at + 150, do: 'sound', sfx: 'ending', intensity: 0.5 });
+      return at + CEASEFIRE_HOLD_MS;
+    case 'WAR':
+      add({ t: at, do: 'lightsOut', ms: LIGHTS_OUT_MS });
+      add({ t: at, do: 'drone', level: 0 });
+      add({ t: at, do: 'sound', sfx: 'ending', intensity: 0.8 });
+      add({ t: at, do: 'buzz', pattern: [60, 80, 140] });
+      return at + LIGHTS_OUT_MS + 450;
+    default:
+      return at;
+  }
+}
+
+/** Cues that are only motion: reduced motion drops them (every sound and every change of hands stays). */
+const MOTION_ONLY = new Set<OutcomeKind>(['travel', 'shake', 'sunrise', 'wave', 'shockwave', 'coin']);
+
+/** Reduced motion: no travel, no waves; every region changes in place within the budget, every sound kept. */
+function reducedOutcome(input: OutcomeInput): Outcome {
+  const full = fullOutcome({ ...input, reduced: false });
+  const k = REDUCED_OUTCOME_BUDGET / Math.max(1, full.end);
+  const cues = full.cues
+    .filter((c) => !MOTION_ONLY.has(c.do))
+    .map((c): OutcomeCue => {
+      const t = Math.round(c.t * k);
+      if ('ms' in c) return { ...c, t, ms: c.do === 'lightsOut' ? 200 : 0 } as OutcomeCue;
+      return { ...c, t };
+    });
+  return { cues, end: REDUCED_OUTCOME_BUDGET, settled: Math.round(full.settled * k) };
 }

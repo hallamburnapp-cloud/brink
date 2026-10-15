@@ -1,55 +1,68 @@
 /**
- * The five simulator gates (spec section 14) on a smaller, fixed-seed sample. Each check gets
- * two standard errors of slack for the sample size; the full-size run is tools/war-sim.ts
- * (see docs/war/SIM-REPORT.md), where the thresholds apply exactly.
+ * SPEC sections 15 and 16 in CI: every case of docs/war/v2/reference/fixtures.json replayed through
+ * the engine with no difference, and the 17 simulator gates on a fixed 300-game sample per bot. On
+ * a sample this size each gate is allowed its sampling noise (about two standard errors, or the
+ * order-statistic interval for medians); the full-size run is `npx tsx tools/war-sim.ts`, where the
+ * thresholds apply exactly (docs/war/v2/SIM-REPORT.md). Where python3 is installed, a few games per
+ * bot are also played again by the Python reference on the same random streams (replay.py).
  */
+import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
-import { evaluateGates, GATE_ROWS, simulate, twoSigma, type SimResults } from './index';
+import { crosscheckFixtures, crosscheckText } from './crosscheck';
+import { GATES } from './gates';
+import { runReplay } from './replay';
+import { simulate, type SimResults } from './simulate';
 
-const SAMPLE = { seed: 'gates-test', crises: 150, deals: 600 } as const;
+const hasPython = spawnSync('python3', ['--version']).status === 0;
 
-describe('simulator gates (spec section 14)', () => {
-  let results: SimResults;
+describe('cross-check: the reference fixtures through the engine', () => {
+  const r = crosscheckFixtures();
 
-  it('plays the gate rows and the choice spread', async () => {
-    results = await simulate({ ...SAMPLE, rows: GATE_ROWS, gates: { tolerance: twoSigma } });
-    for (const id of GATE_ROWS) expect(results.tallies[id]?.n).toBe(SAMPLE.crises);
-    expect(results.spread.deals).toBe(SAMPLE.deals);
+  it('replays every case with no difference', () => {
+    expect(r.ok, crosscheckText(r)).toBe(true);
+  });
+
+  it('covers every kind of case', () => {
+    const cases = Object.fromEntries(r.sections.map((s) => [s.name, s.cases]));
+    expect(cases).toEqual({
+      'map and tunables': 2,
+      staff: 10,
+      targets: 40,
+      score: 400,
+      ladder: 200,
+      'legal, groups and lift': 500,
+      'win order and war spread': 350,
+      'FIRST-WORLD game': 2,
+    });
+  });
+});
+
+describe('simulator gates (SPEC section 16) on 300 games per bot', () => {
+  let res: SimResults;
+
+  it('plays 300 games with each of the six bots', async () => {
+    res = await simulate({ games: 300, prefix: 'W' });
+    for (const s of Object.values(res.stats)) expect(s?.n).toBe(300);
+    expect(res.gates.map((g) => g.id)).toEqual(GATES.map((g) => g.id));
+    expect(res.gates).toHaveLength(17);
   }, 60_000);
 
-  const gate = (index: number) => {
-    const g = results.gates.find((x) => x.index === index)!;
-    const detail = g.checks.map((c) => `${c.label} ${(100 * c.value).toFixed(1)}% ${c.op} ${100 * c.threshold}%`).join('; ');
-    return { g, detail };
-  };
+  for (const spec of GATES) {
+    it(`${spec.id} ${spec.title}: ${spec.threshold}`, () => {
+      const g = res.gates.find((x) => x.id === spec.id)!;
+      expect(g.passLoose, `${g.id} measured ${g.text}, threshold ${g.threshold}`).toBe(true);
+    });
+  }
 
-  it('1: the best play is at least 3x the median play in 90% or more of fresh deals', () => {
-    const { g, detail } = gate(1);
-    expect(g.pass, detail).toBe(true);
+  it('no game stalls, exactly', () => {
+    expect(res.gates.find((g) => g.id === 'G17')!.value).toBe(0);
   });
+});
 
-  it('2: no pattern is the best play in more than 30% of deals', () => {
-    const { g, detail } = gate(2);
-    expect(g.pass, `${detail} (${g.note})`).toBe(true);
-  });
-
-  it('3: the random tapper clears the 22:00 Flare-up 15% of the time or less', () => {
-    const { g, detail } = gate(3);
-    expect(g.pass, detail).toBe(true);
-  });
-
-  it('4: greedy with no staff clears 300 95% or more, and 2,500 15% or less', () => {
-    const { g, detail } = gate(4);
-    expect(g.pass, detail).toBe(true);
-  });
-
-  it('5: greedy with Duty Officer + Hotline Operator clears 2,500 90% or more', () => {
-    const { g, detail } = gate(5);
-    expect(g.pass, detail).toBe(true);
-  });
-
-  it('applies the thresholds exactly when no tolerance is given', () => {
-    const exact = evaluateGates({ spread: results.spread, rows: results.tallies });
-    for (const g of exact) for (const c of g.checks) expect(c.tolerance).toBe(0);
-  });
+describe.skipIf(!hasPython)('replay: the Python reference plays the same games', () => {
+  it('plays 25 games per bot identically, turn for turn, and prints the same gate values', () => {
+    const r = runReplay(25, 'R');
+    expect(r.ok, r.text).toBe(true);
+    expect(r.games).toBe(150);
+  }, 60_000);
 });

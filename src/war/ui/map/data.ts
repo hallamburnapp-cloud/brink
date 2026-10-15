@@ -1,7 +1,7 @@
 /**
  * The map data the renderer draws, read straight from map.json so the map does not depend on the
- * engine's content module. Nothing here changes during a run; per-run changes (colours, capitals,
- * ports, stamps) arrive through MapView.
+ * engine's content module. Nothing here changes during a game; what does (ownership, the deal,
+ * pins) arrives through MapView.
  */
 import mapJson from '../../content/map.json' with { type: 'json' };
 import type { Colour, RegionId } from './contract';
@@ -14,13 +14,13 @@ export type Mass = 'CAP' | 'HMR' | 'SND' | 'FRS';
 export interface MapRegion {
   id: RegionId;
   name: string;
-  /** Starting colour, which is also the landmass it sits on. */
+  /** The region's bloc, which is also the landmass it sits on. */
   colour: Colour;
   weight: number;
   x: number;
   y: number;
   island: boolean;
-  /** Starting flags (PROMOTE, the Herald and LAY CABLE change them during a run, via MapView). */
+  /** The map's own flags (the map draws the view's, which the engine may change). */
   capital: boolean;
   port: boolean;
   /** Position in REGIONS; the mask stores index + 1. */

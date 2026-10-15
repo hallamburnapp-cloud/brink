@@ -1,12 +1,16 @@
 /**
- * Flying numbers (STYLE 5.13, 7). Every number first pops where it was made (the '+w' rising out of
- * its pin, a staff number just under its seat), big enough to read, then flies to the top edge of
- * its box and fades as it arrives, so it never covers the digits it is about to change. Staff
- * flings carry a tapering trail and sparks; a multiplier flies bigger, in amber with a hot rim.
- * Drawn on one canvas over the whole frame; the loop runs only while something is in flight.
+ * Flying numbers (STYLE 5.13, 7). Every number first pops where it was made (the '+6' rising out of
+ * its pin, a staff number just under its seat, a '×2' off a region), big enough to read, then flies
+ * to the top edge of its box and fades as it arrives, so it never covers the digits it is about to
+ * change. Staff flings carry a tapering trail and sparks; a multiplier flies bigger, in amber with a
+ * hot rim; a new hire's first number is underlined in gold. The score flies the same way into the
+ * crisis ring, and a coin flies from each region won to the coin chip. The same canvas carries the
+ * WORLD UNITED sunrise sweeping the map from the east. Drawn on one canvas over the whole frame;
+ * the loop runs only while something moves.
  */
 
-export type Tone = 'inf' | 'mom' | 'lev';
+/** 'points' cyan, 'mult' amber, 'score' white-gold (the score on its way to the ring), 'coin' gold. */
+export type Tone = 'points' | 'mult' | 'score' | 'coin';
 
 export interface Flight {
   text: string;
@@ -31,16 +35,36 @@ export interface Flight {
   hot: boolean;
   /** 'in' accelerates away (readable as it leaves); 'inOut' for the short hop from a pin. */
   ease: 'in' | 'inOut';
+  /** A coin instead of text (the text is ignored). */
+  coin?: boolean;
+  /** A new hire's first firing: a gold underline... */
+  underline?: boolean;
+  /** ...and a smaller gold suffix after the number ('· new'). */
+  suffix?: string;
   seed: number;
 }
 
 const TONES: Record<Tone, { hi: string; glow: string; deep: string; trail: string }> = {
-  inf: { hi: '#D4F6FF', glow: 'rgba(95,212,244,0.95)', deep: 'rgba(4,18,26,0.92)', trail: '95,212,244' },
-  mom: { hi: '#FFE7BD', glow: 'rgba(255,181,71,0.95)', deep: 'rgba(36,22,6,0.92)', trail: '255,181,71' },
-  lev: { hi: '#FFFAF0', glow: 'rgba(255,220,160,0.95)', deep: 'rgba(30,22,10,0.92)', trail: '255,236,200' },
+  points: { hi: '#D4F6FF', glow: 'rgba(95,212,244,0.95)', deep: 'rgba(4,18,26,0.92)', trail: '95,212,244' },
+  mult: { hi: '#FFE7BD', glow: 'rgba(255,181,71,0.95)', deep: 'rgba(36,22,6,0.92)', trail: '255,181,71' },
+  score: { hi: '#FFFAF0', glow: 'rgba(255,220,160,0.95)', deep: 'rgba(30,22,10,0.92)', trail: '255,236,200' },
+  coin: { hi: '#FFE9A8', glow: 'rgba(242,210,122,0.95)', deep: 'rgba(42,28,8,0.92)', trail: '242,210,122' },
 };
 
+/** The WORLD UNITED sunrise: warm light crossing a rect (the map) from east to west. */
+export interface Sweep {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  start: number;
+  ms: number;
+}
+
 const FONT = '"JetBrains Mono", ui-monospace, monospace';
+const GOLD = '#F2D27A';
+/** A suffix ('· new') is drawn at this share of the number's size. */
+const SUFFIX_SCALE = 0.62;
 const W = 390;
 const H = 844;
 /** How close (pt) the middle of a flying number may come to the frame's side edges. */
@@ -104,6 +128,7 @@ function mulberry(seed: number): () => number {
 
 export class FlyerLayer {
   private flights: Flight[] = [];
+  private sweeps: Sweep[] = [];
   private raf = 0;
   private ctx: CanvasRenderingContext2D | null;
   private k = 1;
@@ -126,8 +151,16 @@ export class FlyerLayer {
     if (!this.raf) this.raf = requestAnimationFrame(this.frame);
   }
 
+  /** Sunrise across a rect (frame px) from east to west over `ms`. */
+  sunrise(rect: readonly [number, number, number, number], ms: number): void {
+    const [x, y, w, h] = rect;
+    this.sweeps.push({ x, y, w, h, start: performance.now(), ms: Math.max(1, ms) });
+    if (!this.raf) this.raf = requestAnimationFrame(this.frame);
+  }
+
   clear(): void {
     this.flights = [];
+    this.sweeps = [];
     if (this.raf) cancelAnimationFrame(this.raf);
     this.raf = 0;
     this.ctx?.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -146,9 +179,36 @@ export class FlyerLayer {
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     ctx.setTransform(this.k, 0, 0, this.k, 0, 0);
     this.flights = this.flights.filter((f) => now < f.start + f.ms);
+    this.sweeps = this.sweeps.filter((w) => now < w.start + w.ms);
+    for (const w of this.sweeps) this.drawSweep(ctx, w, now);
     for (const f of this.flights) this.draw(ctx, f, now);
-    if (this.flights.length) this.raf = requestAnimationFrame(this.frame);
+    if (this.flights.length || this.sweeps.length) this.raf = requestAnimationFrame(this.frame);
   };
+
+  /**
+   * Sunrise: a broad band of warm white light enters at the east edge and crosses to the west,
+   * brightest at its leading edge, then fades. Screen-blended so it still reads over an all-gold map.
+   */
+  private drawSweep(ctx: CanvasRenderingContext2D, w: Sweep, now: number): void {
+    const p = Math.min(1, Math.max(0, (now - w.start) / w.ms));
+    const band = w.w * 0.6;
+    // The leading edge runs from the east side to just past the west side, slowing as it goes.
+    const edge = w.x + w.w - easeOut(p) * (w.w + band * 0.35);
+    const fade = p < 0.08 ? p / 0.08 : p > 0.78 ? Math.max(0, (1 - p) / 0.22) : 1;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(w.x, w.y, w.w, w.h);
+    ctx.clip();
+    ctx.globalCompositeOperation = 'screen';
+    const g = ctx.createLinearGradient(edge, 0, edge + band, 0);
+    g.addColorStop(0, 'rgba(255,250,235,0)');
+    g.addColorStop(0.05, `rgba(255,250,232,${(0.85 * fade).toFixed(3)})`);
+    g.addColorStop(0.3, `rgba(255,214,140,${(0.45 * fade).toFixed(3)})`);
+    g.addColorStop(1, 'rgba(242,170,80,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(edge, w.y, band, w.h);
+    ctx.restore();
+  }
 
   private draw(ctx: CanvasRenderingContext2D, f: Flight, now: number): void {
     const el = now - f.start;
@@ -175,27 +235,98 @@ export class FlyerLayer {
     if (f.trail && el >= f.pop && p > 0.02) this.trail(ctx, f, p, tone.trail, alpha);
 
     const size = f.size * scale;
+    if (f.coin) {
+      this.drawCoin(ctx, x, y, size / 2, alpha);
+      return;
+    }
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.font = `800 ${size.toFixed(2)}px ${FONT}`;
-    ctx.textAlign = 'center';
+    const font = `800 ${size.toFixed(2)}px ${FONT}`;
+    const suffixFont = `800 ${(size * SUFFIX_SCALE).toFixed(2)}px ${FONT}`;
+    ctx.font = font;
+    const main = ctx.measureText(f.text).width;
+    let tail = 0;
+    if (f.suffix) {
+      ctx.font = suffixFont;
+      tail = size * 0.2 + ctx.measureText(f.suffix).width;
+    }
+    // The whole label stays inside the frame, even off a pin on the map's edge.
+    const width = main + tail;
+    const left = Math.max(4, Math.min(W - 4 - width, x - width / 2));
+    ctx.font = font;
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.lineJoin = 'round';
     if (f.hot) {
       // A multiplier's hot rim: a white-amber halo outside the dark edge.
       ctx.lineWidth = 6;
       ctx.strokeStyle = 'rgba(255,220,150,0.55)';
-      ctx.strokeText(f.text, x, y);
+      ctx.strokeText(f.text, left, y);
     }
     ctx.lineWidth = 3;
     ctx.strokeStyle = tone.deep;
-    ctx.strokeText(f.text, x, y);
+    ctx.strokeText(f.text, left, y);
     ctx.shadowColor = tone.glow;
     ctx.shadowBlur = (f.hot ? 14 : 10) * this.k;
     ctx.fillStyle = tone.hi;
-    ctx.fillText(f.text, x, y);
+    ctx.fillText(f.text, left, y);
     ctx.shadowBlur = 0;
-    ctx.fillText(f.text, x, y);
+    ctx.fillText(f.text, left, y);
+    if (f.suffix) {
+      // '· new', smaller and in gold, on the number's baseline.
+      const sx = left + main + size * 0.2;
+      const sy = y + size * 0.14;
+      ctx.font = suffixFont;
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(20,14,4,0.9)';
+      ctx.strokeText(f.suffix, sx, sy);
+      ctx.fillStyle = GOLD;
+      ctx.fillText(f.suffix, sx, sy);
+    }
+    if (f.underline) {
+      // A new hire's first number: a gold rule under it, so the jump is pinned on the hire.
+      const uy = y + size * 0.58;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(20,14,4,0.85)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(left, uy);
+      ctx.lineTo(left + width, uy);
+      ctx.stroke();
+      ctx.strokeStyle = GOLD;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /** A gold coin with a dark diamond, like the coin chip's. */
+  private drawCoin(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, alpha: number): void {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = 'rgba(242,210,122,0.9)';
+    ctx.shadowBlur = 8 * this.k;
+    const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.1, x, y, r);
+    g.addColorStop(0, '#FFF1C4');
+    g.addColorStop(0.55, '#F2C94C');
+    g.addColorStop(1, '#9A7424');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(60,40,8,0.8)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    const d = r * 0.45;
+    ctx.fillStyle = 'rgba(70,46,10,0.9)';
+    ctx.beginPath();
+    ctx.moveTo(x, y - d);
+    ctx.lineTo(x + d, y);
+    ctx.lineTo(x, y + d);
+    ctx.lineTo(x - d, y);
+    ctx.closePath();
+    ctx.fill();
     ctx.restore();
   }
 

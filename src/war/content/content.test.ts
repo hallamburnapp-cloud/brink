@@ -14,9 +14,8 @@ import {
   REGIONS,
   joinKey,
 } from './map';
-import { ORDERS, ORDER_IDS, playbook } from './orders';
-import { PATTERNS, PUBLIC_PATTERNS, SECRET_PATTERNS, patternValues } from './patterns';
-import { SHOP_STAFF, STAFF, STAFF_DEF, seatChip } from './staff';
+import { loadFixtures } from '../engine/testdata';
+import { STAFF, STAFF_DEF, STAFF_IDS, isStaffId, seatChip } from './staff';
 
 describe('the map', () => {
   it('has 30 regions, 6 per colour, with unique ids', () => {
@@ -95,82 +94,63 @@ describe('the map', () => {
   });
 });
 
-describe('patterns', () => {
-  it('lists the 11 rungs with the spec values', () => {
-    expect(PATTERNS.map((p) => [p.name, p.baseInfluence, p.baseMomentum, p.influencePerLevel, p.momentumPerLevel])).toEqual([
-      ['SINGLE', 5, 1, 10, 1],
-      ['LINK', 10, 2, 15, 1],
-      ['TWO LINKS', 20, 2, 20, 1],
-      ['WORLDWIDE', 30, 2, 25, 2],
-      ['CHAIN', 30, 3, 20, 2],
-      ['FRONT', 45, 4, 25, 3],
-      ['SURROUND', 50, 5, 30, 3],
-      ['NETWORK', 70, 6, 35, 3],
-      ['BLOC', 90, 8, 40, 4],
-      ['WHOLE BLOC', 140, 12, 50, 4],
-      ['AROUND THE WORLD', 180, 15, 50, 5],
-    ]);
-    expect(PUBLIC_PATTERNS).toHaveLength(9);
-    expect(SECRET_PATTERNS).toEqual(['WHOLE_BLOC', 'AROUND_THE_WORLD']);
-  });
-
-  it('levels add their gain', () => {
-    expect(patternValues('NETWORK', 3)).toEqual({ influence: 140, momentum: 12 });
-    expect(patternValues('NETWORK', 6)).toEqual({ influence: 245, momentum: 21 });
-  });
-});
-
 describe('staff', () => {
-  it('has the 20 staff with spec prices and sell values', () => {
-    expect(STAFF).toHaveLength(20);
-    const row = (id: keyof typeof STAFF_DEF) => [STAFF_DEF[id].rarity, STAFF_DEF[id].price, STAFF_DEF[id].sell];
-    expect(row('DUTY')).toEqual(['common', 3, 1]);
-    expect(row('GOVERNOR')).toEqual(['common', 5, 2]);
-    expect(row('FERRY')).toEqual(['uncommon', 7, 3]);
-    expect(row('CHIEF')).toEqual(['rare', 9, 4]);
-    expect(row('DEPUTY')).toEqual(['rare', 10, 5]);
-    expect(STAFF_DEF.SOVEREIGN.sell).toBe(10);
-    for (const s of STAFF) if (s.id !== 'SOVEREIGN') expect(s.sell).toBe(Math.max(1, Math.floor(s.price / 2)));
-  });
-
-  it('sells staff 1-19 in the shop, never the Sovereign', () => {
-    expect(SHOP_STAFF).toHaveLength(19);
-    expect(SHOP_STAFF).not.toContain('SOVEREIGN');
-    expect(STAFF.filter((s) => s.rarity === 'common')).toHaveLength(8);
-    expect(STAFF.filter((s) => s.rarity === 'uncommon')).toHaveLength(6);
-    expect(STAFF.filter((s) => s.rarity === 'rare')).toHaveLength(5);
-  });
-
-  it('has the spec seat chips, with the Old Hand count live', () => {
-    expect(STAFF.map((s) => s.chip)).toEqual([
-      '+4M', '+30I', '+15⚓', '+15≤4', '+8M·3', '+5M★', '+4◆', '+nI', 'thr×3', '×3≤3',
-      '×2·4', '×2·4c', '1st×2', '⚓=⚓', '★×2', '×1.5⚓', '×1.5★sb', 'COPY', 'all★', '★×2M',
+  it('has the ten staff of SPEC section 7, in shop order, with prices and sale values', () => {
+    expect(STAFF.map((x) => [x.id, x.name, x.object, x.price, x.sell])).toEqual([
+      ['DUTY', 'Duty Officer', 'desk lamp', 3, 1],
+      ['QM', 'Quartermaster', 'supply crate', 3, 1],
+      ['SURVEYOR', 'Surveyor', 'theodolite', 4, 2],
+      ['OLDHAND', 'Old Hand', 'tin mug', 4, 2],
+      ['SOVEREIGN', 'Sovereign', 'signet ring', 5, 2],
+      ['STRATEGIST', 'Strategist', 'folded map', 5, 2],
+      ['GOVERNOR', 'Governor', 'wax seal', 6, 3],
+      ['HARBOUR', 'Harbourmaster', "ship's bell", 6, 3],
+      ['HERALD', 'Herald', 'paper crown', 6, 3],
+      ['DEPUTY', 'Deputy', 'carbon paper', 7, 3],
     ]);
-    expect(seatChip('OLDHAND', 15)).toBe('+15I');
-    expect(seatChip('DUTY')).toBe('+4M');
+    expect(STAFF_IDS).toHaveLength(10);
+    for (const x of STAFF) expect(x.sell).toBe(Math.floor(x.price / 2));
   });
 
-  it('writes every rule in plain words with no placeholder text', () => {
-    for (const s of STAFF) {
-      expect(s.rule.length).toBeGreaterThan(8);
-      expect(s.rule.length).toBeLessThanOrEqual(80);
-      expect(s.object.length).toBeGreaterThan(2);
+  it('prints every rule exactly, in 8 words or fewer', () => {
+    expect(STAFF.map((x) => x.rule)).toEqual([
+      '+4 multiplier.',
+      '+20 points.',
+      '+1 multiplier for every 3 regions you hold.',
+      '×1 multiplier. Grows by 0.2 every turn.',
+      '×2 multiplier for each capital pinned.',
+      '×3 multiplier if you pin 4 or 5.',
+      '×1.5 multiplier for each gold region pinned.',
+      '×1.5 multiplier for each port pinned.',
+      'Every pin counts as a capital and port.',
+      'Copies the staff to its right.',
+    ]);
+    for (const x of STAFF) expect(x.rule.split(' ').length).toBeLessThanOrEqual(8);
+  });
+
+  it('matches the reference staff table', () => {
+    const ref = loadFixtures().staff;
+    expect(Object.keys(ref)).toEqual([...STAFF_IDS]);
+    for (const x of STAFF) {
+      expect(ref[x.id]).toEqual({ name: x.name, icon: x.object, price: x.price, rule: x.rule, chip: x.chip });
     }
   });
-});
 
-describe('orders and playbooks', () => {
-  it('has the 8 Orders at ◆3, selling for ◆1', () => {
-    expect(ORDER_IDS).toEqual(['FORTIFY', 'RELAY', 'ECHO', 'CABLE', 'DEFECT', 'PROMOTE', 'RETIRE', 'AIRLIFT']);
-    for (const o of ORDERS) {
-      expect(o.price).toBe(3);
-      expect(o.sell).toBe(1);
-      expect(o.crisisOnly).toBe(o.id === 'AIRLIFT');
-    }
+  it('has the seat chips, with the Surveyor and Old Hand live', () => {
+    expect(STAFF.map((x) => seatChip(x.id))).toEqual([
+      '+4', '+20', '+0', '×1.0', '×2 CAPITAL', '×3 IF 4+', '×1.5 GOLD', '×1.5 PORT', 'ALL PINS ★ ⚓', 'COPY',
+    ]);
+    expect(seatChip('SURVEYOR', { gold: 14 })).toBe('+4');
+    expect(seatChip('OLDHAND', { oldHandM10: 14 })).toBe('×1.4');
+    expect(seatChip('OLDHAND', { oldHandM10: 30 })).toBe('×3.0');
   });
 
-  it('describes Playbooks from the ladder', () => {
-    expect(playbook('NETWORK')).toMatchObject({ name: 'NETWORK PLAYBOOK', price: 3 });
-    expect(playbook('NETWORK').rule).toBe('NETWORK: +35 Influence, +3 Momentum.');
+  it('colours chips by what they add and knows where each acts', () => {
+    expect(STAFF.filter((x) => x.tone === 'points').map((x) => x.id)).toEqual(['QM']);
+    expect(STAFF_DEF.GOVERNOR.actsOn).toBe('gold');
+    expect(STAFF_DEF.HARBOUR.actsOn).toBe('port');
+    expect(STAFF_DEF.SOVEREIGN.actsOn).toBe('capital');
+    expect(isStaffId('HERALD')).toBe(true);
+    expect(isStaffId('FERRY')).toBe(false);
   });
 });

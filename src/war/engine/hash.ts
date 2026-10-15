@@ -2,7 +2,7 @@
  * Stable hashes for determinism checks: the same seed and the same actions must give the same
  * trace (and state) in every browser. FNV-1a 32-bit over a canonical string, as 8 hex digits.
  */
-import type { RunState, TraceEvent } from './types';
+import type { GameState, TraceEvent } from './types';
 
 function fnv1a(text: string, h = 0x811c9dc5): number {
   for (let i = 0; i < text.length; i++) {
@@ -28,12 +28,12 @@ export function hashText(text: string): string {
   return fnv1a(text).toString(16).padStart(8, '0');
 }
 
-/** Hash one or more sweep traces. */
+/** Hash a send's trace (or several traces joined). */
 export function hashTrace(events: readonly TraceEvent[]): string {
   return hashText(canonical(events));
 }
 
-/** Hash a whole run state (everything, including the rng streams). */
-export function hashState(s: RunState): string {
+/** Hash a whole game state (everything, including the rng streams). */
+export function hashState(s: GameState): string {
   return hashText(canonical(s));
 }

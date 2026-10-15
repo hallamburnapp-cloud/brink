@@ -1,7 +1,7 @@
 /**
- * The Big Board's tick-up as an odometer: the crisis total rolls from the old value to the new one
- * in a few steps on an ease-out curve. Every step shows a value between the two, each larger than
- * the last, so the board never shows a number the sweep did not reach.
+ * A number rolling up like an odometer (the readout's score plate): from the old value to the new
+ * one in a few steps on an ease-out curve. Every step shows a value between the two, each larger than
+ * the last, so the plate never shows a number the send did not reach.
  */
 import { formatShort } from '../../engine';
 
@@ -42,16 +42,4 @@ export function rollSteps(from: bigint, to: bigint, ms: number): RollStep[] {
   }
   out.push(last);
   return out;
-}
-
-/**
- * Where a number's tiles sit on the scale: its unit letter and how many decimals it shows ('0' for
- * 1,350; 'B2' for 5.80B; 'B1' for 10.6B). Tiles are keyed from the right, so while this stays the
- * same each tile keeps its place value and a right-to-left cascade can only show less than the new
- * value. When it changes (9.71B to 10.2B), a tile that flipped late would put an old digit in a new
- * place ('90.8B'): the row is set afresh instead.
- */
-export function layoutOf(text: string): string {
-  const m = /(?:\.(\d+))?([KMBT]?)$/.exec(text.trim());
-  return `${m?.[2] ?? ''}${m?.[1]?.length ?? 0}`;
 }

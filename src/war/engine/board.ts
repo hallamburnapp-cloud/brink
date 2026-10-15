@@ -1,121 +1,101 @@
 /**
- * The board as the rules see it at one moment: which regions are live, which are joined
- * (land, lanes, cables, Ferry Master; minus lanes and cables under GRIDLOCK), each region's
- * current colour, and which regions count as Capitals and Ports. Also resolves Deputies.
+ * The join graph, which never changes during a game: land borders, island causeways and sea
+ * lanes all count as joins. Distances are counted in joins. Region order follows the reference
+ * (`IDS`: ids sorted), so every tie-break matches rules.py.
  */
-import { LAND, LANES, REGION, REGION_IDS, joinKey, type RegionId } from '../content/map';
-import type { StaffId } from '../content/staff';
-import type { Colour, SeatedStaff, Twist, World } from './types';
+import { LAND, LANES, REGION, REGION_IDS, compareWestEast, joinKey, type RegionId } from '../content/map';
 
-/** A seat as it acts: a Deputy acts as the nearest non-Deputy staff to its right. */
-export interface ActingStaff {
-  seat: number;
-  /** The rule this seat applies; null for a Deputy with nothing to copy. */
-  id: StaffId | null;
-  count: number;
-  viaDeputy: boolean;
+/** The 30 region ids, sorted (the reference's IDS order). */
+export const IDS: readonly RegionId[] = [...REGION_IDS].sort();
+
+/** Index of each region in IDS (bit position in a region mask). */
+export const INDEX: Readonly<Record<RegionId, number>> = Object.fromEntries(IDS.map((id, i) => [id, i]));
+
+const adjacency = new Map<RegionId, Set<RegionId>>(IDS.map((id) => [id, new Set<RegionId>()]));
+for (const [a, b] of [...LAND, ...LANES]) {
+  adjacency.get(a)!.add(b);
+  adjacency.get(b)!.add(a);
 }
 
-export function resolveStaff(staff: readonly SeatedStaff[]): ActingStaff[] {
-  return staff.map((s, seat) => {
-    if (s.id !== 'DEPUTY') return { seat, id: s.id, count: s.count, viaDeputy: false };
-    let j = seat + 1;
-    while (j < staff.length && staff[j].id === 'DEPUTY') j++;
-    if (j >= staff.length) return { seat, id: null, count: 0, viaDeputy: true };
-    return { seat, id: staff[j].id, count: staff[j].count, viaDeputy: true };
-  });
+/** Neighbours of every region over land, causeway or sea lane, sorted by id. */
+export const ADJ: Readonly<Record<RegionId, readonly RegionId[]>> = Object.fromEntries(
+  IDS.map((id) => [id, [...adjacency.get(id)!].sort()]),
+);
+
+/** Neighbour bit masks by region index (bit i is IDS[i]). */
+export const ADJ_MASK: readonly number[] = IDS.map((id) => ADJ[id].reduce((m, n) => m | (1 << INDEX[n]), 0));
+
+const LANE_KEYS = new Set(LANES.map(([a, b]) => joinKey(a, b)));
+
+/** True when a and b share a land border, a causeway or a sea lane. */
+export function isJoined(a: RegionId, b: RegionId): boolean {
+  return adjacency.get(a)?.has(b) ?? false;
 }
 
-export interface Board {
-  world: World;
-  acting: ActingStaff[];
-  /** Ids of seated staff (Deputies included). Rule staff work by presence. */
-  seated: ReadonlySet<StaffId>;
-  twist: Twist | null;
-  gridlock: boolean;
-  ferry: boolean;
-  /** Non-retired regions in map order. */
-  live: RegionId[];
-  liveSet: ReadonlySet<RegionId>;
-  adj: ReadonlyMap<RegionId, ReadonlySet<RegionId>>;
-  colourOf(r: RegionId): Colour;
-  isCapital(r: RegionId): boolean;
-  isPort(r: RegionId): boolean;
-  joined(a: RegionId, b: RegionId): boolean;
-  traffic(a: RegionId, b: RegionId): number;
+/** True when a and b are joined by a sea lane (threads draw dashed). */
+export function isLane(a: RegionId, b: RegionId): boolean {
+  return LANE_KEYS.has(joinKey(a, b));
 }
 
-/** Ports: both ends of every sea lane and every cable. */
-export function portSet(world: World): Set<RegionId> {
-  const ports = new Set<RegionId>();
-  for (const [a, b] of LANES) {
-    ports.add(a);
-    ports.add(b);
-  }
-  for (const [a, b] of world.cables) {
-    ports.add(a);
-    ports.add(b);
-  }
-  return ports;
-}
-
-/** Capitals before the Herald: the five starting capitals plus PROMOTE. */
-export function baseCapital(world: World, r: RegionId): boolean {
-  return REGION[r].capital || world.promoted.includes(r);
-}
-
-/** Joined on the permanent map (land, lane or cable), ignoring twists and staff. */
-export function permanentlyJoined(world: World, a: RegionId, b: RegionId): boolean {
-  const key = joinKey(a, b);
-  return PERMANENT_KEYS.has(key) || world.cables.some(([x, y]) => joinKey(x, y) === key);
-}
-
-const PERMANENT_KEYS = new Set([...LAND, ...LANES].map(([a, b]) => joinKey(a, b)));
-
-export function buildBoard(world: World, staff: readonly SeatedStaff[], twist: Twist | null): Board {
-  const acting = resolveStaff(staff);
-  const seated = new Set(staff.map((s) => s.id));
-  const gridlock = twist?.kind === 'GRIDLOCK';
-  const ferry = seated.has('FERRY') && !gridlock;
-  const retired = new Set(world.retired);
-  const live = REGION_IDS.filter((r) => !retired.has(r));
-  const liveSet = new Set(live);
-  const ports = portSet(world);
-  const herald = seated.has('HERALD');
-
-  const adj = new Map<RegionId, Set<RegionId>>();
-  for (const r of live) adj.set(r, new Set());
-  const link = (a: RegionId, b: RegionId) => {
-    if (a === b || !liveSet.has(a) || !liveSet.has(b)) return;
-    adj.get(a)!.add(b);
-    adj.get(b)!.add(a);
-  };
-  for (const [a, b] of LAND) link(a, b);
-  if (!gridlock) {
-    for (const [a, b] of LANES) link(a, b);
-    for (const [a, b] of world.cables) link(a, b);
-  }
-  if (ferry) {
-    const livePorts = live.filter((r) => ports.has(r));
-    for (let i = 0; i < livePorts.length; i++) {
-      for (let j = i + 1; j < livePorts.length; j++) link(livePorts[i], livePorts[j]);
+function bfs(src: RegionId): { dist: Record<RegionId, number>; parent: Record<RegionId, RegionId | null> } {
+  const dist: Record<RegionId, number> = { [src]: 0 };
+  const parent: Record<RegionId, RegionId | null> = { [src]: null };
+  const queue = [src];
+  for (let i = 0; i < queue.length; i++) {
+    const r = queue[i];
+    for (const n of ADJ[r]) {
+      if (n in dist) continue;
+      dist[n] = dist[r] + 1;
+      parent[n] = r;
+      queue.push(n);
     }
   }
+  return { dist, parent };
+}
 
-  return {
-    world,
-    acting,
-    seated,
-    twist,
-    gridlock,
-    ferry,
-    live,
-    liveSet,
-    adj,
-    colourOf: (r) => world.colour[r],
-    isCapital: (r) => herald || baseCapital(world, r),
-    isPort: (r) => ports.has(r),
-    joined: (a, b) => adj.get(a)?.has(b) ?? false,
-    traffic: (a, b) => world.traffic[joinKey(a, b)] ?? 0,
-  };
+const TREES = Object.fromEntries(IDS.map((id) => [id, bfs(id)]));
+
+/** Joins between any two regions. */
+export function distance(a: RegionId, b: RegionId): number {
+  return TREES[a].dist[b];
+}
+
+/**
+ * The shortest chain of joins from `from` to `to`, both ends included (the gold pulse a win
+ * travels along). Ties go to the neighbour first in id order, so the chain is always the same.
+ */
+export function pathBetween(from: RegionId, to: RegionId): RegionId[] {
+  const parent = TREES[to].parent;
+  const path = [from];
+  let r = from;
+  while (r !== to) {
+    r = parent[r]!;
+    path.push(r);
+  }
+  return path;
+}
+
+/** A sorted copy: west to east (x, then y), the scoring order. */
+export function westToEast(ids: Iterable<RegionId>): RegionId[] {
+  return [...ids].sort(compareWestEast);
+}
+
+/** Squared distance between two pin centres (map points). */
+export function pinDistance2(a: RegionId, b: RegionId): number {
+  const dx = REGION[a].x - REGION[b].x;
+  const dy = REGION[a].y - REGION[b].y;
+  return dx * dx + dy * dy;
+}
+
+/** Region ids in a mask, in IDS order. */
+export function maskIds(mask: number): RegionId[] {
+  const out: RegionId[] = [];
+  for (let i = 0; i < IDS.length; i++) if (mask & (1 << i)) out.push(IDS[i]);
+  return out;
+}
+
+export function idsMask(ids: Iterable<RegionId>): number {
+  let m = 0;
+  for (const r of ids) m |= 1 << INDEX[r];
+  return m;
 }

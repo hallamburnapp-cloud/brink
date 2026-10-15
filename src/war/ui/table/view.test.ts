@@ -1,67 +1,51 @@
 import { describe, expect, it } from 'vitest';
-import { newRun, newSandbox, pin, sweep, type RunState } from '../../engine';
-import { mapViewOf, NO_EXTRAS } from './view';
+import { must, newGame, nextTurn, pinAll, send, swap } from '../../engine';
+import { freshlyLit, mapViewFor, NO_EXTRAS } from './view';
 
-function pinAll(s: RunState, ids: string[]): RunState {
-  for (const id of ids) s = pin(s, id).state;
-  return s;
-}
+const first = () => newGame('FIRST-WORLD');
 
 describe('the map view', () => {
-  it('shows the deal, the pins joining and their sweep order while choosing', () => {
-    const s = pinAll(newRun('FIRST-NIGHT'), ['LNK', 'GUL', 'SHL']);
-    const v = mapViewOf(s, NO_EXTRAS);
-    expect(Object.values(v.regions).filter((r) => r.status === 'lit')).toHaveLength(8);
-    expect(v.joinedPins).toEqual([
-      ['GUL', 'LNK'],
-      ['LNK', 'SHL'],
-    ]);
-    expect(v.sweepOrder).toEqual({ GUL: 1, LNK: 2, SHL: 3 });
-    expect(v.flashpoint).toBe('LNK');
-    expect(v.ring).toBe(1);
-    expect(v.gridlock).toBe(false);
+  it('passes the engine\'s view through, with the HUD\'s finger and hover on a copy', () => {
+    const s = pinAll(first(), ['SHL', 'LNK']);
+    const v = mapViewFor(s, { ...NO_EXTRAS, finger: 'SHL', hover: 'PBB' });
+    expect(v.crisis).toEqual({ id: 'SHL', target: '64', doubled: true });
+    expect(v.finger).toBe('SHL');
+    expect(v.hover).toBe('PBB');
+    expect(v.regions.SHL.preview).toEqual({ kind: 'win', order: 1 });
+    expect(v.joinedPins).toHaveLength(1);
+    expect([...v.joinedPins[0]].sort()).toEqual(['LNK', 'SHL']);
   });
 
-  it('marks the lit regions a further pin would join (none before a pin, none at five)', () => {
-    const fresh = newRun('FIRST-NIGHT');
-    expect(mapViewOf(fresh, NO_EXTRAS).joinable).toBeNull();
-    const one = pinAll(fresh, ['LNK']);
-    expect(mapViewOf(one, NO_EXTRAS).joinable).toEqual(['GUL', 'SHL']);
-    const two = pinAll(fresh, ['LNK', 'GUL']);
-    expect(mapViewOf(two, NO_EXTRAS).joinable).toEqual(['SHL']);
-    // Edda Vale joins none of the Scatter's lit islands: a pin there has nothing to offer.
-    expect(mapViewOf(pinAll(fresh, ['EDV']), NO_EXTRAS).joinable).toEqual(['QLN']);
+  it('draws the intro\'s calm world: every region lit, no ring, no tag, no pins', () => {
+    const v = mapViewFor(pinAll(first(), ['SHL']), { ...NO_EXTRAS, calm: true });
+    expect(v.crisis).toBeNull();
+    expect(v.warNext).toBeNull();
+    expect(v.joinedPins).toEqual([]);
+    expect(Object.values(v.regions).every((r) => r.lit && !r.pinned && r.preview === null)).toBe(true);
+    expect(v.regions.LNK.owner).toBe('gold');
+    expect(['DNM', 'ORN', 'FLE'].map((id) => v.regions[id].owner)).toEqual(['red', 'red', 'red']);
   });
 
-  it('goes quiet between crises and holds back the brass pin until it drops', () => {
-    let s = sweep(pinAll(newRun('FIRST-NIGHT'), ['LNK', 'GUL', 'SHL'])).state;
-    s = sweep(pinAll(s, ['NWK', 'FRM', 'WNM', 'WMS'])).state;
-    expect(s.phase).toBe('briefing');
-    const quiet = mapViewOf(s, NO_EXTRAS);
-    expect(Object.values(quiet.regions).some((r) => r.status === 'lit' || r.pinned)).toBe(false);
-    expect(quiet.regions.WMS.brass).toBe(1);
-    expect(quiet.ring).toBe(0);
-    const held = mapViewOf(s, { ...NO_EXTRAS, brassHold: 'WMS' });
-    expect(held.regions.WMS.brass).toBe(0);
+  it('shows no finger or hover outside a turn', () => {
+    const done = must(send(pinAll(first(), ['SHL', 'LNK'])));
+    const v = mapViewFor(done, { ...NO_EXTRAS, finger: 'SHL', hover: 'PBB' });
+    expect(v.finger).toBeNull();
+    expect(v.hover).toBeNull();
   });
+});
 
-  it('holds the sweep on the table while the outcome plays: its pins and threads, no refill', () => {
-    const before = pinAll(newRun('FIRST-NIGHT'), ['LNK', 'GUL', 'SHL']);
-    const after = sweep(before).state;
-    const keep = { lit: before.crisis.lit, pins: ['GUL', 'LNK', 'SHL'], joins: [['GUL', 'LNK'], ['LNK', 'SHL']] as Array<[string, string]> };
-    const v = mapViewOf(after, { ...NO_EXTRAS, keep });
-    const lit = Object.values(v.regions).filter((r) => r.status === 'lit');
-    expect(lit.map((r) => r.id).sort()).toEqual([...before.crisis.lit].sort());
-    expect(['GUL', 'LNK', 'SHL'].every((id) => v.regions[id].pinned)).toBe(true);
-    expect(v.joinedPins).toEqual(keep.joins);
-    // The refill (Frostmere, Wenmoor, Wintermast) waits until the hold ends.
-    expect(v.regions.FRM.status).not.toBe('lit');
-    expect(mapViewOf(after, NO_EXTRAS).regions.FRM.status).toBe('lit');
-  });
-
-  it('lets the ring follow the total being shown during a sweep', () => {
-    const s = newSandbox('mid');
-    expect(mapViewOf(s, { ...NO_EXTRAS, total: 4_500n }).ring).toBeCloseTo(0.5, 4);
-    expect(mapViewOf(s, { ...NO_EXTRAS, total: 10_920n }).ring).toBe(0);
+describe('the deal light-up', () => {
+  it('lights the crisis and the whole deal on a new turn, and only the new regions after a swap', () => {
+    const s1 = first();
+    expect(freshlyLit(null, s1)).toEqual(['SHL', ...s1.deal.lit]);
+    const sent = must(send(pinAll(s1, ['SHL', 'LNK'])));
+    const s2 = must(nextTurn(sent));
+    expect(freshlyLit(sent, s2)).toEqual([s2.deal.crisis, ...s2.deal.lit]);
+    const pinned = pinAll(s2, [s2.deal.crisis]);
+    const swapped = must(swap(pinned));
+    const fresh = freshlyLit(pinned, swapped);
+    expect(fresh.length).toBeGreaterThan(0);
+    expect(fresh.every((id) => !pinned.deal.lit.includes(id))).toBe(true);
+    expect(freshlyLit(swapped, swapped)).toEqual([]);
   });
 });

@@ -1,704 +1,484 @@
 /**
- * The run state machine: 3 Hours of 3 crises (plus KEEP GOING), the Briefing between crises,
- * Orders, seats and the sandboxes. Every action takes a state and returns a Result holding a
- * NEW state (or the same state and a short reason the UI can show when the action is refused).
+ * The game state machine (SPEC sections 1, 5, 7 and 13): new games, the turn (pin, swap, send),
+ * the outcome on the map, war spreading by itself, the final push and the three endings, the
+ * shop, and the scripted seeds. Every action takes a state and returns a Result holding a NEW
+ * state, or the same state and a short reason the UI can show when the action is refused.
  */
 import { Rng } from '../../engine/rng';
-import { REGION, REGION_IDS, joinKey, type Colour, type RegionId } from '../content/map';
-import { ORDER } from '../content/orders';
-import { PATTERN_IDS, type PatternId } from '../content/patterns';
-import { STAFF_DEF, type StaffId } from '../content/staff';
-import { buildBoard, resolveStaff, type Board } from './board';
-import { dealRegions, makeCrisis, refill, spend, type Deal } from './deck';
-import { draft } from './draft';
-import { planHour } from './hours';
-import { applyOrderEffect, targetProblem, targetsProblem } from './orders';
-import { startingLevels } from './patterns';
-import { OVERWHELM_STEPS, RULES } from './rules';
-import { scoreSelection, type ScoreResult } from './score';
-import { openBriefing, rollOffers } from './shop';
-import type { HourPlan, Result, RunState, SweepRecord, SweepSummary, Twist, World } from './types';
+import type { RegionId } from '../content/map';
+import { STAFF_DEF } from '../content/staff';
+import { pathBetween } from './board';
+import { deal, scriptedDeal, swapLit } from './deck';
+import { canAdd, legal, lift } from './groups';
+import { regionsWon, target } from './ladder';
+import { RULES } from './rules';
+import { scorePins } from './score';
+import { CROWN, CROWN_SEED, FIRST_WORLD, FIRST_WORLD_SEED } from './seeds';
+import { drawOffers, openShop, shopDue } from './shop';
+import type { Ending, GameState, Owner, Result, SendRecord, WonRegion } from './types';
+import {
+  countOwner,
+  crisisPool,
+  decodeOwners,
+  freshOwners,
+  placeWar,
+  warSource,
+  warSpreadTarget,
+  winOrder,
+  type OwnerMap,
+} from './world';
 
-export const FIRST_NIGHT_SEED = 'FIRST-NIGHT';
+const ok = (state: GameState): Result => ({ ok: true, state });
+const no = (state: GameState, reason: string): Result => ({ ok: false, reason, state });
 
-/** The first night's opening pile (spec section 11): 8 lit, then FRM, WNM, WMS. */
-export const FIRST_NIGHT_PILE: readonly RegionId[] = [
-  'LNK',
-  'GUL',
-  'SHL',
-  'EDV',
-  'QLN',
-  'NWK',
-  'ICW',
-  'HRT',
-  'FRM',
-  'WNM',
-  'WMS',
-];
-
-const ok = (state: RunState): Result => ({ ok: true, state });
-const no = (state: RunState, reason: string): Result => ({ ok: false, reason, state });
-
-// ---------------------------------------------------------------- setup
-
-const REGION_COLOUR: Record<RegionId, Colour> = Object.fromEntries(REGION_IDS.map((id) => [id, REGION[id].colour]));
-
-/** The map as it starts every run: starting colours, no stamps, cables, traffic or brass. */
-export function startingWorld(): World {
+/**
+ * A copy that is safe to change. Records that never change once made (lastSend, log entries,
+ * best) are shared between the old and the new state.
+ */
+function draft(s: GameState): GameState {
   return {
-    colour: { ...REGION_COLOUR },
-    promoted: [],
-    cables: [],
-    stamps: {},
-    brass: {},
-    traffic: {},
-    retired: [],
-    levels: startingLevels(),
-    scored: {},
+    ...s,
+    rng: { war: [...s.rng.war], crisis: [...s.rng.crisis], deal: [...s.rng.deal], shop: [...s.rng.shop] },
+    owner: { ...s.owner },
+    seats: s.seats.map((x) => ({ ...x })),
+    hiredSinceSend: [...s.hiredSinceSend],
+    deal: {
+      ...s.deal,
+      lit: [...s.deal.lit],
+      pile: [...s.deal.pile],
+      opening: [...s.deal.opening],
+      pins: [...s.deal.pins],
+    },
+    shop: s.shop && { ...s.shop, offers: [...s.shop.offers] },
+    log: [...s.log],
+    brass: [...s.brass],
   };
 }
 
-function zeroMade(): Record<PatternId, number> {
-  return Object.fromEntries(PATTERN_IDS.map((p) => [p, 0])) as Record<PatternId, number>;
-}
-
-interface SetupOptions {
-  mode: RunState['mode'];
-  hour: number;
-  crisisIndex: 0 | 1 | 2;
-  targets?: [bigint, bigint, bigint];
-  /** Lay out the first deal; receives the deal rng. */
-  deal?: (rng: Rng) => Deal;
-  /** Adjust the fresh state (staff, levels, traffic, Funds) after the first deal. */
-  prepare?: (s: RunState) => void;
-}
-
-function setup(seed: string, opts: SetupOptions): RunState {
+function streams(seed: string): GameState['rng'] {
   const root = new Rng(seed);
-  const dealRng = root.fork('deal');
-  const shopRng = root.fork('shop');
-  const twistRng = root.fork('twist');
-  const hour = planHour(opts.hour, null, twistRng, opts.targets);
-  const world = startingWorld();
-  const deal = opts.deal ? opts.deal(dealRng) : dealRegions(world.retired, dealRng);
-  const s: RunState = {
-    version: 1,
-    seed,
-    mode: opts.mode,
-    firstNight: seed === FIRST_NIGHT_SEED && opts.mode === 'run',
-    rng: { deal: dealRng.snapshot(), shop: shopRng.snapshot(), twist: twistRng.snapshot() },
-    phase: 'crisis',
-    hour,
-    sliceEndHour: opts.mode === 'run' ? RULES.sliceEndHour : opts.hour,
-    funds: RULES.startFunds,
-    seatCount: RULES.seats,
-    traySlots: RULES.traySlots,
-    staff: [],
-    tray: [],
-    world,
-    crisis: makeCrisis(opts.hour, opts.crisisIndex, hour.targets[opts.crisisIndex], deal),
-    shop: null,
-    armed: null,
-    lastSweep: null,
-    lastClear: null,
-    best: null,
-    log: [],
-    made: zeroMade(),
-    sweepsTaken: 0,
-    briefings: 0,
-    nextUid: 1,
+  return {
+    war: root.fork('war').snapshot(),
+    crisis: root.fork('crisis').snapshot(),
+    deal: root.fork('deal').snapshot(),
+    shop: root.fork('shop').snapshot(),
   };
-  opts.prepare?.(s);
+}
+
+function blankState(seed: string, mode: GameState['mode'], owner: OwnerMap): GameState {
+  return {
+    version: 2,
+    seed,
+    mode,
+    rng: streams(seed),
+    phase: 'choose',
+    turn: 0,
+    owner,
+    coins: RULES.startCoins,
+    seats: [],
+    oldHandM10: RULES.oldHandStartM10,
+    nextUid: 1,
+    hiredSinceSend: [],
+    deal: {
+      crisis: RULES.home,
+      target: 0n,
+      finalPush: false,
+      lit: [],
+      pile: [],
+      opening: [],
+      pins: [],
+      swapsLeft: 0,
+      swapLocked: false,
+    },
+    shop: null,
+    shopVisits: 0,
+    ending: null,
+    lastSend: null,
+    log: [],
+    best: null,
+    peakWar: countOwner(owner, 'red'),
+    brass: [],
+  };
+}
+
+/** Start the next turn on a draft: target, crisis, deal (SPEC section 5, steps 1-2). */
+function beginTurn(s: GameState): void {
+  s.turn += 1;
+  const { pool, finalPush } = crisisPool(s.owner);
+  if (!pool.length) throw new Error('no region for a crisis');
+  const crisisRng = new Rng(s.rng.crisis);
+  const pick = crisisRng.pick(pool);
+  s.rng.crisis = crisisRng.snapshot();
+  const script = s.mode === 'first' ? FIRST_WORLD.turns[s.turn] : undefined;
+  let crisis = pick;
+  let dealt;
+  if (script && pool.includes(script.crisis)) {
+    crisis = script.crisis;
+    dealt = scriptedDeal(s.owner, crisis, script.lit, script.pile);
+  } else {
+    const dealRng = new Rng(s.rng.deal);
+    dealt = deal(s.owner, crisis, dealRng);
+    s.rng.deal = dealRng.snapshot();
+  }
+  const locked = s.mode === 'first' && FIRST_WORLD.swapLockedTurns.includes(s.turn);
+  s.deal = {
+    crisis,
+    target: target(s.turn),
+    finalPush,
+    lit: dealt.lit,
+    pile: dealt.pile,
+    opening: [...dealt.lit],
+    pins: [],
+    swapsLeft: locked ? 0 : RULES.swaps,
+    swapLocked: locked,
+  };
+  s.shop = null;
+  s.phase = 'choose';
+}
+
+export interface NewGameOptions {
+  /** The scripted first game (seed FIRST-WORLD). The seed 'FIRST-WORLD' implies it. */
+  firstWorld?: boolean;
+  /** 'crown': the CROWN demo (Example 3 at turn 14), streams seeded 'CROWN'. */
+  demo?: 'crown';
+}
+
+/** A new game, dealt and ready: turn 1 (or the CROWN's turn 14), phase 'choose'. */
+export function newGame(seed: string, opts: NewGameOptions = {}): GameState {
+  if (opts.demo === 'crown') return crownGame();
+  const first = opts.firstWorld === true || seed === FIRST_WORLD_SEED;
+  const s = blankState(first ? FIRST_WORLD_SEED : seed, first ? 'first' : 'game', freshOwners());
+  if (first) {
+    for (const r of FIRST_WORLD.war) s.owner[r] = 'red';
+  } else {
+    const rng = new Rng(s.rng.war);
+    placeWar(s.owner, rng);
+    s.rng.war = rng.snapshot();
+  }
+  s.peakWar = countOwner(s.owner, 'red');
+  beginTurn(s);
   return s;
 }
 
-/**
- * A new night. Seed 'FIRST-NIGHT' gives the scripted first deal and first Briefing.
- * `opts.sandbox` starts a sandbox instead (same as newSandbox).
- */
-export function newRun(seed: string, opts: { sandbox?: 'late' | 'mid' } = {}): RunState {
-  if (opts.sandbox) return newSandbox(opts.sandbox, seed);
-  const scripted = seed === FIRST_NIGHT_SEED ? FIRST_NIGHT_PILE : [];
-  return setup(seed, { mode: 'run', hour: 0, crisisIndex: 0, deal: (rng) => dealRegions([], rng, scripted) });
+/** The CROWN demo: Example 3 exactly (SPEC section 13). */
+function crownGame(): GameState {
+  const owner = freshOwners();
+  for (const r of CROWN.gold) owner[r] = 'gold';
+  for (const r of CROWN.red) owner[r] = 'red';
+  const s = blankState(CROWN_SEED, 'crown', owner);
+  s.seats = CROWN.seats.map((id, i) => ({ uid: i + 1, id }));
+  s.nextUid = CROWN.seats.length + 1;
+  s.coins = CROWN.coins;
+  s.turn = CROWN.turn;
+  s.deal = {
+    crisis: CROWN.crisis,
+    target: target(CROWN.turn),
+    finalPush: false,
+    lit: [...CROWN.lit],
+    pile: [...CROWN.pile],
+    opening: [...CROWN.lit],
+    pins: [],
+    swapsLeft: RULES.swaps,
+    swapLocked: false,
+  };
+  return s;
 }
 
-function seat(s: RunState, id: StaffId): void {
-  s.staff.push({ uid: s.nextUid++, id, count: 0 });
+// ---------------------------------------------------------------- choosing
+
+/** Pin a lit region (or the crisis) that touches the pins (SPEC section 5, step 3). */
+export function pin(s: GameState, id: RegionId): Result {
+  if (s.phase !== 'choose') return no(s, 'The turn is over.');
+  const d = s.deal;
+  if (d.pins.includes(id)) return no(s, 'Already pinned.');
+  if (id !== d.crisis && !d.lit.includes(id)) return no(s, 'That region is not lit.');
+  if (d.pins.length >= RULES.maxPins) return no(s, 'Five pins at most.');
+  if (!canAdd(d.pins, id, d.lit, d.crisis)) return no(s, 'Pin a region that touches your pins.');
+  return ok({ ...s, deal: { ...d, pins: [...d.pins, id] } });
 }
 
-function fixedDeal(rng: Rng, flashpoint: RegionId, lit: readonly RegionId[]): Deal {
-  const rest = rng.shuffle(REGION_IDS.filter((r) => !lit.includes(r)));
-  return { flashpoint, lit: [...lit], pile: rest };
+/** Lift a pin, and every pin no longer touching the group of the earliest remaining pin. */
+export function unpin(s: GameState, id: RegionId): Result {
+  if (s.phase !== 'choose') return no(s, 'The turn is over.');
+  if (!s.deal.pins.includes(id)) return no(s, 'Not pinned.');
+  return ok({ ...s, deal: { ...s.deal, pins: lift(s.deal.pins, id) } });
 }
 
-function setTraffic(w: World, list: ReadonlyArray<readonly [RegionId, RegionId, number]>): void {
-  for (const [a, b, t] of list) w.traffic[joinKey(a, b)] = t;
+/** Tap a region: lift it if pinned, else pin it. */
+export function togglePin(s: GameState, id: RegionId): Result {
+  return s.deal.pins.includes(id) ? unpin(s, id) : pin(s, id);
 }
 
-/**
- * Sandboxes (spec section 12).
- * - 'late' (Late Shift): OVERTIME 10:00 Flare-up, target 600,000,000; Herald, Governor, Signals
- *   Officer, Deputy, The Sovereign; Network level 6; 2 brass pins on LNK; ◆40.
- * - 'mid' (Mid Shift): 01:00 Standoff, target 9,000; Harbourmaster, Hotline Operator,
- *   Strategist; Network level 3; KLP Fortified.
- */
-export function newSandbox(kind: 'late' | 'mid', seed = kind === 'late' ? 'LATE-SHIFT' : 'MID-SHIFT'): RunState {
-  if (kind === 'late') {
-    return setup(seed, {
-      mode: 'late',
-      hour: 12,
-      crisisIndex: 0,
-      targets: [600_000_000n, 900_000_000n, 1_200_000_000n],
-      deal: (rng) => fixedDeal(rng, 'HRT', ['EDV', 'MRD', 'TRN', 'LNK', 'GUL', 'ICW', 'HRT', 'BRK']),
-      prepare: (s) => {
-        for (const id of ['HERALD', 'GOVERNOR', 'SIGNALS', 'DEPUTY', 'SOVEREIGN'] as const) seat(s, id);
-        s.world.levels.NETWORK = 6;
-        s.world.brass.LNK = 2;
-        setTraffic(s.world, [
-          ['EDV', 'MRD', 6],
-          ['MRD', 'TRN', 9],
-          ['TRN', 'GUL', 4],
-          ['GUL', 'LNK', 3],
-          ['TRN', 'LNK', 7],
-        ]);
-        s.funds = 40;
-      },
-    });
-  }
-  return setup(seed, {
-    mode: 'mid',
-    hour: 3,
-    crisisIndex: 1,
-    deal: (rng) => fixedDeal(rng, 'TLM', ['SHL', 'LTL', 'TLM', 'KLP', 'KLM', 'EDV', 'ICW', 'DRF']),
-    prepare: (s) => {
-      for (const id of ['HARBOUR', 'HOTLINE', 'STRATEGIST'] as const) seat(s, id);
-      s.world.levels.NETWORK = 3;
-      s.world.stamps.KLP = 'FORTIFY';
-      setTraffic(s.world, [
-        ['SHL', 'LTL', 2],
-        ['LTL', 'TLM', 3],
-        ['KLP', 'TLM', 2],
-        ['KLM', 'KLP', 1],
-      ]);
-    },
-  });
+export function clearPins(s: GameState): Result {
+  if (s.phase !== 'choose') return no(s, 'The turn is over.');
+  if (s.deal.pins.length === 0) return ok(s);
+  return ok({ ...s, deal: { ...s.deal, pins: [] } });
 }
 
-// ---------------------------------------------------------------- the board right now
-
-/** The Summit twist when it is in force (during a Summit crisis), else null. */
-export function twistInForce(s: RunState): Twist | null {
-  return s.phase === 'crisis' && s.crisis.index === 2 ? s.hour.twist : null;
-}
-
-const boards = new WeakMap<RunState, Board>();
-
-/**
- * The join graph and rules for this state. Cached per state object, which is safe because a
- * returned state is never mutated; never call it on a draft inside an action.
- */
-export function boardOf(s: RunState): Board {
-  let b = boards.get(s);
-  if (!b) {
-    b = buildBoard(s.world, s.staff, twistInForce(s));
-    boards.set(s, b);
-  }
-  return b;
-}
-
-/** Score a selection on this state without committing anything (bots, the CLEARS lamp). */
-export function scorePins(s: RunState, pins: readonly RegionId[], opts: { trace?: boolean } = {}): ScoreResult | null {
-  if (pins.length === 0) return null;
-  return scoreSelection(boardOf(s), { pins, lit: s.crisis.lit, flashpoint: s.crisis.flashpoint }, opts);
-}
-
-// ---------------------------------------------------------------- pins
-
-function inCrisis(s: RunState): string | null {
-  return s.phase === 'crisis' ? null : 'No crisis on the table.';
-}
-
-export function pin(s: RunState, region: RegionId): Result {
-  const bad = inCrisis(s);
-  if (bad) return no(s, bad);
-  const c = s.crisis;
-  if (c.pins.includes(region)) return no(s, 'Already pinned.');
-  if (s.world.retired.includes(region)) return no(s, 'That region is retired.');
-  if (c.spent.includes(region)) return no(s, 'That region is spent this crisis.');
-  if (!c.lit.includes(region)) return no(s, 'Only lit regions can be pinned.');
-  if (c.pins.length >= RULES.maxPins) return no(s, 'Five pins is the limit.');
-  const d = draft(s);
-  d.crisis.pins.push(region);
-  return ok(d);
-}
-
-/** Lift a pin. Lifting the Airlift pin returns the AIRLIFT paper to the tray. */
-export function unpin(s: RunState, region: RegionId): Result {
-  const bad = inCrisis(s);
-  if (bad) return no(s, bad);
-  if (!s.crisis.pins.includes(region)) return no(s, 'Not pinned.');
-  const d = draft(s);
-  const c = d.crisis;
-  c.pins = c.pins.filter((r) => r !== region);
-  if (c.airlift === region) {
-    c.pile.push(region);
-    if (c.airliftPaper) d.tray.push(c.airliftPaper);
-    c.airlift = null;
-    c.airliftPaper = null;
-  }
-  return ok(d);
-}
-
-export function togglePin(s: RunState, region: RegionId): Result {
-  return s.crisis.pins.includes(region) ? unpin(s, region) : pin(s, region);
-}
-
-/** Lift every pin (the Airlift pin too, returning its paper). */
-export function clearPins(s: RunState): Result {
-  let cur = s;
-  for (const r of [...s.crisis.pins]) cur = unpin(cur, r).state;
-  return ok(cur);
-}
-
-// ---------------------------------------------------------------- sweep and swap
-
-export function sweepProblem(s: RunState): string | null {
-  const bad = inCrisis(s);
-  if (bad) return bad;
-  const c = s.crisis;
-  if (c.sweepsLeft <= 0) return 'No sweeps left.';
-  if (c.pins.length === 0) return 'Pin at least one lit region.';
-  if (twistInForce(s)?.kind === 'FULL_TABLE' && c.pins.length !== RULES.fullTable) return 'FULL TABLE: pin exactly 5.';
+/** Why SWAP cannot be used now, or null. */
+export function swapProblem(s: GameState): string | null {
+  if (s.phase !== 'choose') return 'The turn is over.';
+  const d = s.deal;
+  if (d.swapLocked) return 'Swap opens next turn.';
+  if (d.swapsLeft <= 0) return 'One swap a turn.';
+  if (!d.lit.some((r) => !d.pins.includes(r))) return 'Nothing to swap.';
+  if (d.pile.length === 0) return 'No regions left to swap in.';
   return null;
 }
 
-export function swapProblem(s: RunState): string | null {
-  const bad = inCrisis(s);
-  if (bad) return bad;
-  const c = s.crisis;
-  if (c.swapsLeft <= 0) return 'No swaps left.';
-  if (!c.pins.some((r) => r !== c.airlift)) return 'Pin the regions you want to swap out.';
+/** SWAP (once a turn): unpinned lit regions go dark to the bottom of the pile; new ones light. */
+export function swap(s: GameState): Result {
+  const problem = swapProblem(s);
+  if (problem) return no(s, problem);
+  const d = s.deal;
+  const dealt = swapLit(d.lit, d.pile, d.pins);
+  return ok({ ...s, deal: { ...d, lit: dealt.lit, pile: dealt.pile, swapsLeft: d.swapsLeft - 1 } });
+}
+
+/** Why SEND cannot be pressed now, or null. */
+export function sendProblem(s: GameState): string | null {
+  if (s.phase !== 'choose') return 'The turn is over.';
+  const d = s.deal;
+  if (d.pins.length === 0) return 'Pin a region first.';
+  if (!legal(d.pins, d.lit, d.crisis)) return 'Pins must touch.';
   return null;
 }
 
-/** Score the pins, commit, spend them and refill; then clear, miss or carry on. */
-export function sweep(s: RunState): Result {
-  const bad = sweepProblem(s);
-  if (bad) return no(s, bad);
-  const res = scorePins(s, s.crisis.pins, { trace: true })!;
+// ---------------------------------------------------------------- sending
+
+/**
+ * SEND: score the pins and resolve the turn (SPEC section 5, steps 5-10): the outcome on the map,
+ * war's own spread after turns 3, 6, 9 ..., the Old Hand, the end check, then the shop (after
+ * turns 2, 4, 6 ...) or phase 'outcome'. state.lastSend holds everything the cascade needs.
+ */
+export function send(s: GameState): Result {
+  const problem = sendProblem(s);
+  if (problem) return no(s, problem);
   const d = draft(s);
-  const c = d.crisis;
-  const w = d.world;
+  const { crisis, target: T, finalPush } = d.deal;
+  const res = scorePins(d.deal.pins, d.seats.map((x) => x.id), d.owner, crisis, d.oldHandM10, { trace: true });
+  const k = regionsWon(res.score, T);
+  const coinsBefore = d.coins;
+  const goldBefore = countOwner(d.owner, 'gold');
+  const redBefore = countOwner(d.owner, 'red');
 
-  // Commit: traffic, Old Hand, glow, total.
-  for (const [a, b] of res.threads) {
-    const k = joinKey(a, b);
-    w.traffic[k] = (w.traffic[k] ?? 0) + 1;
+  let ending: Ending | null = null;
+  let won: WonRegion[] = [];
+  let lost: SendRecord['lost'] = null;
+  if (k > 0) {
+    won = winOrder(crisis, d.owner, k).map((id, i) => ({
+      id,
+      order: i + 1,
+      wasRed: d.owner[id] === 'red',
+      path: pathBetween(crisis, id),
+    }));
+    for (const w of won) d.owner[w.id] = 'gold';
+    d.coins += RULES.coinPerRegion * won.length;
+    if (!d.brass.includes(crisis)) d.brass.push(crisis);
+  } else if (finalPush) {
+    ending = 'CEASEFIRE';
+  } else {
+    lost = { id: crisis, from: warSource(d.owner, crisis) };
+    d.owner[crisis] = 'red';
   }
-  for (const st of d.staff) if (st.id === 'OLDHAND') st.count += 5;
-  for (const [r, n] of Object.entries(res.passes)) if (n > 0) w.scored[r] = (w.scored[r] ?? 0) + n;
-  const totalBefore = c.total;
-  c.total += res.leverage;
-  c.sweepsLeft -= 1;
-  d.sweepsTaken += 1;
-  d.made[res.pattern] += 1;
 
-  // Every pinned region is spent; the Airlift pin is used up.
-  const pins = [...c.pins];
-  spend(c, pins);
-  c.pins = [];
-  c.airlift = null;
-  c.airliftPaper = null;
-  refill(d);
+  let spread: SendRecord['spread'] = null;
+  if (!ending && d.turn % RULES.warEvery === 0 && countOwner(d.owner, 'red') < RULES.loseAt) {
+    const r = warSpreadTarget(d.owner);
+    if (r) {
+      spread = { id: r, from: warSource(d.owner, r) };
+      d.owner[r] = 'red';
+    }
+  }
 
-  const cleared = c.total >= c.target;
-  const record: SweepRecord = {
-    n: c.sweeps.length + 1,
-    pins,
-    pattern: res.pattern,
-    level: res.level,
-    scoringSet: res.scoringSet,
-    topRegion: res.topRegion,
-    leverage: res.leverage,
-    totalBefore,
-    totalAfter: c.total,
-    target: c.target,
-    cleared,
-    baseInfluence: res.baseInfluence,
-    baseM10: res.baseM10,
-    influence: res.influence,
+  if (d.seats.some((x) => x.id === 'OLDHAND')) d.oldHandM10 += RULES.oldHandStepM10;
+
+  const gold = countOwner(d.owner, 'gold');
+  const red = countOwner(d.owner, 'red');
+  if (!ending) {
+    if (red >= RULES.loseAt) ending = 'WAR';
+    else if (gold === RULES.regions) ending = 'WORLD UNITED';
+  }
+
+  const record: SendRecord = {
+    turn: d.turn,
+    crisis,
+    target: T,
+    finalPush,
+    pins: res.trace!.flatMap((e) => (e.kind === 'pin' ? [e.region] : [])),
+    onCrisis: d.deal.pins.includes(crisis),
+    points: res.points,
     m10: res.m10,
-    ringed: res.ringed,
-    threads: res.threads,
-    hour: c.hour,
-    crisisIndex: c.index,
-    trace: res.trace,
+    score: res.score,
+    regions: won.length,
+    result: k > 0 ? 'win' : 'miss',
+    won,
+    lost,
+    spread,
+    coinsBefore,
+    coinsAfter: d.coins,
+    goldBefore,
+    redBefore,
+    gold,
+    red,
+    grey: RULES.regions - gold - red,
+    newHires: d.hiredSinceSend,
+    ending,
+    trace: res.trace!,
   };
-  c.sweeps.push(summarize(record));
-  d.lastSweep = record;
-  d.lastClear = null;
-  d.armed = null;
-  if (!d.best || res.leverage > d.best.leverage) {
-    d.best = {
-      leverage: res.leverage,
-      pattern: res.pattern,
-      level: res.level,
-      pins,
-      scoringSet: res.scoringSet,
-      hour: c.hour,
-      crisisIndex: c.index,
-    };
-  }
-
-  if (cleared) clearCrisis(d, res.topRegion);
-  else if (c.sweepsLeft === 0) endCrisis(d, 'missed');
-  return ok(d);
-}
-
-function summarize(r: SweepRecord): SweepSummary {
-  const { n, pins, pattern, level, scoringSet, topRegion, leverage, totalBefore, totalAfter, target, cleared } = r;
-  return { n, pins, pattern, level, scoringSet, topRegion, leverage, totalBefore, totalAfter, target, cleared };
-}
-
-function endCrisis(d: RunState, outcome: 'missed' | 'cleared'): void {
-  const c = d.crisis;
-  const best = c.sweeps.reduce<SweepSummary | null>(
-    (b, x) => (!b || x.leverage > b.leverage ? x : b),
-    null,
-  );
+  d.lastSend = record;
+  d.hiredSinceSend = [];
   d.log.push({
-    hour: c.hour,
-    crisisIndex: c.index,
-    kind: c.kind,
-    target: c.target,
-    total: c.total,
-    sweepsUsed: c.sweeps.length,
-    cleared: outcome === 'cleared',
-    bestPattern: best?.pattern ?? null,
-    bestLeverage: best?.leverage ?? 0n,
+    turn: d.turn,
+    target: T,
+    score: res.score,
+    regions: won.length,
+    result: record.result,
+    spread: spread?.id ?? null,
+    gold,
+    red,
   });
-  if (outcome === 'missed') d.phase = 'missed';
-}
-
-function clearCrisis(d: RunState, top: RegionId): void {
-  const c = d.crisis;
-  c.cleared = true;
-  const fundsBefore = d.funds;
-  const reward = RULES.rewards[c.index];
-  const unusedSweeps = c.sweepsLeft;
-  const interest = Math.min(RULES.interestCap, Math.floor(fundsBefore / RULES.interestPer));
-  const overwhelm = OVERWHELM_STEPS.find(([x]) => c.total >= c.target * x)?.[1] ?? 0;
-  // Never boardOf(d) here: d is a draft still being changed, and boards are cached per state.
-  const treasurers = resolveStaff(d.staff).filter((a) => a.id === 'TREASURER').length;
-  const treasurer = treasurers * RULES.treasurerFunds;
-  const payout = reward + unusedSweeps + interest + overwhelm + treasurer;
-  d.funds += payout;
-  d.world.brass[top] = (d.world.brass[top] ?? 0) + 1;
-  d.lastClear = {
-    hour: c.hour,
-    crisisIndex: c.index,
-    reward,
-    unusedSweeps,
-    interest,
-    overwhelm,
-    treasurer,
-    payout,
-    fundsBefore,
-    fundsAfter: d.funds,
-    brass: top,
-  };
-  endCrisis(d, 'cleared');
-  if (c.index === 2 && d.sliceEndHour === c.hour) {
-    d.phase = 'sliceEnd';
-  } else {
-    d.phase = 'briefing';
-    openBriefing(d);
+  // The best send is the biggest win; a miss counts only while nothing has won (a late miss can
+  // outscore every win and still be no best send).
+  const won1 = res.score >= T;
+  const bestWon = !!d.best && d.best.score >= d.best.target;
+  if (!d.best || (won1 && !bestWon) || (won1 === bestWon && res.score > d.best.score)) {
+    d.best = { score: res.score, target: T, turn: d.turn, regions: won.length };
   }
-}
+  d.peakWar = Math.max(d.peakWar, red);
 
-/** Send the selected lit regions dark and light new ones (the Airlift pin stays). */
-export function swap(s: RunState): Result {
-  const bad = swapProblem(s);
-  if (bad) return no(s, bad);
-  const d = draft(s);
-  const c = d.crisis;
-  const out = c.pins.filter((r) => r !== c.airlift);
-  spend(c, out);
-  c.pins = c.airlift ? [c.airlift] : [];
-  c.swapsLeft -= 1;
-  refill(d);
-  d.armed = null;
-  return ok(d);
-}
-
-// ---------------------------------------------------------------- between crises
-
-function dealNext(d: RunState, hourIndex: number, index: 0 | 1 | 2): void {
-  const rng = new Rng(d.rng.deal);
-  const deal = dealRegions(d.world.retired, rng);
-  d.rng.deal = rng.snapshot();
-  d.crisis = makeCrisis(hourIndex, index, d.hour.targets[index], deal);
-}
-
-function startHour(d: RunState, hourIndex: number): void {
-  const rng = new Rng(d.rng.twist);
-  const plan: HourPlan = planHour(hourIndex, d.hour.targets, rng);
-  d.rng.twist = rng.snapshot();
-  d.hour = plan;
-}
-
-/** Leave the Briefing: deal the next crisis (and start the next Hour after a Summit). */
-export function nextCrisis(s: RunState): Result {
-  if (s.phase !== 'briefing') return no(s, 'Finish the crisis first.');
-  const d = draft(s);
-  d.shop = null;
-  d.armed = null;
-  d.lastClear = null;
-  const c = s.crisis;
-  if (c.index < 2) {
-    dealNext(d, c.hour, (c.index + 1) as 1 | 2);
+  if (ending) {
+    d.ending = ending;
+    d.phase = 'over';
+  } else if (shopDue(d.turn)) {
+    openShop(d);
   } else {
-    startHour(d, c.hour + 1);
-    dealNext(d, c.hour + 1, 0);
+    d.phase = 'outcome';
   }
-  d.phase = 'crisis';
   return ok(d);
 }
 
-/** After the slice's last Summit: carry on into the next Hour (testing only). Opens a Briefing. */
-export function keepGoing(s: RunState): Result {
-  if (s.phase !== 'sliceEnd') return no(s, 'The night is not over yet.');
+/** NEXT TURN: close the shop (if open) and deal turn t + 1. */
+export function nextTurn(s: GameState): Result {
+  if (s.phase === 'over') return no(s, 'The game is over.');
+  if (s.phase === 'choose') return no(s, 'Send first.');
   const d = draft(s);
-  d.sliceEndHour = null;
-  d.phase = 'briefing';
-  openBriefing(d);
+  beginTurn(d);
   return ok(d);
 }
 
-// ---------------------------------------------------------------- the Briefing
+// ---------------------------------------------------------------- the shop
 
-function inBriefing(s: RunState): string | null {
-  return s.phase === 'briefing' && s.shop ? null : 'The Briefing is closed.';
+function shopProblem(s: GameState): string | null {
+  return s.phase === 'shop' && s.shop ? null : 'The shop is closed.';
 }
 
-function canAct(s: RunState): string | null {
-  return s.phase === 'crisis' || s.phase === 'briefing' ? null : 'The night is over.';
+/** Why offer `slot` cannot be hired (into a free seat, or in place of `replaceSeat`), or null. */
+export function buyProblem(s: GameState, slot: number, replaceSeat?: number): string | null {
+  const closed = shopProblem(s);
+  if (closed) return closed;
+  const id = s.shop!.offers[slot];
+  if (id === undefined) return 'No such offer.';
+  if (id === null) return 'Already hired.';
+  if (s.seats.some((x) => x.id === id)) return 'Already seated.';
+  const cost = STAFF_DEF[id].price;
+  if (replaceSeat === undefined) {
+    if (s.seats.length >= RULES.seats) return 'No free seat. Tap a seat to replace.';
+    return s.coins >= cost ? null : 'Not enough coins.';
+  }
+  const old = s.seats[replaceSeat];
+  if (!old) return 'No one in that seat.';
+  return s.coins + STAFF_DEF[old.id].sell >= cost ? null : 'Not enough coins.';
 }
 
-const NO_SEAT = 'No free seat. Sell someone first.';
-const NO_TRAY = 'In-tray full. Use or sell a paper first.';
-const NO_FUNDS = 'Not enough Funds.';
-
-/** Why offer `slot` can't be bought right now, or null. */
-export function offerProblem(s: RunState, slot: number): string | null {
-  const bad = inBriefing(s);
-  if (bad) return bad;
-  const offer = s.shop!.offers[slot];
-  if (!offer) return 'Nothing there.';
-  if (s.funds < offer.price) return NO_FUNDS;
-  if (offer.kind === 'staff' && s.staff.length >= s.seatCount) return NO_SEAT;
-  if (offer.kind === 'order' && s.tray.length >= s.traySlots) return NO_TRAY;
-  return null;
-}
-
-/** Buy offer slot 0 or 1: staff take the leftmost free seat, Orders a tray slot, Playbooks apply now. */
-export function buyOffer(s: RunState, slot: number): Result {
-  const bad = offerProblem(s, slot);
-  if (bad) return no(s, bad);
-  const offer = s.shop!.offers[slot]!;
+/**
+ * Hire offer `slot` into the leftmost free seat, or in place of seat `replaceSeat` (that staff
+ * sells for half its price, rounded down, first).
+ */
+export function buy(s: GameState, slot: number, replaceSeat?: number): Result {
+  const problem = buyProblem(s, slot, replaceSeat);
+  if (problem) return no(s, problem);
   const d = draft(s);
-  d.funds -= offer.price;
+  const id = d.shop!.offers[slot]!;
+  const seat = { uid: d.nextUid++, id };
+  if (replaceSeat === undefined) {
+    d.seats.push(seat);
+  } else {
+    const old = d.seats[replaceSeat];
+    d.coins += STAFF_DEF[old.id].sell;
+    d.seats[replaceSeat] = seat;
+    d.hiredSinceSend = d.hiredSinceSend.filter((u) => u !== old.uid);
+    if (old.id === 'OLDHAND') d.oldHandM10 = RULES.oldHandStartM10;
+  }
+  d.coins -= STAFF_DEF[id].price;
   d.shop!.offers[slot] = null;
-  if (offer.kind === 'staff') seat(d, offer.id);
-  else if (offer.kind === 'order') d.tray.push({ uid: d.nextUid++, id: offer.id });
-  else d.world.levels[offer.pattern] += 1;
+  if (id === 'OLDHAND') d.oldHandM10 = RULES.oldHandStartM10;
+  d.hiredSinceSend.push(seat.uid);
   return ok(d);
 }
 
-/** Reroll both offer slots. Costs 4, then 5, 6 ... and resets each Briefing. */
-export function reroll(s: RunState): Result {
-  const bad = inBriefing(s);
-  if (bad) return no(s, bad);
-  // The offers are under the open folder: a reroll would spend Funds on cards nobody can see.
-  if (s.shop!.folder.status === 'open') return no(s, 'Take a card or SKIP first.');
-  const cost = s.shop!.rerollCost;
-  if (s.funds < cost) return no(s, NO_FUNDS);
+/** Sell the staff in `seat` for half its price, rounded down (in the shop). */
+export function sell(s: GameState, seat: number): Result {
+  const closed = shopProblem(s);
+  if (closed) return no(s, 'Sell in the shop.');
+  const old = s.seats[seat];
+  if (!old) return no(s, 'No one in that seat.');
   const d = draft(s);
-  d.funds -= cost;
-  const rng = new Rng(d.rng.shop);
-  d.shop!.offers = rollOffers(d, rng, d.shop);
-  d.rng.shop = rng.snapshot();
-  d.shop!.rerollCost = cost + 1;
+  d.seats.splice(seat, 1);
+  d.coins += STAFF_DEF[old.id].sell;
+  d.hiredSinceSend = d.hiredSinceSend.filter((u) => u !== old.uid);
+  if (old.id === 'OLDHAND') d.oldHandM10 = RULES.oldHandStartM10;
   return ok(d);
 }
 
-/** Pay for the folder and open it. */
-export function buyFolder(s: RunState): Result {
-  const bad = folderProblem(s);
-  if (bad) return no(s, bad);
+/** Draw 3 new offers: ◆2, then ◆3, ◆4 ... within the same visit. */
+export function reroll(s: GameState): Result {
+  const closed = shopProblem(s);
+  if (closed) return no(s, closed);
+  if (s.coins < s.shop!.rerollCost) return no(s, 'Not enough coins.');
   const d = draft(s);
-  d.funds -= s.shop!.folder.price;
-  d.shop!.folder.status = 'open';
+  d.coins -= d.shop!.rerollCost;
+  d.shop!.rerollCost += 1;
+  d.shop!.offers = drawOffers(d);
   return ok(d);
 }
 
-/** Why the folder can't be bought (opened) right now, or null. */
-export function folderProblem(s: RunState): string | null {
-  const bad = inBriefing(s);
-  if (bad) return bad;
-  const f = s.shop!.folder;
-  if (f.status !== 'sealed') return f.status === 'open' ? 'Already open.' : 'Folder already used.';
-  // Never take Funds for a folder whose every card would be refused.
-  if (f.kind === 'recruit' && s.staff.length >= s.seatCount) return NO_SEAT;
-  if (f.kind === 'orders' && s.tray.length >= s.traySlots) return NO_TRAY;
-  if (s.funds < f.price) return NO_FUNDS;
-  return null;
-}
-
-/** Why card `index` can't be taken from the open folder, or null. */
-export function pickProblem(s: RunState, index: number): string | null {
-  const bad = inBriefing(s);
-  if (bad) return bad;
-  const f = s.shop!.folder;
-  if (f.status !== 'open') return 'Open the folder first.';
-  if (index < 0 || index >= f.contents.length) return 'Nothing there.';
-  if (f.kind === 'recruit' && s.staff.length >= s.seatCount) return NO_SEAT;
-  if (f.kind === 'orders' && s.tray.length >= s.traySlots) return NO_TRAY;
-  return null;
-}
-
-/** Take card `index` (0-2) from the open folder. */
-export function pickFromFolder(s: RunState, index: number): Result {
-  const bad = pickProblem(s, index);
-  if (bad) return no(s, bad);
+/** Drag the staff in seat `from` to seat `to`; the others slide aside. */
+export function moveSeat(s: GameState, from: number, to: number): Result {
+  if (s.phase === 'over') return no(s, 'The game is over.');
+  if (!s.seats[from]) return no(s, 'No one in that seat.');
+  const dest = Math.max(0, Math.min(s.seats.length - 1, to));
+  if (dest === from) return ok(s);
   const d = draft(s);
-  const folder = d.shop!.folder;
-  if (folder.kind === 'recruit') seat(d, folder.contents[index]);
-  else d.tray.push({ uid: d.nextUid++, id: folder.contents[index] });
-  folder.status = 'used';
+  const [moved] = d.seats.splice(from, 1);
+  d.seats.splice(dest, 0, moved);
   return ok(d);
 }
 
-/** Close the open folder without taking anything. */
-export function skipFolder(s: RunState): Result {
-  const bad = inBriefing(s);
-  if (bad) return no(s, bad);
-  if (s.shop!.folder.status !== 'open') return no(s, 'Open the folder first.');
+// ---------------------------------------------------------------- dev and tests
+
+/**
+ * Set who owns regions (the dev hook's setOwner): a 30-character fixture string ('.', 'G', 'R' in
+ * IDS order) or a partial map. The current turn is dealt again on the new map; a map that is all
+ * gold, or with war at 10, ends the game at once.
+ */
+export function setOwners(s: GameState, owners: string | Partial<Record<RegionId, Owner>>): Result {
+  const next = typeof owners === 'string' ? decodeOwners(owners) : { ...s.owner, ...owners };
+  if (!next) return no(s, 'Unreadable map.');
   const d = draft(s);
-  d.shop!.folder.status = 'used';
-  return ok(d);
-}
-
-/** Sell the staff in seat `seatIndex` (0 = leftmost). The others slide left. */
-export function sellStaff(s: RunState, seatIndex: number): Result {
-  const bad = canAct(s);
-  if (bad) return no(s, bad);
-  const st = s.staff[seatIndex];
-  if (!st) return no(s, 'That seat is empty.');
-  const d = draft(s);
-  d.staff.splice(seatIndex, 1);
-  d.funds += STAFF_DEF[st.id].sell;
-  return ok(d);
-}
-
-/** Sell the paper in tray slot `slot`. */
-export function sellPaper(s: RunState, slot: number): Result {
-  const bad = canAct(s);
-  if (bad) return no(s, bad);
-  const p = s.tray[slot];
-  if (!p) return no(s, 'That slot is empty.');
-  const d = draft(s);
-  d.tray.splice(slot, 1);
-  d.funds += ORDER[p.id].sell;
-  d.armed = null;
-  return ok(d);
-}
-
-/** Move the staff at seat `from` to seat `to`; the others slide aside. Any time between sweeps. */
-export function moveSeat(s: RunState, from: number, to: number): Result {
-  const bad = canAct(s);
-  if (bad) return no(s, bad);
-  if (!s.staff[from]) return no(s, 'That seat is empty.');
-  const target = Math.max(0, Math.min(s.staff.length - 1, to));
-  if (target === from) return ok(s);
-  const d = draft(s);
-  const [moved] = d.staff.splice(from, 1);
-  d.staff.splice(target, 0, moved);
-  return ok(d);
-}
-
-// ---------------------------------------------------------------- Orders
-
-/** Why the paper in tray `slot` can't be used right now (phase, empty slot, AIRLIFT outside a crisis). */
-export function paperProblem(s: RunState, slot: number): string | null {
-  const bad = canAct(s);
-  if (bad) return bad;
-  const p = s.tray[slot];
-  if (!p) return 'That slot is empty.';
-  if (ORDER[p.id].crisisOnly && s.phase !== 'crisis') return `${ORDER[p.id].name} works only during a crisis.`;
-  return null;
-}
-
-/** Arm the Order in tray `slot` (tap it again to disarm). Then tapArmed() each target. */
-export function armOrder(s: RunState, slot: number): Result {
-  if (s.armed?.slot === slot) return disarm(s);
-  const bad = paperProblem(s, slot);
-  if (bad) return no(s, bad);
-  const d = draft(s);
-  d.armed = { slot, order: s.tray[slot].id, chosen: [] };
-  return ok(d);
-}
-
-export function disarm(s: RunState): Result {
-  if (!s.armed) return ok(s);
-  const d = draft(s);
-  d.armed = null;
-  return ok(d);
-}
-
-/** Choose (or un-choose) a target for the armed Order. It applies itself when the last target is chosen. */
-export function tapArmed(s: RunState, region: RegionId): Result {
-  const a = s.armed;
-  if (!a) return no(s, 'No Order armed.');
-  if (a.chosen.includes(region)) {
-    const d = draft(s);
-    // Un-choosing a DEFECT source starts over; anything else just drops that target.
-    d.armed!.chosen = a.order === 'DEFECT' && a.chosen[0] === region ? [] : a.chosen.filter((r) => r !== region);
+  d.owner = next as OwnerMap;
+  const gold = countOwner(d.owner, 'gold');
+  const red = countOwner(d.owner, 'red');
+  d.peakWar = Math.max(d.peakWar, red);
+  if (gold === 0) return no(s, 'Keep at least one gold region.');
+  if (red >= RULES.loseAt || gold === RULES.regions) {
+    d.ending = red >= RULES.loseAt ? 'WAR' : 'WORLD UNITED';
+    d.phase = 'over';
+    d.shop = null;
     return ok(d);
   }
-  const problem = targetProblem(s, a.order, a.chosen, region);
-  if (problem) return no(s, problem);
-  const chosen = [...a.chosen, region];
-  if (chosen.length >= ORDER[a.order].targeting.max) return useOrder(s, a.slot, chosen);
-  const d = draft(s);
-  d.armed!.chosen = chosen;
-  return ok(d);
-}
-
-/** Apply the armed Order with the targets chosen so far (for 'up to 2' Orders). */
-export function confirmArmed(s: RunState): Result {
-  const a = s.armed;
-  if (!a) return no(s, 'No Order armed.');
-  return useOrder(s, a.slot, a.chosen);
-}
-
-/** Can the armed Order be applied now with what has been chosen? */
-export function canConfirmArmed(s: RunState): boolean {
-  const a = s.armed;
-  return !!a && a.chosen.length >= ORDER[a.order].targeting.min && targetsProblem(s, a.order, a.chosen) === null;
-}
-
-/** Use the Order in tray `slot` on `targets` in one go (bots, tests and drag gestures). */
-export function useOrder(s: RunState, slot: number, targets: readonly RegionId[]): Result {
-  const bad = paperProblem(s, slot);
-  if (bad) return no(s, bad);
-  const paper = s.tray[slot];
-  const problem = targetsProblem(s, paper.id, targets);
-  if (problem) return no(s, problem);
-  const d = draft(s);
-  d.tray.splice(slot, 1);
-  d.armed = null;
-  applyOrderEffect(d, paper.id, targets);
-  if (paper.id === 'AIRLIFT') d.crisis.airliftPaper = { ...paper };
+  d.ending = null;
+  d.turn -= 1;
+  beginTurn(d);
   return ok(d);
 }

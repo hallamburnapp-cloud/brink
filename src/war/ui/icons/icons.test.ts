@@ -1,13 +1,9 @@
 import { Fragment, type VNode } from 'preact';
 import { describe, expect, it } from 'vitest';
-import { ORDER_IDS } from '../../content/orders';
-import { PATTERN_IDS } from '../../content/patterns';
 import { STAFF_IDS } from '../../content/staff';
 import { drawCoin } from './coin';
 import { GLYPH_NAMES, drawGlyph } from './glyphs';
-import { HI, INK, MAT, MOMENTUM, STAMP_INK, THREAD, TYPE_INK } from './kit';
-import { drawOrder } from './orders';
-import { drawPaper, type PaperKind } from './papers';
+import { HI, INK, LAMP_LIGHT, MAT, THREAD } from './kit';
 import { STAFF_DRAWINGS } from './staff';
 
 interface Element {
@@ -42,30 +38,16 @@ function idUse(els: Element[]): { defined: string[]; referenced: string[] } {
   return { defined, referenced };
 }
 
-const PAPER_KINDS: PaperKind[] = ['PLAYBOOK', 'RECRUIT', 'ORDERS'];
-
 const ALL: Array<[string, (uid: string) => unknown]> = [
   ...STAFF_IDS.map((id) => [`staff ${id}`, STAFF_DRAWINGS[id]] as [string, (uid: string) => unknown]),
-  ...ORDER_IDS.flatMap((id) => [
-    [`order ${id} slip`, (u: string) => drawOrder(id, 'slip', u)] as [string, (uid: string) => unknown],
-    [`order ${id} stamp`, (u: string) => drawOrder(id, 'stamp', u)] as [string, (uid: string) => unknown],
-  ]),
-  ...PAPER_KINDS.map((k) => [`paper ${k}`, () => drawPaper(k)] as [string, (uid: string) => unknown]),
-  ...PATTERN_IDS.map((p) => [`playbook ${p}`, () => drawPaper('PLAYBOOK', p)] as [string, (uid: string) => unknown]),
   ['coin', drawCoin],
   ...GLYPH_NAMES.map((n) => [`glyph ${n}`, () => drawGlyph(n)] as [string, (uid: string) => unknown]),
 ];
 
 describe('icon coverage', () => {
   it('draws every staff id and nothing else', () => {
+    expect(STAFF_IDS).toHaveLength(10);
     expect(Object.keys(STAFF_DRAWINGS).sort()).toEqual([...STAFF_IDS].sort());
-  });
-
-  it('draws every Order in both variants', () => {
-    for (const id of ORDER_IDS) {
-      expect(elements(drawOrder(id, 'slip', 'u')).length).toBeGreaterThan(3);
-      expect(elements(drawOrder(id, 'stamp', 'u')).length).toBeGreaterThan(1);
-    }
   });
 });
 
@@ -91,10 +73,10 @@ describe.each(ALL)('%s', (_name, draw) => {
 });
 
 describe('palette discipline (STYLE.md section 6)', () => {
-  /** The light from the lamp, the map's printed water and the morse key's knob are the only extras. */
-  const EXTRAS = ['#FFD27A', '#FFE2A3', '#FFF8E6', '#9FD3FF', '#2B2F36', '#4A515B', '#1A2633'];
+  /** The light from the lamp and the map's printed water are the only extras. */
+  const EXTRAS = ['#FFD27A', '#FFE2A3', '#FFF8E6', '#9FD3FF'];
   const allowed = new Set(
-    [...Object.values(MAT).flat(), INK, HI, MOMENTUM, STAMP_INK, TYPE_INK, THREAD, ...EXTRAS].map((c) => c.toUpperCase()),
+    [...Object.values(MAT).flat(), INK, HI, LAMP_LIGHT, THREAD, ...EXTRAS].map((c) => c.toUpperCase()),
   );
 
   it.each(STAFF_IDS)('%s uses only the icon palette', (id) => {

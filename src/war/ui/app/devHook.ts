@@ -1,36 +1,45 @@
 /**
- * window.__war: a scripting hook for tests and screenshots (spec 14), installed in dev builds or
- * with VITE_WAR_HOOK=1. Every call drives the same functions a tap does; sweep() resolves when the
- * animation has finished.
+ * window.__war: a scripting hook for tests and screenshots (SPEC section 15), installed in dev
+ * builds or with VITE_WAR_HOOK=1. Every call drives the same functions a tap does; send() resolves
+ * once the send has played and the screen shows its outcome.
  */
-import { hashState, hashTrace, type RunState } from '../../engine';
-import { skip } from '../director/play';
+import { CROWN_SEED, hashState, hashTrace, newGame, type GameState, type Owner, type RegionId } from '../../engine';
+import type { MapView } from '../map/contract';
+import { mapViewFor, NO_EXTRAS } from '../table/view';
 import * as act from './actions';
-import { busy, run, screen, setPrefs, sheet, type Sheet } from './store';
+import { introTap } from './intro';
+import { director } from './playback';
+import { busy, run, screen, setPrefs, sheet, shown, type Sheet } from './store';
 
 export interface WarHook {
-  seed(seed: string): RunState;
-  state(): RunState | null;
-  pin(ids: string[]): RunState | null;
-  sweep(): Promise<RunState | null>;
-  swap(ids?: string[]): RunState | null;
-  buy(slot: number): RunState | null;
-  next(): RunState | null;
-  sandbox(kind: 'late' | 'mid'): RunState;
-  speed(n: 1 | 2 | 4): void;
-  skip(): void;
+  seed(seed: string): GameState;
+  state(): GameState | null;
+  /** Pin these regions (in this order) if they are not pinned already. */
+  pin(ids: string[]): GameState | null;
+  send(): Promise<GameState | null>;
+  swap(): GameState | null;
+  buy(slot: number, replaceSeat?: number): GameState | null;
+  sell(seat: number): GameState | null;
+  reroll(): GameState | null;
+  next(): GameState | null;
+  demo(kind: 'crown'): GameState;
+  /** setOwner: a 30-character map ('.' grey, 'G' gold, 'R' red, in id order) or a partial map. */
+  setOwner(map: string | Partial<Record<RegionId, Owner>>): GameState | null;
   /** Extras for screenshots and tests. */
-  folder(): RunState | null;
-  pick(i: number): RunState | null;
-  keepGoing(): RunState | null;
+  move(from: number, to: number): GameState | null;
+  intro(): void;
+  tap(): void;
+  play(): void;
+  speed(n: 1 | 2 | 4): void;
+  motion(m: 'full' | 'reduce' | 'system'): void;
+  skip(): void;
   sheet(name: Sheet): void;
   title(): void;
-  motion(m: 'full' | 'reduce' | 'system'): void;
   busy(): boolean;
-  /** Put any engine state on the table (built from state() in the page). */
-  load(s: RunState): RunState | null;
-  /** FNV-1a hashes of the last sweep's trace and of the whole run, for determinism checks. */
+  /** FNV-1a hashes of the last send's trace and of the whole game, for determinism checks. */
   hash(): { trace: string | null; state: string | null };
+  /** The map view the table draws for the game on show (without the HUD's extras). */
+  view(): MapView | null;
 }
 
 declare global {
@@ -47,46 +56,55 @@ export function installDevHook(): void {
     },
     state: () => run.value,
     pin(ids) {
-      for (const id of ids) if (!run.value?.crisis.pins.includes(id)) act.tapRegion(id);
+      for (const id of ids) if (!run.value?.deal.pins.includes(id)) act.tapRegion(id);
       return run.value;
     },
-    async sweep() {
-      await act.sweepNow();
+    async send() {
+      await act.sendNow();
       return run.value;
     },
-    swap(ids) {
-      if (ids) hook.pin(ids);
+    swap() {
       act.swapNow();
       return run.value;
     },
-    buy(slot) {
-      act.buyOffer(slot);
+    buy(slot, replaceSeat) {
+      act.buyOffer(slot, replaceSeat);
+      return run.value;
+    },
+    sell(seat) {
+      act.sellSeat(seat);
+      return run.value;
+    },
+    reroll() {
+      act.rerollOffers();
       return run.value;
     },
     next() {
-      act.nextCrisis();
+      act.nextTurnNow();
       return run.value;
     },
-    sandbox(kind) {
-      act.startSandbox(kind);
-      return run.value!;
+    demo() {
+      act.crownDemo();
+      return run.value ?? newGame(CROWN_SEED, { demo: 'crown' });
     },
+    setOwner(map) {
+      act.setOwnersNow(map);
+      return run.value;
+    },
+    move(from, to) {
+      act.moveSeat(from, to);
+      return run.value;
+    },
+    intro: act.howToPlay,
+    tap: introTap,
+    play: act.play,
     speed(n) {
       setPrefs({ speed: n });
     },
-    skip,
-    folder() {
-      act.openFolder();
-      return run.value;
+    motion(m) {
+      setPrefs({ motion: m });
     },
-    pick(i) {
-      act.pickCard(i);
-      return run.value;
-    },
-    keepGoing() {
-      act.keepGoing();
-      return run.value;
-    },
+    skip: () => director().skip(),
     sheet(name) {
       sheet.value = name;
     },
@@ -94,18 +112,12 @@ export function installDevHook(): void {
       act.quitToTitle();
       screen.value = 'title';
     },
-    motion(m) {
-      setPrefs({ motion: m });
-    },
     busy: () => busy.value,
-    load(s) {
-      act.loadState(s);
-      return run.value;
-    },
     hash() {
       const s = run.value;
-      return { trace: s?.lastSweep ? hashTrace(s.lastSweep.trace) : null, state: s ? hashState(s) : null };
+      return { trace: s?.lastSend ? hashTrace(s.lastSend.trace) : null, state: s ? hashState(s) : null };
     },
+    view: () => (shown.value ? mapViewFor(shown.value, NO_EXTRAS) : null),
   };
   window.__war = hook;
 }

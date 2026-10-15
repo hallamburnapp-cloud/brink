@@ -1,6 +1,6 @@
 /**
- * Styles for the icon contact sheet (sheet.html). Kept as a string so the exported static page
- * (docs/war/art/icons-sheet.html) can inline it. Materials follow STYLE.md section 5.
+ * Styles for the icon contact sheet (sheet.html), kept as a string so a static export can inline
+ * it. Materials follow STYLE.md section 5.
  */
 
 /** One alpha-only noise tile as a data URI (the recipe in docs/war/art/lib/textures.js). */
@@ -30,7 +30,7 @@ export const SHEET_CSS = `
   --table: #0B0F14; --room-0: #06080B; --room-1: #0F141A; --board: #12161C; --seam: #2A3038;
   --leather-1: #1D150F; --felt-1: #121A24; --linen: #E9E2D2; --type-ink: #2A2520;
   --text: #E8E2D0; --text-2: rgba(232,226,208,.64); --text-3: rgba(232,226,208,.40); --text-4: rgba(232,226,208,.22);
-  --brass: #C9A35B; --brass-hi: #F7E0A3; --influence: #5FD4F4; --momentum: #FFB547;
+  --brass: #C9A35B; --brass-hi: #F7E0A3; --points: #5FD4F4; --multiplier: #FFB547;
   --font-label: 'Barlow Condensed', 'Arial Narrow', sans-serif;
   --font-num: 'JetBrains Mono', ui-monospace, monospace;
   --font-stencil: 'Saira Stencil One', 'Barlow Condensed', sans-serif;
@@ -64,7 +64,7 @@ section.panel {
 .panel h2 span { font-weight: 600; letter-spacing: .16em; color: var(--text-3); }
 
 /* The rail, exactly as at the table: leather, stitching, rimmed felt seats (STYLE 5.4, 5.5). */
-.rails { display: grid; grid-template-columns: repeat(3, 390px); gap: 22px 26px; }
+.rails { display: grid; grid-template-columns: repeat(2, 390px); gap: 22px 26px; }
 .rail {
   position: relative; width: 390px; height: 64px;
   background: linear-gradient(180deg, rgba(255,220,170,.05), rgba(0,0,0,0) 30%, rgba(0,0,0,.35)), ${LEATHER}, var(--leather-1);
@@ -76,10 +76,7 @@ section.panel {
   background: linear-gradient(145deg, var(--rim-hi) 0%, var(--rim) 40%, var(--rim-lo) 100%);
   box-shadow: 0 2px 0 rgba(0,0,0,.55), 0 4px 7px rgba(0,0,0,.5);
 }
-.seat.common { --rim-hi: #C9CDD4; --rim: #8A8F98; --rim-lo: #4D525A; }
-.seat.uncommon { --rim-hi: #F7E0A3; --rim: #C9A35B; --rim-lo: #6A4F22; }
-.seat.rare { --rim-hi: #DDE9F7; --rim: #9DB8D9; --rim-lo: #56708F; }
-.seat.legendary { --rim-hi: #FFE9A6; --rim: #F2C94C; --rim-lo: #A37C16; box-shadow: 0 2px 0 rgba(0,0,0,.55), 0 0 10px rgba(242,201,76,.35); }
+.seat { --rim-hi: #F7E0A3; --rim: #C9A35B; --rim-lo: #6A4F22; }
 .seat .felt {
   position: relative; width: 100%; height: 100%; border-radius: 5.5px; overflow: hidden;
   background: radial-gradient(90% 70% at 35% 25%, rgba(255,255,255,.05), rgba(255,255,255,0) 70%), ${FELT}, var(--felt-1);
@@ -93,7 +90,7 @@ section.panel {
   background: linear-gradient(180deg, #0A0E13, #06080B); border-top: 1px solid rgba(255,255,255,.06);
   font: 800 8px/8px var(--font-num); letter-spacing: -.01em; white-space: nowrap;
 }
-.chip.i { color: var(--influence); } .chip.m { color: var(--momentum); } .chip.f { color: var(--brass-hi); } .chip.k { color: var(--text-2); }
+.chip.p { color: var(--points); } .chip.m { color: var(--multiplier); }
 .chip svg { margin: 0 .5px; }
 
 /* One card per icon: 34 on the rail's leather, 96 on linen, 96 on the dark felt. */
@@ -115,23 +112,15 @@ section.panel {
 .cap .name { font: 700 13px/1 var(--font-label); letter-spacing: .12em; text-transform: uppercase; color: var(--linen); }
 .cap .obj { font: 500 13px/1 var(--font-label); letter-spacing: .02em; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; }
 .cap .id { margin-left: auto; font: 700 9px/1 var(--font-num); letter-spacing: .04em; color: var(--text-3); }
-.cap .rar { width: 7px; height: 7px; border-radius: 50%; flex: none; align-self: center; box-shadow: inset 0 1px 0 rgba(255,255,255,.4); }
 
 /* Silhouette test: every object filled black at 20 px. Name it or redraw it. */
 .sil { display: grid; grid-template-columns: repeat(10, 1fr); gap: 18px 6px; padding: 16px 18px; border-radius: 8px; background: linear-gradient(180deg, #F2ECDF, #E9E2D2 60%, #D8CFBB); }
 .sil .s { display: flex; flex-direction: column; align-items: center; gap: 7px; }
 .sil svg { filter: brightness(0); opacity: .88; }
 .sil .s span { font: 700 7.5px/1 var(--font-label); letter-spacing: .14em; color: rgba(42,37,32,.55); text-transform: uppercase; }
-.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
-
-/* Playbook covers. */
-.books { display: grid; grid-template-columns: repeat(11, 1fr); gap: 8px; }
-.book { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 0 10px; border-radius: 8px; background: radial-gradient(90% 70% at 35% 25%, rgba(255,255,255,.05), rgba(255,255,255,0) 70%), ${FELT}, var(--felt-1); box-shadow: inset 0 2px 5px rgba(0,0,0,.6); }
-.book svg { filter: drop-shadow(2px 3px 2px rgba(0,0,0,.55)); }
-.book span { font: 400 10px/1 var(--font-stencil); letter-spacing: .04em; color: var(--text-2); text-align: center; }
 
 /* Glyphs: on the console, on paper, on brass. */
-.glyphs { display: grid; grid-template-columns: repeat(10, 1fr); gap: 10px; }
+.glyphs { display: grid; grid-template-columns: repeat(9, 1fr); gap: 10px; }
 .g { border-radius: 8px; overflow: hidden; background: rgba(0,0,0,.22); box-shadow: inset 0 0 0 1px rgba(255,255,255,.035); }
 .g .on { display: grid; grid-template-columns: 1fr 1fr 1fr; height: 58px; }
 .g .on > div { display: flex; align-items: center; justify-content: center; gap: 7px; }
@@ -151,7 +140,7 @@ section.panel {
   color: #2A1C08; font: 800 16px/1 var(--font-num);
 }
 .pill { display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 12px; border-radius: 6px; background: #0A0E13; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); font: 800 14px/1 var(--font-num); }
-.pill.i { color: var(--influence); } .pill.m { color: var(--momentum); }
+.pill.p { color: var(--points); } .pill.m { color: var(--multiplier); }
 .btn {
   display: inline-flex; align-items: center; gap: 12px; height: 40px; padding: 0 20px; border-radius: 9px;
   border: 1px solid #4A3614;

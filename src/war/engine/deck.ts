@@ -1,71 +1,55 @@
 /**
- * The map is the deck (spec section 2). At the start of each crisis the pile is every
- * non-retired region, shuffled with rng 'deal'; the flashpoint is its first region and the
- * first 8 light. Swept and swapped regions are spent; the hand refills to 8, and when the pile
- * runs short the spent regions are shuffled back in first.
+ * The deal (SPEC section 5, steps 2 and 4). The pile is every region that is not red and not the
+ * crisis, within 3 joins of the crisis, shuffled by the 'deal' stream; the first 10 light. If none
+ * of the 10 touches the crisis, the first pile region that does swaps places with the 10th.
  */
-import { Rng } from '../../engine/rng';
-import { REGION_IDS, type RegionId } from '../content/map';
-import { CRISIS_KINDS, RULES } from './rules';
-import type { Crisis, RunState } from './types';
+import type { Rng } from '../../engine/rng';
+import type { RegionId } from '../content/map';
+import { ADJ, IDS, distance } from './board';
+import { RULES } from './rules';
+import type { OwnerMap } from './world';
 
-export interface Deal {
-  flashpoint: RegionId;
+export interface Dealt {
   lit: RegionId[];
   pile: RegionId[];
 }
 
-/**
- * Shuffle the live regions into a pile and light the first 8.
- * `scripted` puts these regions on top of the pile in this order (the first night);
- * the rest follow in rng order.
- */
-export function dealRegions(retired: readonly RegionId[], rng: Rng, scripted: readonly RegionId[] = []): Deal {
-  const out = new Set([...retired, ...scripted]);
-  const rest = rng.shuffle(REGION_IDS.filter((r) => !out.has(r)));
-  const pile = [...scripted.filter((r) => !retired.includes(r)), ...rest];
-  return { flashpoint: pile[0], lit: pile.slice(0, RULES.lit), pile: pile.slice(RULES.lit) };
+/** The regions a deal draws from, in IDS order (before the shuffle). */
+export function dealPool(owner: Readonly<OwnerMap>, crisis: RegionId): RegionId[] {
+  return IDS.filter((r) => r !== crisis && owner[r] !== 'red' && distance(crisis, r) <= RULES.near);
 }
 
-/** A fresh crisis for an Hour plan and a deal. */
-export function makeCrisis(hour: number, index: 0 | 1 | 2, target: bigint, deal: Deal): Crisis {
-  return {
-    hour,
-    index,
-    kind: CRISIS_KINDS[index],
-    target,
-    total: 0n,
-    sweepsLeft: RULES.sweeps,
-    swapsLeft: RULES.swaps,
-    flashpoint: deal.flashpoint,
-    pile: deal.pile,
-    lit: deal.lit,
-    spent: [],
-    pins: [],
-    airlift: null,
-    airliftPaper: null,
-    sweeps: [],
-    cleared: false,
-  };
-}
-
-/** Light regions from the pile until 8 are lit (mutates a drafted state). */
-export function refill(s: RunState): void {
-  const c = s.crisis;
-  const need = RULES.lit - c.lit.length;
-  if (need <= 0) return;
-  if (need > c.pile.length && c.spent.length > 0) {
-    const rng = new Rng(s.rng.deal);
-    c.pile.push(...rng.shuffle([...c.spent]));
-    c.spent = [];
-    s.rng.deal = rng.snapshot();
+export function deal(owner: Readonly<OwnerMap>, crisis: RegionId, rng: Rng): Dealt {
+  const pile = rng.shuffle(dealPool(owner, crisis));
+  const n = RULES.lit;
+  const touches = (r: RegionId) => ADJ[crisis].includes(r);
+  if (!pile.slice(0, n).some(touches)) {
+    for (let j = n; j < pile.length; j++) {
+      if (touches(pile[j])) {
+        [pile[n - 1], pile[j]] = [pile[j], pile[n - 1]];
+        break;
+      }
+    }
   }
-  c.lit.push(...c.pile.splice(0, need));
+  return { lit: pile.slice(0, n), pile: pile.slice(n) };
 }
 
-/** Move regions from the hand (lit) to spent. */
-export function spend(c: Crisis, regions: readonly RegionId[]): void {
-  const gone = new Set(regions);
-  c.lit = c.lit.filter((r) => !gone.has(r));
-  c.spent.push(...regions);
+/**
+ * A scripted deal (FIRST-WORLD): red regions and the crisis are skipped and the list tops up from
+ * the scripted pile.
+ */
+export function scriptedDeal(owner: Readonly<OwnerMap>, crisis: RegionId, lit: readonly RegionId[], pile: readonly RegionId[]): Dealt {
+  const ok = [...lit, ...pile].filter((r) => owner[r] !== 'red' && r !== crisis);
+  return { lit: ok.slice(0, RULES.lit), pile: ok.slice(RULES.lit) };
+}
+
+/**
+ * SWAP: every lit region that is not pinned goes dark and to the bottom of the pile; as many light
+ * from the top. Pins stay. If the pile was short, regions that just went dark come back.
+ */
+export function swapLit(lit: readonly RegionId[], pile: readonly RegionId[], pins: readonly RegionId[]): Dealt {
+  const keep = lit.filter((r) => pins.includes(r));
+  const out = lit.filter((r) => !pins.includes(r));
+  const all = [...pile, ...out];
+  return { lit: [...keep, ...all.slice(0, out.length)], pile: all.slice(out.length) };
 }

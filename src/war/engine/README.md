@@ -1,169 +1,187 @@
-# War engine
+# War engine: WIN THE WORLD
 
-The rules of the slice (spec sections 1-8, 11, 12) as a pure, deterministic TypeScript port of
-`docs/war/reference/*.py`. No DOM, no timers, no randomness outside the seeded streams.
-Import everything from `src/war/engine/index.ts`; static data lives in `src/war/content/`.
+The rules of `docs/war/v2/SPEC.md` (sections 1, 5, 6, 7, 13) as a pure, deterministic TypeScript port of
+`docs/war/v2/reference/rules.py`. No DOM, no timers, no randomness outside the seeded streams
+(`src/engine/rng.ts`, forked into `war`, `crisis`, `deal`, `shop`). Import everything from
+`src/war/engine/index.ts`; static data lives in `src/war/content/` (`map.ts`, `staff.ts`).
 
 ## Conventions
 
-- **State is plain data.** Score-sized numbers are `bigint` (targets, totals, leverage, Influence,
-  Momentum). Funds, counts and traffic are `number`. Do not `JSON.stringify` a state (BigInt); use
-  `canonical()` from `hash.ts` if you need text.
-- **Actions never mutate.** Every action takes a `RunState` and returns
-  `Result = { ok: true, state } | { ok: false, reason, state }`. On success `state` is a new object;
-  on refusal it is the same object you passed and `reason` is a short line for a toast
-  (`'Pin at least one lit region.'`, `'FULL TABLE: pin exactly 5.'`, `'Not enough Funds.'`,
-  `'No free seat. Sell someone first.'`). So `const r = sweep(s.value); s.value = r.state; if (!r.ok) toast(r.reason)`.
-- **The UI never recomputes a score.** `preview()` gives the readout; `state.lastSweep.trace` drives
-  the scoring animation. A new sweep has happened when `state.lastSweep !== previous.lastSweep`.
-- **Seats** are indexes into `state.staff` (0 = leftmost). Empty seats are the slots past
-  `staff.length` up to `seatCount` (5). **Tray slots** are indexes into `state.tray` (up to `traySlots`, 2).
-- **Momentum** is held in tenths (`M10`): show it with `formatM10` / `formatM10Short`.
-- Region ids are the three-letter codes in `content/map.json` (`'LNK'`).
+- **State is plain data.** Score-sized numbers are `bigint` (POINTS, M10, scores, targets); coins, counts and
+  turns are `number`. Do not `JSON.stringify` a state yourself: use `saveGame` / `loadGame`, or `canonical()`.
+- **Actions never mutate.** Each takes a `GameState` and returns
+  `Result = { ok: true, state } | { ok: false, reason, state }`. On refusal `state` is the object you passed and
+  `reason` is a short plain line for a toast (`'Pin a region that touches your pins.'`, `'Not enough coins.'`).
+  So: `const r = send(s.value); s.value = r.state; if (!r.ok) toast(r.reason)`.
+- **The UI never computes a score.** The views below carry every number on screen; `state.lastSend` (with its
+  `trace`) drives the cascade. A new send has happened when `state.lastSend !== previous.lastSend`.
+- **Views are memoised per state object**, so calling them on every render is cheap.
+- **Seats** are indexes into `state.seats` (0 = leftmost; empty seats are the slots past `seats.length`, up to 5).
+  **Offer slots** are indexes 0-2 into `state.shop.offers` (null once hired).
+- **The multiplier is held in tenths** (`m10`, 10 = x1.0). Show it with `formatM10` (always one decimal: `'4.0'`).
+- Region ids are the three-letter codes of `content/map.json` (`'LNK'`). `IDS` is the 30 ids sorted, the order
+  every tie-break and every fixture uses.
+
+## The turn, as phases
+
+```
+newGame ─► 'choose' ──pin/unpin/swap──► send ─┬─► 'outcome' ──nextTurn──► 'choose' (turn + 1)
+                                              ├─► 'shop' (after turns 2, 4, 6 ...) ──buy/sell/reroll/moveSeat──► nextTurn ──► 'choose'
+                                              └─► 'over' (ending: 'WORLD UNITED' | 'CEASEFIRE' | 'WAR')
+```
+
+`send` resolves the whole turn at once: the outcome on the map, war spreading by itself after turns 3, 6, 9 ...,
+the Old Hand's growth and the end check, then opens the shop when one is due. Play the cascade from
+`state.lastSend` before showing the new phase. In `'outcome'` the UI calls `nextTurn` itself once the animation ends.
 
 ## Starting
 
 | Function | What it does |
 | --- | --- |
-| `newRun(seed, opts?)` | A new night at 22:00 Flare-up (300). Seed `'FIRST-NIGHT'` gives the scripted deal and first Briefing. `opts.sandbox` = `'late' \| 'mid'` starts a sandbox. |
-| `newSandbox('late' \| 'mid', seed?)` | LATE SHIFT (OVERTIME 10:00 Flare-up, 600,000,000, Herald / Governor / Signals / Deputy / Sovereign, ◆40) or MID SHIFT (01:00 Standoff, 9,000, Harbourmaster / Hotline / Strategist). The slice ends after that Hour's Summit. |
-| `FIRST_NIGHT_SEED`, `FIRST_NIGHT_PILE` | `'FIRST-NIGHT'` and its opening pile (LNK GUL SHL EDV QLN NWK ICW HRT, then FRM WNM WMS). |
+| `newGame(seed, { firstWorld?, demo? })` | A new game, dealt: phase `'choose'`, turn 1. `firstWorld: true` (or the seed `'FIRST-WORLD'`) gives the scripted first game (war on Dunmarrow, Orrinth, Floe End; turns 1-2 and the first shop fixed; SWAP off on turn 1). `demo: 'crown'` loads the CROWN demo: Example 3 at turn 14 (seats Duty Officer, Deputy, Sovereign, Harbourmaster, Herald; ◆6; crisis Lintel); pinning `CROWN.pins` (in a tappable order) scores 5,598,720 and wins 7. |
+| `FIRST_WORLD`, `FIRST_WORLD_SEED`, `CROWN`, `CROWN_SEED` | The scripted data (`seeds.ts`). |
 
 ## Actions (all return `Result`)
 
 | Function | Phase | What it does |
 | --- | --- | --- |
-| `pin(s, id)` / `unpin(s, id)` / `togglePin(s, id)` | crisis | Pin a lit region (max 5, Airlift pin included) / lift it. Lifting the Airlift pin returns the AIRLIFT paper to the tray. |
-| `clearPins(s)` | crisis | Lift every pin. |
-| `sweep(s)` | crisis | Score the pins, commit (traffic +1 on joins in the scoring set, Old Hand +5, glow), add to the total, spend the pins, refill to 8. Then CLEAR (payout, brass pin on `topRegion`, phase `briefing` or `sliceEnd`), MISS (4th sweep below target: phase `missed`) or carry on. Sets `lastSweep` (and `lastClear` on a clear). |
-| `swap(s)` | crisis | The pinned lit regions are spent and new ones light (uses a swap; the Airlift pin stays). |
-| `nextCrisis(s)` | briefing | Leave the Briefing and deal the next crisis; after a Summit the next Hour starts (targets and its Summit twist are drawn then). |
-| `keepGoing(s)` | sliceEnd | KEEP GOING: opens a Briefing; then 01:00 is 6,000 / 9,000 / 12,000 and each Hour after is x2.2 with a random Summit twist. |
-| `buyOffer(s, slot)` | briefing | Buy offer 0 or 1. Staff take the leftmost free seat, Orders a tray slot, Playbooks apply at once (+1 level). |
-| `reroll(s)` | briefing | Reroll both offers: ◆4, then 5, 6 ...; resets each Briefing. |
-| `buyFolder(s)` / `pickFromFolder(s, i)` / `skipFolder(s)` | briefing | Pay ◆4 to open the folder; take card 0-2 (needs a free seat / tray slot) or skip. |
-| `sellStaff(s, seat)` / `sellPaper(s, slot)` | crisis, briefing | Sell for the listed value (staff floor(price/2), Orders ◆1). |
-| `moveSeat(s, from, to)` | crisis, briefing | Drag a staff to another seat; the others slide aside. |
-| `armOrder(s, slot)` | crisis, briefing | Arm the paper in `slot` (again to disarm). AIRLIFT only during a crisis. |
-| `tapArmed(s, id)` | armed | Choose a target (tap a chosen one to un-choose). Applies itself when the last target is chosen. |
-| `confirmArmed(s)` / `disarm(s)` | armed | Apply with fewer targets (FORTIFY, RETIRE, DEFECT 'up to 2') / cancel. |
-| `useOrder(s, slot, targets)` | crisis, briefing | Apply an Order in one go (bots, drag gestures). DEFECT: `[source, a, b?]`. LAY CABLE: `[from, to]`. |
+| `pin(s, id)` | choose | Pin a lit region or the crisis that touches a pin (or the first pin). Max 5. |
+| `unpin(s, id)` | choose | Lift a pin, plus every pin no longer touching the group of the earliest remaining pin (tap order). |
+| `togglePin(s, id)` | choose | `unpin` if pinned, else `pin`. |
+| `clearPins(s)` | choose | Lift every pin. |
+| `swap(s)` | choose | Once a turn: unpinned lit regions go dark to the bottom of the pile, as many light from the top; pins stay. |
+| `send(s)` | choose | Score, resolve, spread, check, then `'outcome'`, `'shop'` or `'over'`. Sets `lastSend`. |
+| `nextTurn(s)` | outcome, shop | Close the shop and deal turn t + 1. |
+| `buy(s, slot, replaceSeat?)` | shop | Hire offer `slot` into the leftmost free seat, or in place of `replaceSeat` (that staff sells first, for half its price, rounded down). |
+| `sell(s, seat)` | shop | Sell for half the price, rounded down. Selling the Old Hand resets it to x1.0. |
+| `reroll(s)` | shop | 3 new offers: ◆2, then ◆3, ◆4 ... in the same visit; back to ◆2 next visit. |
+| `moveSeat(s, from, to)` | choose, outcome, shop | Drag a staff to another seat; the others slide aside. |
+| `setOwners(s, owners)` | any | Dev hook `setOwner`: a 30-char string (`'.'` grey, `'G'` gold, `'R'` war, in `IDS` order) or a partial map. Re-deals the current turn on the new map; all gold ends WORLD UNITED, war at 10 ends WAR. |
 
-Checks that return a reason or `null`: `sweepProblem`, `swapProblem`, `offerProblem(s, slot)`,
-`folderProblem`, `pickProblem(s, i)`, `paperProblem(s, slot)`, `canConfirmArmed` (boolean).
-The actions use the same checks, so a `null` means the action will succeed.
+Checks that return a reason or `null` (the actions use the same checks): `sendProblem(s)`, `swapProblem(s)`,
+`buyProblem(s, slot, replaceSeat?)`.
 
-## Reading the state (views)
+## Views (for the screens)
 
 | Function | Returns |
 | --- | --- |
-| `preview(s)` | The readout for the current pins: `pattern`, `name`, `level`, base `influence` / `m10`, `scoringSet` (sweep order), `sweepOrder` (`{LNK: 2}`), `loose` (grey pins), `ringed` (Surround), `joins` (pairs to draw as threads while choosing), `biggestGroup` (largest joined group among the pins), `firingSeats` (lift on the rail), `clears` (the CLEARS lamp), `canSweep` / `sweepReason`, `canSwap` / `swapReason`, and `leverage` (silent: never display it). `pattern: null` when nothing is pinned. Cached per state. |
-| `boardLabels(s)` | Big Board: `clock` ('23:00'), `hour` ('23:00' or 'OVERTIME 10:00'), `overtime`, `crisis` ('STANDOFF'), `crisisKind`, `crisisIndex` (0-2, for the dots), `summitChip` ('SUMMIT: BLACKOUT'), `twist`, `twistRule`, `twistNow`, `target`, `total`, `sweepsLeft`, `swapsLeft`, `funds`. |
-| `regionViews(s)` | `Record<RegionId, RegionView>` exactly as `src/war/ui/map/contract.ts` wants (colour after DEFECT, status lit / dark / spent / retired, pinned, airlift, capital incl. PROMOTE and the Herald, port incl. cables, stamp, brass, glow). |
-| `threadViews(s)` | `ThreadView[]` for every join with traffic. |
-| `mapFlags(s)` | `{ gridlock, ferry, blackout }` for the map right now. |
-| `ringFactor(s)` / `progress(s)` | Flashpoint ring factor `max(0, 1 - total/target)` and its complement for the progress rule. |
-| `seatViews(s)` | Per seat: `uid`, `id`, `name`, `object`, `rule`, `chip` (Old Hand's live count filled in), `count`, `rarity`, `sell`, `copies` (what a Deputy copies now). |
-| `trayViews(s)` | Per paper: `slot`, `uid`, `id`, `name`, `rule`, `sell`, `armed`, `reason` (why it can't be armed now). |
-| `armedView(s)` | The armed Order: `order`, `name`, `chosen`, `valid` (regions to highlight), `kind` ('tap' \| 'drag'), `prompt` ('Tap up to 2 regions.'), `canConfirm`. |
-| `shopView(s)` | The Briefing: `offers` (card + `price` + `reason`), `folder` (`name`, `rule`, `price`, `status`, `reason`, `cards` with reasons), `rerollCost`, `canReroll`, `next` (see below). `null` outside a Briefing. |
-| `nextCrisisInfo(s)` | `{ hour, crisis, kind, target, newHour }` for 'BRIEFING · next: STANDOFF 1,350'. |
-| `endLabels(s)` | `{ title, line }`: 'THE WORLD TIPPED' / '23:00 STANDOFF', or 'END OF SLICE' / 'YOU HELD UNTIL 01:00'. |
-| `patternTable(s)` | Run Info: 11 rows (`name` '???' and `hidden` for secrets not yet made, `level`, `influence`, `momentum`, `made`, `shape`). |
-| `actsOn(s, offer)` | Regions an offer (or `{kind: 'staff', id}`) acts on, for the long-press highlight. |
-| `litHasJoin(s)` | Any two lit regions joined (for the 'Nothing joins?' hint). |
-| `isCapital(s, id)`, `isPort(s, id)`, `twistInForce(s)` | Rules as they stand now. |
-| `scorePins(s, pins, {trace})` | Score any selection silently (bots). Returns a `ScoreResult` or `null` for no pins. |
+| `goalView(s)` | Big Board: `gold`, `red`, `grey`, `goldGoal` (30), `warLimit` (10), `warNext: {id, turns} \| null` (turns 3, 2, 1), `warTag` (`'WAR · 2 TURNS'`, `'WAR · THIS TURN'`), `finalPush`, `after: {gold, red} \| null` (the ghost segments for the current pins). |
+| `mapView(s)` | The whole `MapView` of `ui/map/contract.ts` (`regions`, `joinedPins` west to east, `crisis: {id, target: '1,100', doubled}`, `warNext`, `ceased`, `pinOrder`; `highlight`, `finger`, `hover` are null for the UI to set on a copy). |
+| `regionViews(s)` | `Record<RegionId, RegionView>`: `owner`, `lit` (in this turn's deal; outside `'choose'` nothing is lit, so the map shows the plain world), `pinned`, `addable` (the tap rule), `joinable` (addable with a pin down), `capital`, `port`, `preview` (`{kind: 'win', order}` 1..k in spread order, or `{kind: 'war', order: 1}` on the crisis for a miss; none for a push miss), `brass`. |
+| `preview(s)` | `LivePreview \| null` for the current pins: `pins` (tap order), `order` (west to east), `points`, `m10`, `score`, `regions` (the ladder's count capped by the regions left to win, so it matches what SEND does), `wins` (ids in spread order), `unites` (the send would make all 30 gold), `nextMark`, `short`, `doubled`, `firing` (seats that will fire). |
+| `readoutView(s)` | `target`, `targetText` (`'1,100'`), `line` (`'NEED 1,100'` / `'NEXT REGION AT 4,400'` / `'UNITES THE WORLD'` when nothing is left beyond), `nextMark`, `regions`, `points`, `m10`, `pointsText`, `multiplierText` (`'1,381.4'`), `score`, `nearNext` (within 10% below the next mark). Outside `'choose'` it shows the last send. |
+| `sendLabel(s)` | `{ text, tone, enabled, regions }`: `'WINS 2 REGIONS'` (`win`), `'MISS · SHORT BY 620'` / `'MISS · CEASEFIRE'` (`miss`), `'PIN A REGION'` (`off`, disabled); `''` outside a turn. |
+| `controlsView(s)` | `swap: {enabled, sub ('1 left' \| 'used' \| 'next turn' \| 'none left'), reason}`, `coins`, `coinsText` (`'◆ 7'`), `send` (the label). |
+| `seatViews(s)` | Per seated staff: `seat`, `uid`, `id`, `name`, `object`, `rule`, `price`, `sell`, `sellText` (`'SELL ◆3'`), `chip` (live: Surveyor `'+7'`, Old Hand `'×1.4'`), `chipLines` (`['ALL PINS', '★ ⚓']`, `['COPY', '→ Sovereign']`), `tone` (`'points'` cyan / `'multiplier'` amber; a Deputy takes its copy's), `copies`, `isNew` (hired since the last send). |
+| `shopView(s)` | `null` outside the shop. `visit`, `nextTarget`, `title` (`'SHOP · NEXT TARGET 1,600'`), `offers[3]` (`slot`, `id` (null once hired), `name`, `object`, `rule`, `price`, `priceText`, `affordable`, `affordableWithSale`, `reason`, `preview` (`{before, after, seat, replaces, text: '390 → 2,343', beforeText, afterText}`), `replace` (full table only: per seat `{seat, after, text, affordable}`)), `reroll: {cost, text: 'REROLL ◆2', enabled}`, `fullTable`, `nothingAffordable`, `receipt: {line: 'LAST TURN · WIN 2 · +◆2', spread: 'WAR SPREAD TO MARRAM' \| null}`. |
+| `endView(s)` | `null` until the game ends. `ending`, `stars` (3 / 2 / 1 / 0), `title` (`'WORLD UNITED · 30 of 30'`, `'CEASEFIRE · 26 of 30 gold'`, `'WAR'`), `lines` (`'Turn 15 · war peaked at 6'`; `'War held 4 regions when it stopped.'`; `'War took 10 regions. You held 18 of 30.'`, `'2 grey regions from the final push.'`), `turn`, `gold`, `red`, `grey`, `peakWar`, `best: {score, target, text: '749,414 · 39x the target'}`, `biggestTurn: {regions, text: '7 regions'}`, `staff` (seat order), `nearMiss` (WAR with 1-3 grey left: outline them gold; no grey line when none is left). |
+| `menuView(s)` | `{ turn, nextShopAfter, line: 'Turn 9 · next shop after turn 10' }`. |
+| `actsOn(s, staffId)` | Regions a staff acts on (long-press highlight): your gold (Governor, Surveyor), ports (Harbourmaster), capitals (Sovereign), every region (Herald). |
+| `receipt(s)` | The shop receipt for the last send (also in `shopView`). |
+| `previewNumber(s, slot, replaceSeat?)` | `{before, after, seat, replaces}`: the best send of the turn just played (its crisis and opening 10 lit, today's map) before and after hiring. Full table without `replaceSeat`: the best seat to replace. |
 
-## The sweep trace
-
-`state.lastSweep.trace: TraceEvent[]`, in animation order:
+## State shape (`GameState`)
 
 ```
-{ i, phase, region?, other?, seat?, staffId?, op, amount, I, M10, ...extras }
-phase: 'pattern' | 'pin' | 'thread' | 'stamp' | 'staff' | 'again' | 'standby' | 'desk' | 'slam'
-op:    'base' | '+I' | '+M' | 'xM' | 'again' | 'slam'
+version: 2, seed, mode: 'game' | 'first' | 'crown'
+rng: { war, crisis, deal, shop }              RngState each
+phase: 'choose' | 'outcome' | 'shop' | 'over'
+turn                                          from 1 (CROWN starts at 14)
+owner: { [id]: 'grey' | 'gold' | 'red' }      all 30
+coins, seats: [{ uid, id }] (left to right), oldHandM10 (10 = x1.0), nextUid
+hiredSinceSend: uid[]                         the 'new' highlight on the next send
+deal: { crisis, target (bigint), finalPush, lit (light-up order, crisis not listed), pile (swap order),
+        opening (lit as dealt), pins (tap order), swapsLeft, swapLocked }
+shop: { visit, offers: (StaffId | null)[3], rerollCost } | null      (non-null exactly in phase 'shop')
+shopVisits
+ending: 'WORLD UNITED' | 'CEASEFIRE' | 'WAR' | null                  (non-null exactly in phase 'over')
+lastSend: SendRecord | null
+log: [{ turn, target, score, regions, result: 'win' | 'miss', spread, gold, red }]
+best: { score, target, turn, regions } | null   (the biggest win; the biggest miss while nothing has won)
+peakWar, brass: id[] (regions won as a crisis)
 ```
 
-- `I` and `M10` are the running values after the event (strings of BigInt). `amount` is the
-  human-sized change: Influence for `+I`, whole Momentum for `+M` (`'4'`), the factor for `xM`
-  (`'1.5'`, `'2'`, `'3'`), the leverage for `slam`, base Influence for `pattern`.
-- `pattern` carries `pattern` and `level`. `pin` / `stamp` / `staff` / `again` carry `step` (index of
-  the pin in sweep order) and `pass` (0, then 1.. for each AGAIN). `again` carries `reason`
-  (`flashpoint` / `echo` / `courier` / `signals`) and, for staff, the `seat`.
-- `thread`: `region` is the pin scoring now, `other` the pin already scored; emitted for every
-  joined earlier pin, with `amount '0'` when there is no traffic yet (pulse, no pop). With the Rail
-  Clerk it carries the clerk's `seat`.
-- `staff` / `desk` / `standby`: `seat` is the seat that fires; `staffId` the rule applied
-  (a Deputy shows the copied id with `viaDeputy: true`).
-- BLACKOUT: a blacked-out scoring pin gives one `pin` event with `dark: true` and `amount '0'`.
-- `SweepRecord` also has `leverage`, `pattern`, `level`, `scoringSet`, `topRegion`, `totalBefore`,
-  `totalAfter`, `target`, `cleared`, `baseInfluence`, `baseM10`, `influence`, `m10`, `ringed`,
-  `threads`, `pins`, `hour`, `crisisIndex`.
+`deal` stays after the send (phases `'outcome'`, `'shop'`, `'over'`) so the shop can rescore its opening deal.
 
-## State shape (`RunState`)
+## SendRecord (`state.lastSend`) and the trace
 
 ```
-seed, mode ('run' | 'late' | 'mid'), firstNight
-phase: 'crisis' | 'briefing' | 'missed' | 'sliceEnd'
-hour: { index (0 = 22:00), targets: [flare, standoff, summit] (bigint), twist: { kind, colour } }
-sliceEndHour: number | null
-funds, seatCount (5), traySlots (2)
-staff: [{ uid, id, count }]          seat order
-tray:  [{ uid, id }]                 Orders
-world: {
-  colour: {id: Colour}, promoted: id[], cables: [a, b][], stamps: {id: 'FORTIFY'|'RELAY'|'ECHO'},
-  brass: {id: n}, traffic: {'AAA|BBB': n}, retired: id[], levels: {PatternId: n}, scored: {id: n}
-}
-crisis: {
-  hour, index (0-2), kind ('FLARE_UP'|'STANDOFF'|'SUMMIT'), target, total, sweepsLeft, swapsLeft,
-  flashpoint, pile, lit, spent, pins, airlift, airliftPaper, sweeps: SweepSummary[], cleared
-}
-shop: { briefing, offers: (Offer | null)[2], folder: { kind, price, contents, status }, rerollCost } | null
-armed: { slot, order, chosen } | null
-lastSweep: SweepRecord | null        (with the trace)
-lastClear: { reward, unusedSweeps, interest, overwhelm, treasurer, payout, fundsBefore, fundsAfter, brass } | null
-best: { leverage, pattern, level, pins, scoringSet, hour, crisisIndex } | null   best sweep of the run
-log: [{ hour, crisisIndex, kind, target, total, sweepsUsed, cleared, bestPattern, bestLeverage }]
-made: {PatternId: n}                 patterns made this run (secrets show once made)
-sweepsTaken, briefings, nextUid, rng: { deal, shop, twist }
+turn, crisis, target, finalPush, pins (west to east), onCrisis, points, m10, score
+regions (won; 0 on a miss), result: 'win' | 'miss'
+won:    [{ id, order (1 = crisis), wasRed, path (crisis ... id, the shortest chain of joins) }]
+lost:   { id: crisis, from: war region the red ink runs from | null (bloom from centre) } | null
+spread: { id, from } | null                   war spread by itself after this turn
+coinsBefore, coinsAfter, goldBefore, redBefore, gold, red, grey
+newHires: uid[]                               hired since the previous send: draw their first firing 1.5x
+ending: Ending | null                         this send ended the game
+trace: TraceEvent[]
 ```
 
-The crisis object stays after a clear or a miss, so the Briefing and the end screens can still draw
-the night map.
+`trace` is in animation order. Every event carries the running `points` and `m10` (BigInt) after it:
 
-## Formatting
+| kind | fields | when |
+| --- | --- | --- |
+| `pin` | `region`, `amount` (3-10), `label` `'+10'` | each pin, west to east |
+| `staff` | `seat` (0-based), `staff` (the rule applied), `viaDeputy`, `op` `'+P' \| '+M' \| 'xM'`, `amount` (+P: points; +M: tenths; xM: factor in tenths), `label` `'+20'`, `'+4'`, `'×3'`, `'×1.4'` | Duty Officer, Quartermaster, Surveyor (fires `+0` below 3 gold), Old Hand, Strategist (only with 4+ pins) |
+| `regionStaff` | as `staff` plus `region`; `op: 'xM'`, `amount` 15 or 20, `label` `'×1.5'` / `'×2'` | Governor (gold pins), Harbourmaster (ports), Sovereign (capitals): once per matching pin, west to east; with the Herald every pin matches the last two |
+| `crisisX2` | `region`, `label: '×2'` | the crisis was pinned (always last before the slam) |
+| `slam` | `score` | always last |
 
-| Function | Example |
+A Deputy fires as the staff to its right (`viaDeputy: true`, `seat` is the Deputy's seat); at the far right, or
+copying the Herald, it fires nothing. The Herald never fires (it is passive). A send never moves seats, so
+`state.seats[event.seat].uid` names the seat that fired (compare with `lastSend.newHires` for the 'new' highlight).
+
+## The rules underneath
+
+| Function | What it does |
 | --- | --- |
-| `formatInt(n)` | `10920n` -> `'10,920'` |
-| `formatShort(n, maxGlyphs = 7)` | Big Board total: `'10,920'`, `'1.24M'`, `'10.6B'`, `'1.23e25'`, `'GOOGOL'`; never more than `maxGlyphs` glyphs (use 5 or 6 for the readout boxes). |
-| `formatM10(m10)` / `formatM10Short(m10, max = 5)` | `45n` -> `'4.5'`, `12345n` -> `'1,234.5'`; short: `'29.0M'`. |
+| `target(t)` | T(t) = 64 x 1.5^(t-1), 2 significant figures, halves up (bigint): 64, 96, 140, 220 ... |
+| `regionsWon(score, T)` / `nextMark(score, T)` / `marks(T, n)` | The ladder: marks T, 4T, 16T, then doubling (32T, 64T ...), no cap. |
+| `scorePins(pins, seats, owner, crisis, oldHandM10, {trace})` | The exact BigInt scorer (`{score, points, m10, trace?}`). |
+| `Scorer(seats, gold, oldHandM10).score(features)` | The fast scorer for enumerating (cached; agrees with `scorePins`). `featuresOf(pins, owner, crisis)`, `maskFeatures(mask, goldMask, crisisMask)`. |
+| `effective(seats)` | What each seat fires as (Deputy resolved). |
+| `touching`, `legal(pins, lit, crisis)`, `groups(lit, crisis)`, `groupMasks`, `canAdd(pins, r, lit, crisis)`, `lift(pins, r)`, `pinnable` | Legal groups and the tap and lift rules. |
+| `winOrder(crisis, owner, k)` | The k regions a win takes: the crisis, then the nearest non-gold by joins (war before grey, then higher number, west, north). |
+| `warSpreadTarget(owner)` | Where war spreads by itself: grey touching war, nearest your gold, then higher number, west, north; null if none. |
+| `warSource(owner, id)` | The touching war region red ink runs from (nearest pin), or null. |
+| `crisisPool(owner)` | `{pool, finalPush}`: grey touching gold; else any grey; else red touching gold (the final push). |
+| `deal(owner, crisis, rng)`, `dealPool`, `scriptedDeal`, `swapLit` | The deal and the swap. |
+| `distance(a, b)`, `pathBetween(a, b)`, `isJoined`, `isLane`, `ADJ`, `IDS`, `westToEast` | The join graph. |
+| `countOwner`, `regionsOf`, `freshOwners`, `encodeOwners`, `decodeOwners` | Ownership helpers (the fixture string form). |
+| `bestScore(lit, crisis, owner, seats, oldHandM10)`, `dealFeatures(lit, crisis, owner)` (the distinct feature sets of a deal's legal sends, for scoring many line-ups fast), `bestOnOpening(s, seats)`, `shopDue(t)`, `nextShopAfter(t)`, `drawOffers`, `price`, `sellValue` | Shop internals (and what a shopping bot needs). |
+| `RULES` | Every tunable (`rules.ts`). |
+
+## Saving, display, determinism
+
+| Function | What it does |
+| --- | --- |
+| `saveGame(s)` / `loadGame(text)` | Versioned JSON (`{format: 'brink.war', version: 2, state}`), BigInts as decimal strings. `loadGame` returns `null` for anything unreadable or not a v2 game. The app stores it under `SAVE_KEY` (`'brink.war.v2.save'`). |
+| `formatInt(n)` | `'10,920'` |
+| `formatShort(n, maxGlyphs = 7)` | `'10,920'`, `'1.24M'`, `'1.23e25'`, `'GOOGOL'`; never more than `maxGlyphs` glyphs. |
+| `formatM10(m10)` / `formatM10Short(m10, max = 5)` | `40n` -> `'4.0'`, `13814n` -> `'1,381.4'`; short: `'29.0M'`. |
 | `formatFunds(n, {spaced})` | `'◆3'`, `'◆ 11'` |
-| `hourLabel(h)`, `clockOf(h)`, `CRISIS_NAME`, `TWIST_NAME`, `twistRule(t)` | `'OVERTIME 10:00'`, `'10:00'`, `'FLARE-UP'`, `'FULL TABLE'`, `'Sea lanes and cables are cut.'` |
+| `hashState(s)`, `hashTrace(events)`, `canonical(x)` | 8-hex FNV-1a of a canonical encoding: the same seed and actions give the same hashes everywhere. |
 
-## Determinism
+## Test and bot helpers (`testkit.ts`)
 
-`hashTrace(events)` and `hashState(s)` give an 8-hex-digit FNV-1a hash of a canonical encoding. The
-same seed and the same actions give the same hashes everywhere (all arithmetic is integer or BigInt;
-the only randomness is `src/engine/rng.ts` forked into `deal`, `shop` and `twist`).
+`must(result)`, `pinAll(s, ids)`, `tapOrder(group)` (a touching group in an order that can be tapped),
+`ownersFrom(gold, red)`, `position(s, {owner, seats, coins, turn, oldHandM10, deal})` (a hand-made position in
+phase `'choose'`), `sendOptions(s)` (every legal send of the current deal with `score` and `regions`, best first;
+ties by pins), `medianScore(options)`. `testdata.ts` (Node only, not exported from `index.ts`) has
+`loadFixtures()` (`fixtures.json`, typed) and `toReference(trace)` (a trace in the reference's row form), for the
+simulator's cross-check.
 
 ## Rulings where the spec is silent
 
-- The pattern is the candidate with the largest base Influence x base Momentum at its level (ties to the
-  higher rung). Link with two pairs scores the heavier pair (ties: the one further west).
-- AIRLIFT targets a region still in the pile (status `dark`); one per sweep; lifting the pin returns
-  the paper; a SWAP keeps it; it is spent after the sweep.
-- RETIRE can't take the flashpoint or a pinned region mid-crisis; a retired lit region is replaced at
-  once; the map keeps at least 12 regions. DEFECT targets must differ in colour from the source.
-  A stamp Order on a region that already has that stamp is refused; any other stamp is replaced.
-- BLACKOUT also stops blacked-out lit Capitals from triggering the Chief of Staff (spec 7: 'trigger nothing').
-- A Deputy copying the Treasurer also pays +4 Funds on a clear.
-- Shop: offers and folder never repeat a seated staff or each other; an empty rarity falls back down,
-  then up. Orders folders hold 3 different Orders.
+- SWAP is refused (not used up) when nothing is unpinned or the pile is empty.
+- Selling happens only in the shop; seats can be reordered during a turn and in the shop.
+- `lost.from` / `spread.from`: the touching war region whose pin is nearest the target's pin (ties west to east).
+- `won[].path`: a shortest chain of joins from the crisis; ties go to the neighbour first in id order.
+- The CEASEFIRE and the final push never spread war (gold is gold for good and no grey is left).
+- The engine does not reproduce Python's random numbers; FIRST-WORLD and CROWN are scripted, and the fixtures are
+  fixed data.
 
 ## Tests
 
-`npx vitest run src/war/engine src/war/content`. `fixtures/reference-cases.json` holds 1,200 random
-positions scored by the Python reference (regenerate with `fixtures/gen-reference-cases.py`); the
-TypeScript engine must agree on every leverage, pattern, scoring set and top region.
+`npx vitest run src/war/engine src/war/content`. `docs/war/v2/reference/fixtures.json` (written by the reference's
+own `fixtures.py`) holds 1,450 cases; the engine must agree with every one, traces included.

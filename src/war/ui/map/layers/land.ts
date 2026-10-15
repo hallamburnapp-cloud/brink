@@ -1,209 +1,140 @@
 /**
- * The land layer (STYLE 5.7 layers 4-13, minus the live effects), baked whenever the scene's land
- * signature changes: the sea under it, plates, terrain, borders, bevels, coast hairlines, stamps,
- * causeways, sea lanes, cables, ferry routes, Gridlock marks and the run's old threads.
+ * The land layer (STYLE 5.7 layers 4-12), baked whenever the scene's land signature changes: the
+ * sea under it, gold's glow on the water, the plates by owner (gold, grey, hatched red), terrain,
+ * borders, bevels, coast hairlines, gold rims, causeways and sea lanes.
  */
-import type { Colour, RegionId } from '../contract';
-import { MAP_H as H, MAP_W as W, MASSES, REGION, pairKey } from '../data';
-import { withShadow, type Gfx } from '../draw';
+import type { Colour, Owner, RegionId } from '../contract';
+import { MAP_H as H, MAP_W as W, MASSES, REGION } from '../data';
+import type { Gfx } from '../draw';
 import { getGeometry } from '../geometry';
-import { ALARM, BLOC, css, INK, LINEN, mix, plateCore, plateFill, SEA, type FillState } from '../palette';
+import { css, GOLD, GOLD_DEEP, GOLD_RIM, HATCH_STEP, HATCH_WIDTH, INK, lampCore, ownerTone, WAR_TEXT } from '../palette';
 import { getPaths } from '../paths';
-import { threadWidth, type RegionVis, type Scene } from '../scene';
-import { makeLayer, type Layer } from './static';
-import { drawCable, drawWornThread, joinCurve, pointOn, strokeCurve } from './threads';
+import type { Scene } from '../scene';
+import { blurredShape, makeLayer, type Layer } from './static';
 
 export interface PlateStyle {
+  owner: Owner;
   colour: Colour;
-  fill: FillState;
-  glow: number;
+  /** The lamp under the glass is on (lit and in play). */
+  live: boolean;
+  /** Flashed by the current send: the lamp holds brighter. */
+  scored: boolean;
+  /** 1 = full light; lower fades the plate towards the table. */
   dim: number;
-  blackout: boolean;
+  ceased: boolean;
 }
 
-/** One region's glass plate: tone, lamp core, Influence glow, Blackout hatch and dim. */
-export function paintPlate(g: Gfx, id: RegionId, p: PlateStyle): void {
-  const { ctx } = g;
-  const path = getPaths().region[id];
-  const r = REGION[id];
-  let tone = plateFill(p.colour, p.fill);
-  const lit = p.fill === 'lit' || p.fill === 'scored' || p.fill === 'flash';
-  // Blackout: the bloc takes the spent tone; lit plates keep a little light so they stay tappable,
-  // but never read as live (they make the shape and add nothing).
-  if (p.blackout) tone = lit ? mix(tone, plateFill(p.colour, 'spent'), 0.7) : plateFill(p.colour, 'spent');
-  ctx.fillStyle = css(tone);
-  ctx.fill(path);
-
-  const { core, alpha } = plateCore(p.colour, p.fill);
-  const reach = r.island ? 30 : 58;
-  const grad = ctx.createRadialGradient(r.x, r.y - 2, 1, r.x, r.y, reach);
-  if (alpha > 0) {
-    const a = p.blackout ? alpha * 0.3 : alpha;
-    grad.addColorStop(0, css(core, a));
-    grad.addColorStop(0.45, css(core, a * 0.28));
-    grad.addColorStop(1, 'rgba(0,0,0,0.16)');
-  } else {
-    grad.addColorStop(0, css(BLOC[p.colour], p.fill === 'retired' ? 0 : 0.07));
-    grad.addColorStop(1, 'rgba(0,0,0,0.12)');
-  }
-  ctx.fillStyle = grad;
-  ctx.fill(path);
-
-  if (p.glow > 0 && p.fill !== 'retired') {
-    ctx.fillStyle = css(BLOC[p.colour], p.glow * 0.6);
-    ctx.fill(path);
-  }
-  if (p.fill === 'retired') paintShutter(g, id);
-  if (p.blackout) paintHatch(g, id, css(ALARM, 0.35), 5, 1);
-  if (p.dim < 1) {
-    ctx.fillStyle = css(INK, (1 - p.dim) * 0.85);
-    ctx.fill(path);
-  }
-}
-
-/** Diagonal hatching across a whole plate. */
-function paintHatch(g: Gfx, id: RegionId, color: string, step: number, width: number): void {
+/**
+ * 45-degree lines across a region (bottom-left to top-right), `step` points apart measured across
+ * the lines, `offset` points along that measure. Clipped to the plate.
+ */
+export function hatch(g: Gfx, id: RegionId, color: string, width: number, step = HATCH_STEP, offset = 0): void {
   const { ctx } = g;
   const b = getGeometry().bounds[id];
   ctx.save();
   ctx.clip(getPaths().region[id]);
   ctx.strokeStyle = color;
   ctx.lineWidth = width;
+  ctx.lineCap = 'butt';
   ctx.beginPath();
-  const h = b.y1 - b.y0;
-  for (let x = b.x0 - h; x < b.x1 + h; x += step) {
-    ctx.moveTo(x, b.y0);
-    ctx.lineTo(x + h, b.y1);
+  // Lines x + y = c, for c spaced step * sqrt(2) apart (step across the lines).
+  const dc = step * Math.SQRT2;
+  const c0 = Math.floor((b.x0 + b.y0) / dc) * dc + offset * Math.SQRT2;
+  for (let c = c0 - dc; c <= b.x1 + b.y1 + dc; c += dc) {
+    ctx.moveTo(c - b.y1 - 2, b.y1 + 2);
+    ctx.lineTo(c - b.y0 + 2, b.y0 - 2);
   }
   ctx.stroke();
   ctx.restore();
 }
 
-/** RETIRE: the plate is shuttered (three-bar shutter, spec 6), slats lit from the top-left. */
-function paintShutter(g: Gfx, id: RegionId): void {
+/** One region's glass plate: its owner's tone, the lamp core when lit, red's hatching, gold's rim, dim. */
+export function paintPlate(g: Gfx, id: RegionId, p: PlateStyle): void {
   const { ctx } = g;
-  const b = getGeometry().bounds[id];
-  ctx.save();
-  ctx.clip(getPaths().region[id]);
-  ctx.lineWidth = 1.1;
-  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-  ctx.beginPath();
-  for (let y = b.y0 + 2; y < b.y1; y += 3.6) {
-    ctx.moveTo(b.x0, y);
-    ctx.lineTo(b.x1, y);
+  const path = getPaths().region[id];
+  const r = REGION[id];
+  const tone = ownerTone(p.owner, p.colour, p.live, p.ceased);
+  ctx.fillStyle = css(tone.fill);
+  ctx.fill(path);
+
+  const reach = r.island ? 30 : 58;
+  const grad = ctx.createRadialGradient(r.x, r.y - 2, 1, r.x, r.y, reach);
+  if (p.live) {
+    const { core, alpha } = lampCore(p.owner);
+    const a = Math.min(1, alpha * (p.scored ? 1.6 : 1));
+    grad.addColorStop(0, css(core, a));
+    grad.addColorStop(0.45, css(core, a * 0.28));
+    grad.addColorStop(1, 'rgba(0,0,0,0.14)');
+  } else {
+    // Unlit glass: a faint sheen at the pin, darker towards the edge.
+    grad.addColorStop(0, `rgba(255,248,230,${p.owner === 'gold' ? 0.12 : 0.05})`);
+    grad.addColorStop(1, 'rgba(0,0,0,0.16)');
   }
-  ctx.stroke();
-  ctx.lineWidth = 0.5;
-  ctx.strokeStyle = 'rgba(233,226,210,0.07)';
-  ctx.beginPath();
-  for (let y = b.y0 + 3.1; y < b.y1; y += 3.6) {
-    ctx.moveTo(b.x0, y);
-    ctx.lineTo(b.x1, y);
+  ctx.fillStyle = grad;
+  ctx.fill(path);
+
+  if (tone.hatch) hatch(g, id, css(tone.hatch), HATCH_WIDTH);
+  if (p.owner === 'gold') {
+    goldSheen(g, id);
+    goldRim(g, id);
   }
-  ctx.stroke();
-  ctx.restore();
+  if (p.dim < 1) {
+    ctx.fillStyle = css(INK, (1 - p.dim) * 0.85);
+    ctx.fill(path);
+  }
 }
 
-/** FORTIFY: linen hatching kept to a 6 pt band inside the border, plus a linen edge. */
-const hatchCache = new Map<string, Layer & { x0: number; y0: number; w: number; h: number }>();
-function fortifyHatch(id: RegionId, k: number) {
-  const key = `${id}@${k}`;
-  const hit = hatchCache.get(key);
-  if (hit) return hit;
+/** Gold is metal under the lamp: lighter towards the top-left, deeper towards the bottom-right. */
+function goldSheen(g: Gfx, id: RegionId): void {
+  const { ctx } = g;
   const b = getGeometry().bounds[id];
-  const x0 = Math.floor(b.x0) - 2;
-  const y0 = Math.floor(b.y0) - 2;
-  const w = Math.ceil(b.x1 - x0) + 4;
-  const h = Math.ceil(b.y1 - y0) + 4;
-  const l = makeLayer(k, w, h);
-  l.ctx.translate(-x0, -y0);
-  l.ctx.strokeStyle = css(LINEN, 0.55);
-  l.ctx.lineWidth = 1;
-  l.ctx.beginPath();
-  for (let x = x0 - h; x < x0 + w + h; x += 4.5) {
-    l.ctx.moveTo(x, y0);
-    l.ctx.lineTo(x - h, y0 + h);
-  }
-  l.ctx.stroke();
-  l.ctx.globalCompositeOperation = 'destination-in';
-  l.ctx.lineJoin = 'round';
-  l.ctx.lineWidth = 12;
-  l.ctx.stroke(getPaths().region[id]);
-  const entry = Object.assign(l, { x0, y0, w, h });
-  hatchCache.set(key, entry);
-  return entry;
+  const grad = ctx.createLinearGradient(b.x0, b.y0, b.x1, b.y1);
+  grad.addColorStop(0, css(GOLD_RIM, 0.3));
+  grad.addColorStop(0.4, css(GOLD_RIM, 0));
+  grad.addColorStop(0.62, css(GOLD_DEEP, 0.12));
+  grad.addColorStop(1, css(GOLD_DEEP, 0.55));
+  ctx.fillStyle = grad;
+  ctx.fill(getPaths().region[id]);
 }
 
-function paintFortify(g: Gfx, r: RegionVis): void {
+/** Gold's 1.5 pt light rim (a 3 pt stroke clipped inside the plate) with a soft inner glow. */
+function goldRim(g: Gfx, id: RegionId): void {
   const { ctx } = g;
-  const path = getPaths().region[r.id];
-  const hatch = fortifyHatch(r.id, g.k);
+  const path = getPaths().region[id];
   ctx.save();
   ctx.clip(path);
-  ctx.globalAlpha = Math.max(0.35, r.dim);
-  ctx.drawImage(hatch.canvas, hatch.x0, hatch.y0, hatch.w, hatch.h);
-  ctx.globalAlpha = 1;
-  ctx.strokeStyle = css(LINEN, 0.5 * Math.max(0.35, r.dim));
-  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = css(GOLD_RIM, 0.22);
+  ctx.lineWidth = 10;
+  ctx.stroke(path);
+  ctx.strokeStyle = css(GOLD_RIM, 0.95);
+  ctx.lineWidth = 3;
   ctx.stroke(path);
   ctx.restore();
 }
 
-/** A small alarm-red X: Gridlock crossing out a lane or cable. */
-function crossOut(g: Gfx, x: number, y: number, alpha: number): void {
-  const { ctx } = g;
-  ctx.save();
-  ctx.lineCap = 'round';
-  const s = 3.6;
-  const path = () => {
-    ctx.beginPath();
-    ctx.moveTo(x - s, y - s);
-    ctx.lineTo(x + s, y + s);
-    ctx.moveTo(x + s, y - s);
-    ctx.lineTo(x - s, y + s);
-  };
-  path();
-  ctx.strokeStyle = `rgba(5,8,12,${0.85 * alpha})`;
-  ctx.lineWidth = 3.4;
-  ctx.stroke();
-  withShadow(g, css(ALARM, 0.6 * alpha), 2, 0, 0, () => {
-    path();
-    ctx.strokeStyle = css(ALARM, alpha);
-    ctx.lineWidth = 1.6;
-    ctx.stroke();
-  });
-  ctx.restore();
-}
+const glowCache = new Map<string, Layer & { x: number; y: number; w: number; h: number }>();
 
-/**
- * Ferry Master: every port is joined to every other, drawn as a ferry service through the
- * Scatter. Each mainland port runs a dotted crossing to its nearest island port (skipped where a
- * sea lane already makes that crossing), so every port visibly reaches the hub and, through it,
- * every other port.
- */
-function paintFerry(g: Gfx, s: Scene): void {
-  const { ctx } = g;
-  const ports = s.list.filter((r) => r.port && r.status !== 'retired');
-  const hubs = ports.filter((r) => r.def.island);
-  if (!hubs.length) return;
-  const lanes = new Set(getGeometry().lanes.map((l) => pairKey(l.a, l.b)));
-  ctx.save();
-  ctx.setLineDash([0.01, 3.4]);
-  ctx.lineCap = 'round';
-  for (const r of ports) {
-    if (r.def.island) continue;
-    const hub = hubs.reduce((b, h) => (dist(r, h) < dist(r, b) ? h : b));
-    if (lanes.has(pairKey(r.id, hub.id))) continue;
-    const dim = Math.min(r.dim, hub.dim);
-    ctx.strokeStyle = `rgba(200,228,255,${0.3 + 0.35 * dim})`;
-    ctx.lineWidth = 1.6;
-    strokeCurve(g, joinCurve(r.id, hub.id, 'ferry'));
+/** A gold region's glow on the water: its shape blurred (a wide soft halo and a tight bright one), baked once. */
+function goldGlow(id: RegionId, k: number) {
+  const key = `${id}@${k}`;
+  let sp = glowCache.get(key);
+  if (!sp) {
+    const b = getGeometry().bounds[id];
+    const m = 32;
+    const x = Math.floor(b.x0 - m);
+    const y = Math.floor(b.y0 - m);
+    const w = Math.ceil(b.x1 - b.x0 + 2 * m);
+    const h = Math.ceil(b.y1 - b.y0 + 2 * m);
+    // A blur needs little resolution: 1.5 px per point keeps 30 cached glows small.
+    const l = makeLayer(Math.min(k, 1.5), w, h);
+    l.ctx.translate(-x, -y);
+    blurredShape(l, 'rgba(242,210,122,0.34)', 14, getPaths().region[id]);
+    blurredShape(l, 'rgba(255,233,168,0.3)', 4, getPaths().region[id]);
+    sp = Object.assign(l, { x, y, w, h });
+    glowCache.set(key, sp);
   }
-  ctx.restore();
-}
-
-function dist(a: RegionVis, b: RegionVis): number {
-  return Math.hypot(a.def.x - b.def.x, a.def.y - b.def.y);
+  return sp;
 }
 
 export interface LandStatics {
@@ -223,12 +154,22 @@ export function paintLand(g: Gfx, s: Scene, statics: LandStatics): void {
   }
   const massDim = s.sweeping ? 0.6 : 1;
 
+  // Gold glows onto the water around it (the plates cover the land, so only the sea shows it).
+  ctx.save();
+  ctx.globalAlpha = s.sweeping ? 0.5 : 1;
   for (const r of s.list) {
-    paintPlate(g, r.id, { colour: r.colour, fill: r.fill, glow: r.glow, dim: r.dim, blackout: r.blackout });
+    if (r.owner !== 'gold') continue;
+    const glow = goldGlow(r.id, g.k);
+    ctx.drawImage(glow.canvas, glow.x, glow.y, glow.w, glow.h);
+  }
+  ctx.restore();
+
+  for (const r of s.list) {
+    paintPlate(g, r.id, { owner: r.owner, colour: r.def.colour, live: r.live, scored: r.scored, dim: r.dim, ceased: s.ceased });
   }
 
   ctx.save();
-  ctx.globalAlpha = s.sweeping ? 0.045 / 0.07 : 1;
+  ctx.globalAlpha = s.sweeping ? 0.6 : 1;
   ctx.drawImage(statics.terrain.canvas, 0, 0, W, H);
   ctx.restore();
 
@@ -266,30 +207,36 @@ export function paintLand(g: Gfx, s: Scene, statics: LandStatics): void {
   }
   for (const r of s.list) {
     if (!r.def.island) continue;
-    const lit = r.fill === 'lit' || r.fill === 'scored';
-    bevel(paths.region[r.id], r.def.x - 20, r.def.y - 20, r.def.x + 20, r.def.y + 20, lit ? 1 : 0.45);
+    bevel(paths.region[r.id], r.def.x - 20, r.def.y - 20, r.def.x + 20, r.def.y + 20, r.live ? 1 : 0.45);
   }
 
-  // Coast: a crisp hairline in the landmass colour (the spent tone under Blackout).
+  // Coast: a crisp neutral hairline (colour on the map means ownership only); gold's edge is its rim.
   ctx.save();
   ctx.lineJoin = 'round';
   ctx.lineWidth = 0.75;
-  for (const m of MASSES) {
-    // Each landmass is drawn in its own bloc's colour (a Mass is also a Colour).
-    const c: Colour = m;
-    const tone = s.blackout === c ? plateFill(c, 'spent') : mix(BLOC[c], SEA, 0.75);
-    ctx.strokeStyle = css(tone, 0.75 * massDim);
-    ctx.stroke(paths.coast[m]);
-  }
+  ctx.strokeStyle = `rgba(157,184,217,${0.42 * massDim})`;
+  for (const m of MASSES) ctx.stroke(paths.coast[m]);
   for (const r of s.list) {
     if (!r.def.island) continue;
-    const tone = r.blackout ? plateFill(r.colour, 'spent') : mix(BLOC[r.colour], SEA, 0.75);
-    ctx.strokeStyle = css(tone, 0.75 * (r.dim < 1 ? 0.6 : 1));
+    ctx.strokeStyle = r.owner === 'gold' ? css(GOLD, 0.8) : `rgba(157,184,217,${r.dim < 1 ? 0.25 : 0.42})`;
     ctx.stroke(paths.region[r.id]);
   }
   ctx.restore();
 
-  for (const r of s.list) if (r.stamp === 'FORTIFY' && r.status !== 'retired') paintFortify(g, r);
+  // CEASEFIRE: war stops where it stands, and its regions stay outlined.
+  if (s.ceased) {
+    for (const r of s.list) {
+      if (r.owner !== 'red') continue;
+      const path = paths.region[r.id];
+      ctx.save();
+      ctx.clip(path);
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = css(WAR_TEXT, 0.75);
+      ctx.lineWidth = 3;
+      ctx.stroke(path);
+      ctx.restore();
+    }
+  }
 
   // Causeways: 6 pt bars between disc edges, with a lit top edge.
   for (const cw of geo.causeways) {
@@ -321,9 +268,7 @@ export function paintLand(g: Gfx, s: Scene, statics: LandStatics): void {
     ctx.restore();
   }
 
-  if (s.ferry) paintFerry(g, s);
-
-  // Sea lanes: white 1.5 pt dashes, 4 on 4 off, centre to centre (cut under Gridlock).
+  // Sea lanes: white 1.5 pt dashes, 4 on 4 off, centre to centre.
   for (const lane of geo.lanes) {
     const A = REGION[lane.a];
     const B = REGION[lane.b];
@@ -331,35 +276,12 @@ export function paintLand(g: Gfx, s: Scene, statics: LandStatics): void {
     ctx.save();
     ctx.setLineDash([4, 4]);
     ctx.lineCap = 'butt';
-    ctx.strokeStyle = `rgba(233,240,248,${(0.16 + 0.34 * dim) * (s.gridlock ? 0.45 : 1)})`;
+    ctx.strokeStyle = `rgba(233,240,248,${0.16 + 0.34 * dim})`;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(A.x, A.y);
     ctx.lineTo(B.x, B.y);
     ctx.stroke();
     ctx.restore();
-  }
-
-  for (const [a, b] of s.cables) {
-    const dim = Math.min(s.regions[a]?.dim ?? 1, s.regions[b]?.dim ?? 1);
-    drawCable(g, joinCurve(a, b, 'cable'), (0.5 + 0.5 * dim) * (s.gridlock ? 0.55 : 1));
-  }
-
-  // Earlier sweeps' threads are worn ink; only joins between the pins down now are live red.
-  for (const t of s.oldThreads) {
-    const dim = Math.min(s.regions[t.a].dim, s.regions[t.b].dim);
-    drawWornThread(g, joinCurve(t.a, t.b, t.kind), t.traffic, threadWidth(t.traffic), 0.4 + 0.6 * dim);
-  }
-
-  if (s.gridlock) {
-    for (const lane of geo.lanes) {
-      const A = REGION[lane.a];
-      const B = REGION[lane.b];
-      crossOut(g, (A.x + B.x) / 2, (A.y + B.y) / 2, 0.9);
-    }
-    for (const [a, b] of s.cables) {
-      const [x, y] = pointOn(joinCurve(a, b, 'cable'), 0.5);
-      crossOut(g, x, y, 0.9);
-    }
   }
 }

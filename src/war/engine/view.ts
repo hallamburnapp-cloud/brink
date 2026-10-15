@@ -1,34 +1,25 @@
 /**
- * Read-only views of a run for the UI: the readout preview, the map's region and thread views,
- * labels for the Big Board, Run Info and the armed Order. Nothing here changes state, and the
- * UI never recomputes a score: preview() and the sweep trace carry every number it shows.
+ * Read-only views of a game for the UI (SPEC sections 8-11): the goal counts, the map, the readout,
+ * the SEND label, the controls, the seats, the shop, the end card and the menu line. Nothing here
+ * changes state, and the UI never computes a score: these views and state.lastSend carry every
+ * number it shows. Views are memoised per state object (states are never mutated).
  */
-import { REGION, REGION_IDS, compareWestEast, splitJoinKey, type RegionId } from '../content/map';
-import { FOLDER_NAME, FOLDER_RULE, ORDER, playbook, type OrderId } from '../content/orders';
-import { PATTERN, PATTERNS, patternValues, type PatternId } from '../content/patterns';
-import { STAFF_DEF, seatChip, type Rarity, type StaffId } from '../content/staff';
-import type { RegionView, ThreadView } from '../ui/map/contract';
-import { baseCapital, portSet } from './board';
-import { CRISIS_NAME, TWIST_NAME, clockOf, hourLabel, hourTargets, isOvertime, twistRule } from './hours';
-import { armedPrompt, statusOf, validTargets } from './orders';
-import { components } from './patterns';
-import {
-  boardOf,
-  canConfirmArmed,
-  folderProblem,
-  offerProblem,
-  paperProblem,
-  pickProblem,
-  scorePins,
-  swapProblem,
-  sweepProblem,
-  twistInForce,
-} from './run';
-import type { Colour, CrisisKind, Offer, RunState, Twist } from './types';
+import { REGION, type RegionId } from '../content/map';
+import { STAFF_DEF, seatChip, type StaffId, type StaffTone } from '../content/staff';
+import type { CrisisView, MapView, RegionView } from '../ui/map/contract';
+import { IDS, isJoined, westToEast } from './board';
+import { formatFunds, formatInt, formatM10Short, formatShort } from './format';
+import { canAdd } from './groups';
+import { nextMark, regionsWon, target } from './ladder';
+import { RULES } from './rules';
+import { effective, scorePins } from './score';
+import { nextShopAfter, previewNumber, sellValue, type PreviewNumber } from './shop';
+import { sendProblem, swapProblem } from './run';
+import type { Ending, GameState } from './types';
+import { countOwner, regionsOf, warSpreadTarget, winOrder } from './world';
 
-/** Per-state memo: states are never mutated, so a view computed once stays right. */
-function memo<T>(fn: (s: RunState) => T): (s: RunState) => T {
-  const cache = new WeakMap<RunState, T>();
+function memo<T>(fn: (s: GameState) => T): (s: GameState) => T {
+  const cache = new WeakMap<GameState, T>();
   return (s) => {
     if (cache.has(s)) return cache.get(s)!;
     const v = fn(s);
@@ -37,574 +28,536 @@ function memo<T>(fn: (s: RunState) => T): (s: RunState) => T {
   };
 }
 
-// ---------------------------------------------------------------- readout preview
+const name = (id: RegionId) => REGION[id].name;
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-export interface Preview {
+// ---------------------------------------------------------------- the live preview
+
+export interface LivePreview {
   /** Pins in tap order. */
   pins: RegionId[];
-  /** null when nothing is pinned (the readout says 'Tap lit regions'). */
-  pattern: PatternId | null;
-  name: string | null;
-  level: number;
-  /** Base values at the pattern's level: what the boxes show before a sweep. */
-  influence: bigint;
+  /** Pins in scoring order (west to east). */
+  order: RegionId[];
+  points: bigint;
   m10: bigint;
-  /** Scoring pins in sweep order, and their 1-based order numbers for the map. */
-  scoringSet: RegionId[];
-  sweepOrder: Record<RegionId, number>;
-  /** Pinned but not scoring (drawn grey). */
-  loose: RegionId[];
-  /** SURROUND: the ringed region (it glows). */
-  ringed: RegionId | null;
-  /** Joins between pinned regions, so the map can draw pins joining up. */
-  joins: Array<[RegionId, RegionId]>;
-  /** Size of the largest joined group among the pins (first-night hint: 3 joined -> 'Sweep.'). */
-  biggestGroup: number;
-  /** Seats that would fire (they lift slightly on the rail). */
-  firingSeats: number[];
-  /** The full silent result. NEVER display this number: the total is the reveal. */
-  leverage: bigint;
-  /** The CLEARS lamp: this sweep would reach the target. */
-  clears: boolean;
-  canSweep: boolean;
-  sweepReason: string | null;
-  canSwap: boolean;
-  swapReason: string | null;
+  score: bigint;
+  /**
+   * Regions the send would win (0: a miss). The ladder's count, capped by what is left to win: a
+   * score worth 3 regions with 2 not yet gold wins 2 (and unites the world).
+   */
+  regions: number;
+  /** The regions it would win, in spread order (the crisis first). */
+  wins: RegionId[];
+  /** The send would turn every region left gold: WORLD UNITED. */
+  unites: boolean;
+  /** The score that wins one more region (the target while it misses). */
+  nextMark: bigint;
+  /** How far below the target (0 once it wins). */
+  short: bigint;
+  /** The crisis is pinned (its ×2 chip lights). */
+  doubled: boolean;
+  /** Seats that will fire with these pins (they lift on the rail). */
+  firing: number[];
 }
 
-/** What the readout shows for the current selection. Same object per state. */
-export const preview = memo((s: RunState): Preview => {
-  const c = s.crisis;
-  const pins = [...c.pins];
-  const res = s.phase === 'crisis' ? scorePins(s, pins, { trace: false }) : null;
-  const board = boardOf(s);
-  const joins: Array<[RegionId, RegionId]> = [];
-  const sorted = [...pins].sort(compareWestEast);
-  for (let i = 0; i < sorted.length; i++) {
-    for (let j = i + 1; j < sorted.length; j++) if (board.joined(sorted[i], sorted[j])) joins.push([sorted[i], sorted[j]]);
-  }
-  const sweepReason = sweepProblem(s);
-  const swapReason = swapProblem(s);
-  const p: Preview = {
-    pins,
-    pattern: res?.pattern ?? null,
-    name: res ? PATTERN[res.pattern].name : null,
-    level: res?.level ?? 0,
-    influence: res?.baseInfluence ?? 0n,
-    m10: res?.baseM10 ?? 0n,
-    scoringSet: res?.scoringSet ?? [],
-    sweepOrder: Object.fromEntries((res?.scoringSet ?? []).map((r, i) => [r, i + 1])),
-    loose: res?.loose ?? [],
-    ringed: res?.ringed ?? null,
-    joins,
-    biggestGroup: pins.length ? components(pins, board.adj)[0].length : 0,
-    firingSeats: res?.firedSeats ?? [],
-    leverage: res?.leverage ?? 0n,
-    clears: !!res && sweepReason === null && res.leverage >= c.target - c.total,
-    canSweep: sweepReason === null,
-    sweepReason,
-    canSwap: swapReason === null,
-    swapReason,
+/** What the current pins would do. null outside phase 'choose' or with nothing pinned. */
+export const preview = memo((s: GameState): LivePreview | null => {
+  if (s.phase !== 'choose' || s.deal.pins.length === 0) return null;
+  const d = s.deal;
+  const res = scorePins(d.pins, s.seats.map((x) => x.id), s.owner, d.crisis, s.oldHandM10, { trace: true });
+  const wins = winOrder(d.crisis, s.owner, regionsWon(res.score, d.target));
+  const firing = new Set<number>();
+  for (const e of res.trace!) if (e.kind === 'staff' || e.kind === 'regionStaff') firing.add(e.seat);
+  return {
+    pins: [...d.pins],
+    order: westToEast(d.pins),
+    points: res.points,
+    m10: res.m10,
+    score: res.score,
+    regions: wins.length,
+    wins,
+    unites: wins.length > 0 && countOwner(s.owner, 'gold') + wins.length === RULES.regions,
+    nextMark: nextMark(res.score, d.target),
+    short: res.score >= d.target ? 0n : d.target - res.score,
+    doubled: d.pins.includes(d.crisis),
+    firing: [...firing].sort((a, b) => a - b),
   };
-  return p;
 });
 
-/** What one scoring pin will add if you sweep now, read off the silent scorer's trace. */
-export interface PinChip {
-  /** Influence it adds, every pass, thread, stamp and pin staff included. */
-  inf: bigint;
-  /** Momentum it adds (whole units). */
-  momAdd: bigint;
-  /** The Momentum multipliers it applies, in order ('1.5', '2'). */
-  mults: string[];
-  /** How many times it scores (the flashpoint, the Courier's first pin, an Echo: 2). */
-  passes: number;
+// ---------------------------------------------------------------- the goal (Big Board)
+
+export interface GoalView {
+  gold: number;
+  red: number;
+  grey: number;
+  /** 30 */
+  goldGoal: number;
+  /** 10: war holding this many is a loss. */
+  warLimit: number;
+  /** Where war spreads next by itself and in how many turns (3, 2, 1 = 'THIS TURN'); null when it cannot. */
+  warNext: { id: RegionId; turns: number } | null;
+  /** The tag text: 'WAR · 3 TURNS', 'WAR · 2 TURNS', 'WAR · THIS TURN'. */
+  warTag: string | null;
+  /** No grey is left and war still holds some: crises flare on red. */
+  finalPush: boolean;
+  /** The ghost segments: the counts after SEND with the current pins (null with nothing pinned). */
+  after: { gold: number; red: number } | null;
 }
 
-/**
- * Each scoring pin's own share of the sweep, so two picks of the same shape can be told apart
- * before SWEEP. Never the total: that stays the reveal. Same object per state.
- */
-export const pinChips = memo((s: RunState): Record<RegionId, PinChip> | null => {
-  if (s.phase !== 'crisis' || s.crisis.pins.length === 0) return null;
-  const res = scorePins(s, s.crisis.pins, { trace: true });
-  if (!res) return null;
-  const out: Record<RegionId, PinChip> = {};
-  for (const r of res.scoringSet) out[r] = { inf: 0n, momAdd: 0n, mults: [], passes: res.passes[r] ?? 0 };
-  for (const e of res.trace) {
-    const c = e.region ? out[e.region] : undefined;
-    if (!c || (e.phase !== 'pin' && e.phase !== 'thread' && e.phase !== 'stamp' && e.phase !== 'staff')) continue;
-    if (e.op === '+I') c.inf += BigInt(e.amount);
-    else if (e.op === '+M') c.momAdd += BigInt(e.amount);
-    else if (e.op === 'xM') c.mults.push(e.amount);
+export const goalView = memo((s: GameState): GoalView => {
+  const gold = countOwner(s.owner, 'gold');
+  const red = countOwner(s.owner, 'red');
+  let warNext: GoalView['warNext'] = null;
+  if (s.phase !== 'over') {
+    const id = warSpreadTarget(s.owner);
+    const t = s.phase === 'choose' ? s.turn : s.turn + 1;
+    if (id) warNext = { id, turns: RULES.warEvery - ((t - 1) % RULES.warEvery) };
   }
-  return out;
+  const p = preview(s);
+  let after: GoalView['after'] = null;
+  if (p) {
+    if (p.regions > 0) {
+      const retaken = p.wins.filter((r) => s.owner[r] === 'red').length;
+      after = { gold: gold + p.wins.length, red: red - retaken };
+    } else {
+      after = { gold, red: s.deal.finalPush ? red : red + 1 };
+    }
+  }
+  return {
+    gold,
+    red,
+    grey: RULES.regions - gold - red,
+    goldGoal: RULES.regions,
+    warLimit: RULES.loseAt,
+    warNext,
+    warTag: warNext ? (warNext.turns === 1 ? 'WAR · THIS TURN' : `WAR · ${warNext.turns} TURNS`) : null,
+    finalPush: s.phase === 'choose' ? s.deal.finalPush : gold + red === RULES.regions && red > 0,
+    after,
+  };
 });
 
-// ---------------------------------------------------------------- map views
+// ---------------------------------------------------------------- the map
 
-export function isCapital(s: RunState, r: RegionId): boolean {
-  return boardOf(s).isCapital(r);
-}
-
-export function isPort(s: RunState, r: RegionId): boolean {
-  return boardOf(s).isPort(r);
-}
-
-/** Region views in the shape the map renderer takes (contract.ts RegionView). Same object per state. */
-export const regionViews = memo((s: RunState): Record<RegionId, RegionView> => {
-  const board = boardOf(s);
-  const pinned = new Set(s.crisis.pins);
+/** Every region as the map draws it (the RegionView shape of ui/map/contract.ts). */
+export const regionViews = memo((s: GameState): Record<RegionId, RegionView> => {
+  const choosing = s.phase === 'choose';
+  const d = s.deal;
+  const p = preview(s);
+  const previewOf = new Map<RegionId, RegionView['preview']>();
+  if (p && p.regions > 0) p.wins.forEach((r, i) => previewOf.set(r, { kind: 'win', order: i + 1 }));
+  else if (p && !d.finalPush) previewOf.set(d.crisis, { kind: 'war', order: 1 });
+  const brass = new Set(s.brass);
   const out: Record<RegionId, RegionView> = {};
-  for (const id of REGION_IDS) {
+  for (const id of IDS) {
+    const def = REGION[id];
+    // Between turns nothing is lit: the map shows the plain world (gold, grey plates, hatched red).
+    const lit = choosing && (id === d.crisis || d.lit.includes(id));
+    const pinned = choosing && d.pins.includes(id);
+    const addable = choosing && !pinned && lit && canAdd(d.pins, id, d.lit, d.crisis);
     out[id] = {
       id,
-      colour: s.world.colour[id],
-      status: statusOf(s, id),
-      pinned: pinned.has(id),
-      airlift: s.crisis.airlift === id,
-      capital: board.isCapital(id),
-      port: board.isPort(id),
-      stamp: s.world.stamps[id] ?? null,
-      brass: s.world.brass[id] ?? 0,
-      glow: Math.min(0.4, 0.03 * (s.world.scored[id] ?? 0)),
+      colour: def.colour,
+      owner: s.owner[id],
+      lit,
+      pinned,
+      addable,
+      joinable: addable && d.pins.length > 0,
+      capital: def.capital,
+      port: def.port,
+      preview: previewOf.get(id) ?? null,
+      brass: brass.has(id),
     };
   }
   return out;
 });
 
-/** Every join that has carried traffic (the map decides how to draw each weight). Same array per state. */
-export const threadViews = memo((s: RunState): ThreadView[] =>
-  Object.entries(s.world.traffic)
-    .filter(([, t]) => t > 0)
-    .map(([k, traffic]) => {
-      const [a, b] = splitJoinKey(k);
-      return { a, b, traffic };
-    })
-    .sort((x, y) => compareWestEast(x.a, y.a) || compareWestEast(x.b, y.b)),
-);
-
-/** Flashpoint ring radius factor: max(0, 1 - total / target). */
-export function ringFactor(s: RunState): number {
-  const c = s.crisis;
-  if (c.target <= 0n || c.total >= c.target) return 0;
-  return 1 - Number((c.total * 10_000n) / c.target) / 10_000;
-}
-
-/** Progress rule fill, 0..1 (1 at or past the target). */
-export function progress(s: RunState): number {
-  return 1 - ringFactor(s);
-}
-
-/** Map flags for the current moment. */
-export function mapFlags(s: RunState): { gridlock: boolean; ferry: boolean; blackout: Colour | null } {
-  const t = twistInForce(s);
-  const board = boardOf(s);
-  return {
-    gridlock: t?.kind === 'GRIDLOCK',
-    ferry: board.ferry,
-    blackout: t?.kind === 'BLACKOUT' ? t.colour : null,
-  };
-}
-
-/** True if any two lit regions are joined (for the 'Nothing joins?' first-night hint). */
-export function litHasJoin(s: RunState): boolean {
-  const board = boardOf(s);
-  const lit = s.crisis.lit;
-  return lit.some((a, i) => lit.slice(i + 1).some((b) => board.joined(a, b)));
-}
-
-// ---------------------------------------------------------------- the Big Board
-
-export interface BoardLabels {
-  /** '23:00' (or '10:00' in Overtime). */
-  clock: string;
-  /** '23:00' or 'OVERTIME 10:00'. */
-  hour: string;
-  overtime: boolean;
-  /** 'STANDOFF'. */
-  crisis: string;
-  crisisKind: CrisisKind;
-  /** 0, 1 or 2: which of the Hour's three dots is current. */
-  crisisIndex: number;
-  /** 'SUMMIT: BLACKOUT', shown from the start of the Hour. */
-  summitChip: string;
-  twist: Twist;
-  twistRule: string;
-  /** The twist applies to the crisis on the table right now. */
-  twistNow: boolean;
-  target: bigint;
-  total: bigint;
-  sweepsLeft: number;
-  swapsLeft: number;
-  funds: number;
-}
-
-export function boardLabels(s: RunState): BoardLabels {
-  const c = s.crisis;
-  return {
-    clock: clockOf(c.hour),
-    hour: hourLabel(c.hour),
-    overtime: isOvertime(c.hour),
-    crisis: CRISIS_NAME[c.kind],
-    crisisKind: c.kind,
-    crisisIndex: c.index,
-    summitChip: `SUMMIT: ${TWIST_NAME[s.hour.twist.kind]}`,
-    twist: s.hour.twist,
-    twistRule: twistRule(s.hour.twist),
-    twistNow: twistInForce(s) !== null,
-    target: c.target,
-    total: c.total,
-    sweepsLeft: c.sweepsLeft,
-    swapsLeft: c.swapsLeft,
-    funds: s.funds,
-  };
-}
-
-export interface NextCrisisInfo {
-  hour: string;
-  crisis: string;
-  kind: CrisisKind;
-  target: bigint;
-  /** The next crisis starts a new Hour (and shows its Summit twist). */
-  newHour: boolean;
-}
-
-/** The crisis the Briefing leads to, for 'BRIEFING · next: STANDOFF 1,350'. */
-export function nextCrisisInfo(s: RunState): NextCrisisInfo {
-  const c = s.crisis;
-  if (c.index < 2) {
-    const kind = (['FLARE_UP', 'STANDOFF', 'SUMMIT'] as const)[c.index + 1];
-    return { hour: hourLabel(c.hour), crisis: CRISIS_NAME[kind], kind, target: s.hour.targets[c.index + 1], newHour: false };
+/** The whole MapView. The UI may set highlight, finger and hover on a copy. */
+export const mapView = memo((s: GameState): MapView => {
+  const choosing = s.phase === 'choose';
+  const d = s.deal;
+  const order = choosing ? westToEast(d.pins) : [];
+  const joinedPins: Array<[RegionId, RegionId]> = [];
+  for (let i = 0; i < order.length; i++) {
+    for (let j = i + 1; j < order.length; j++) if (isJoined(order[i], order[j])) joinedPins.push([order[i], order[j]]);
   }
-  const next = c.hour + 1;
-  const target = hourTargets(next, s.hour.targets)[0];
-  return { hour: hourLabel(next), crisis: CRISIS_NAME.FLARE_UP, kind: 'FLARE_UP', target, newHour: true };
+  const crisis: CrisisView | null = choosing
+    ? { id: d.crisis, target: formatInt(d.target), doubled: d.pins.includes(d.crisis) }
+    : null;
+  return {
+    regions: regionViews(s),
+    joinedPins,
+    crisis,
+    warNext: goalView(s).warNext,
+    ceased: s.ending === 'CEASEFIRE',
+    highlight: null,
+    finger: null,
+    hover: null,
+    pinOrder: order.length ? Object.fromEntries(order.map((r, i) => [r, i + 1])) : null,
+  };
+});
+
+/** Regions a staff acts on (the long-press highlight): your gold, ports or capitals. */
+export function actsOn(s: GameState, id: StaffId): RegionId[] {
+  switch (STAFF_DEF[id].actsOn) {
+    case 'gold':
+      return regionsOf(s.owner, 'gold');
+    case 'port':
+      return IDS.filter((r) => REGION[r].port);
+    case 'capital':
+      return IDS.filter((r) => REGION[r].capital);
+    default:
+      return id === 'HERALD' ? [...IDS] : [];
+  }
 }
 
-/** End screens: 'THE WORLD TIPPED · 23:00 STANDOFF' / 'YOU HELD UNTIL 01:00'. */
-export function endLabels(s: RunState): { title: string; line: string } {
-  const c = s.crisis;
-  if (s.phase === 'missed') return { title: 'THE WORLD TIPPED', line: `${hourLabel(c.hour)} ${CRISIS_NAME[c.kind]}` };
-  return { title: 'END OF SLICE', line: `YOU HELD UNTIL ${clockOf(c.hour + 1)}` };
+// ---------------------------------------------------------------- the readout and controls
+
+export interface ReadoutView {
+  target: bigint;
+  /** '1,100' (the readout prints 'TARGET' before it). */
+  targetText: string;
+  /** 'NEED 1,100' before the pins win; 'NEXT REGION AT 4,400' once they do; 'UNITES THE WORLD' when nothing is left beyond. */
+  line: string;
+  nextMark: bigint;
+  /** Regions the pins would win now. */
+  regions: number;
+  points: bigint;
+  m10: bigint;
+  /** The POINTS box: '40'. */
+  pointsText: string;
+  /** The MULTIPLIER box: '1,381.4'. */
+  multiplierText: string;
+  score: bigint;
+  /** The live score is within 10% below the next mark (the coach's 'Close to the next region'). */
+  nearNext: boolean;
 }
 
-// ---------------------------------------------------------------- staff, papers, patterns
+export const readoutView = memo((s: GameState): ReadoutView => {
+  const p = preview(s);
+  const last = s.phase === 'choose' ? null : s.lastSend;
+  const T = s.deal.target;
+  const score = p?.score ?? last?.score ?? 0n;
+  const points = p?.points ?? last?.points ?? 0n;
+  const m10 = p?.m10 ?? last?.m10 ?? 0n;
+  const regions = p ? p.regions : last ? last.regions : 0;
+  const next = p || last ? nextMark(score, T) : T;
+  // Nothing left to win beyond these: there is no next region, the send unites the world.
+  const unites = !!p?.unites;
+  return {
+    target: T,
+    targetText: formatInt(T),
+    line: unites ? 'UNITES THE WORLD' : regions > 0 ? `NEXT REGION AT ${formatInt(next)}` : `NEED ${formatInt(next)}`,
+    nextMark: next,
+    regions,
+    points,
+    m10,
+    pointsText: formatShort(points, 6),
+    multiplierText: formatM10Short(m10, 7),
+    score,
+    nearNext: p !== null && !unites && next - score <= next / 10n,
+  };
+});
+
+export interface SendLabel {
+  /** 'WINS 2 REGIONS', 'MISS · SHORT BY 620', 'MISS · CEASEFIRE', 'PIN A REGION' ('' outside a turn). */
+  text: string;
+  /** 'win' gold, 'miss' red, 'off' disabled at 40%. */
+  tone: 'win' | 'miss' | 'off';
+  enabled: boolean;
+  regions: number;
+}
+
+export const sendLabel = memo((s: GameState): SendLabel => {
+  if (s.phase !== 'choose') return { text: '', tone: 'off', enabled: false, regions: 0 };
+  const p = preview(s);
+  if (!p) return { text: 'PIN A REGION', tone: 'off', enabled: false, regions: 0 };
+  const enabled = sendProblem(s) === null;
+  if (p.regions > 0) return { text: `WINS ${plural(p.regions, 'REGION', 'REGIONS')}`, tone: 'win', enabled, regions: p.regions };
+  if (s.deal.finalPush) return { text: 'MISS · CEASEFIRE', tone: 'miss', enabled, regions: 0 };
+  return { text: `MISS · SHORT BY ${formatInt(p.short)}`, tone: 'miss', enabled, regions: 0 };
+});
+
+export interface ControlsView {
+  swap: { enabled: boolean; sub: string; reason: string | null };
+  coins: number;
+  /** '◆ 7' */
+  coinsText: string;
+  send: SendLabel;
+}
+
+export const controlsView = memo((s: GameState): ControlsView => {
+  const reason = swapProblem(s);
+  const d = s.deal;
+  const pileEmpty = d.swapsLeft > 0 && !d.swapLocked && d.pile.length === 0;
+  const sub = d.swapLocked ? 'next turn' : d.swapsLeft === 0 ? 'used' : pileEmpty ? 'none left' : `${d.swapsLeft} left`;
+  return {
+    swap: { enabled: reason === null, sub, reason },
+    coins: s.coins,
+    coinsText: formatFunds(s.coins, { spaced: true }),
+    send: sendLabel(s),
+  };
+});
+
+// ---------------------------------------------------------------- the staff rail
 
 export interface SeatView {
+  /** 0 = leftmost. */
   seat: number;
   uid: number;
   id: StaffId;
   name: string;
   object: string;
   rule: string;
-  chip: string;
-  count: number;
-  rarity: string;
+  price: number;
   sell: number;
-  /** For a Deputy: the staff it copies right now (null if nothing to its right). */
+  /** 'SELL ◆3' */
+  sellText: string;
+  /** The live chip: '+4', '+7', '×1.4', '×2 CAPITAL', 'COPY'. */
+  chip: string;
+  /** The chip as printed, one or two lines: ['ALL PINS', '★ ⚓'], ['COPY', '→ Sovereign']. */
+  chipLines: string[];
+  /** Chip colour: cyan for points, amber for multiplier (a Deputy takes what it copies). */
+  tone: StaffTone;
+  /** A Deputy: the staff it copies now (null at the far right or beside the Herald). */
   copies: StaffId | null;
+  /** Hired since the last send: its first firing is drawn larger ('+4 · new'). */
+  isNew: boolean;
 }
 
-export function seatViews(s: RunState): SeatView[] {
-  const acting = boardOf(s).acting;
-  return s.staff.map((st, seat) => {
-    const def = STAFF_DEF[st.id];
+export const seatViews = memo((s: GameState): SeatView[] => {
+  const ids = s.seats.map((x) => x.id);
+  const eff = effective(ids);
+  const gold = countOwner(s.owner, 'gold');
+  return s.seats.map((x, seat) => {
+    const def = STAFF_DEF[x.id];
+    const chip = seatChip(x.id, { gold, oldHandM10: s.oldHandM10 });
+    const copies = x.id === 'DEPUTY' ? eff[seat] : null;
+    let chipLines = [chip];
+    if (x.id === 'HERALD') chipLines = ['ALL PINS', '★ ⚓'];
+    else if (x.id === 'DEPUTY' && copies) chipLines = ['COPY', `→ ${STAFF_DEF[copies].name}`];
     return {
       seat,
-      uid: st.uid,
-      id: st.id,
+      uid: x.uid,
+      id: x.id,
       name: def.name,
       object: def.object,
       rule: def.rule,
-      chip: seatChip(st.id, st.count),
-      count: st.count,
-      rarity: def.rarity,
+      price: def.price,
       sell: def.sell,
-      copies: st.id === 'DEPUTY' ? acting[seat].id : null,
+      sellText: `SELL ${formatFunds(def.sell)}`,
+      chip,
+      chipLines,
+      tone: copies ? STAFF_DEF[copies].tone : def.tone,
+      copies,
+      isNew: s.hiredSinceSend.includes(x.uid),
     };
   });
+});
+
+// ---------------------------------------------------------------- the shop
+
+export interface PreviewLine extends PreviewNumber {
+  /** '390 → 2,343' (the card prints 'BEST LAST TURN' above it). */
+  text: string;
+  beforeText: string;
+  afterText: string;
 }
 
-export interface PatternRow {
-  id: PatternId;
-  /** '???' for a secret not yet made. */
-  name: string;
-  shape: string;
-  level: number;
-  influence: number;
-  momentum: number;
-  made: number;
-  secret: boolean;
-  hidden: boolean;
-}
-
-/** Run Info: the 11 patterns with levels and values. */
-export function patternTable(s: RunState): PatternRow[] {
-  return PATTERNS.map((p) => {
-    const level = s.world.levels[p.id];
-    const v = patternValues(p.id, level);
-    const hidden = p.secret && s.made[p.id] === 0;
-    return {
-      id: p.id,
-      name: hidden ? '???' : p.name,
-      shape: hidden ? '???' : p.shape,
-      level,
-      influence: v.influence,
-      momentum: v.momentum,
-      made: s.made[p.id],
-      secret: p.secret,
-      hidden,
-    };
-  });
-}
-
-export interface ArmedView {
-  order: OrderId;
-  name: string;
+export interface OfferView {
   slot: number;
-  chosen: RegionId[];
-  /** Regions that may be tapped next. */
-  valid: RegionId[];
-  kind: 'tap' | 'drag';
-  prompt: string;
-  canConfirm: boolean;
-}
-
-export function armedView(s: RunState): ArmedView | null {
-  const a = s.armed;
-  if (!a) return null;
-  const def = ORDER[a.order];
-  return {
-    order: a.order,
-    name: def.name,
-    slot: a.slot,
-    chosen: [...a.chosen],
-    valid: validTargets(s, a.order, a.chosen),
-    kind: def.targeting.kind === 'drag' ? 'drag' : 'tap',
-    prompt: armedPrompt(a.order, a.chosen),
-    canConfirm: canConfirmArmed(s) && a.chosen.length < def.targeting.max,
-  };
-}
-
-/** Regions an offer (or seated staff) acts on, for the long-press highlight. */
-export function actsOn(s: RunState, item: Offer | { kind: 'staff'; id: StaffId }): RegionId[] {
-  const ports = portSet(s.world);
-  const live = REGION_IDS.filter((r) => !s.world.retired.includes(r));
-  const caps = live.filter((r) => baseCapital(s.world, r));
-  if (item.kind === 'order') return validTargets(s, item.id, []);
-  if (item.kind === 'playbook') return [];
-  switch (item.id) {
-    case 'HARBOUR':
-    case 'ADMIRAL':
-    case 'FERRY':
-      return live.filter((r) => ports.has(r));
-    case 'SURVEYOR':
-      return live.filter((r) => REGION[r].weight <= 4);
-    case 'GOVERNOR':
-    case 'SIGNALS':
-    case 'SOVEREIGN':
-    case 'CHIEF':
-      return caps;
-    case 'HERALD':
-      return live;
-    default:
-      return [];
-  }
-}
-
-/**
- * A few live regions that make a pattern on this map, heaviest first: what a Playbook's long-press
- * outlines as an example. Empty when the map has no such shape (a secret not open to it).
- */
-export function patternExample(s: RunState, id: PatternId): RegionId[] {
-  const board = boardOf(s);
-  const byWeight = [...board.live].sort((a, b) => REGION[b].weight - REGION[a].weight || compareWestEast(a, b));
-  const joinsAny = (r: RegionId, set: readonly RegionId[]) => set.some((p) => board.joined(p, r));
-  /** From `start`, add the heaviest joined region until there are k (never one in `avoid` or joined to it). */
-  const grow = (k: number, start: RegionId | undefined, avoid: readonly RegionId[] = []): RegionId[] => {
-    if (!start) return [];
-    const set = [start];
-    while (set.length < k) {
-      const next = byWeight.find((r) => !set.includes(r) && !avoid.includes(r) && !joinsAny(r, avoid) && joinsAny(r, set));
-      if (!next) return [];
-      set.push(next);
-    }
-    return set;
-  };
-  const byColour = new Map<Colour, RegionId[]>();
-  for (const r of byWeight) byColour.set(board.colourOf(r), [...(byColour.get(board.colourOf(r)) ?? []), r]);
-  const colours = [...byColour.values()];
-  switch (id) {
-    case 'SINGLE':
-      return byWeight.slice(0, 1);
-    case 'LINK':
-      return grow(2, byWeight[0]);
-    case 'CHAIN':
-      return grow(3, byWeight[0]);
-    case 'FRONT':
-      return grow(4, byWeight[0]);
-    case 'NETWORK':
-      return grow(5, byWeight[0]);
-    case 'TWO_LINKS': {
-      const a = grow(2, byWeight[0]);
-      const b = grow(2, byWeight.find((r) => !a.includes(r) && !joinsAny(r, a)), a);
-      return a.length && b.length ? [...a, ...b] : [];
-    }
-    case 'WORLDWIDE':
-      return colours.length >= 5 ? colours.map((c) => c[0]).slice(0, 5) : [];
-    case 'BLOC': {
-      const most = [...colours].sort((a, b) => b.length - a.length)[0] ?? [];
-      return most.length >= 5 ? most.slice(0, 5) : [];
-    }
-    case 'WHOLE_BLOC': {
-      const fewest = colours.filter((c) => c.length >= 3 && c.length <= 5).sort((a, b) => a.length - b.length)[0];
-      return fewest ?? [];
-    }
-    case 'SURROUND': {
-      let best: RegionId[] = [];
-      let bestSum = -1;
-      for (const r of board.live) {
-        const ring = [...(board.adj.get(r) ?? [])];
-        if (ring.length < 3 || ring.length > 5) continue;
-        const sum = ring.reduce((t, q) => t + REGION[q].weight, 0);
-        if (sum > bestSum) {
-          best = ring;
-          bestSum = sum;
-        }
-      }
-      return best;
-    }
-    case 'AROUND_THE_WORLD': {
-      // Five joined regions, one of each colour: a small search, only ever run on a long-press.
-      const find = (set: RegionId[]): RegionId[] | null => {
-        if (set.length === 5) return set;
-        const used = new Set(set.map((r) => board.colourOf(r)));
-        for (const r of byWeight) {
-          if (set.includes(r) || used.has(board.colourOf(r)) || !joinsAny(r, set)) continue;
-          const found = find([...set, r]);
-          if (found) return found;
-        }
-        return null;
-      };
-      for (const start of byWeight) {
-        const found = find([start]);
-        if (found) return found;
-      }
-      return [];
-    }
-  }
-}
-
-// ---------------------------------------------------------------- the Briefing and the in-tray
-
-/** A card as the Briefing shows it (offer, folder card or tray paper). */
-export interface CardView {
-  kind: 'staff' | 'order' | 'playbook';
-  /** StaffId, OrderId or PatternId. */
-  id: string;
+  /** null once hired. */
+  id: StaffId | null;
   name: string;
+  object: string;
   rule: string;
   price: number;
-  /** Staff only: rarity (for the rim) and the object drawn as the icon. */
-  rarity: Rarity | null;
-  object: string | null;
-}
-
-function card(kind: CardView['kind'], id: string): CardView {
-  if (kind === 'staff') {
-    const d = STAFF_DEF[id as StaffId];
-    return { kind, id, name: d.name, rule: d.rule, price: d.price, rarity: d.rarity, object: d.object };
-  }
-  if (kind === 'order') {
-    const d = ORDER[id as OrderId];
-    return { kind, id, name: d.name, rule: d.rule, price: d.price, rarity: null, object: null };
-  }
-  const d = playbook(id as PatternId);
-  return { kind, id, name: d.name, rule: d.rule, price: d.price, rarity: null, object: null };
-}
-
-export interface OfferView extends CardView {
-  slot: number;
-  /** Why it can't be bought right now ('Not enough Funds.'), or null. */
+  /** '◆6' */
+  priceText: string;
+  /** Can be hired now: into a free seat with the coins in hand. */
+  affordable: boolean;
+  /** Can be hired after selling a seat (with a full table: replacing that seat). */
+  affordableWithSale: boolean;
+  /** Why it cannot be hired into a free seat now, or null. */
   reason: string | null;
-}
-
-export interface FolderView {
-  kind: 'recruit' | 'orders';
-  name: string;
-  rule: string;
-  price: number;
-  status: 'sealed' | 'open' | 'used';
-  /** Why it can't be opened, or null. */
-  reason: string | null;
-  /** The 3 cards (shown once open), each with why it can't be taken. */
-  cards: Array<CardView & { index: number; reason: string | null }>;
+  /** The card's preview line: into the first free seat, or (full table) the best seat to replace. */
+  preview: PreviewLine | null;
+  /** Full table only: the tag on each seat if this offer replaced it. */
+  replace: Array<{ seat: number; after: bigint; text: string; affordable: boolean }> | null;
 }
 
 export interface ShopView {
-  briefing: number;
-  offers: Array<OfferView | null>;
-  folder: FolderView;
-  rerollCost: number;
-  canReroll: boolean;
-  next: NextCrisisInfo;
+  visit: number;
+  nextTarget: bigint;
+  /** 'SHOP · NEXT TARGET 1,600' */
+  title: string;
+  offers: OfferView[];
+  reroll: { cost: number; text: string; enabled: boolean };
+  /** All 5 seats are taken: hiring means replacing a seat. */
+  fullTable: boolean;
+  /** No offer is affordable even after a sale: NEXT TURN pulses at once. */
+  nothingAffordable: boolean;
+  /** The receipt: 'LAST TURN · WIN 2 · +◆2', and 'WAR SPREAD TO MARRAM' when it did. */
+  receipt: { line: string; spread: string | null } | null;
 }
 
-/** Everything the Briefing tray draws, or null outside a Briefing. */
-export function shopView(s: RunState): ShopView | null {
+function previewLine(p: PreviewNumber): PreviewLine {
+  const beforeText = formatInt(p.before);
+  const afterText = formatInt(p.after);
+  return { ...p, beforeText, afterText, text: `${beforeText} → ${afterText}` };
+}
+
+/** The receipt for the turn just played. */
+export function receipt(s: GameState): ShopView['receipt'] {
+  const r = s.lastSend;
+  if (!r) return null;
+  const gained = r.coinsAfter - r.coinsBefore;
+  const line =
+    r.result === 'win'
+      ? `LAST TURN · WIN ${r.regions} · +${formatFunds(gained)}`
+      : r.ending === 'CEASEFIRE'
+        ? 'LAST TURN · MISS · CEASEFIRE'
+        : `LAST TURN · MISS · WAR TOOK ${name(r.crisis).toUpperCase()}`;
+  return { line, spread: r.spread ? `WAR SPREAD TO ${name(r.spread.id).toUpperCase()}` : null };
+}
+
+export const shopView = memo((s: GameState): ShopView | null => {
+  if (s.phase !== 'shop' || !s.shop) return null;
   const shop = s.shop;
-  if (s.phase !== 'briefing' || !shop) return null;
-  const offers = shop.offers.map((o, slot) => {
-    if (!o) return null;
-    const base = o.kind === 'playbook' ? card('playbook', o.pattern) : card(o.kind, o.id);
-    return { ...base, price: o.price, slot, reason: offerProblem(s, slot) };
+  const full = s.seats.length >= RULES.seats;
+  const maxSell = s.seats.reduce((m, x) => Math.max(m, sellValue(x.id)), 0);
+  const offers = shop.offers.map((id, slot): OfferView => {
+    if (!id) {
+      return {
+        slot, id: null, name: '', object: '', rule: '', price: 0, priceText: '',
+        affordable: false, affordableWithSale: false, reason: 'Already hired.', preview: null, replace: null,
+      };
+    }
+    const def = STAFF_DEF[id];
+    const affordable = !full && s.coins >= def.price;
+    const affordableWithSale = s.coins + maxSell >= def.price || affordable;
+    const p = previewNumber(s, slot);
+    const replace = full
+      ? s.seats.map((x, seat) => {
+          const after = previewNumber(s, slot, seat)!.after;
+          return { seat, after, text: formatInt(after), affordable: s.coins + sellValue(x.id) >= def.price };
+        })
+      : null;
+    return {
+      slot,
+      id,
+      name: def.name,
+      object: def.object,
+      rule: def.rule,
+      price: def.price,
+      priceText: formatFunds(def.price),
+      affordable,
+      affordableWithSale,
+      reason: full ? 'Full table. Tap a seat to replace it.' : affordable ? null : 'Not enough coins.',
+      preview: p && previewLine(p),
+      replace,
+    };
   });
-  const f = shop.folder;
-  const folder: FolderView = {
-    kind: f.kind,
-    name: FOLDER_NAME[f.kind],
-    rule: FOLDER_RULE[f.kind],
-    price: f.price,
-    status: f.status,
-    reason: folderProblem(s),
-    cards: f.contents.map((id, index) => ({
-      ...card(f.kind === 'recruit' ? 'staff' : 'order', id),
-      index,
-      reason: pickProblem(s, index),
-    })),
-  };
+  const nextTarget = target(s.turn + 1);
   return {
-    briefing: shop.briefing,
+    visit: shop.visit,
+    nextTarget,
+    title: `SHOP · NEXT TARGET ${formatInt(nextTarget)}`,
     offers,
-    folder,
-    rerollCost: shop.rerollCost,
-    canReroll: s.funds >= shop.rerollCost,
-    next: nextCrisisInfo(s),
+    reroll: { cost: shop.rerollCost, text: `REROLL ${formatFunds(shop.rerollCost)}`, enabled: s.coins >= shop.rerollCost },
+    fullTable: full,
+    nothingAffordable: !offers.some((o) => o.affordableWithSale),
+    receipt: receipt(s),
   };
+});
+
+// ---------------------------------------------------------------- the end card
+
+export interface EndView {
+  ending: Ending;
+  /** 3 WORLD UNITED; 2 CEASEFIRE holding 25-29; 1 CEASEFIRE holding 21-24; 0 WAR. */
+  stars: number;
+  /** 'WORLD UNITED · 30 of 30', 'CEASEFIRE · 26 of 30 gold', 'WAR'. */
+  title: string;
+  /** The card's lines under the title, in order. */
+  lines: string[];
+  turn: number;
+  gold: number;
+  red: number;
+  grey: number;
+  peakWar: number;
+  /** '749,414 · 39x the target' */
+  best: { score: bigint; target: bigint; text: string } | null;
+  /** The most regions won in one send: '7 regions'. */
+  biggestTurn: { regions: number; text: string } | null;
+  /** The staff in seat order. */
+  staff: StaffId[];
+  /** WAR with 3 or fewer grey regions left: they are outlined gold on the dark map. */
+  nearMiss: RegionId[];
 }
 
-export interface PaperView {
-  slot: number;
-  uid: number;
-  id: OrderId;
-  name: string;
-  rule: string;
-  sell: number;
-  armed: boolean;
-  /** Why it can't be armed right now (AIRLIFT outside a crisis), or null. */
-  reason: string | null;
+function timesTarget(score: bigint, T: bigint): string {
+  if (score >= 10n * T) return `${formatInt(score / T)}x`;
+  const tenths = (score * 10n) / T;
+  return `${tenths / 10n}.${tenths % 10n}x`;
 }
 
-export function trayViews(s: RunState): PaperView[] {
-  return s.tray.map((p, slot) => ({
-    slot,
-    uid: p.uid,
-    id: p.id,
-    name: ORDER[p.id].name,
-    rule: ORDER[p.id].rule,
-    sell: ORDER[p.id].sell,
-    armed: s.armed?.slot === slot,
-    reason: paperProblem(s, slot),
-  }));
+export const endView = memo((s: GameState): EndView | null => {
+  if (!s.ending) return null;
+  const gold = countOwner(s.owner, 'gold');
+  const red = countOwner(s.owner, 'red');
+  const grey = RULES.regions - gold - red;
+  const lines: string[] = [];
+  let title: string;
+  let stars = 0;
+  let nearMiss: RegionId[] = [];
+  if (s.ending === 'WORLD UNITED') {
+    stars = 3;
+    title = `WORLD UNITED · ${gold} of ${RULES.regions}`;
+    lines.push(`Turn ${s.turn} · war peaked at ${s.peakWar}`);
+  } else if (s.ending === 'CEASEFIRE') {
+    stars = gold >= 25 ? 2 : 1;
+    title = `CEASEFIRE · ${gold} of ${RULES.regions} gold`;
+    lines.push(`War held ${plural(red, 'region', 'regions')} when it stopped.`);
+  } else {
+    title = 'WAR';
+    lines.push(`War took ${plural(red, 'region', 'regions')}. You held ${gold} of ${RULES.regions}.`);
+    if (grey > 0 && grey <= 3) {
+      nearMiss = regionsOf(s.owner, 'grey');
+      lines.push(`${plural(grey, 'grey region', 'grey regions')} from the final push.`);
+    }
+  }
+  const biggest = s.log.reduce((m, l) => Math.max(m, l.regions), 0);
+  return {
+    ending: s.ending,
+    stars,
+    title,
+    lines,
+    turn: s.turn,
+    gold,
+    red,
+    grey,
+    peakWar: s.peakWar,
+    best: s.best && {
+      score: s.best.score,
+      target: s.best.target,
+      text: `${formatInt(s.best.score)} · ${timesTarget(s.best.score, s.best.target)} the target`,
+    },
+    biggestTurn: s.log.length ? { regions: biggest, text: plural(biggest, 'region', 'regions') } : null,
+    staff: s.seats.map((x) => x.id),
+    nearMiss,
+  };
+});
+
+// ---------------------------------------------------------------- the menu
+
+export interface MenuView {
+  turn: number;
+  nextShopAfter: number;
+  /** 'Turn 9 · next shop after turn 10' */
+  line: string;
+}
+
+export function menuView(s: GameState): MenuView {
+  const after = nextShopAfter(s.phase === 'choose' ? s.turn : s.turn + 1);
+  return { turn: s.turn, nextShopAfter: after, line: `Turn ${s.turn} · next shop after turn ${after}` };
 }

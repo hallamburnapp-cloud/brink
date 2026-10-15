@@ -1,8 +1,8 @@
 /**
  * The starting map: 30 regions in 5 colours, 45 land joins (36 borders + 9 Scatter causeways)
  * and 9 sea lanes. Data comes from map.json (spec section 1); this module types it and derives
- * the lookups the engine and the renderer share. Nothing here changes during a run: DEFECT,
- * PROMOTE, LAY CABLE and RETIRE live in the run's World state.
+ * the lookups the engine and the renderer share. Nothing here changes during a game: who owns
+ * each region lives in the game state.
  */
 import type { Colour, RegionId } from '../ui/map/contract';
 import mapData from './map.json' with { type: 'json' };
@@ -12,15 +12,15 @@ export type { Colour, RegionId };
 export interface RegionDef {
   id: RegionId;
   name: string;
-  /** Starting colour (DEFECT can change it during a run). */
+  /** The region's bloc (it tints the region while it is grey). */
   colour: Colour;
   weight: number;
   /** Pin centre in map points (frame 390 x 520). */
   x: number;
   y: number;
-  /** Starting capital (PROMOTE and the Herald add more during a run). */
+  /** A capital (★). */
   capital: boolean;
-  /** Has a sea lane (LAY CABLE adds more ports during a run). */
+  /** A port (⚓): it has a sea lane. */
   port: boolean;
   /** The region at the other end of this region's sea lane, if any. */
   lane: RegionId | null;
@@ -143,14 +143,14 @@ export const ISLANDS: ReadonlyArray<{ id: RegionId; x: number; y: number; r: num
   (id) => ({ id, x: REGION[id].x, y: REGION[id].y, r: ISLAND_RADIUS }),
 );
 
-/** West-to-east order (x, then y), the order a sweep scores in. */
+/** West-to-east order (x, then y), the order a send scores in. */
 export function compareWestEast(a: RegionId, b: RegionId): number {
   const ra = REGION[a];
   const rb = REGION[b];
   return ra.x - rb.x || ra.y - rb.y;
 }
 
-/** A stable key for an unordered pair of regions, e.g. traffic on a join. */
+/** A stable key for an unordered pair of regions (a join). */
 export function joinKey(a: RegionId, b: RegionId): string {
   return a < b ? `${a}|${b}` : `${b}|${a}`;
 }

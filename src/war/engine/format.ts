@@ -2,8 +2,7 @@
  * Number display. Scores are BigInt and can pass a googol, so every formatter takes a bigint
  * (or a safe integer) and never goes through floating point.
  *
- * The Big Board's crisis total is a 28 pt split-flap 124 px wide: 7 glyphs at most (commas
- * and points count). formatShort() keeps to a glyph budget: full digits while they fit,
+ * formatShort() keeps to a glyph budget (7 by default; commas and points count): full digits while they fit,
  * then 3 significant figures with K / M / B / T ('10.6B', '1.24M'), then e-notation from 1e15
  * ('1.23e15'), and GOOGOL at 1e100 and above.
  */
@@ -65,7 +64,7 @@ function shortForm(v: bigint, sig: number): string {
 }
 
 /**
- * Fit a whole number into `maxGlyphs` glyphs (default 7, the Big Board total).
+ * Fit a whole number into `maxGlyphs` glyphs (default 7).
  * 452 -> '452', 10920 -> '10,920', 10559856944 -> '10.6B', 1240000 -> '1.24M'.
  */
 export function formatShort(n: bigint | number, maxGlyphs = 7): string {
@@ -81,25 +80,23 @@ export function formatShort(n: bigint | number, maxGlyphs = 7): string {
   return shortForm(v, 1);
 }
 
-/** Momentum in tenths for display: 40 -> '4', 45 -> '4.5', 12345 -> '1,234.5'. */
+/** The multiplier from tenths, always with one decimal: 40 -> '4.0', 45 -> '4.5', 12345 -> '1,234.5'. */
 export function formatM10(m10: bigint | number): string {
   const v = toBig(m10);
   const neg = v < 0n;
   const a = neg ? -v : v;
-  const whole = formatInt(a / 10n);
-  const tenth = a % 10n;
-  const s = tenth === 0n ? whole : `${whole}.${tenth}`;
+  const s = `${formatInt(a / 10n)}.${a % 10n}`;
   return neg ? `-${s}` : s;
 }
 
-/** Momentum for a small box: the exact value while it fits, else the whole part shortened. */
+/** The multiplier for a small box: the exact value while it fits, else the whole part shortened. */
 export function formatM10Short(m10: bigint | number, maxGlyphs = 5): string {
   const exact = formatM10(m10);
   if (exact.length <= maxGlyphs) return exact;
   return formatShort(toBig(m10) / 10n, maxGlyphs);
 }
 
-/** Funds: '◆11' for prices and balloons; spaced: '◆ 11' for the coin. */
+/** Coins: '◆11' for prices and balloons; spaced: '◆ 11' for the coin chip. */
 export function formatFunds(n: number, opts: { spaced?: boolean } = {}): string {
   return `◆${opts.spaced ? ' ' : ''}${formatInt(n)}`;
 }
