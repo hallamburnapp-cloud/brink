@@ -1,0 +1,37 @@
+# Satellite Blackout: our eyes over the Federation's main port go dark for four days.
+#   blackout-01 (NWK) -> left blackout-02 (we ask) / right blackout-03 (we fly) -> both blackout-04
+- id: blackout-01
+  arc: satellite-blackout
+  adviser: intel
+  region: NWK
+  day: [2, 14]
+  text: Three of our satellites over Northwake went dark at three this morning. Could be weather. Could be a Federation jammer. We are blind over their main port for now.
+  left:  { text: "Ask them, plainly",            tag: CALM,  hint: "Danger down · they may lie", follow: blackout-02 }
+  right: { text: Fly the reconnaissance planes, tag: RISKY, odds: 65, hint: "Holds 65% · if caught, Northwake heats", follow: blackout-03 }
+
+- id: blackout-02
+  arc: satellite-blackout
+  adviser: foreign
+  region: NWK
+  day: [3, 16]
+  text: "Wintermast says our satellites failed on their own, and offers to sell us pictures of Northwake from theirs. It is an insult wrapped as a favour. In their pictures, the port is busier than last week."
+  left:  { text: Buy the pictures,      tag: CALM,  hint: "Danger down · we see what they show us", follow: blackout-04 }
+  right: { text: Launch a replacement,  tag: RISKY, odds: 70, hint: "Holds 70% · if jammed too, Northwake heats", follow: blackout-04 }
+
+- id: blackout-03
+  arc: satellite-blackout
+  adviser: general
+  region: NWK
+  day: [3, 16]
+  text: "The planes came back, with pictures and an escort. Northwake harbour holds eleven troop ships, loading. A Federation fighter flew beside ours for twenty minutes and waved. They wanted us to see this."
+  left:  { text: Put the border on alert,        tag: FORCE, hint: "Danger down here · warns Northwake off, heats Vessary", heats: VSY, mark: warned, follow: blackout-04 }
+  right: { text: Show the Scatter the pictures,  tag: CALM,  hint: "Danger down · Lantern Key sees it too", follow: blackout-04 }
+
+- id: blackout-04
+  arc: satellite-blackout
+  adviser: intel
+  region: NWK
+  day: [4, 18]
+  text: "The satellites are back. Northwake's troop ships have sailed, north, to an exercise. Probably. We lost four days of sight and I cannot tell you what moved in them."
+  left:  { text: Fund new satellites,          tag: HOME, hint: "Nothing changes abroad · the budget takes it" }
+  right: { text: Ask Wintermast where they went, tag: CALM, hint: "Danger down · they may even answer" }

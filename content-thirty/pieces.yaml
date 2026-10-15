@@ -1,0 +1,99 @@
+# The twelve team pieces (SPEC "The team"): `rule` is printed exactly when the chip is tapped,
+# `tags` says what the piece amplifies, `chip` is the one-word name on the team row, `icon` the glyph key.
+- id: old-ambassador
+  name: Old Ambassador
+  chip: Ambassador
+  icon: handshake
+  kind: adviser
+  rule: Every calming choice cools one step more.
+  tags: [CALM]
+
+- id: back-channel
+  name: Back-Channel
+  chip: Channel
+  icon: phone
+  kind: policy
+  rule: Calming choices also cool one neighbour.
+  tags: [CALM]
+
+- id: peace-movement
+  name: Peace Movement
+  chip: Peace
+  icon: dove
+  kind: policy
+  rule: Calming choices cool two extra regions; force choices heat home.
+  tags: [CALM, FORCE]
+
+- id: hotline
+  name: Hotline
+  chip: Hotline
+  icon: bell
+  kind: policy
+  rule: Once a week, a crisis card calms itself before you choose.
+  tags: [any]
+
+- id: dove-foreign
+  name: Dove Foreign Minister
+  chip: Dove
+  icon: olive
+  kind: adviser
+  rule: "Talks never fail: risky talks become certain."
+  tags: [RISKY]
+
+- id: hawk-general
+  name: Hawk General
+  chip: Hawk
+  icon: medal
+  kind: adviser
+  rule: Force choices cool two steps more, but always heat a neighbour.
+  tags: [FORCE]
+
+- id: loyal-admiral
+  name: Loyal Admiral
+  chip: Admiral
+  icon: anchor
+  kind: adviser
+  rule: Force choices at sea cool every neighbouring sea region too.
+  tags: [FORCE]
+
+- id: cautious-intel
+  name: Cautious Intel Director
+  chip: Cautious
+  icon: eye
+  kind: adviser
+  rule: False alarms are marked before you choose.
+  tags: [arcs]
+  excludes: [paranoid-intel]
+
+- id: paranoid-intel
+  name: Paranoid Intel Director
+  chip: Paranoid
+  icon: radar
+  kind: adviser
+  rule: Warnings come a day earlier; one in four is false.
+  tags: [arcs]
+  excludes: [cautious-intel]
+
+- id: spin-doctor
+  name: Spin Doctor
+  chip: Spin
+  icon: megaphone
+  kind: adviser
+  rule: No domestic cards. Home never heats.
+  tags: [HOME]
+
+- id: red-lines
+  name: Red Lines
+  chip: Red Line
+  icon: flag
+  kind: policy
+  rule: "Name one region: it calms twice as fast, but if it reaches war, DANGER +15."
+  tags: [map]
+
+- id: launch-on-warning
+  name: Launch on Warning
+  chip: Warning
+  icon: siren
+  kind: policy
+  rule: War never spreads from a region you have warned; a false alarm there is +20.
+  tags: [arcs]

@@ -1,0 +1,31 @@
+# The six advisers who speak on the cards (SPEC "The content"). `voice` is for the writer, never shown.
+# All names are fictional. `portrait` is the silhouette key the card draws (defaults to the id).
+- id: foreign
+  name: Mara Teshen
+  role: Foreign Minister
+  voice: Measured. Full sentences, no raised voice; says what we might do, never what we must.
+
+- id: general
+  name: Ruun Halder
+  role: General
+  voice: Blunt. Short sentences, numbers first, wants a decision by nightfall.
+
+- id: intel
+  name: Dagny Fell
+  role: Intel Director
+  voice: Hedged. Everything is probably, nothing is confirmed; gives the odds and the gap in them.
+
+- id: admiral
+  name: Tomas Reyde
+  role: Admiral
+  voice: Dry. Says less than he knows, one wry note a card, calls ships by what they carry.
+
+- id: chief
+  name: Wen Adair
+  role: Chief of Staff
+  voice: Domestic and tired. Queues, prices and the morning papers; wants one quiet day.
+
+- id: ambassador
+  name: Aurelio Stane
+  role: Old Ambassador
+  voice: Warm, long-winded in few words. Remembers everyone's mother and an older crisis that went fine.

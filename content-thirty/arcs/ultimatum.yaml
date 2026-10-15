@@ -1,0 +1,38 @@
+# The Ultimatum: two days to leave Tern Isle. Only comes once Tern Isle is already tense.
+#   ultimatum-01 (TRN) -> left ultimatum-02 (we thinned) / right ultimatum-03 (we reinforced) -> both ultimatum-04 (LNK)
+- id: ultimatum-01
+  arc: ultimatum
+  adviser: foreign
+  region: TRN
+  day: [10, 26]
+  when: { heat: [1, 3] }
+  text: The Federation has given us two days to withdraw our garrison from Tern Isle. It is written politely. It is still an ultimatum. Tern Isle has asked us, quietly, to stay.
+  left:  { text: "Thin the garrison, keep talking", tag: CALM,  hint: "Danger down · slower", follow: ultimatum-02 }
+  right: { text: Reinforce Tern Isle,              tag: FORCE, hint: "Danger down here · heats Morrow Downs", heats: MRD, follow: ultimatum-03 }
+
+- id: ultimatum-02
+  arc: ultimatum
+  adviser: foreign
+  region: TRN
+  day: [11, 28]
+  text: "Two days are up. We thinned the Tern Isle garrison to a company and kept talking. Wintermast calls it a start and asks for the rest. Tern Isle's council asks, in a letter, whether we are leaving."
+  left:  { text: Stay at a company,       tag: CALM, hint: "Danger down · Tern Isle keeps a flag", follow: ultimatum-04 }
+  right: { text: Bring the garrison home, tag: CALM, hint: "Danger down here · Gullrest takes fright", heats: GUL, follow: ultimatum-04 }
+
+- id: ultimatum-03
+  arc: ultimatum
+  adviser: general
+  region: TRN
+  day: [11, 28]
+  text: "Two days are up. Tern Isle has two brigades and the Federation has four ships off its beach. Nobody has fired. Their captain and ours are talking by radio about the weather. I need an answer before dark."
+  left:  { text: Keep talking weather,  tag: RISKY, odds: 65, hint: "Holds 65% · if they land, Tern Isle and Morrow Downs heat", fail: { heats: MRD }, follow: ultimatum-04 }
+  right: { text: Fire a warning shot,   tag: FORCE, hint: "Danger down here · warns them off, heats Lantern Key", heats: LNK, mark: warned, follow: ultimatum-04 }
+
+- id: ultimatum-04
+  arc: ultimatum
+  adviser: ambassador
+  region: LNK
+  day: [12, 30]
+  text: "Lantern Key offers to put its own small flag on Tern Isle: beside ours, beside theirs, or alone. Their minister suggested it over tea. I have known her since she was six. It might work."
+  left:  { text: Accept the Scatter flag, tag: CALM, hint: "Danger down · Tern Isle eases", relieve: TRN }
+  right: { text: "Decline, but kindly",    tag: HOME, hint: "Nothing changes abroad · she will ask again" }

@@ -1,0 +1,64 @@
+# Map-tap cards: the card says what to do and the targets glow in place of the buttons. Two or three targets.
+# A target acts on the tapped region by its tag (CALM unless said); `mark` leaves a lasting mark there.
+# The six of the spec: where the fleet goes, where the envoy flies, which front comes home, where the
+# brigade stands, which ally hears from us, where the red line is drawn (Red Lines held).
+- id: fleet-map
+  adviser: admiral
+  map: true
+  day: [2, 28]
+  text: The fleet can be in one place by morning. Tap where it goes.
+  targets:
+    - { region: SHL, hint: "Calms the strait" }
+    - { region: ORN, hint: "Warns Orrinth off · heats Dunmarrow", tag: FORCE, heats: DNM, mark: warned }
+    - { region: VSY, hint: "Guards home", mark: guarded }
+
+- id: envoy-map
+  adviser: foreign
+  map: true
+  day: [3, 27]
+  text: One envoy, one flight, a week of talks. Tap where she goes.
+  targets:
+    - { region: WMS, hint: "Talks in Wintermast · holds 60%", tag: RISKY, odds: 60 }
+    - { region: TLM, hint: "Talks in Tallowmere" }
+    - { region: LNK, hint: "Talks in Lantern Key" }
+
+- id: pullback-map
+  adviser: general
+  map: true
+  day: [6, 28]
+  text: We are stretched thin. One front comes home this week, whatever the others say. Tap which.
+  targets:
+    - { region: TRN, hint: "Leave Tern Isle · Morrow Downs takes fright", heats: MRD }
+    - { region: FLE, hint: "Bring the trainers home from Floe End" }
+    - { region: VSY, hint: "Stand Vessary down" }
+
+- id: brigade-map
+  adviser: general
+  map: true
+  day: [4, 26]
+  text: One brigade is ready to move tonight. Wherever it stands, nothing gets through for a week. Tap where.
+  targets:
+    - { region: VSY, hint: "Guards Vessary · heats Northwake", tag: FORCE, heats: NWK, mark: guarded }
+    - { region: MRD, hint: "Guards Morrow Downs", mark: guarded }
+    - { region: EDV, hint: "Guards the capital", mark: guarded }
+
+- id: ally-map
+  adviser: foreign
+  map: true
+  day: [5, 27]
+  text: Three friends are asking whether we are still friends. One call tonight, from you. Tap who hears it.
+  targets:
+    - { region: BRN, hint: "Reassures Brindle Coast" }
+    - { region: TRN, hint: "Reassures Tern Isle" }
+    - { region: GUL, hint: "Reassures Gullrest" }
+
+- id: redline-map
+  adviser: foreign
+  map: true
+  day: [6, 28]
+  when: { pieces: [red-lines] }
+  text: You said you would draw a red line. Tap where it is drawn. Cross it, and the whole world knows what we do.
+  targets:
+    - { region: TRN, hint: "Red line at Tern Isle", mark: red-line }
+    - { region: SHL, hint: "Red line at the Shoal", mark: red-line }
+    - { region: VSY, hint: "Red line at Vessary", mark: red-line }

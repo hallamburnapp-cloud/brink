@@ -24,3 +24,4 @@ dist-*
 docs/war/screens/*.png
 docs/war/art/*.png
 __pycache__/
+docs/thirty-days/screens/*.png

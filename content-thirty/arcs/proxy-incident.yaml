@@ -1,0 +1,37 @@
+# Proxy Incident: our training team in Farsouth is shot at from over the Orrinth line.
+#   proxy-01 (FLE) -> left proxy-03 (we left) / right proxy-02 (we shot back, ORN) -> both proxy-04 (MRM)
+- id: proxy-01
+  arc: proxy-incident
+  adviser: general
+  region: FLE
+  day: [4, 20]
+  text: Our training team at Floe End took fire last night. Two wounded. The shooters wore no flags, but they came over the Orrinth line. My people want to shoot back.
+  left:  { text: Pull the team out,     tag: CALM,  hint: "Danger down · Floe End quiets", follow: proxy-03 }
+  right: { text: Return fire next time, tag: FORCE, hint: "Danger down here · heats Orrinth", heats: ORN, follow: proxy-02 }
+
+- id: proxy-02
+  arc: proxy-incident
+  adviser: general
+  region: ORN
+  day: [5, 22]
+  text: "They came back. We shot back. Three of theirs dead in the scrub on the Orrinth side. Orrinth says they were farmers. The Coalition wants an inquiry. My people are not sorry."
+  left:  { text: Agree to the inquiry, tag: CALM,  hint: "Danger down · Orrinth cools", follow: proxy-04 }
+  right: { text: Reinforce the team,   tag: FORCE, hint: "Danger down here · heats Floe End", heats: FLE, follow: proxy-04 }
+
+- id: proxy-03
+  arc: proxy-incident
+  adviser: foreign
+  region: FLE
+  day: [5, 22]
+  text: "We left Floe End. Within a day Orrinth's unflagged men were in the town, and Marram is asking why its friend went home. Floe End's mayor sent one line: we understood."
+  left:  { text: "Send aid, not soldiers", tag: CALM,  hint: "Danger down · Floe End remembers", follow: proxy-04 }
+  right: { text: Send the team back,       tag: RISKY, odds: 60, hint: "Holds 60% · if fired on, Floe End and Orrinth heat", fail: { heats: ORN }, follow: proxy-04 }
+
+- id: proxy-04
+  arc: proxy-incident
+  adviser: ambassador
+  region: MRM
+  day: [6, 24]
+  text: "Marram's president rang me herself about Floe End. She is frightened of Orrinth, and of looking frightened. She would like a visit, not a fleet. Her mother made the best fish soup in Farsouth."
+  left:  { text: Visit Marram this week, tag: CALM,  hint: "Danger down · Marram steadies, Floe End eases", relieve: FLE }
+  right: { text: Promise a fleet visit,  tag: FORCE, hint: "Danger down here · heats Floe End", heats: FLE }

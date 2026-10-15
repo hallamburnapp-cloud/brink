@@ -9,7 +9,7 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
-for folder in ("docs/war/screens", "docs/war/art"):
+for folder in ("docs/war/screens", "docs/war/art", "docs/thirty-days/screens"):
     for png in sorted((ROOT / folder).glob("*.png")):
         webp = png.with_suffix(".webp")
         if webp.exists() and webp.stat().st_mtime >= png.stat().st_mtime:

@@ -1,0 +1,37 @@
+# Undersea Cables: the cable to the Scatter is cut under a Federation survey ship.
+#   cables-01 (GUL) -> left cables-02 (repair) / right cables-03 (boarding, DRF) -> both cables-04 (GUL)
+- id: cables-01
+  arc: undersea-cables
+  adviser: admiral
+  region: GUL
+  day: [2, 18]
+  text: The sea cable to Gullrest went dead at midnight. Half the Scatter has no phones. A Federation survey ship was over the break an hour before. A coincidence, she says.
+  left:  { text: Send the repair ship,  tag: CALM,  hint: "Danger down · Gullrest reconnects", follow: cables-02 }
+  right: { text: Board the survey ship, tag: FORCE, hint: "Danger down here · heats Driftholm", heats: DRF, follow: cables-03 }
+
+- id: cables-02
+  arc: undersea-cables
+  adviser: admiral
+  region: GUL
+  day: [3, 20]
+  text: "The repair ship found the Gullrest cable cut clean, twice, a mile apart. Nobody's anchor does that. The phones are back. So is the survey ship, a mile off, watching us splice."
+  left:  { text: "Shadow her, say nothing", tag: CALM,  hint: "Danger down · Gullrest stays connected", follow: cables-04 }
+  right: { text: Order her away,            tag: RISKY, odds: 65, hint: "Holds 65% · if she refuses, Gullrest heats", follow: cables-04 }
+
+- id: cables-03
+  arc: undersea-cables
+  adviser: foreign
+  region: DRF
+  day: [3, 20]
+  text: "We boarded the survey ship off Driftholm. Her hold is full of cable-cutting gear and nineteen very polite Federation sailors. Wintermast wants them back. Driftholm wants to know why we fought in its water."
+  left:  { text: Send the crew home,        tag: CALM,  hint: "Danger down · Driftholm calms", follow: cables-04 }
+  right: { text: Hold them for questioning, tag: RISKY, odds: 60, hint: "Holds 60% · if not, Glassmoor boils over", fail: { crisis: GLM }, follow: cables-04 }
+
+- id: cables-04
+  arc: undersea-cables
+  adviser: admiral
+  region: GUL
+  day: [4, 22]
+  text: "Gullrest asks us to guard the cable for good: two ships, always. Two ships always is six ships in practice. Gullrest also mentions, very gently, that Federation ships were there first."
+  left:  { text: Station the two ships, tag: FORCE, hint: "Danger down here · guards Gullrest, heats Driftholm", heats: DRF, mark: guarded }
+  right: { text: Lay a second cable,    tag: CALM,  hint: "Danger down · slow and dull, which is the point" }

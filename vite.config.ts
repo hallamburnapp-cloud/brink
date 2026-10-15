@@ -6,12 +6,17 @@ import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 import { brinkContentPlugin } from './tools/vite-plugin-content.ts';
+import { thirtyContentPlugin } from './tools/vite-plugin-thirty.ts';
 import { BRAND } from './src/config.ts';
 import { WAR_META } from './src/war/meta.ts';
+import { THIRTY_META } from './src/thirty/meta.ts';
 
 const base = process.env.BRINK_BASE ?? '/';
 
 type OutputChunk = Rollup.OutputChunk;
+
+/** The game a build is for: the hotel by default, the war room or THIRTY DAYS by VITE_GAME. */
+type Game = 'hotel' | 'war' | 'thirty';
 
 function escapeAttr(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -55,46 +60,53 @@ function gamePreload(): Plugin {
   };
 }
 
+/** What a game other than the hotel says about itself in the page head. */
+interface HeadMeta {
+  description: string;
+  themeColor: string;
+}
+
 /**
- * VITE_GAME=war: the page head speaks for the war room, not the hotel. index.html stays the hotel's
- * by default; this rewrites its title, description, link-preview tags and theme for the war build,
- * links the self-hosted fonts early, and paints the table colour before any script runs.
+ * VITE_GAME=war or thirty: the page head speaks for that game, not the hotel. index.html stays the
+ * hotel's by default; this rewrites its title, description, link-preview tags and theme for the
+ * build, links the self-hosted fonts early (both games share public/war/fonts), and paints the
+ * table colour before any script runs.
  */
-function warHead(): Plugin {
+function gameHead(name: string, meta: HeadMeta): Plugin {
   let resolvedBase = base;
   return {
-    name: 'brink-war-head',
+    name: `brink-${name}-head`,
     configResolved(config) {
       resolvedBase = config.base;
     },
     transformIndexHtml: {
       order: 'post',
       handler(html) {
-        const description = escapeAttr(WAR_META.description);
-        const meta = (attr: 'name' | 'property', key: string, content: string) =>
+        const description = escapeAttr(meta.description);
+        const tag = (attr: 'name' | 'property', key: string, content: string) =>
           `<meta ${attr}="${key}" content="${escapeAttr(content)}" />`;
         const out = html
           .replace(/<title>[^<]*<\/title>/, `<title>${escapeAttr(BRAND.name)}</title>`)
           .replace(/<meta name="viewport"[^>]*>/, '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />')
-          .replace(/<meta name="theme-color"[^>]*>/, meta('name', 'theme-color', WAR_META.themeColor))
+          .replace(/<meta name="theme-color"[^>]*>/, tag('name', 'theme-color', meta.themeColor))
           .replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${description}" />`)
-          .replace(/<meta property="og:title"[^>]*>/, meta('property', 'og:title', BRAND.name))
+          .replace(/<meta property="og:title"[^>]*>/, tag('property', 'og:title', BRAND.name))
           .replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${description}" />`)
-          // The hotel's preview image is not this game's; a text card until the war room has its own.
+          // The hotel's preview image is not this game's; a text card until the game has its own.
           .replace(/\s*<meta property="og:image"[^>]*>/, '')
-          .replace(/<meta name="twitter:card"[^>]*>/, meta('name', 'twitter:card', 'summary'));
+          .replace(/<meta name="twitter:card"[^>]*>/, tag('name', 'twitter:card', 'summary'));
         const head = [
           '<meta name="color-scheme" content="dark" />',
           '<meta name="apple-mobile-web-app-capable" content="yes" />',
           '<meta name="mobile-web-app-capable" content="yes" />',
           '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />',
           `<link rel="stylesheet" href="${resolvedBase}war/fonts/fonts.css" />`,
-          `<style>html,body{margin:0;background:${WAR_META.themeColor}}</style>`,
+          `<style>html,body{margin:0;background:${meta.themeColor}}</style>`,
         ].join('\n    ');
         return out.replace('</title>', `</title>\n    ${head}`);
       },
     },
-    // public/ is shared by both games; the hotel's generated preview image has no place in this build.
+    // public/ is shared by the games; the hotel's generated preview image has no place in this build.
     writeBundle(options) {
       if (options.dir) rmSync(join(options.dir, 'og-image.png'), { force: true });
     },
@@ -103,15 +115,22 @@ function warHead(): Plugin {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
-  const war = (process.env.VITE_GAME ?? env.VITE_GAME) === 'war';
-  const themeColor = war ? WAR_META.themeColor : '#0b1220';
+  const chosen = process.env.VITE_GAME ?? env.VITE_GAME;
+  const game: Game = chosen === 'war' ? 'war' : chosen === 'thirty' ? 'thirty' : 'hotel';
+  const war = game === 'war';
+  const thirty = game === 'thirty';
+  const themeColor = war ? WAR_META.themeColor : thirty ? THIRTY_META.themeColor : '#0b1220';
+  const tagline = war ? WAR_META.tagline : thirty ? THIRTY_META.tagline : BRAND.tagline;
   return {
     base,
     plugins: [
       preact(),
       tailwindcss(),
       brinkContentPlugin(),
-      ...(war ? [warHead()] : []),
+      // THIRTY DAYS compiles its own pack (content-thirty/) into virtual:thirty-content.
+      ...(thirty ? [thirtyContentPlugin()] : []),
+      ...(war ? [gameHead('war', WAR_META)] : []),
+      ...(thirty ? [gameHead('thirty', THIRTY_META)] : []),
       gamePreload(),
       VitePWA({
         registerType: 'autoUpdate',
@@ -119,7 +138,7 @@ export default defineConfig(({ mode }) => {
         manifest: {
           name: BRAND.name,
           short_name: BRAND.name,
-          description: war ? WAR_META.tagline : BRAND.tagline,
+          description: tagline,
           theme_color: themeColor,
           background_color: themeColor,
           display: 'standalone',
@@ -134,8 +153,9 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest}'],
-          // Each game precaches only its own files: the war room's fonts live in public/war.
-          globIgnores: war ? ['**/node_modules/**', 'og-image.png'] : ['**/node_modules/**', 'war/**'],
+          // Each game precaches only its own files: the fonts in public/war serve the war room and
+          // THIRTY DAYS; the hotel leaves them out.
+          globIgnores: game === 'hotel' ? ['**/node_modules/**', 'war/**'] : ['**/node_modules/**', 'og-image.png'],
           navigateFallback: 'index.html',
         },
         devOptions: { enabled: false },
@@ -150,6 +170,7 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id: string) {
             if (id.includes('virtual:brink-content')) return 'content';
+            if (id.includes('virtual:thirty-content')) return 'content';
             if (id.includes('/src/audio/')) return 'audio';
             if (id.includes('/src/meta/share')) return 'share';
           },
