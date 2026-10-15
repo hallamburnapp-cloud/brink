@@ -13,7 +13,7 @@ import { canAdd } from './groups';
 import { nextMark, regionsWon, target } from './ladder';
 import { RULES } from './rules';
 import { effective, scorePins } from './score';
-import { nextShopAfter, previewNumber, sellValue, type PreviewNumber } from './shop';
+import { bestLastTurn, nextShopAfter, previewNumber, sellValue, type PreviewNumber } from './shop';
 import { sendProblem, swapProblem } from './run';
 import type { Ending, GameState } from './types';
 import { countOwner, regionsOf, warSpreadTarget, winOrder } from './world';
@@ -65,7 +65,7 @@ export const preview = memo((s: GameState): LivePreview | null => {
   if (s.phase !== 'choose' || s.deal.pins.length === 0) return null;
   const d = s.deal;
   const res = scorePins(d.pins, s.seats.map((x) => x.id), s.owner, d.crisis, s.oldHandM10, { trace: true });
-  const wins = winOrder(d.crisis, s.owner, regionsWon(res.score, d.target));
+  const wins = winOrder(d.crisis, s.owner, regionsWon(res.score, d.target), d.pins);
   const firing = new Set<number>();
   for (const e of res.trace!) if (e.kind === 'staff' || e.kind === 'regionStaff') firing.add(e.seat);
   return {
@@ -96,7 +96,10 @@ export interface GoalView {
   warLimit: number;
   /** Where war spreads next by itself and in how many turns (3, 2, 1 = 'THIS TURN'); null when it cannot. */
   warNext: { id: RegionId; turns: number } | null;
-  /** The tag text: 'WAR · 3 TURNS', 'WAR · 2 TURNS', 'WAR · THIS TURN'. */
+  /**
+   * The tag text: 'WAR · 3 TURNS', 'WAR · 2 TURNS', 'WAR · THIS TURN' while choosing; between turns it
+   * counts from the coming turn: 'WAR · IN 2 TURNS', 'WAR · NEXT TURN' (never 'THIS TURN' over the shop).
+   */
   warTag: string | null;
   /** No grey is left and war still holds some: crises flare on red. */
   finalPush: boolean;
@@ -130,11 +133,17 @@ export const goalView = memo((s: GameState): GoalView => {
     goldGoal: RULES.regions,
     warLimit: RULES.loseAt,
     warNext,
-    warTag: warNext ? (warNext.turns === 1 ? 'WAR · THIS TURN' : `WAR · ${warNext.turns} TURNS`) : null,
+    warTag: warNext ? warTagText(warNext.turns, s.phase !== 'choose') : null,
     finalPush: s.phase === 'choose' ? s.deal.finalPush : gold + red === RULES.regions && red > 0,
     after,
   };
 });
+
+/** The war tag's words (the map draws the same: ui/map/layers/markers.ts warTagText). */
+function warTagText(turns: number, between: boolean): string {
+  if (between) return turns === 1 ? 'WAR · NEXT TURN' : `WAR · IN ${turns} TURNS`;
+  return turns === 1 ? 'WAR · THIS TURN' : `WAR · ${turns} TURNS`;
+}
 
 // ---------------------------------------------------------------- the map
 
@@ -146,7 +155,6 @@ export const regionViews = memo((s: GameState): Record<RegionId, RegionView> => 
   const previewOf = new Map<RegionId, RegionView['preview']>();
   if (p && p.regions > 0) p.wins.forEach((r, i) => previewOf.set(r, { kind: 'win', order: i + 1 }));
   else if (p && !d.finalPush) previewOf.set(d.crisis, { kind: 'war', order: 1 });
-  const brass = new Set(s.brass);
   const out: Record<RegionId, RegionView> = {};
   for (const id of IDS) {
     const def = REGION[id];
@@ -165,7 +173,6 @@ export const regionViews = memo((s: GameState): Record<RegionId, RegionView> => 
       capital: def.capital,
       port: def.port,
       preview: previewOf.get(id) ?? null,
-      brass: brass.has(id),
     };
   }
   return out;
@@ -192,7 +199,6 @@ export const mapView = memo((s: GameState): MapView => {
     highlight: null,
     finger: null,
     hover: null,
-    pinOrder: order.length ? Object.fromEntries(order.map((r, i) => [r, i + 1])) : null,
   };
 });
 
@@ -289,7 +295,7 @@ export const controlsView = memo((s: GameState): ControlsView => {
   const reason = swapProblem(s);
   const d = s.deal;
   const pileEmpty = d.swapsLeft > 0 && !d.swapLocked && d.pile.length === 0;
-  const sub = d.swapLocked ? 'next turn' : d.swapsLeft === 0 ? 'used' : pileEmpty ? 'none left' : `${d.swapsLeft} left`;
+  const sub = d.swapLocked ? 'from turn 2' : d.swapsLeft === 0 ? 'used' : pileEmpty ? 'no new regions' : `${d.swapsLeft} left`;
   return {
     swap: { enabled: reason === null, sub, reason },
     coins: s.coins,
@@ -390,6 +396,11 @@ export interface ShopView {
   nextTarget: bigint;
   /** 'SHOP · NEXT TARGET 1,600' */
   title: string;
+  /**
+   * The line-up's best send last turn (the cards' left number) cannot beat the next target: the
+   * header says so ('YOUR BEST 2,926 · NEXT TARGET 5,500'), a turn before the misses come.
+   */
+  behind: { best: bigint; text: string } | null;
   offers: OfferView[];
   reroll: { cost: number; text: string; enabled: boolean };
   /** All 5 seats are taken: hiring means replacing a seat. */
@@ -458,10 +469,12 @@ export const shopView = memo((s: GameState): ShopView | null => {
     };
   });
   const nextTarget = target(s.turn + 1);
+  const best = bestLastTurn(s, s.seats.map((x) => x.id));
   return {
     visit: shop.visit,
     nextTarget,
     title: `SHOP · NEXT TARGET ${formatInt(nextTarget)}`,
+    behind: best < nextTarget ? { best, text: `YOUR BEST ${formatInt(best)} · NEXT TARGET ${formatInt(nextTarget)}` } : null,
     offers,
     reroll: { cost: shop.rerollCost, text: `REROLL ${formatFunds(shop.rerollCost)}`, enabled: s.coins >= shop.rerollCost },
     fullTable: full,
@@ -523,7 +536,7 @@ export const endView = memo((s: GameState): EndView | null => {
     lines.push(`War took ${plural(red, 'region', 'regions')}. You held ${gold} of ${RULES.regions}.`);
     if (grey > 0 && grey <= 3) {
       nearMiss = regionsOf(s.owner, 'grey');
-      lines.push(`${plural(grey, 'grey region', 'grey regions')} from the final push.`);
+      lines.push(`Only ${plural(grey, 'free region was', 'free regions were')} left to win.`);
     }
   }
   const biggest = s.log.reduce((m, l) => Math.max(m, l.regions), 0);
@@ -540,9 +553,14 @@ export const endView = memo((s: GameState): EndView | null => {
     best: s.best && {
       score: s.best.score,
       target: s.best.target,
-      text: `${formatInt(s.best.score)} · ${timesTarget(s.best.score, s.best.target)} the target`,
+      // A best send that missed says what it needed, never '0.0x the target'.
+      text:
+        s.best.score >= s.best.target
+          ? `${formatInt(s.best.score)} · ${timesTarget(s.best.score, s.best.target)} the target`
+          : `${formatInt(s.best.score)} · needed ${formatInt(s.best.target)}`,
     },
-    biggestTurn: s.log.length ? { regions: biggest, text: plural(biggest, 'region', 'regions') } : null,
+    // No region won all game: no 'biggest turn' (never '0 regions').
+    biggestTurn: biggest > 0 ? { regions: biggest, text: plural(biggest, 'region', 'regions') } : null,
     staff: s.seats.map((x) => x.id),
     nearMiss,
   };

@@ -1,10 +1,10 @@
 /**
  * Layers that never change once baked at a given backing scale (STYLE 5.7 layers 1-3, 7 and 15):
  * the sea with its backlight, graticule, shelf halo and depth contours; the terrain isolines; and
- * the glass finish over everything (bearing strip, grain, sheen, vignette, the rail's shadow).
+ * the glass finish over everything (grain, sheen, vignette, the rail's shadow).
  */
 import { MAP_H as H, MAP_W as W } from '../data';
-import { FONT_LABEL, text, type Ctx, type Gfx } from '../draw';
+import type { Gfx } from '../draw';
 import { css, SEA } from '../palette';
 import { getPaths } from '../paths';
 import { mulberry32 } from '../rand';
@@ -179,58 +179,6 @@ export function paintTerrain(g: Gfx): void {
   ctx.restore();
 }
 
-/** Bearing strip at map y 0-10: ticks every 39 pt and 'W — SCORING —▸ E' (pins score west to east). */
-function paintBearing(ctx: Ctx): void {
-  ctx.save();
-  const g = ctx.createLinearGradient(0, 0, 0, 12);
-  g.addColorStop(0, 'rgba(4,7,11,0.85)');
-  g.addColorStop(1, 'rgba(4,7,11,0.55)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, 10);
-  ctx.fillStyle = 'rgba(233,226,210,0.08)';
-  ctx.fillRect(0, 10, W, 0.6);
-  ctx.strokeStyle = 'rgba(233,226,210,0.32)';
-  ctx.lineWidth = 0.7;
-  ctx.beginPath();
-  for (let x = 0; x <= W; x += 39) {
-    ctx.moveTo(x + 0.35, 10);
-    ctx.lineTo(x + 0.35, 5);
-  }
-  ctx.stroke();
-  ctx.strokeStyle = 'rgba(233,226,210,0.16)';
-  ctx.beginPath();
-  for (let x = 13; x < W; x += 13) {
-    if (x % 39 === 0) continue;
-    ctx.moveTo(x + 0.35, 10);
-    ctx.lineTo(x + 0.35, 7.5);
-  }
-  ctx.stroke();
-  const cx = W / 2;
-  ctx.fillStyle = 'rgba(4,7,11,0.95)';
-  ctx.fillRect(cx - 62, 0, 124, 10);
-  const ls = 'rgba(233,226,210,0.42)';
-  const font = `600 8px ${FONT_LABEL}`;
-  text(ctx, 'W', cx - 55, 5.4, { font, color: ls });
-  text(ctx, 'SCORING', cx, 5.4, { font, color: ls, tracking: 1.4 });
-  text(ctx, 'E', cx + 55, 5.4, { font, color: ls });
-  ctx.strokeStyle = ls;
-  ctx.lineWidth = 0.8;
-  ctx.beginPath();
-  ctx.moveTo(cx - 49, 5);
-  ctx.lineTo(cx - 25, 5);
-  ctx.moveTo(cx + 25, 5);
-  ctx.lineTo(cx + 48, 5);
-  ctx.stroke();
-  ctx.fillStyle = ls;
-  ctx.beginPath();
-  ctx.moveTo(cx + 49.5, 5);
-  ctx.lineTo(cx + 46, 3);
-  ctx.lineTo(cx + 46, 7);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-}
-
 let noise: HTMLCanvasElement | null = null;
 function noiseTile(): HTMLCanvasElement {
   if (noise) return noise;
@@ -249,10 +197,9 @@ function noiseTile(): HTMLCanvasElement {
   return c;
 }
 
-/** Layer 15: bearing strip, then grain (one speck per device pixel), sheen, vignette, rail shadow. */
+/** Layer 15: grain (one speck per device pixel), sheen, vignette, the rail's shadow. */
 export function paintGlass(g: Gfx): void {
   const { ctx, k } = g;
-  paintBearing(ctx);
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 0.5;
@@ -271,10 +218,10 @@ export function paintGlass(g: Gfx): void {
   v.addColorStop(1, 'rgba(3,6,10,0.5)');
   ctx.fillStyle = v;
   ctx.fillRect(0, 0, W, H);
-  const rail = ctx.createLinearGradient(0, 10, 0, 26);
-  rail.addColorStop(0, 'rgba(0,0,0,0.35)');
+  const rail = ctx.createLinearGradient(0, 0, 0, 16);
+  rail.addColorStop(0, 'rgba(0,0,0,0.45)');
   rail.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = rail;
-  ctx.fillRect(0, 10, W, 16);
+  ctx.fillRect(0, 0, W, 16);
   ctx.restore();
 }

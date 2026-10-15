@@ -92,7 +92,7 @@ describe('reference fixtures', () => {
 
   it(`orders wins in all ${fx.winOrder.length} winOrder cases`, () => {
     expect(fx.winOrder.length).toBeGreaterThan(190);
-    for (const c of fx.winOrder) expect(winOrder(c.crisis, owners(c.owner), c.k), c.owner).toEqual(c.order);
+    for (const c of fx.winOrder) expect(winOrder(c.crisis, owners(c.owner), c.k, c.pins), c.owner).toEqual(c.order);
   });
 
   it(`spreads war in all ${fx.warSpread.length} warSpread cases`, () => {

@@ -6,6 +6,7 @@
  */
 import type { JSX } from 'preact';
 import { goalView, type GameState } from '../../engine';
+import { introView } from '../app/intro';
 import * as P from '../app/playback';
 import { reduced, sheet } from '../app/store';
 import { R, rectStyle } from '../common/layout';
@@ -26,6 +27,17 @@ export function BigBoard({ s }: { s: GameState }): JSX.Element {
   const missing = !!after && after.red > red;
   const ceasefire = !!after && s.phase === 'choose' && s.deal.finalPush && after.gold === gold;
   const danger = warDanger(red, g.warLimit);
+  // The intro's gold wave steps the count fast: the flaps set each step at once (rolling through
+  // the digits between would read '36/30' for a frame). Otherwise the count moves one region at a
+  // time with every tile in step (atomic, no stagger): 9 → 10 never reads '19/10' on the way.
+  const instant = introView.value?.screen === 1;
+  const motion = { flips: 1, flipMs: 90, stagger: 0, atomic: true, instant, reduced: reduced.value, click: 0.5 };
+  // How the game ended, from the ending's first beat: WORLD UNITED glows the whole GOLD bar; a
+  // CEASEFIRE freezes the WAR bar in its ceased tone, stamped STOPPED.
+  const ahead = introView.value ? null : P.ahead.value;
+  const ending = ahead === 'WORLD UNITED' || ahead === 'CEASEFIRE' || ahead === 'WAR' ? ahead : s.ending;
+  const united = ending === 'WORLD UNITED';
+  const ceased = ending === 'CEASEFIRE';
   return (
     <div class="layer board-layer">
       <div class="board">
@@ -35,35 +47,59 @@ export function BigBoard({ s }: { s: GameState }): JSX.Element {
         <i class="rivet" style={{ right: '5px', bottom: '5px' }} />
       </div>
 
-      <div class={`goal-count gold abs${glow === 'gold' ? ' glow' : ''}`} style={rectStyle(R.goldCount)} aria-label={`Gold: ${gold} of ${g.goldGoal} regions`}>
+      <div
+        class={`goal-count gold abs${glow === 'gold' || united ? ' glow' : ''}${united ? ' united' : ''}`}
+        style={rectStyle(R.goldCount)}
+        aria-label={`Gold: ${gold} of ${g.goldGoal} regions`}
+      >
         <span class="goal-label">GOLD</span>
-        <FlapRow text={String(gold)} style={COUNT} motion={{ flips: 2, flipMs: 70, stagger: 30, instant: false, reduced: reduced.value, click: 0.5 }} minTiles={2} unlitPadding />
+        <FlapRow text={String(gold)} style={COUNT} motion={motion} minTiles={2} unlitPadding />
         <span class="goal-of num">/{g.goldGoal}</span>
       </div>
 
       <MenuButton />
 
       <div
-        class={`goal-count war abs${glow === 'war' ? ' glow' : ''}${danger ? ' danger' : ''}`}
+        class={`goal-count war abs${glow === 'war' ? ' glow' : ''}${danger && !ceased ? ' danger' : ''}${ceased ? ' ceased' : ''}`}
         style={rectStyle(R.warCount)}
         aria-label={`War: ${red} of ${g.warLimit} regions`}
       >
         <span class="goal-label">WAR</span>
-        <FlapRow text={String(red)} style={COUNT} motion={{ flips: 2, flipMs: 70, stagger: 30, instant: false, reduced: reduced.value, click: 0.5 }} minTiles={2} unlitPadding />
+        <FlapRow text={String(red)} style={COUNT} motion={motion} minTiles={2} unlitPadding />
         <span class="goal-of num">/{g.warLimit}</span>
       </div>
 
-      <Bar kind="gold" segs={segments(g.goldGoal, gold, after?.gold ?? null)} glow={glow === 'gold'} />
-      <Bar kind="war" segs={segments(g.warLimit, red, after?.red ?? null)} glow={glow === 'war'} danger={danger} blink={missing} />
+      <Bar kind="gold" segs={segments(g.goldGoal, gold, after?.gold ?? null)} glow={glow === 'gold'} extra={united ? 'united' : ''} />
+      <Bar kind="war" segs={segments(g.warLimit, red, after?.red ?? null)} glow={glow === 'war'} danger={danger && !ceased} blink={missing} extra={ceased ? 'ceased' : ''} />
       {ceasefire && <div class="ceasefire-ghost abs">CEASEFIRE</div>}
+      {ceased && (
+        <div class="war-stopped abs" role="status">
+          STOPPED
+        </div>
+      )}
     </div>
   );
 }
 
-function Bar({ kind, segs, glow, danger = false, blink = false }: { kind: 'gold' | 'war'; segs: Seg[]; glow: boolean; danger?: boolean; blink?: boolean }): JSX.Element {
+function Bar({
+  kind,
+  segs,
+  glow,
+  danger = false,
+  blink = false,
+  extra = '',
+}: {
+  kind: 'gold' | 'war';
+  segs: Seg[];
+  glow: boolean;
+  danger?: boolean;
+  blink?: boolean;
+  /** 'united': a shimmer runs the length of the full bar; 'ceased': the war's bar stops, dimmed. */
+  extra?: '' | 'united' | 'ceased';
+}): JSX.Element {
   const r = kind === 'gold' ? R.goldBar : R.warBar;
   return (
-    <div class={`goal-bar ${kind} abs${glow ? ' glow' : ''}${danger ? ' danger' : ''}${blink ? ' blink' : ''}`} style={rectStyle(r)} aria-hidden="true">
+    <div class={`goal-bar ${kind} abs${glow ? ' glow' : ''}${danger ? ' danger' : ''}${blink ? ' blink' : ''}${extra ? ` ${extra}` : ''}`} style={rectStyle(r)} aria-hidden="true">
       {segs.map((seg, i) => (
         <i key={i} class={`seg ${seg}`} />
       ))}

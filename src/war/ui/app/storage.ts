@@ -72,23 +72,24 @@ export function sanitize(v: unknown): Prefs {
   return { speed, motion, introSeen: o.introSeen === true, playedFirst: o.playedFirst === true, hints };
 }
 
-/** The saved game, if there is one worth continuing (a finished game is not). */
+/**
+ * The saved game, if there is one. A finished game is kept until its end card has been seen (the
+ * app clears it then), so CONTINUE can still show how a world ended after a reload mid-send.
+ */
 export function readSave(): GameState | null {
   const raw = read(SAVE_KEY);
   if (raw === null) return null;
   const s = loadGame(raw);
-  // Unreadable data, or a finished game: nothing to continue, so it is discarded.
-  if (!s || s.phase === 'over') {
+  // Unreadable data: nothing to continue, so it is discarded.
+  if (!s) {
     clearSave();
     return null;
   }
   return s;
 }
 
-/** Save the game; a finished game clears the save instead (there is nothing to continue). */
 export function writeSave(s: GameState): void {
-  if (s.phase === 'over') clearSave();
-  else write(SAVE_KEY, saveGame(s));
+  write(SAVE_KEY, saveGame(s));
 }
 
 export function clearSave(): void {

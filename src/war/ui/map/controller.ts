@@ -10,8 +10,8 @@
 import type { CreateMapOptions, MapController, MapView, Owner, RegionId } from './contract';
 import { MAP_H as H, MAP_W as W, REGION, REGIONS, pairKey } from './data';
 import { clamp01, MAP_FONTS, type Gfx } from './draw';
-import { FxState, progress } from './fx';
-import { getGeometry, hitTest } from './geometry';
+import { FxState } from './fx';
+import { deviceClip, getGeometry, hitTest } from './geometry';
 import {
   lightsLeft,
   lightsOutOrder,
@@ -21,8 +21,8 @@ import {
   paintInk,
   paintLightsOut,
   paintLightUps,
+  paintCease,
   paintPulses,
-  paintRipples,
   paintScan,
   paintScanCursor,
   paintShimmer,
@@ -38,7 +38,7 @@ import { paintRing } from './layers/ring';
 import { makeLayer, paintGlass, paintSea, paintTerrain, type Layer } from './layers/static';
 import { drawThread, joinCurve } from './layers/threads';
 import { hex } from './palette';
-import { buildScene, changedRegions, landSignature, type LandSignature, type Scene } from './scene';
+import { atRest, buildScene, changedRegions, landSignature, type LandSignature, type Scene } from './scene';
 
 /** Time and scheduling, injectable so the dev harness can freeze and step time. */
 export interface Clock {
@@ -99,14 +99,6 @@ function staticAt(k: number): StaticLayers {
   return l;
 }
 
-/** A face arrived after the glass was baked: its bearing strip has text, so bake it again. */
-function rebakeGlass(k: number): Layer {
-  const l = staticAt(k);
-  l.glass = makeLayer(k);
-  paintGlass(l.glass);
-  return l.glass;
-}
-
 /** Idle frame rates: slow light (shimmer, pulses, breathing) and the quicker teaching finger. */
 const IDLE_FPS = 15;
 const FINGER_FPS = 30;
@@ -114,6 +106,15 @@ const FINGER_FPS = 30;
 const DARKEN_FADE_MS = 160;
 /** An owner that changes with no ink running cross-fades over this long. */
 const OWNER_FADE_MS = 120;
+/** The world going to rest (the table clears) or a deal coming onto it: the free regions' tone eases over. */
+const REST_FADE_MS = 260;
+/** The war tag hopping to its next region, and its count stamping in. */
+const TAG_HOP_MS = 300;
+const TAG_STAMP_MS = 260;
+/** The ring swelling to catch the score (120 ms out, 120 ms back). */
+const RING_CATCH_MS = 240;
+/** CEASEFIRE: the war's outlines flash, and its red fades to the ceased tone. */
+const CEASE_MS = 900;
 
 const EMPTY_VIEW: MapView = {
   regions: {},
@@ -124,7 +125,6 @@ const EMPTY_VIEW: MapView = {
   highlight: null,
   finger: null,
   hover: null,
-  pinOrder: null,
 };
 
 export function createMapController(
@@ -211,14 +211,19 @@ export function createMapController(
     const l = land!;
     if (fade === 0 && changed && changed.length <= 8) {
       // Only some plates changed (a tap, a flash): repaint inside their bounds. The painter redraws
-      // every layer in order there, so the result matches a full bake exactly.
+      // every layer in order there, so the result matches a full bake exactly: the clip is snapped
+      // to whole device pixels (an anti-aliased clip edge would blend each translucent layer over
+      // the old pixels twice, leaving hairline seams) and cleared before the repaint.
       l.ctx.save();
+      l.ctx.setTransform(1, 0, 0, 1, 0, 0);
       l.ctx.beginPath();
       for (const id of changed) {
-        const b = geo.bounds[id];
-        l.ctx.rect(b.x0 - 4, b.y0 - 4, b.x1 - b.x0 + 8, b.y1 - b.y0 + 8);
+        const r = deviceClip(geo.bounds[id], l.k, l.canvas.width, l.canvas.height);
+        l.ctx.rect(r.x, r.y, r.w, r.h);
       }
       l.ctx.clip();
+      l.ctx.clearRect(0, 0, l.canvas.width, l.canvas.height);
+      l.ctx.setTransform(l.k, 0, 0, l.k, 0, 0);
       paintLand(l, scene, { base: base!, terrain: terrain! });
       l.ctx.restore();
     } else {
@@ -292,15 +297,20 @@ export function createMapController(
     paintWave(g, scene, fx);
     paintPreviews(g, scene);
     paintWarNext(g, scene);
-    paintHighlight(g, scene, reduced ? 1 : clamp01((now - highlightSince) / 150));
     paintLightsOut(g, scene, fx);
+    paintCease(g, scene, fx);
+    // Over lights out: the WAR card's near miss (the free regions that were left) is outlined gold.
+    paintHighlight(g, scene, reduced ? 1 : clamp01((now - highlightSince) / 150), !!fx.lightsOut);
     paintTravel(g, scene, fx);
     paintFlashes(g, scene, fx);
     paintBlinks(g, scene, fx, speed);
+    // Once the score is in the ring (the outcome plays), the pin threads step back to 35% so only
+    // the gold paths a win travels along are bright.
+    const threadA = view.outcome ? 0.35 : 1;
     for (const t of scene.threads) {
       // Snap taut: a slack thread overshoots and settles (a damped wobble over 420 ms).
       const sag = t.snap >= 1 ? 0 : 7 * Math.exp(-5 * t.snap) * Math.cos(t.snap * 15);
-      drawThread(g, joinCurve(t.a, t.b, sag), t.kind, Math.min(scene.regions[t.a].dimNow, scene.regions[t.b].dimNow));
+      drawThread(g, joinCurve(t.a, t.b, sag), t.kind, threadA * Math.min(scene.regions[t.a].dimNow, scene.regions[t.b].dimNow));
     }
     paintPulses(g, scene, fx);
     if (scene.ring) {
@@ -308,18 +318,13 @@ export function createMapController(
       paintRing(g, scene.ring, now, reduced, 1 - out);
     }
     paintScan(g, scene, fx);
-    paintRipples(g, fx, now);
     paintShockwave(g, scene, fx);
 
-    for (const r of scene.list) r.dimNow *= lightsLeft(fx, r.id, now) * r.warm;
+    for (const r of scene.list) r.dimNow *= (scene.highlight?.has(r.id) ? 1 : lightsLeft(fx, r.id, now)) * r.warm;
     paintMarkers(g, scene, {
       pinDrop: (id) => {
         const t = fx.pinDrops.get(id);
         return t === undefined ? null : clamp01((now - t) / 120);
-      },
-      brassDrop: (id) => {
-        const d = fx.drops.find((e) => e.id === id);
-        return d ? progress(d, now) : null;
       },
     });
     paintBloom(g, scene, fx);
@@ -363,10 +368,9 @@ export function createMapController(
     onFontsChanged();
   }
 
-  /** A face arrived later: the baked bearing strip has text, the rest is drawn each frame. */
+  /** A face arrived later: every label is drawn each frame, so the next frame picks it up. */
   function onFontsChanged(): void {
     if (destroyed || !fontsOk) return;
-    if (glass) glass = rebakeGlass(k);
     requestFrame();
   }
 
@@ -441,6 +445,21 @@ export function createMapController(
     }
     // A new crisis (or none) brings the ring back after a collapse.
     if (fx.ringCollapse && next.crisis?.id !== fx.ringCollapse.crisis) fx.ringCollapse = null;
+    if (fx.ringCatch && next.crisis?.id !== fx.ringCatch.crisis) fx.ringCatch = null;
+    // The table clearing to the plain world, or a deal coming onto it: the free regions ease over.
+    if (atRest(prev) !== atRest(next) && prev !== EMPTY_VIEW) fade = Math.max(fade, REST_FADE_MS);
+    // The war tag hops to its next region; a new count on the same region stamps in.
+    const tag = prev.warNext;
+    const nextTag = next.warNext;
+    if (!reduced && tag && nextTag) {
+      if (tag.id !== nextTag.id) fx.tagHop = { from: tag.id, to: nextTag.id, start: now, dur: TAG_HOP_MS / speed };
+      else if (tag.turns !== nextTag.turns || !!tag.between !== !!nextTag.between) fx.tagStamp = { start: now, dur: TAG_STAMP_MS / speed };
+    }
+    // CEASEFIRE: red fades to its ceased tone (the land layer) as its outlines flash.
+    if (!prev.ceased && next.ceased && prev !== EMPTY_VIEW) {
+      fade = Math.max(fade, reduced ? 120 : 600 / speed);
+      if (!reduced) fx.cease = { start: now, dur: CEASE_MS / speed };
+    }
     if (!prev.highlight && next.highlight) highlightSince = now;
     pendingFade = Math.max(pendingFade, fade);
     view = next;
@@ -582,25 +601,24 @@ export function createMapController(
         fx.waves.push({ from, colour, start: now, dur });
         return waitFor(now + dur);
       },
-      dropBrass(id) {
-        if (reduced || !REGION[id]) {
-          requestFrame();
-          return Promise.resolve();
-        }
-        const now = clock.now();
-        const dur = 310 / speed;
-        fx.drops.push({ id, start: now, dur });
-        // It lands 250 ms in: a brass ripple off the tack.
-        fx.ripples.push({ id, start: now + 250 / speed, dur: 420 / speed });
-        return waitFor(now + dur);
+      ringCatch(win) {
+        const crisis = view.crisis?.id;
+        if (!crisis) return;
+        fx.ringCatch = { crisis, win, start: clock.now(), dur: reduced ? 0 : RING_CATCH_MS / speed };
+        requestFrame();
       },
-      lightsOut(d) {
+      lightsOut(d, keep = []) {
         const now = clock.now();
         const dur = reduced ? 300 / speed : ms(d, 2000);
-        const grey = REGIONS.filter((r) => displayedOwner(r.id) === 'grey').map((r) => r.id);
+        const kept = new Set(keep);
+        const grey = REGIONS.filter((r) => displayedOwner(r.id) === 'grey' && !kept.has(r.id)).map((r) => r.id);
         const at = reduced ? new Map(grey.map((id) => [id, 0])) : lightsOutOrder(grey, lightsSeed++);
         fx.lightsOut = { at, start: now, dur };
         return waitFor(now + dur + (reduced ? 0 : 150));
+      },
+      crossFade(d) {
+        pendingFade = Math.max(pendingFade, reduced ? Math.min(d, 120) : d / speed);
+        requestFrame();
       },
       reset() {
         fx.reset();

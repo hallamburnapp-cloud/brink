@@ -26,9 +26,31 @@ export function parseRich(s: string): RichPart[] {
   return out;
 }
 
-/** 'capital' and 'port' gain the map's star and anchor (thin-spaced), once. */
+/** 'capital' and 'port' gain the map's star and anchor, once, joined by a narrow no-break space (thin, and never a line break). */
 export function markTerms(rule: string): string {
-  return rule.replace(/\b(ports?|capitals?)\b(?! [⚓★])/gi, (w) => `${w} ${w.toLowerCase().startsWith('port') ? '⚓' : '★'}`);
+  return rule.replace(/\b(ports?|capitals?)\b(?![ \u2009\u202F][⚓★])/gi, (w) => `${w}\u202F${w.toLowerCase().startsWith('port') ? '⚓' : '★'}`);
+}
+
+/** A run that must not break across lines: a word and the glyph it is joined to ('port ⚓'). */
+export type RichRun = RichPart | { keep: RichPart[] };
+
+/**
+ * Keep a word and the glyph after a narrow no-break space on one line: a glyph is drawn, so the browser
+ * would otherwise be free to wrap it alone onto the next line ('for each port / ⚓ pinned.').
+ */
+export function keepGlyphs(parts: RichPart[]): RichRun[] {
+  const out: RichRun[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i];
+    const next = parts[i + 1];
+    if ('text' in p && p.text.endsWith('\u202F') && next && 'glyph' in next) {
+      const cut = p.text.lastIndexOf(' ') + 1;
+      if (cut > 0) out.push({ text: p.text.slice(0, cut) });
+      out.push({ keep: [{ text: p.text.slice(cut) }, next] });
+      i++;
+    } else out.push(p);
+  }
+  return out;
 }
 
 export type Tone = 'points' | 'multiplier';

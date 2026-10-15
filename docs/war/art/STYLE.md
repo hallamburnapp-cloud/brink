@@ -2,6 +2,8 @@
 
 This is the art direction for the playable slice. Engineers building the map, the HUD and the icons should follow it to the letter. Every value here is also live in working code you can copy:
 
+> **Win the World (v2) overrides three things here** (docs/war/v2/SPEC.md section 8): colour means ownership, so free regions are one neutral grey (#83868A at three luminance levels, no bloc hue and no bloc glyph on the map) and gold is never dimmed; the bearing strip ("W — SWEEP — E") is cut; and there are no brass tacks or order badges on the map (a gold check marks each region a send would win). The materials, type and everything else below still hold.
+
 | File | What it is |
 | --- | --- |
 | `style-frame.webp` / `.html` | The 390 x 844 portrait war room mid-cascade (23:00 Standoff, NETWORK Lv 2, scan line on the third pin, HEAT on). |
@@ -154,7 +156,6 @@ Three faces, self-hosted (`public/war/fonts/fonts.css`). Numbers are **always** 
 | Offer name | Barlow Condensed | 700 | 14 **[spec]** | 0.10em | caps | `--linen` |
 | Offer rule | Barlow Condensed | 500 | 11 **[spec]**, 13 leading | 0.02em | sentence | `--text-2`; the effect in its meaning colour, 700 |
 | Order name and rule (typed) | JetBrains Mono | 800 / 400 | 14 / 10.5 | 0.12em / -0.01em | caps / sentence | `--type-ink`; the effect in stamp ink |
-| Bearing strip | Barlow Condensed | 600 | 8 **[spec]** | 1.4 px | caps | white at 42% |
 
 **Glyphs the fonts do not have.** The subsets cover Latin-1 and U+2000-206F only. Draw these as inline SVG (`lib/icons.js`) and never as text, or iOS will substitute an emoji or a system face: `◆` (diamond: `diamond()`), `⚓` (`anchorGlyph()`, and `anchor()` on canvas), `★` (`starGlyph()`, `starPath()` on canvas), `●`/`○` (CSS circles), `→` (`arrowGlyph()`), and the five bloc glyphs (`blocGlyph()`, `glyphPath()` on canvas). `x`, `·` and `,` are in the fonts.
 
@@ -255,8 +256,8 @@ box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 1px 0 rgba(0,0,0,.9), 0 2px 5
 11. Stamps (FORTIFY hatching: 1 pt linen lines at 55% every 4.5 pt at 45 deg, kept to a 6 pt band inside the border, plus a 2 pt linen edge at 50%).
 12. Causeways and sea lanes.
 13. Old threads (traffic), then the flash bloom, then live threads, the thread pulse, the flashpoint ring, the scan line.
-14. Markers: brass tacks, pins and heads, weights, tags, names, order badges.
-15. Bearing strip, then the glass finish (grain, sheen, vignette, rail shadow).
+14. Markers: pins and heads, weights, tags, names, win checks (v2: no brass tacks, no order badges).
+15. The glass finish (grain, sheen, vignette, rail shadow). (v2: the bearing strip is cut.)
 
 **Coastline.** Round each outline corner with a quadratic of radius 6 pt (or half the shorter edge), resample every 2.5 pt, and push each point along its normal by two octaves of periodic value noise: amplitude 1.1 pt over about 12 pt and 0.45 pt over about 5 pt (seed `1009 + 7919 x i` per landmass, mulberry32). Internal borders stay straight bisectors, so the drawn joins are exactly the land joins; clip the Voronoi cells against the outline's bounding box grown 12 pt, then clip by the coast path at draw time. Hit-testing keeps using the spec's unrounded mask: the drawn coast stays within about 3 pt of it.
 
@@ -294,10 +295,10 @@ box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 1px 0 rgba(0,0,0,.9), 0 2px 5
 - 2 pt `--alarm` with an 8 px glow; four reticle ticks from r+3 to r+8 at the bearings; a soft inner bloom (`--alarm` at 16% at 80% of the radius).
 - Cooled (after the clear): the same ring in `--standby` at radius 13 pt, no bloom: a record of where the night was won.
 
-### 5.10 Scan line, bearing strip, glass
+### 5.10 Scan line, glass
 
-- Scan line: 2 pt white at 95% with a 10 px glow at 40% **[spec]**, from the strip to the bottom edge; behind it a 44 pt wake to the west, `rgba(255,246,224,0 → .07)`. A white cursor (8 x 7.5 pt triangle) marks its x on the bearing strip.
-- Bearing strip (map y 0-10) **[spec]**: `rgba(4,7,11,.85 → .55)`; major ticks every 39 pt (5 pt, linen 32%), minor every 13 pt (2.5 pt, 16%); a centre plate `W ——— SWEEP ———▸ E`.
+- Scan line: 2 pt white at 95% with a 10 px glow at 40% **[spec]**, the full height of the map; behind it a 44 pt wake to the west, `rgba(255,246,224,0 → .07)`. A white cursor (8 x 7.5 pt triangle) marks its x at the map's top edge, only while it sweeps.
+- (v2: the bearing strip, a ticked ruler with a `W ——— SWEEP ———▸ E` plate across the top of the map, is cut: it meant nothing a player could act on, and the sweep itself shows the order.)
 - Glass finish: grain (one speck per device pixel, alpha 0-22 of 255, at 50%), a top-left sheen (`rgba(220,235,255,.05)` fading by 45%), an edge vignette (`rgba(3,6,10,.5)` beyond 78% of the height), and the rail's shadow band.
 
 ### 5.11 The two boxes

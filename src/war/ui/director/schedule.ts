@@ -51,7 +51,7 @@ export type Cue =
   | { t: number; do: 'breath' }
   | { t: number; do: 'slide' }
   | { t: number; do: 'collide' }
-  /** A score of 10x the target or more: gold light blooms from the crisis across the map. */
+  /** A score of SHOWCASE_AT times the target or more: gold light blooms from the crisis across the map. */
   | { t: number; do: 'bloom' }
   /** ...and the score is stamped big over the map. */
   | { t: number; do: 'showcase'; r: number }
@@ -60,7 +60,7 @@ export type Cue =
   /** The crisis claim's rising chord starts here, so that it lands on the gold ink. */
   | { t: number; do: 'riser' }
   | { t: number; do: 'release' }
-  /** The score has landed in the ring: the crisis flashes. */
+  /** The score has landed in the ring: the ring catches it and the crisis flashes. */
   | { t: number; do: 'landed' };
 
 // ---------------------------------------------------------------- the cascade's constants (1x)
@@ -95,10 +95,25 @@ export const SLIDE_MS = 200;
 const SHAKE_MS = 250;
 /** The plate rolls up (260 ms) and holds, readable, before the score leaves for the ring. */
 export const PLATE_HOLD_MS = 520;
+/**
+ * A brisk send (a miss, or a win of one region under 4x: the SEND label already said how it ends)
+ * plays its beats at 1.6x and holds the plate a shorter moment, so the late game keeps moving. Big
+ * sends keep their full length.
+ */
+export const BRISK_PACE = 1 / 1.6;
+export const BRISK_PLATE_HOLD_MS = 300;
+/**
+ * The showcase (the score stamped big over the map, the gold bloom) plays from 16x the target: a
+ * send that wins three regions or more on the ladder (T, 4T, 16T), so the fanfare matches the
+ * territory it takes, not just the size of the number.
+ */
+export const SHOWCASE_AT = 16;
 /** A showcase score holds big over the map long enough to read before it flies. */
 export const SHOWCASE_HOLD_MS = 900;
 /** The score flies from the readout into the crisis ring. */
 export const TO_RING_MS = 300;
+/** The ring catches the score (it swells, its chip turns to a check) and holds a beat before it collapses. */
+export const CATCH_MS = 160;
 /** The whole cascade fits in 8 s: longer ones play their events closer together. */
 export const CASCADE_CAP_MS = 8000;
 /**
@@ -253,11 +268,18 @@ export interface SendInput {
   reduced: boolean;
   /** Playback speed (1, 2, 4): the claim chord's riser lasts the same real time at any speed. */
   rate?: number;
+  /** Play it brisk (see BRISK_PACE). */
+  brisk?: boolean;
+}
+
+/** A send whose outcome the player already knows and that changes little: a miss, or one region under 4x. */
+export function isBrisk(win: boolean, regions: number, r: number): boolean {
+  return !win || (regions <= 1 && r < 4);
 }
 
 export interface SendSchedule {
   cues: Cue[];
-  /** The score has landed in the ring: the outcome starts here. */
+  /** The ring has caught the score: the outcome starts here. */
   end: number;
   /** The boxes start sliding together. */
   slamAt: number;
@@ -273,18 +295,21 @@ export interface SendSchedule {
 
 /** The cascade from SEND pressed to the score landing in the crisis ring. */
 export function sendSchedule(input: SendInput): SendSchedule {
-  let s = buildSend(input, 1);
+  let pace = input.brisk && !input.reduced ? BRISK_PACE : 1;
+  let s = buildSend(input, pace);
   // Too long: play the beats closer together (never the slam, the hold or the flight to the ring).
   // The flights do not shrink with the pace, so a couple of passes settle on the cap.
-  let pace = 1;
   for (let pass = 0; pass < 4 && !input.reduced && s.end > CASCADE_CAP_MS; pass++) {
     const span = s.slamAt - EVENTS_AT;
     const fixed = s.end - span;
     pace = Math.max(0.25, (pace * (CASCADE_CAP_MS - fixed)) / span);
     s = buildSend(input, pace);
   }
-  if (input.reduced && s.end > REDUCED_BUDGET) s = scaleSchedule(s, REDUCED_BUDGET / s.end);
-  return input.win && !input.reduced ? withRiser(s, input.rate ?? 1) : s;
+  if (input.reduced) {
+    if (s.end > REDUCED_BUDGET) s = scaleSchedule(s, REDUCED_BUDGET / s.end);
+    return { ...s, cues: calmCascade(s) };
+  }
+  return input.win ? withRiser(s, input.rate ?? 1) : s;
 }
 
 /** `pace` scales the time between beats (1 normally; less for a very long send). */
@@ -406,25 +431,26 @@ function buildSend(input: SendInput, pace: number): SendSchedule {
   add({ t: hit, do: 'sound', sfx: 'thump', intensity: loud });
   add({ t: hit, do: 'buzz', pattern: 30 });
   add({ t: hit, do: 'release' });
-  const showcase = !reduced && !quiet && r >= 10;
+  const showcase = !reduced && !quiet && r >= SHOWCASE_AT;
   if (!reduced && !quiet) {
     const px = shakeFor(r);
     if (px > 0) add({ t: hit, do: 'shake', px, ms: SHAKE_MS });
-    if (r >= 10) add({ t: hit, do: 'bloom' });
+    if (showcase) add({ t: hit, do: 'bloom' });
   }
   if (showcase) add({ t: hit, do: 'showcase', r });
 
   // The score leaves the readout (or the showcase) and lands in the crisis ring: the send lands on
   // the place that changes.
-  let end = hit;
+  let landed = hit;
   if (!reduced) {
-    const leave = hit + (showcase ? SHOWCASE_HOLD_MS : PLATE_HOLD_MS);
+    const leave = hit + (showcase ? SHOWCASE_HOLD_MS : input.brisk ? BRISK_PLATE_HOLD_MS : PLATE_HOLD_MS);
     add({ t: leave, do: 'toRing', from: showcase ? 'showcase' : 'plate', ms: TO_RING_MS });
-    end = leave + TO_RING_MS;
+    landed = leave + TO_RING_MS;
   }
-  add({ t: end, do: 'landed' });
-  add({ t: end, do: 'sound', sfx: 'thump', intensity: input.win ? 0.5 : 0.25 });
-  add({ t: end, do: 'sound', sfx: 'tick', intensity: input.win ? 0.9 : 0.3 });
+  add({ t: landed, do: 'landed' });
+  add({ t: landed, do: 'sound', sfx: 'thump', intensity: input.win ? 0.5 : 0.25 });
+  add({ t: landed, do: 'sound', sfx: 'tick', intensity: input.win ? 0.9 : 0.3 });
+  const end = reduced ? landed : landed + CATCH_MS;
 
   // A stable sort keeps same-time cues in the order they were added.
   cues.sort((a, b) => a.t - b.t);
@@ -465,6 +491,47 @@ function scaleSchedule(s: SendSchedule, k: number): SendSchedule {
   };
 }
 
+// ---------------------------------------------------------------- reduced motion's sound
+
+type Sounded = { t: number; do: string; sfx?: Sfx; intensity?: number };
+
+/**
+ * Drop a sound when the same sound already played less than `gapMs` before: reduced motion packs a
+ * send into about a second, and a burst of identical notes on one millisecond is harsh, not calm.
+ */
+export function thinSounds<C extends Sounded>(cues: C[], gapMs: number): C[] {
+  const last = new Map<Sfx, number>();
+  return cues.filter((c) => {
+    if (c.do !== 'sound' || !c.sfx) return true;
+    const at = last.get(c.sfx);
+    if (at !== undefined && c.t - at < gapMs) return false;
+    last.set(c.sfx, c.t);
+    return true;
+  });
+}
+
+/** Sounds of the pins' climb (one note keeps; the rest go with reduced motion). */
+const PIN_NOTE: ReadonlySet<Sfx> = new Set<Sfx>(['tally_tick', 'tick', 'pin']);
+/** Reduced motion keeps sounds this far apart at least (the claim chords, coins, thumps). */
+export const CALM_GAP_MS = 120;
+
+/**
+ * Reduced motion's cascade: one pin note (the first pin's), one multiplier note at the top pitch
+ * (where the last multiplier lands), the slam, and nothing closer than CALM_GAP_MS to its own kind.
+ */
+function calmCascade(s: SendSchedule): Cue[] {
+  type Sound = Extract<Cue, { do: 'sound' }>;
+  const isSound = (c: Cue): c is Sound => c.do === 'sound';
+  const climb = (c: Cue) => isSound(c) && PIN_NOTE.has(c.sfx) && c.t < s.hitAt;
+  const firstPin = s.cues.find(climb)?.t;
+  const mults = s.cues.filter((c): c is Sound => isSound(c) && c.sfx === 'tally_mult');
+  const top = mults.reduce<Sound | null>((best, c) => (!best || c.intensity >= best.intensity ? c : best), null);
+  const kept: Cue[] = s.cues.filter((c) => !(climb(c) && c.t !== firstPin) && !(isSound(c) && c.sfx === 'tally_mult'));
+  if (top) kept.push({ ...top, t: mults[mults.length - 1].t });
+  kept.sort((a, b) => a.t - b.t);
+  return thinSounds(kept, CALM_GAP_MS);
+}
+
 // ---------------------------------------------------------------- the outcome
 
 export type OutcomeCue =
@@ -473,8 +540,8 @@ export type OutcomeCue =
   /** The ring collapses into the crisis. */
   | { t: number; do: 'collapse'; ms: number }
   | { t: number; do: 'shockwave'; region: RegionId }
-  /** A gold pulse travels the shortest chain of joins from the crisis. */
-  | { t: number; do: 'travel'; path: RegionId[]; stepMs: number }
+  /** A pulse of colour travels a chain of joins: gold from the crisis to a region won, red from war into a region it takes. */
+  | { t: number; do: 'travel'; path: RegionId[]; stepMs: number; colour: 'gold' | 'red' }
   /**
    * A region turns gold: the view takes the new owner and gold ink floods it from `from` (itself for
    * the crisis). The GOLD count (and WAR, for a region won back) shows `gold` / `red` from here.
@@ -484,10 +551,11 @@ export type OutcomeCue =
   | { t: number; do: 'coin'; region: RegionId; ms: number }
   /** ...and lands: the chip shows `coins`. */
   | { t: number; do: 'coins'; coins: number }
-  /** The crisis won gets its brass pin. */
-  | { t: number; do: 'brass'; region: RegionId }
-  /** War takes a region: red ink runs into it from `from` (itself: it blooms from the centre). */
-  | { t: number; do: 'take'; region: RegionId; from: RegionId; ms: number; gold: number; red: number }
+  /**
+   * War takes a region: red ink runs into it from `from` (itself: it blooms from the centre).
+   * `spread`: war spreading by itself, into the region its tag is on.
+   */
+  | { t: number; do: 'take'; region: RegionId; from: RegionId; ms: number; gold: number; red: number; spread?: true }
   /** The war tag moves to where war spreads next. */
   | { t: number; do: 'tag' }
   /** Everything has changed hands: the pins lift and the lamps go off, leaving the plain world. */
@@ -504,6 +572,14 @@ export type OutcomeCue =
   | { t: number; do: 'wave'; region: RegionId; ms: number }
   /** WAR: the grey regions go dark; gold stays lit. */
   | { t: number; do: 'lightsOut'; ms: number }
+  /** The game has ended: the console stops talking about the turn and says how it ended. */
+  | { t: number; do: 'ending'; ending: Ending }
+  /** WORLD UNITED: 'WORLD UNITED · 30 OF 30' slams over the map, away from the last region won, with the gold bloom. */
+  | { t: number; do: 'united'; region: RegionId }
+  /** ...and lifts again, so the all-gold world is seen whole before the card. */
+  | { t: number; do: 'unitedOff' }
+  /** War spread by itself: the coach names the region as the drum sounds ('War spread to Marram by itself.'). */
+  | { t: number; do: 'spreadLine'; region: RegionId }
   | { t: number; do: 'sound'; sfx: Sfx; intensity: number }
   | { t: number; do: 'buzz'; pattern: number | number[] }
   | { t: number; do: 'shake'; px: number; ms: number };
@@ -552,13 +628,13 @@ const TRAVEL_MAX_MS = 450;
 const REGION_INK_MS = 400;
 /** A coin flies from the region to the coin chip. */
 const COIN_MS = 300;
-/** The brass pin drops onto the crisis as its ink settles. */
-const BRASS_AT = 750;
 /** A miss: red ink runs into the crisis (700 ms), the whole miss 0.8 s. */
 const MISS_INK_AT = 100;
 const WAR_INK_MS = 700;
 /** War spreads by itself 0.5 s after the outcome. */
 const SPREAD_GAP_MS = 500;
+/** Before war's own ink runs, a red pulse crosses the border it comes over. */
+const SPREAD_LEAD_MS = 150;
 /** Before the shop tray rises over the map, the new map holds long enough to be seen. */
 export const SHOP_HOLD_MS = 700;
 const SETTLE_HOLD_MS = 150;
@@ -566,8 +642,19 @@ const SETTLE_HOLD_MS = 150;
 const ENDING_GAP_MS = 300;
 const SUNRISE_MS = 900;
 const WAVE_MS = 1200;
+/** WORLD UNITED: the stamp lifts this long after the wave, then the gold world holds alone before the card. */
+const UNITED_STAMP_TAIL_MS = 300;
+export const UNITED_HOLD_MS = 1500;
+/** The rising run under the WORLD UNITED wave: one note per step, up the scale. */
+const UNITED_NOTES = 12;
+/** WORLD UNITED's haptic: a long, rising rattle, the longest in the game. */
+export const UNITED_BUZZ = [30, 40, 30, 40, 30, 40, 60, 60, 160];
+/** CEASEFIRE's haptic: soft, the war stopping. */
+export const CEASEFIRE_BUZZ = [40, 80, 40];
 const LIGHTS_OUT_MS = 2000;
 const CEASEFIRE_HOLD_MS = 1100;
+/** The WAR ending's haptic: two heavy knocks and a long fall, unlike any miss. */
+export const WAR_ENDING_BUZZ = [120, 60, 120, 60, 300];
 /** Reduced motion: the whole outcome (endings included) within 0.45 s. */
 export const REDUCED_OUTCOME_BUDGET = 450;
 
@@ -610,9 +697,6 @@ function fullOutcome(input: OutcomeInput): Outcome {
     add({ t: at, do: 'coin', region: crisis.id, ms: COIN_MS });
     add({ t: at + COIN_MS, do: 'coins', coins: ++coins });
     add({ t: at + COIN_MS, do: 'sound', sfx: 'capital', intensity: 0.6 });
-    add({ t: BRASS_AT, do: 'brass', region: crisis.id });
-    // The brass pin lands 250 ms into its fall.
-    add({ t: BRASS_AT + 250, do: 'sound', sfx: 'stamp', intensity: 0.35 });
     let last = at + CRISIS_INK_MS;
 
     // Each further region: a gold pulse runs along the joins from the crisis, then gold floods it.
@@ -624,7 +708,7 @@ function fullOutcome(input: OutcomeInput): Outcome {
       const inkAt = start + stepMs * joins;
       gold++;
       if (w.wasRed) red--;
-      if (w.path.length > 1) add({ t: start, do: 'travel', path: w.path, stepMs });
+      if (w.path.length > 1) add({ t: start, do: 'travel', path: w.path, stepMs, colour: 'gold' });
       add({ t: inkAt, do: 'claim', region: w.id, from: w.path.length > 1 ? w.path[w.path.length - 2] : input.crisis, ms: REGION_INK_MS, wasRed: w.wasRed, gold, red });
       // Each region rings the next note up the scale; one won back from war adds a deeper chord.
       for (const c of claimNote(inkAt, i + 1, input.won.length)) add(c);
@@ -645,7 +729,10 @@ function fullOutcome(input: OutcomeInput): Outcome {
     add({ t: 0, do: 'sound', sfx: 'ante_miss', intensity: 0.7 });
     add({ t: 0, do: 'drone', level: 0.05 });
     red++;
-    add({ t: MISS_INK_AT, do: 'take', region: input.lost.id, from: input.lost.from ?? input.lost.id, ms: WAR_INK_MS, gold, red });
+    // A red pulse crosses from the war region next to it, then red ink runs in.
+    const from = input.lost.from ?? input.lost.id;
+    if (from !== input.lost.id) add({ t: 0, do: 'travel', path: [from, input.lost.id], stepMs: MISS_INK_AT, colour: 'red' });
+    add({ t: MISS_INK_AT, do: 'take', region: input.lost.id, from, ms: WAR_INK_MS, gold, red });
     add({ t: MISS_INK_AT, do: 'glow', which: 'war' });
     add({ t: MISS_INK_AT, do: 'shake', px: 2, ms: 220 });
     add({ t: MISS_INK_AT, do: 'buzz', pattern: [60, 80, 140] });
@@ -659,15 +746,20 @@ function fullOutcome(input: OutcomeInput): Outcome {
     t = COLLAPSE_MS + 200;
   }
 
-  // War spreads by itself (after turns 3, 6, 9 ...): a low drum, red ink into the tagged region.
+  // War spreads by itself (after turns 3, 6, 9 ...): a low drum, a red pulse over the border, then
+  // red ink into the tagged region (its tag reads WAR · NOW until the ink has run).
   if (input.spread) {
-    const at = t + SPREAD_GAP_MS;
+    const drum = t + SPREAD_GAP_MS;
+    const from = input.spread.from ?? input.spread.id;
+    const at = from !== input.spread.id ? drum + SPREAD_LEAD_MS : drum;
     red++;
-    add({ t: at, do: 'sound', sfx: 'flashpoint_hit', intensity: 0.55 });
-    add({ t: at, do: 'sound', sfx: 'thump', intensity: 0.8 });
-    add({ t: at, do: 'buzz', pattern: [40, 60, 40] });
-    add({ t: at, do: 'take', region: input.spread.id, from: input.spread.from ?? input.spread.id, ms: WAR_INK_MS, gold, red });
-    add({ t: at, do: 'glow', which: 'war' });
+    add({ t: drum, do: 'spreadLine', region: input.spread.id });
+    add({ t: drum, do: 'sound', sfx: 'flashpoint_hit', intensity: 0.55 });
+    add({ t: drum, do: 'sound', sfx: 'thump', intensity: 0.8 });
+    add({ t: drum, do: 'buzz', pattern: [40, 60, 40] });
+    if (at > drum) add({ t: drum, do: 'travel', path: [from, input.spread.id], stepMs: at - drum, colour: 'red' });
+    add({ t: at, do: 'take', region: input.spread.id, from, ms: WAR_INK_MS, gold, red, spread: true });
+    add({ t: drum, do: 'glow', which: 'war' });
     t = at + WAR_INK_MS;
     add({ t, do: 'glow', which: null });
     add({ t, do: 'tag' });
@@ -700,30 +792,47 @@ function claimNote(t: number, k: number, n: number): OutcomeCue[] {
 function endingCues(add: (c: OutcomeCue) => void, input: OutcomeInput, at: number): number {
   switch (input.ending) {
     case 'WORLD UNITED': {
+      // The loudest beat in the game: the goal of the whole game is met.
       const last = input.won.length ? input.won[input.won.length - 1].id : input.crisis;
+      add({ t: at, do: 'ending', ending: 'WORLD UNITED' });
       add({ t: at, do: 'sunrise', ms: SUNRISE_MS });
       add({ t: at, do: 'sound', sfx: 'ante_smash', intensity: 1 });
       add({ t: at, do: 'glow', which: 'gold' });
-      // The chord lands as the sunrise reaches the middle; the wave rolls out from the last region won.
+      // The chord lands as the sunrise reaches the middle: WORLD UNITED slams over the map with the
+      // gold bloom and a 6 px shake, and a gold wave pulses every region outward from the last one
+      // won, over a rising run of notes and the game's longest haptic.
       const waveAt = at + RISER_MS;
+      add({ t: waveAt, do: 'united', region: last });
+      add({ t: waveAt, do: 'sound', sfx: 'tally_slam', intensity: 1 });
+      add({ t: waveAt, do: 'sound', sfx: 'thump', intensity: 1 });
+      add({ t: waveAt, do: 'shake', px: 6, ms: 300 });
       add({ t: waveAt, do: 'wave', region: last, ms: WAVE_MS });
       add({ t: waveAt, do: 'sound', sfx: 'reveal', intensity: 0.8 });
-      add({ t: waveAt, do: 'buzz', pattern: [30, 50, 30, 50, 60] });
+      add({ t: waveAt, do: 'buzz', pattern: UNITED_BUZZ });
+      const step = WAVE_MS / UNITED_NOTES;
+      for (let k = 1; k <= UNITED_NOTES; k++) for (const c of claimNote(waveAt + Math.round((k - 1) * step), k, UNITED_NOTES)) add(c);
       add({ t: waveAt + WAVE_MS, do: 'glow', which: null });
       add({ t: waveAt + WAVE_MS, do: 'drone', level: 0 });
-      return waveAt + WAVE_MS + 300;
+      // The stamp lifts; the whole gold world holds on its own before the card arrives.
+      const off = waveAt + WAVE_MS + UNITED_STAMP_TAIL_MS;
+      add({ t: off, do: 'unitedOff' });
+      return off + UNITED_HOLD_MS;
     }
     case 'CEASEFIRE':
+      add({ t: at, do: 'ending', ending: 'CEASEFIRE' });
       add({ t: at, do: 'ceasefire' });
       add({ t: at, do: 'sound', sfx: 'accident_clear', intensity: 0.7 });
       add({ t: at, do: 'drone', level: 0 });
+      add({ t: at, do: 'buzz', pattern: CEASEFIRE_BUZZ });
       add({ t: at + 150, do: 'sound', sfx: 'ending', intensity: 0.5 });
       return at + CEASEFIRE_HOLD_MS;
     case 'WAR':
+      add({ t: at, do: 'ending', ending: 'WAR' });
       add({ t: at, do: 'lightsOut', ms: LIGHTS_OUT_MS });
       add({ t: at, do: 'drone', level: 0 });
       add({ t: at, do: 'sound', sfx: 'ending', intensity: 0.8 });
-      add({ t: at, do: 'buzz', pattern: [60, 80, 140] });
+      // Heavier than a miss: the war is lost.
+      add({ t: at, do: 'buzz', pattern: WAR_ENDING_BUZZ });
       return at + LIGHTS_OUT_MS + 450;
     default:
       return at;
@@ -733,7 +842,11 @@ function endingCues(add: (c: OutcomeCue) => void, input: OutcomeInput, at: numbe
 /** Cues that are only motion: reduced motion drops them (every sound and every change of hands stays). */
 const MOTION_ONLY = new Set<OutcomeKind>(['travel', 'shake', 'sunrise', 'wave', 'shockwave', 'coin']);
 
-/** Reduced motion: no travel, no waves; every region changes in place within the budget, every sound kept. */
+/**
+ * Reduced motion: no travel, no waves; every region changes in place within the budget. Its sounds
+ * keep their order but no sound repeats closer than CALM_GAP_MS (at most one claim chord in that
+ * time), so a big win does not land as one harsh burst.
+ */
 function reducedOutcome(input: OutcomeInput): Outcome {
   const full = fullOutcome({ ...input, reduced: false });
   const k = REDUCED_OUTCOME_BUDGET / Math.max(1, full.end);
@@ -744,5 +857,6 @@ function reducedOutcome(input: OutcomeInput): Outcome {
       if ('ms' in c) return { ...c, t, ms: c.do === 'lightsOut' ? 200 : 0 } as OutcomeCue;
       return { ...c, t };
     });
-  return { cues, end: REDUCED_OUTCOME_BUDGET, settled: Math.round(full.settled * k) };
+  cues.sort((a, b) => a.t - b.t);
+  return { cues: thinSounds(cues, CALM_GAP_MS), end: REDUCED_OUTCOME_BUDGET, settled: Math.round(full.settled * k) };
 }

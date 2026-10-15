@@ -4,19 +4,29 @@
  */
 import type { JSX } from 'preact';
 import { Glyph } from '../art';
-import { markTerms, parseRich, ruleParts } from './rich';
+import { keepGlyphs, markTerms, parseRich, ruleParts, type RichPart } from './rich';
 
-/** Running text with glyphs in place of ◆ ⚓ ★ →. `size` is the glyph height in px. */
+function part(p: RichPart, key: number, size: number): JSX.Element {
+  return 'glyph' in p ? (
+    <span key={key} class="rich-glyph">
+      <Glyph name={p.glyph} size={p.glyph === 'arrow' ? size * 0.8 : size} />
+    </span>
+  ) : (
+    <span key={key}>{p.text}</span>
+  );
+}
+
+/** Running text with glyphs in place of ◆ ⚓ ★ →, a word and its glyph kept on one line. `size` is the glyph height in px. */
 export function Rich({ text, size = 10 }: { text: string; size?: number }): JSX.Element {
   return (
     <>
-      {parseRich(text).map((p, i) =>
-        'glyph' in p ? (
-          <span key={i} class="rich-glyph">
-            <Glyph name={p.glyph} size={p.glyph === 'arrow' ? size * 0.8 : size} />
+      {keepGlyphs(parseRich(text)).map((r, i) =>
+        'keep' in r ? (
+          <span key={i} class="rich-keep">
+            {r.keep.map((p, j) => part(p, j, size))}
           </span>
         ) : (
-          <span key={i}>{p.text}</span>
+          part(r, i, size)
         ),
       )}
     </>
@@ -57,7 +67,7 @@ export function Chip({ lines, tone }: { lines: string[]; tone: 'points' | 'multi
     <span class={`chip-text c-${tone}${lines.length > 1 ? ' two' : ''}`}>
       {lines.map((l, i) => (
         <span key={i} class="chip-line">
-          <Rich text={l} size={7.5} />
+          <Rich text={l.toUpperCase()} size={7.5} />
         </span>
       ))}
     </span>

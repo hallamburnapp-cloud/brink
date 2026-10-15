@@ -1,12 +1,12 @@
 /**
  * Map colours (docs/war/v2/SPEC.md section 8; STYLE.md section 3 for the table and metals).
  *
- * Colour means ownership and nothing else: gold is yours, red is war's, grey is free. The three
- * states also differ by brightness (gold > grey > red with its hatching), so the map reads in
- * sunlight, in greyscale and for colour-blind players; palette.test.ts holds that order.
+ * Colour means ownership and nothing else: gold is yours, red is war's, grey is free (one neutral
+ * slate for every free region: a bloc hue would read as a fourth state). The three states also
+ * differ by brightness (gold > grey > red with its hatching), so the map reads in sunlight, in
+ * greyscale and for colour-blind players; palette.test.ts holds that order.
  */
-import type { Colour, Owner } from './contract';
-import { COLOURS, COLOUR_HEX } from './data';
+import type { Owner } from './contract';
 
 export type RGB = readonly [number, number, number];
 
@@ -61,7 +61,8 @@ export function stripedLuminance(fill: RGB, stripe: RGB, cover: number): number 
   return luminance(fill) * (1 - cover) + luminance(stripe) * cover;
 }
 
-function hsl(c: RGB): [number, number, number] {
+/** Hue (degrees), saturation and lightness (0..1) of an sRGB colour. */
+export function hsl(c: RGB): [number, number, number] {
   const r = c[0] / 255;
   const g = c[1] / 255;
   const b = c[2] / 255;
@@ -76,21 +77,11 @@ function hsl(c: RGB): [number, number, number] {
   return [h < 0 ? h + 360 : h, s, l];
 }
 
-function fromHsl(h: number, s: number, l: number): RGB {
-  const c = (1 - Math.abs(2 * l - 1)) * s;
-  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  const m = l - c / 2;
-  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
-  return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
-}
-
 // ---------------------------------------------------------------- the table and its fixtures
 
 export const SEA = hex('#0D1B2A');
 /** What the gold and red fills sit over (the table, STYLE --table). */
 export const TABLE = hex('#0B0F14');
-/** The grey plates' base (SPEC 8: the bloc tint 35% over this). */
-const GREY_BASE = hex('#16222F');
 export const WHITE: RGB = [255, 255, 255];
 export const INK = hex('#05080C');
 export const LINEN = hex('#E9E2D2');
@@ -106,11 +97,6 @@ export const BRASS = {
   lo: hex('#5A4219'),
   deep: hex('#3A2A10'),
 };
-
-export const BLOC: Readonly<Record<Colour, RGB>> = Object.fromEntries(COLOURS.map((c) => [c, hex(COLOUR_HEX[c])])) as Record<
-  Colour,
-  RGB
->;
 
 // ---------------------------------------------------------------- ownership
 
@@ -137,13 +123,14 @@ export const WAR_FILL = mix(WAR, TABLE, 0.75);
 const WAR_FILL_CEASED = mix(WAR, TABLE, 0.6);
 
 /**
- * Luminance targets for the grey plates. The spec's recipe (the bloc at 25% saturation, 35% over
- * #16222F) gives each bloc a different brightness (teal is darker than ice blue); pinning every
- * bloc to one luminance keeps "grey" one brightness, between gold and hatched red. Dark plates are
- * dark, so lit ones and gold stand out.
+ * Free regions are one neutral slate whatever their bloc (colour means ownership and nothing else),
+ * at three brightnesses: lit (in this turn's deal), rest (the plain world between turns, on the
+ * title and under the shop and end cards) and dark (left out of a deal on the table). Gold stays
+ * above every one of them and hatched red below.
  */
-const GREY_LIT_L = 0.15;
-const GREY_DARK_L = 0.055;
+export const GREY = hex('#83868A');
+export type PlateLevel = 'lit' | 'rest' | 'dark';
+const GREY_L: Readonly<Record<PlateLevel, number>> = { lit: 0.15, rest: 0.105, dark: 0.055 };
 /**
  * War's regions when they are not in the deal (nearly always): a deeper red that keeps its
  * saturation, so it still reads as red but sits below dark grey in brightness.
@@ -152,10 +139,9 @@ const WAR_DARK_FILL = hex('#78180F');
 const WAR_DARK_HATCH = hex('#3A0A07');
 const CEASED_DARK = 0.8;
 
-/** The bloc hue at 25% saturation, 35% over the table: grey with a trace of its bloc. */
-export function greyTint(colour: Colour): RGB {
-  const [h, , l] = hsl(BLOC[colour]);
-  return mix(fromHsl(h, 0.25, l), GREY_BASE, 0.35);
+/** A free region's fill at a level: the neutral slate brought to that level's luminance. */
+export function greyTone(level: PlateLevel): RGB {
+  return withLuminance(GREY, GREY_L[level]);
 }
 
 export interface OwnerTone {
@@ -165,19 +151,18 @@ export interface OwnerTone {
 }
 
 /**
- * A plate's base tone. `lit`: the region is in this turn's deal and can be pinned (the lamp under
- * the glass is on). Dark plates are dimmer, except gold, which stays gold.
+ * A plate's base tone at a level (see PlateLevel). Gold is yours and lit for good: it is the same
+ * at every level (a lamp under a dealt gold region adds light on top).
  */
-export function ownerTone(owner: Owner, colour: Colour, lit: boolean, ceased = false): OwnerTone {
-  // Gold is yours and lit for good: the lamp under a dealt gold region adds light on top.
+export function ownerTone(owner: Owner, level: PlateLevel, ceased = false): OwnerTone {
   if (owner === 'gold') return { fill: GOLD_FILL, hatch: null };
   if (owner === 'red') {
-    if (lit) return { fill: ceased ? WAR_FILL_CEASED : WAR_FILL, hatch: WAR_HATCH };
+    if (level === 'lit') return { fill: ceased ? WAR_FILL_CEASED : WAR_FILL, hatch: WAR_HATCH };
     return ceased
       ? { fill: scale(WAR_DARK_FILL, CEASED_DARK), hatch: scale(WAR_DARK_HATCH, CEASED_DARK) }
       : { fill: WAR_DARK_FILL, hatch: WAR_DARK_HATCH };
   }
-  return { fill: withLuminance(greyTint(colour), lit ? GREY_LIT_L : GREY_DARK_L), hatch: null };
+  return { fill: greyTone(level), hatch: null };
 }
 
 /** The tone's average luminance, hatching included (what the eye and a greyscale photo see). */
@@ -197,10 +182,4 @@ export function markInk(owner: Owner): { text: RGB; glyph: RGB } {
   if (owner === 'gold') return { text: GOLD_INK, glyph: hex('#6B5420') };
   if (owner === 'red') return { text: hex('#FBE6E2'), glyph: hex('#F7B9B0') };
   return { text: LINEN, glyph: hex('#B9C3CC') };
-}
-
-/** The bloc glyph on a grey plate: its bloc colour, washed out to the plate's 25% saturation. */
-export function greyGlyph(colour: Colour): RGB {
-  const [h] = hsl(BLOC[colour]);
-  return fromHsl(h, 0.35, 0.72);
 }

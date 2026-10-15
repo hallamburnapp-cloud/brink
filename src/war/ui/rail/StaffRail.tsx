@@ -8,10 +8,10 @@
  */
 import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { formatShort, preview, seatViews, shopView, type GameState, type SeatView } from '../../engine';
+import { formatShort, nextShopAfter, preview, seatViews, shopView, type GameState, type SeatView } from '../../engine';
 import { StaffIcon } from '../art';
 import { buyOffer, moveSeat } from '../app/actions';
-import { introSeat } from '../app/intro';
+import { introSeat, introView } from '../app/intro';
 import * as P from '../app/playback';
 import { balloon, busy, frameScale, reduced, replacing, speed } from '../app/store';
 import { dragOrder, SEAT_X, SEAT_Y, SEATS, slotAt } from '../common/layout';
@@ -35,7 +35,11 @@ export function StaffRail({ s }: { s: GameState }): JSX.Element {
   const open = balloon.value?.seat ?? -1;
   const slot = replacing.value;
   const offer = slot !== null ? shopView(s)?.offers[slot] : null;
-  const ghost = introSeat.value;
+  const ghost = useLeaving(introSeat.value, 300);
+  // No staff yet: the empty rail says what it is for and when it fills.
+  // (The intro's scenes play other turns of the first game: it always speaks of the first shop.)
+  const shopAfter = introView.value ? 2 : nextShopAfter(s.phase === 'choose' ? s.turn : s.turn + 1);
+  const plate = seats.length === 0 && s.phase !== 'shop' && s.phase !== 'over' ? `STAFF · HIRE AFTER TURN ${shopAfter}` : null;
   return (
     <>
       <div class="rail">
@@ -43,24 +47,33 @@ export function StaffRail({ s }: { s: GameState }): JSX.Element {
         <i class="stitch" style={{ top: '60.5px' }} />
       </div>
       {Array.from({ length: SEATS }, (_, i) => i)
-        .filter((i) => i >= seats.length && ghost?.seat !== i)
+        .filter((i) => i >= seats.length && ghost?.value.seat !== i)
         .map((i) => (
-          <div key={`empty${i}`} class="seat empty abs" style={{ left: `${SEAT_X[i]}px`, top: `${SEAT_Y}px` }}>
+          <div key={`empty${i}`} class={`seat empty abs${plate ? ' quiet' : ''}`} style={{ left: `${SEAT_X[i]}px`, top: `${SEAT_Y}px` }}>
             <div class="felt">
               <span class="no">{i + 1}</span>
-              <span class="vacant">EMPTY</span>
+              {!plate && <span class="vacant">EMPTY</span>}
             </div>
           </div>
         ))}
+      {plate && (
+        <div class={`rail-plate abs${ghost ? ' beside' : ''}`} aria-label={plate}>
+          {plate}
+        </div>
+      )}
       {ghost && (
-        <div class="seat abs intro-seat" style={{ left: `${SEAT_X[ghost.seat]}px`, top: `${SEAT_Y}px` }} aria-hidden="true">
+        <div
+          class={`seat abs intro-seat${ghost.value.fired ? ' fired' : ''}${ghost.leaving ? ' leaving' : ''}`}
+          style={{ left: `${SEAT_X[ghost.value.seat]}px`, top: `${SEAT_Y}px` }}
+          aria-hidden="true"
+        >
           <div class="felt">
-            <span class="no">{ghost.seat + 1}</span>
+            <span class="no">{ghost.value.seat + 1}</span>
             <span class="obj">
-              <StaffIcon id={ghost.id} size={32} />
+              <StaffIcon id={ghost.value.id} size={32} />
             </span>
             <span class="chip">
-              <Chip lines={[ghost.chip]} tone="multiplier" />
+              <Chip lines={[ghost.value.chip]} tone="multiplier" />
             </span>
           </div>
         </div>
@@ -81,12 +94,52 @@ export function StaffRail({ s }: { s: GameState }): JSX.Element {
             open={open === v.seat}
             count={seats.length}
             onDrag={setDrag}
-            replace={tag && slot !== null ? { slot, text: formatShort(tag.after, 5), affordable: tag.affordable } : null}
+            replace={
+              tag && slot !== null
+                ? {
+                    slot,
+                    text: formatShort(tag.after, 5),
+                    affordable: tag.affordable,
+                    // Lower than the line-up makes now: the dim tone, never the same gold as a gain.
+                    worse: !!offer?.preview && tag.after < offer.preview.before,
+                  }
+                : null
+            }
           />
         );
       })}
     </>
   );
+}
+
+/**
+ * A value that fades out instead of vanishing: when it turns null, the last one stays `ms` longer
+ * as `leaving` (at once under reduced motion). The intro's ghost lamp fades as TRY IT starts turn 1.
+ */
+function useLeaving<T>(value: T | null, ms: number): { value: T; leaving: boolean } | null {
+  const last = useRef<T | null>(null);
+  const [, redraw] = useState(0);
+  const until = useRef(0);
+  if (value !== null) {
+    last.current = value;
+    until.current = 0;
+  } else if (last.current !== null && until.current === 0) {
+    until.current = reduced.value ? -1 : performance.now() + ms;
+  }
+  const leaving = value === null && last.current !== null && until.current > performance.now();
+  useEffect(() => {
+    if (!leaving) {
+      if (value === null) last.current = null;
+      return;
+    }
+    const t = window.setTimeout(() => {
+      last.current = null;
+      redraw((k) => k + 1);
+    }, Math.max(0, until.current - performance.now()));
+    return () => clearTimeout(t);
+  }, [leaving]);
+  if (value !== null) return { value, leaving: false };
+  return leaving && last.current !== null ? { value: last.current, leaving: true } : null;
 }
 
 interface SeatProps {
@@ -99,8 +152,8 @@ interface SeatProps {
   open: boolean;
   count: number;
   onDrag: (d: Drag | null) => void;
-  /** The full-table flow: what replacing this seat would make. */
-  replace: { slot: number; text: string; affordable: boolean } | null;
+  /** The full-table flow: what replacing this seat would make (`worse`: less than now). */
+  replace: { slot: number; text: string; affordable: boolean; worse: boolean } | null;
 }
 
 function Seat({ v, number, left, dragging, sliding, ready, open, count, onDrag, replace }: SeatProps): JSX.Element {
@@ -233,7 +286,7 @@ function Seat({ v, number, left, dragging, sliding, ready, open, count, onDrag, 
         </span>
       </div>
       {replace && (
-        <span class={`replace-tag num${replace.affordable ? '' : ' poor'}`}>
+        <span class={`replace-tag num${replace.affordable ? (replace.worse ? ' worse' : '') : ' poor'}`}>
           <span class="rt-arrow">→</span>
           {replace.text}
         </span>

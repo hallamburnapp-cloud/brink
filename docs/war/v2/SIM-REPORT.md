@@ -11,9 +11,40 @@ sampling noise of the Python reference's `RESULTS.txt`. No engine bug was found:
 reference agree on all 1,504 fixture cases, and the unmodified reference plays all 30,000 games of this run
 again on the same random streams, identically, turn for turn.
 
+**Update: pin it to claim it.** After the first review of the build, a win's extra regions go to the regions
+the player pinned before the nearest others (SPEC section 5, step 6). The reference, its fixtures and
+`RESULTS.txt` were regenerated, and the run was repeated: `npx tsx tools/war-sim.ts --games 5000 --replay 5000
+--strict` cross-checks all 1,504 fixture cases, the unmodified reference plays all 30,000 games again
+identically (333,372 turns), and **all 17 gates pass**:
+
+| Gate | Threshold | This sim | Reference | Result |
+| --- | --- | --: | --: | --- |
+| G1 sensible holds the world | 55-70% | 63.2% | 62.5% | PASS |
+| G2 sensible WORLD UNITED (30/30) | ≥ 40% | 48.4% | 48.3% | PASS |
+| G3 greedy, never shops, holds | < 25% | 0.0% | 0.0% | PASS |
+| G4 random holds | < 5% | 0.0% | 0.0% | PASS |
+| G5 best send ≥ 2x the median send (sensible, opening deal) | ≥ 85% of turns | 99.3% | 99.3% | PASS |
+| G6 sensible median game | 15-19 turns | 15.0 | 15.0 | PASS |
+| G7 first-game minutes, median | 13-16 | 13.4 | 13.5 | PASS |
+| G8 first-game minutes, p90 | ≤ 18 | 16.3 | 16.3 | PASS |
+| G9 first-game minutes, games that hold, median | 14-17 | 14.1 | 14.1 | PASS |
+| G10 held games where war reached 6+ | ≥ 25% | 64.8% | 65.9% | PASS |
+| G11 close losses (WAR while holding 18+ gold) | 6-14% of games | 9.3% | 9.3% | PASS |
+| G12 hopeless losses (WAR holding ≤ 8 gold) | < 10% of games | 0.5% | 0.6% | PASS |
+| G13 novice median game | ≥ 7 turns | 8.0 | 8.0 | PASS |
+| G14 preview bot holds | ≥ 30% | 44.7% | 44.7% | PASS |
+| G15 every staff in held line-ups | ≥ 8% each | Old Hand 21.7% | Old Hand 22.1% | PASS |
+| G16 no staff in held line-ups above | ≤ 85% | Strategist 72.5% | Strategist 73.0% | PASS |
+| G17 stalls (every bot) | 0 | 0 | 0 | PASS |
+
+Against the earlier rule, every number moved by sampling noise except G10 (51.9% → 64.8%): the bots pin for
+score, not to take war's regions back, so big sends now retake fewer red regions and war more often reaches 6.
+The default 2,000-game run also passes (G1 62.9%, G10 64.4%, G14 44.0%). The sections below are the report on
+the earlier rule, kept for its method and detail; their numbers differ from the above only as described.
+
 ---
 
-## 1. The gates, beside the reference
+## 1. The gates, beside the reference (the earlier rule)
 
 `npx tsx tools/war-sim.ts --games 5000 --replay 5000 --strict`: 5,000 games per bot, seeds W0-W4999 (54 s on 3
 processes, plus 6½ minutes for the replay). The reference column is `docs/war/v2/reference/RESULTS.txt`

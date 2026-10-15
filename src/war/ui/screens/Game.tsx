@@ -29,6 +29,7 @@ export function Game(): JSX.Element | null {
       <Table />
       <i class="rail-shadow" />
       {!intro && !over && <Coach at="map" />}
+      {!intro && !over && <Coach at="tray" />}
       <i class="trim abs" style={{ top: '689px' }} />
       <BigBoard s={s} />
       <StaffRail s={s} />

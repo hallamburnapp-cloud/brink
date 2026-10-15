@@ -9,7 +9,7 @@ import type { GameState, RegionId } from '../../engine';
 import { hasSave, readPrefs, writePrefs, type Prefs } from './storage';
 
 export type Screen = 'title' | 'game';
-export type Sheet = 'menu' | 'quit' | 'rules' | null;
+export type Sheet = 'menu' | 'quit' | 'rules' | 'newgame' | null;
 
 /** The engine's state: the truth. */
 export const run = signal<GameState | null>(null);
@@ -23,6 +23,12 @@ export const busy = signal(false);
 
 /** A game is saved and can be continued from the title. */
 export const saved = signal(hasSave());
+
+/**
+ * The game on the table is never saved: PRACTICE started while a game was in progress, so the save
+ * (and CONTINUE on the title) still holds that game.
+ */
+export const unsaved = signal(false);
 
 // ---------------------------------------------------------------- preferences
 
@@ -48,7 +54,13 @@ export const reduced = computed(() => {
   return m === 'reduce' || (m === 'system' && systemReduced.value);
 });
 
-export const speed = computed(() => prefs.value.speed);
+/**
+ * The intro plays its sends faster than the game (SPEC 3: the send at 2x), and a tap before a lesson
+ * has played hurries it along: this multiplies the chosen speed while it does.
+ */
+export const speedBoost = signal(1);
+
+export const speed = computed(() => prefs.value.speed * speedBoost.value);
 
 // ---------------------------------------------------------------- transient UI
 

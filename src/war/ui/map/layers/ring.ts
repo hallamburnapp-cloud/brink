@@ -7,7 +7,7 @@
 import type { RegionId } from '../contract';
 import { MAP_H as H, MAP_W as W, REGION, REGIONS } from '../data';
 import { easeBack, easeIn, easeOut, FONT_MONO, glowStroke, lerp, roundRect, text, textWidth, type Gfx } from '../draw';
-import { AMBER, css, hex, RING_WHITE } from '../palette';
+import { AMBER, css, GOLD, GOLD_INK, hex, RING_WHITE, WAR, WHITE } from '../palette';
 import type { RingVis } from '../scene';
 
 const ringRadii = new Map<RegionId, number>();
@@ -50,17 +50,97 @@ export interface RingLayout {
   r: number;
   /** Centre of the target-and-×2 chip: on top of the ring (under it near the map's top edge). */
   badge: { x: number; y: number };
+  /** The chip's width as laid out. */
+  width: number;
 }
 
-/** Where the ring and its chip sit for a crisis on this region. */
-export function ringLayout(id: RegionId): RingLayout {
+export interface Box {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+/** The chip's width for a target: 13 pt mono digits (7.9 pt each), padding, and the ×2 segment. */
+export function badgeWidth(target: string): number {
+  return Math.min(BADGE_MAX_W, Math.ceil(target.length * 7.9) + 14 + DOUBLE_W);
+}
+
+/**
+ * What another region draws round its pin that the chip must not cover: its socket with its number,
+ * star or anchor and the gold check of a win preview above them; and its name under the pin.
+ */
+export function labelBoxes(id: RegionId): Box[] {
+  const { x, y, name } = REGION[id];
+  // The name: 9 pt condensed capitals (about 5.2 pt a letter with its tracking), centred 15.5 pt below the pin.
+  const half = (name.length * 5.2 + 2) / 2;
+  return [
+    { x0: x - 10, y0: y - 21, x1: x + 36, y1: y + 8 },
+    { x0: x - half, y0: y + 11, x1: x + half, y1: y + 20 },
+  ];
+}
+
+function overlap(a: Box, b: Box): number {
+  const w = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+  const h = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
+  return w > 0 && h > 0 ? w * h : 0;
+}
+
+function badgeBox(x: number, y: number, width: number): Box {
+  return { x0: x - width / 2, y0: y - BADGE_H / 2, x1: x + width / 2, y1: y + BADGE_H / 2 };
+}
+
+/**
+ * Ways the chip may move to clear a neighbour's name: sideways along the ring, and a few points down
+ * onto the ring line itself. The smallest move that clears everything wins.
+ */
+const MOVES = [0, 7, 14, 21, 28, 35, 42]
+  .flatMap((d) => (d ? [-d, d] : [0]))
+  .flatMap((dx) => [0, 3, 6].map((dy) => ({ dx, dy })))
+  .sort((a, b) => Math.abs(a.dx) + 2 * a.dy - (Math.abs(b.dx) + 2 * b.dy));
+
+/**
+ * Where the ring and its chip sit for a crisis on this region. The chip rides the top of the ring
+ * (under it near the map's top edge), clear of the win check above the pin, and moves along the
+ * ring to clear the names and numbers of the regions round it.
+ */
+export function ringLayout(id: RegionId, target = ''): RingLayout {
+  const key = `${id}|${target.length}`;
+  let L = layouts.get(key);
+  if (!L) {
+    L = layOut(id, target);
+    layouts.set(key, L);
+  }
+  return L;
+}
+
+const layouts = new Map<string, RingLayout>();
+
+function layOut(id: RegionId, target: string): RingLayout {
   const { x, y } = REGION[id];
   const r = ringRadius(id);
-  // The chip rides the top of the ring, high enough to clear the win number above the pin.
-  const above = Math.min(y - r - 5.5, y + WIN_CHIP_AT.dy - WIN_CHIP_HALF - BADGE_H / 2 - 1);
-  const by = above - BADGE_H / 2 >= 13 ? above : y + Math.max(r + 5.5, 31.5);
-  const half = BADGE_MAX_W / 2;
-  return { x, y, r, badge: { x: Math.min(W - half - 2, Math.max(half + 2, x)), y: by } };
+  const width = target ? badgeWidth(target) : BADGE_MAX_W;
+  // Above the ring, and never so low that it covers the win check above the pin.
+  const lowest = y + WIN_CHIP_AT.dy - WIN_CHIP_HALF - BADGE_H / 2 - 1;
+  const above = Math.min(y - r - 5.5, lowest);
+  const onTop = above - BADGE_H / 2 >= 13;
+  const by = onTop ? above : y + Math.max(r + 5.5, 31.5);
+  const half = width / 2;
+  const clampX = (bx: number) => Math.min(W - half - 2, Math.max(half + 2, bx));
+  const others = REGIONS.filter((o) => o.id !== id && Math.abs(o.x - x) < 120 && Math.abs(o.y - by) < 60).flatMap((o) => labelBoxes(o.id));
+  let best = { x: clampX(x), y: by, cost: Infinity };
+  for (const m of MOVES) {
+    const bx = clampX(x + m.dx);
+    const cy = by + (onTop ? m.dy : 0);
+    if (onTop && cy > lowest) continue;
+    const box = badgeBox(bx, cy, width);
+    // It must still sit on the ring: its span covers the ring's top.
+    if (box.x0 > x - 3 || box.x1 < x + 3) continue;
+    const cost = others.reduce((sum, o) => sum + overlap(box, o), 0);
+    if (cost < best.cost - 1e-6) best = { x: bx, y: cy, cost };
+    if (cost === 0) break;
+  }
+  return { x, y, r, badge: { x: best.x, y: best.y }, width };
 }
 
 /** The ring's breath, 0..1, at time `now` (1.6 s). */
@@ -72,11 +152,14 @@ export function paintRing(g: Gfx, ring: RingVis, now: number, reduced: boolean, 
   const c = ring.collapse ?? 0;
   if (c >= 1 || fade <= 0) return;
   const { ctx } = g;
-  const L = ringLayout(ring.id);
+  const L = ringLayout(ring.id, ring.target);
   const breath = ringBreath(now, reduced);
+  // Catching the score: the ring swells 25% and settles as the number lands in it.
+  const swell = ring.caught && !reduced ? 1 + 0.25 * Math.sin(Math.PI * Math.min(1, ring.caught.p)) : 1;
   // Collapsing: the ring closes in on the pin, burning brighter as it goes.
-  const rad = Math.max(0.5, L.r * (1 - easeIn(c)) + (c > 0 ? 0 : 0.8 * breath));
-  const chip = fade * (1 - Math.min(1, c / 0.35));
+  const rad = Math.max(0.5, L.r * swell * (1 - easeIn(c)) + (c > 0 ? 0 : 0.8 * breath));
+  // The chip outlasts the start of the collapse, so a caught score's check is seen.
+  const chip = fade * (1 - Math.min(1, Math.max(0, c - 0.3) / 0.4));
 
   ctx.save();
   ctx.globalAlpha = fade;
@@ -116,6 +199,10 @@ export function paintRing(g: Gfx, ring: RingVis, now: number, reduced: boolean, 
 
 /** The target on a dark chip, with the ×2 joined on its right: dim until the crisis is pinned, then amber. */
 function paintBadge(g: Gfx, L: RingLayout, ring: RingVis, alpha: number, reduced: boolean): void {
+  if (ring.caught) {
+    paintCaught(g, L, ring, alpha);
+    return;
+  }
   const { ctx } = g;
   const tw = Math.ceil(textWidth(ctx, ring.target, TARGET_FONT)) + 14;
   const w = tw + DOUBLE_W;
@@ -174,4 +261,49 @@ function paintBadge(g: Gfx, L: RingLayout, ring: RingVis, alpha: number, reduced
     ctx.stroke();
     ctx.restore();
   }
+}
+
+/**
+ * The chip once the score has landed in the ring: gold with a check on a win (the region turns
+ * gold), red with a cross on a miss (war takes it).
+ */
+function paintCaught(g: Gfx, L: RingLayout, ring: RingVis, alpha: number): void {
+  const { ctx } = g;
+  const win = ring.caught!.win;
+  const tw = Math.ceil(textWidth(ctx, ring.target, TARGET_FONT)) + 14;
+  const w = tw + DOUBLE_W;
+  const x = L.badge.x - w / 2;
+  const y = L.badge.y - BADGE_H / 2;
+  const ink = win ? css(GOLD_INK, alpha) : css(WHITE, alpha);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  glowStroke(ctx, () => {
+    roundRect(ctx, x, y, w, BADGE_H, 4);
+    ctx.stroke();
+  }, (a) => css(win ? GOLD : WAR, a * 1.4), 1, 4);
+  ctx.fillStyle = css(win ? GOLD : WAR);
+  roundRect(ctx, x, y, w, BADGE_H, 4);
+  ctx.fill();
+  ctx.restore();
+  text(ctx, ring.target, x + tw / 2, L.badge.y + 0.5, { font: TARGET_FONT, color: ink });
+  const cx = x + tw + DOUBLE_W / 2;
+  const cy = L.badge.y;
+  ctx.save();
+  ctx.strokeStyle = ink;
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  if (win) {
+    ctx.moveTo(cx - 5, cy + 0.3);
+    ctx.lineTo(cx - 1.5, cy + 3.8);
+    ctx.lineTo(cx + 5, cy - 3.6);
+  } else {
+    ctx.moveTo(cx - 3.8, cy - 3.8);
+    ctx.lineTo(cx + 3.8, cy + 3.8);
+    ctx.moveTo(cx + 3.8, cy - 3.8);
+    ctx.lineTo(cx - 3.8, cy + 3.8);
+  }
+  ctx.stroke();
+  ctx.restore();
 }

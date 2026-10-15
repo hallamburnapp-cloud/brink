@@ -1,24 +1,38 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { INTRO_COPY, RULES_COPY } from './copy';
+import { WAR_META } from '../../meta';
+import { INTRO_COPY, MARKS_COPY, RULES_COPY } from './copy';
 
-const spec = readFileSync(new URL('../../../../docs/war/v2/SPEC.md', import.meta.url), 'utf8');
-/** The spec's quoted lines ('> ...'). */
-const quoted = spec
-  .split('\n')
-  .filter((l) => l.startsWith('> '))
-  .map((l) => l.slice(2).trim());
+/**
+ * The coach strip is 362 pt wide at 16 pt Barlow Condensed (about 6.9 pt a glyph after its tacks
+ * and padding): 72 characters set in two lines with room to spare. The browser check measures it.
+ */
+const STRIP_CHARS = 72;
 
 describe('the teaching copy', () => {
-  it('is the spec\'s How to play, word for word, in order', () => {
-    const at = quoted.indexOf(RULES_COPY[0]);
-    expect(at).toBeGreaterThanOrEqual(0);
-    expect(quoted.slice(at, at + RULES_COPY.length)).toEqual([...RULES_COPY]);
-    expect(RULES_COPY.join(' ').split(/\s+/)).toHaveLength(120);
+  it('sets every intro beat in at most two lines of the coach strip', () => {
+    for (const beats of Object.values(INTRO_COPY)) {
+      expect(beats.length).toBeGreaterThanOrEqual(2);
+      for (const b of beats) expect(b.length, b).toBeLessThanOrEqual(STRIP_CHARS);
+    }
   });
 
-  it('is the spec\'s three intro screens, word for word', () => {
-    for (const text of Object.values(INTRO_COPY)) expect(quoted).toContain(text);
-    expect(Object.values(INTRO_COPY).map((t) => t.split(/\s+/).length)).toEqual([23, 25, 22]);
+  it('says the goal first, the same way everywhere', () => {
+    const goal = 'before war holds 10';
+    expect(INTRO_COPY[1][0]).toContain(goal);
+    expect(RULES_COPY[0]).toContain(goal);
+    expect(WAR_META.tagline).toContain(goal);
+  });
+
+  it('teaches the touch rule, the crisis x2, a miss, war spreading, staff and the pins-first win order', () => {
+    const all = [...INTRO_COPY[2], ...INTRO_COPY[3]].join(' ');
+    for (const words of ['touch each other', 'doubles it', 'Miss: war takes', 'into the red tag', 'Staff boost', 'Beat it by more: your pins too']) {
+      expect(all).toContain(words);
+    }
+    expect(RULES_COPY.join(' ')).toContain('your pins first');
+  });
+
+  it('keeps How to play short, and says what the marks mean', () => {
+    expect(RULES_COPY.join(' ').split(/\s+/).length).toBeLessThanOrEqual(140);
+    expect(MARKS_COPY).toMatch(/★ capital · ⚓ port/);
   });
 });

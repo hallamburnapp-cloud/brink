@@ -1,29 +1,29 @@
 /**
  * Live effects, drawn every frame over the baked land: gold's shimmer and war's pulse, the deal's
  * light-up, ink floods, the travelling colour pulse, the wave, flashes and blinks, thread pulses,
- * the scan line, the shockwave, the bloom, brass ripples and lights out.
+ * the scan line, the shockwave, the bloom, the ceasefire and lights out.
  * Nothing here uses shadowBlur per frame: glows are layered strokes, gradients or cached sprites.
  */
 import type { InkColour, Owner, RegionId } from '../contract';
 import { MAP_H as H, MAP_W as W, REGION, REGIONS } from '../data';
 import { clamp01, easeInOut, easeOut, glowStroke, withShadow, type Gfx } from '../draw';
-import { progress, type FxState } from '../fx';
-import { getGeometry } from '../geometry';
-import { BRASS, css, GOLD_FILL, GOLD_RIM, INK, mix, ownerTone, WAR, WHITE } from '../palette';
+import { progress, TRAVEL_LINGER_MS, type FxState } from '../fx';
+import { getGeometry, insidePoly } from '../geometry';
+import { css, GOLD_FILL, GOLD_RIM, INK, mix, ownerTone, WAR, WAR_TEXT, WHITE } from '../palette';
 import { getPaths } from '../paths';
 import { mulberry32 } from '../rand';
-import type { RegionVis, Scene } from '../scene';
-import { paintPlate } from './land';
+import { plateLevel, type RegionVis, type Scene } from '../scene';
+import { paintPlate, type PlateStyle } from './land';
 import { blurredShape, makeLayer, type Layer } from './static';
-import { drawComet, joinCurve } from './threads';
+import { drawComet, joinCurve, strokeJoin, strokeTravel } from './threads';
 
 function regionFill(g: Gfx, id: RegionId, color: string | CanvasGradient): void {
   g.ctx.fillStyle = color;
   g.ctx.fill(getPaths().region[id]);
 }
 
-function plateOf(s: Scene, r: RegionVis, owner: Owner) {
-  return { owner, colour: r.def.colour, live: r.live, scored: r.scored, dim: r.dim, ceased: s.ceased };
+function plateOf(s: Scene, r: RegionVis, owner: Owner): PlateStyle {
+  return { owner, level: plateLevel(r, s.rest), live: r.live, scored: r.scored, dim: r.dim, ceased: s.ceased };
 }
 
 // ---------------------------------------------------------------- idle life
@@ -112,7 +112,8 @@ export function paintLightsOut(g: Gfx, s: Scene, fx: FxState): void {
   // The sea and everything but gold dims as the lights go.
   const notGold = new Path2D();
   notGold.rect(0, 0, W, H);
-  for (const r of s.list) if (r.owner === 'gold') notGold.addPath(paths.region[r.id]);
+  // Gold stays lit, and so do the free regions the end card points at (they were the near miss).
+  for (const r of s.list) if (r.owner === 'gold' || s.highlight?.has(r.id)) notGold.addPath(paths.region[r.id]);
   ctx.save();
   ctx.clip(notGold, 'evenodd');
   ctx.fillStyle = css(INK, 0.3 * clamp01(p * 1.1));
@@ -120,19 +121,20 @@ export function paintLightsOut(g: Gfx, s: Scene, fx: FxState): void {
   ctx.restore();
   for (const r of s.list) {
     const at = lo.at.get(r.id);
-    if (at === undefined) continue;
+    if (at === undefined || s.highlight?.has(r.id)) continue;
     const since = elapsed - at * lo.dur;
     if (since < 0) continue;
     // A failing lamp: dark, a stutter back on, then out for good (150 ms in all).
     const level = s.reduced ? p : since < 40 ? 0.85 : since < 70 ? 0.25 : since < 110 ? 0.9 : 1;
     regionFill(g, r.id, css(INK, 0.78 * level));
   }
-  // Red pulses once, after the last free region has gone out.
-  const pulse = s.reduced ? 0 : Math.sin(Math.PI * clamp01((p - 0.78) / 0.22));
+  // Red pulses once as the last free regions go out, and stays a little brighter: war holds the table.
+  const q = clamp01((p - 0.7) / 0.3);
+  const pulse = s.reduced ? 0 : Math.sin(Math.PI * Math.min(1, q * 1.4)) + 0.25 * q;
   if (pulse > 0) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    for (const r of s.list) if (r.owner === 'red') regionFill(g, r.id, css(WAR, 0.42 * pulse));
+    for (const r of s.list) if (r.owner === 'red') regionFill(g, r.id, css(WAR, 0.5 * Math.min(1, pulse)));
     ctx.restore();
   }
 }
@@ -158,6 +160,49 @@ export function lightsOutOrder(ids: RegionId[], seed: number): Map<RegionId, num
 function farthestCorner(x: number, y: number, id: RegionId): number {
   const b = getGeometry().bounds[id];
   return Math.max(Math.hypot(b.x0 - x, b.y0 - y), Math.hypot(b.x1 - x, b.y0 - y), Math.hypot(b.x0 - x, b.y1 - y), Math.hypot(b.x1 - x, b.y1 - y)) + 8;
+}
+
+function segmentDistance(x: number, y: number, ax: number, ay: number, bx: number, by: number): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  const t = len2 > 0 ? clamp01(((x - ax) * dx + (y - ay) * dy) / len2) : 0;
+  return Math.hypot(ax + t * dx - x, ay + t * dy - y);
+}
+
+const edgeCache = new Map<string, number>();
+/**
+ * How far a region's plate is from a point (0 when the point is on it): where ink from a
+ * neighbour's pin first reaches the plate. Ink starts there, so a region begins to change colour
+ * the moment its spread starts, rather than after an invisible run up to the shared border.
+ */
+export function nearestEdge(x: number, y: number, id: RegionId): number {
+  const key = `${id}@${x.toFixed(1)},${y.toFixed(1)}`;
+  let d = edgeCache.get(key);
+  if (d !== undefined) return d;
+  const shape = getGeometry().shapes[id];
+  if (shape.kind === 'disc') {
+    d = Math.max(0, Math.hypot(x - shape.x, y - shape.y) - shape.r);
+  } else if (insidePoly(shape.pts, x, y)) {
+    d = 0;
+  } else {
+    d = Infinity;
+    const pts = shape.pts;
+    for (let i = 0; i < pts.length; i++) {
+      const [ax, ay] = pts[i];
+      const [bx, by] = pts[(i + 1) % pts.length];
+      d = Math.min(d, segmentDistance(x, y, ax, ay, bx, by));
+    }
+  }
+  edgeCache.set(key, d);
+  return d;
+}
+
+/** The ink front's radius at progress `p`: from the plate's nearest edge to its far corner. */
+export function inkRadius(fromX: number, fromY: number, id: RegionId, p: number, self: boolean): number {
+  const far = farthestCorner(fromX, fromY, id);
+  const near = self ? 0 : Math.max(0, nearestEdge(fromX, fromY, id) - 2);
+  return near + p * (far - near);
 }
 
 /** A wobbling ink front (seeded per spread so it holds its shape as it grows). */
@@ -191,9 +236,10 @@ export function paintInk(g: Gfx, s: Scene, fx: FxState): void {
     const src = REGION[ink.source];
     for (const id of ink.targets) {
       const r = s.regions[id];
-      const from = id === ink.source ? r.def : src;
-      const radius = p * farthestCorner(from.x, from.y, id);
-      if (radius <= 0) continue;
+      const self = id === ink.source;
+      const from = self ? r.def : src;
+      if (p <= 0) continue;
+      const radius = inkRadius(from.x, from.y, id, p, self);
       ctx.save();
       inkBlob(ctx, from.x, from.y, radius, ink.start + r.def.index);
       ctx.clip();
@@ -218,16 +264,42 @@ export function paintInk(g: Gfx, s: Scene, fx: FxState): void {
   }
 }
 
-/** Ownership travels: a comet steps along the chain of joins, and each region it reaches blinks. */
+/**
+ * Ownership travels: a comet runs along the chain of joins, lighting each join behind it as a
+ * thread of its colour (so a long jump reads as a path, not a region that simply changes), and the
+ * region it reaches blinks with a small ring. The path stays lit a moment after the pulse arrives
+ * and fades, so on a big win the player can read where the win spread.
+ */
 export function paintTravel(g: Gfx, s: Scene, fx: FxState): void {
+  const { ctx } = g;
   for (const t of fx.travels) {
     const e = s.now - t.start;
     if (e < 0) continue;
+    const linger = e > t.dur ? 1 - clamp01((e - t.dur) / TRAVEL_LINGER_MS) : 1;
+    const rgb = t.colour === 'gold' ? GOLD_RIM : WAR_TEXT;
     for (let i = 0; i + 1 < t.path.length; i++) {
-      const local = (e - i * t.stepMs) / t.stepMs;
-      if (local > 0 && local < 1.35) drawComet(g, joinCurve(t.path[i], t.path[i + 1]), Math.min(1, local), t.colour, 3.2);
-      const since = e - (i + 1) * t.stepMs;
-      if (since >= 0 && since < 260) blink(g, s, t.path[i + 1], t.colour, 0.55 * (1 - since / 260));
+      const local = clamp01((e - i * t.stepMs) / t.stepMs);
+      if (local <= 0) continue;
+      const curve = joinCurve(t.path[i], t.path[i + 1]);
+      // Gold travel is lit unlike any white pin thread; war's red pulse keeps the plain join.
+      if (t.colour === 'gold') strokeTravel(g, curve, local, 0.95 * linger, s.now);
+      else strokeJoin(g, curve, local, rgb, 0.9 * linger);
+      if (local < 1) drawComet(g, curve, local, t.colour, 4);
+    }
+    // The region reached: it blinks, and a small ring leaves its pin.
+    for (let i = 1; i < t.path.length; i++) {
+      const since = e - i * t.stepMs;
+      if (since < 0 || since > 300) continue;
+      const q = since / 300;
+      if (since < 260) blink(g, s, t.path[i], t.colour, 0.6 * (1 - since / 260));
+      const def = REGION[t.path[i]];
+      ctx.save();
+      ctx.strokeStyle = css(rgb, 0.9 * (1 - q));
+      ctx.lineWidth = 2 * (1 - q) + 0.5;
+      ctx.beginPath();
+      ctx.arc(def.x, def.y, 6 + 22 * easeOut(q), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
     }
   }
 }
@@ -330,7 +402,7 @@ function scanSprite(k: number) {
     const l = makeLayer(k, w, H);
     withShadow(l, 'rgba(255,255,255,0.4)', 10 / 3, 0, 0, () => {
       l.ctx.fillStyle = 'rgba(255,255,255,0.95)';
-      l.ctx.fillRect(w / 2 - 1, 10, 2, H - 10);
+      l.ctx.fillRect(w / 2 - 1, 0, 2, H);
     });
     sp = Object.assign(l, { x: -w / 2, y: 0, w, h: H });
     spriteCache.set(key, sp);
@@ -355,7 +427,7 @@ export function paintFlashes(g: Gfx, s: Scene, fx: FxState): void {
     ctx.restore();
     ctx.save();
     ctx.clip(path);
-    const tone = ownerTone(r.owner, r.def.colour, true, s.ceased).fill;
+    const tone = ownerTone(r.owner, 'lit', s.ceased).fill;
     ctx.fillStyle = css(mix(WHITE, tone, 0.75), 0.75 * white);
     ctx.fill(path);
     ctx.strokeStyle = `rgba(255,255,255,${0.9 * bloom})`;
@@ -382,13 +454,13 @@ export function paintScan(g: Gfx, s: Scene, fx: FxState): void {
     grad.addColorStop(0, 'rgba(255,246,224,0)');
     grad.addColorStop(1, `rgba(255,246,224,${0.07 * (0.5 + 0.5 * wake)})`);
     ctx.fillStyle = grad;
-    ctx.fillRect(x - 44, 10, 44, H - 10);
+    ctx.fillRect(x - 44, 0, 44, H);
   }
   const sprite = scanSprite(g.k);
   ctx.drawImage(sprite.canvas, x + sprite.x, 0, sprite.w, sprite.h);
 }
 
-/** The scan cursor on the bearing strip (drawn over the glass). */
+/** The scan line's head: a small pointer at the map's top edge while the line sweeps (drawn over the glass). */
 export function paintScanCursor(g: Gfx, fx: FxState): void {
   const x = fx.scanX;
   if (x === null) return;
@@ -396,9 +468,9 @@ export function paintScanCursor(g: Gfx, fx: FxState): void {
   withShadow(g, 'rgba(255,255,255,0.8)', 2, 0, 0, () => {
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.moveTo(x - 4, 2);
-    ctx.lineTo(x + 4, 2);
-    ctx.lineTo(x, 9.5);
+    ctx.moveTo(x - 4, 0);
+    ctx.lineTo(x + 4, 0);
+    ctx.lineTo(x, 7);
     ctx.closePath();
     ctx.fill();
   });
@@ -416,7 +488,7 @@ export function paintBlinks(g: Gfx, s: Scene, fx: FxState, speed: number): void 
     const at = sh.start + (1 - Math.pow(1 - d, 1 / 1.6)) * sh.dur;
     const p = (s.now - at) / blinkMs;
     if (p < 0 || p > 1) continue;
-    const tone = ownerTone(r.owner, r.def.colour, true, s.ceased).fill;
+    const tone = ownerTone(r.owner, 'lit', s.ceased).fill;
     regionFill(g, r.id, css(mix(WHITE, tone, 0.45), 0.45 * (1 - p)));
   }
 }
@@ -450,28 +522,8 @@ export function paintShockwave(g: Gfx, s: Scene, fx: FxState): void {
   ctx.restore();
 }
 
-/** Where the decorative brass tack sits, relative to the pin. */
-export const BRASS_TACK = { dx: -15, dy: 2 };
-
-/** A brass pin has landed: a brass ring spreads from the tack and fades. */
-export function paintRipples(g: Gfx, fx: FxState, now: number): void {
-  const { ctx } = g;
-  for (const e of fx.ripples) {
-    if (now < e.start) continue;
-    const p = progress(e, now);
-    const r = REGION[e.id];
-    ctx.save();
-    ctx.strokeStyle = css(BRASS.hi, 0.9 * (1 - p));
-    ctx.lineWidth = 1.6 * (1 - p) + 0.4;
-    ctx.beginPath();
-    ctx.arc(r.x + BRASS_TACK.dx, r.y + BRASS_TACK.dy, 5 + 22 * easeOut(p), 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
-  }
-}
-
 /**
- * A slam of 10x the target or more: light blooms out of a region across the table, fast (120 ms
+ * A showcase slam (16x the target or more): light blooms out of a region across the table, fast (120 ms
  * to reach the far edge) and decaying, added on top so the plates and sea stay readable.
  */
 export function paintBloom(g: Gfx, s: Scene, fx: FxState): void {
@@ -493,4 +545,30 @@ export function paintBloom(g: Gfx, s: Scene, fx: FxState): void {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
   ctx.restore();
+}
+
+/**
+ * CEASEFIRE: the war stops where it stands. Its regions flash a bright outline once, then keep the
+ * steady one the land layer draws, so the moment reads before the card comes up.
+ */
+export function paintCease(g: Gfx, s: Scene, fx: FxState): void {
+  const c = fx.cease;
+  if (!c) return;
+  const p = progress(c, s.now);
+  if (p >= 1) return;
+  const { ctx } = g;
+  const k = Math.sin(Math.PI * Math.min(1, p * 1.6)) * (1 - p * 0.4);
+  for (const r of s.list) {
+    if (r.owner !== 'red') continue;
+    const path = getPaths().region[r.id];
+    ctx.save();
+    ctx.clip(path);
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = css(mix(WHITE, WAR_TEXT, 0.4), k);
+    ctx.lineWidth = 7;
+    ctx.stroke(path);
+    ctx.fillStyle = css(WHITE, 0.18 * k);
+    ctx.fill(path);
+    ctx.restore();
+  }
 }

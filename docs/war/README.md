@@ -4,8 +4,8 @@ A short strategy game on a world map, played from a war room. Thirty fictional r
 (gold), three are held by war (red). Each turn a crisis flares beside your gold with a target: pin up to
 five lit regions that touch, add their numbers and multiply by how many you pinned (pin the crisis itself
 to double it), and staff you hire boost the score left to right. Beat the target and the crisis turns gold
-for good, beat it by more and you win more regions; miss and war takes it, and every third turn war also
-spreads by itself. Turn all 30 gold before war holds 10. A game lasts about 15 minutes and ends WORLD
+for good, beat it by more and you win more regions, your own pins first (pin it to claim it); miss and war
+takes it, and every third turn war also spreads by itself. Turn all 30 gold before war holds 10. A game lasts about 15 minutes and ends WORLD
 UNITED (30 of 30), in a CEASEFIRE (the last push for war's regions missed) or in WAR.
 
 The product name is read only from `BRAND.name` in `src/config.ts`. Everything in the game is fictional;
@@ -54,13 +54,17 @@ python3 tools/war-page.py dist-war-page <out dir>   # packs the review build int
 dev server. Review builds (`VITE_WAR_REVIEW=1`, and the dev server) show the CROWN DEMO on the title: the
 Example 3 break at turn 14, 5,598,720 and seven regions in one send.
 
-The e2e covers SPEC section 15: the three intro screens with SKIP and TRY IT and HOW TO PLAY replaying
-them; FIRST-WORLD turn 1 coached step by step with the exact labels and GOLD 3/30 after; sea lanes
-touching and a lit region dimming within a frame; the first shop's 702 / 590 / 2,343; full-table replace,
-sell, reroll and drag to reorder; a miss turning the crisis red and war spreading after turn 3; all three
-end cards with NEW GAME and HOME; the back button, QUIT TO TITLE, CONTINUE and a reload resuming; the
-CROWN demo; reduced motion finishing a send within 1.2 s; deterministic state and trace hashes; desktop
-mouse and keys. Every test fails on a console error or a request that leaves the page's origin.
+The e2e covers SPEC section 15: the three intro screens beat by beat, an early tap hurrying a screen,
+SKIP and TRY IT, and HOW TO PLAY replaying them; FIRST-WORLD turn 1 coached step by step with the exact
+labels and GOLD 3/30 after; pin it to claim it (a win takes Shoal and the pinned Lintel, not the nearer
+Pebbleby); sea lanes touching and a lit region dimming within a frame; the first shop's 702 / 590 / 2,343;
+full-table replace, sell, reroll and drag to reorder; a miss turning the crisis red and war spreading after
+turn 3 into the tagged region; all three end cards with NEW GAME and HOME; the back button, QUIT TO TITLE,
+CONTINUE and a reload resuming; the way home from How to play on the title (CLOSE, the X, the scrim, and
+PRACTICE then QUIT never leave the page); PRACTICE over a game in progress never losing it, and NEW GAME
+asking before it would; a reload during the game-ending send still showing the end card once; HOW TO PLAY from the menu during a send; the CROWN demo; reduced motion finishing a send within
+1.2 s; deterministic state and trace hashes; desktop mouse and keys. Every test fails on a console error
+or a request that leaves the page's origin.
 
 The dev hook (`window.__war`, in dev builds or with `VITE_WAR_HOOK=1`): `seed(s)`, `state()`,
 `pin(ids)`, `send()`, `swap()`, `buy(i, replaceSeat?)`, `sell(seat)`, `reroll()`, `next()`,
@@ -74,19 +78,19 @@ or from saved positions of simulated games; the desktop shot is 1440 x 900.
 
 | | |
 | --- | --- |
-| `v2-01-title` | The title: what the game is, and the three colours. |
-| `v2-02-intro-1` | Intro 1: the goal, a gold wave over the world, GOLD 30/30 for a moment. |
-| `v2-03-intro-2` | Intro 2: the crisis ring and its target, four pins, WINS 2 REGIONS. |
-| `v2-04-intro-3` | Intro 3: a miss turns Shoal red, war spreads into Marram; TRY IT. |
-| `v2-05-turn1-coach` | The coached first turn: "Tap the crisis: the white ring." |
-| `v2-06-win2-preview` | Four pins: numbered gold outlines show the two regions SEND will win. |
-| `v2-07-cascade` | A mid-game send: the new Sovereign's "×2 · new" from Marram. |
-| `v2-08-gold-flood` | The first win: the ring has landed, gold floods Shoal. |
-| `v2-09-shop` | The first shop: 390 → 702, 590, 2,343. |
+| `v2-01-title` | The title: what the game is, and the three colours over the world at rest (free regions one neutral grey). |
+| `v2-02-intro-1` | Intro 1: the goal, a gold wave over the world; the console rests blank until a crisis exists. |
+| `v2-03-intro-2` | Intro 2: four pins, 33 × 8 = 264, WINS 2 REGIONS, gold checks on Shoal and Pebbleby. |
+| `v2-04-intro-3` | Intro 3, played through the real director ("AGAIN: SHOAL ALONE"): the miss turned Shoal red, WAR 4/10, and the red tag sits on Pebbleby, where war spreads next ("WAR · THIS TURN"); the readout keeps the lesson's TARGET 64. |
+| `v2-05-turn1-coach` | The coached first turn: "Tap the crisis: the white ring.", the readout "PIN THE CRISIS FOR ×2". |
+| `v2-06-win2-preview` | Pin it to claim it: Shoal, Lantern Key, Lintel, Tallowmere; gold checks on Shoal and the pinned Lintel, not the nearer Pebbleby. |
+| `v2-07-cascade` | A mid-game send: the new Sovereign's "×2 · new" from Marram; gold stays undimmed. |
+| `v2-08-gold-flood` | The first win: Shoal is gold, Pebbleby (a pin) is next. |
+| `v2-09-shop` | The first shop: 390 → 702, 590, 2,343 (the left number is the send just made), the coach line at the map's top edge. |
 | `v2-10-miss` | A miss: red ink in the crisis, WAR ticks to 7. |
-| `v2-11-war-spreads` | "War spread by itself.", and the receipt says where. |
-| `v2-12-crown-slam` | The CROWN demo: 5,598,720, 466x the target, WINS 7. |
-| `v2-13-world-united`, `v2-14-ceasefire`, `v2-15-war` | The three end cards. |
+| `v2-11-war-spreads` | War spreads by itself: red ink into the tagged Ashkettle ("WAR · NOW"), named on the coach strip as it happens; the console already says "NEXT TARGET 8,300" and "SHOP…". |
+| `v2-12-crown-slam` | The CROWN demo: 5,598,720, 466x the target, WINS 7, the showcase in the half of the map away from the ring. |
+| `v2-13-world-united`, `v2-14-ceasefire`, `v2-15-war` | The three end cards, kept clear of what they point at (CEASEFIRE's red with the WAR bar stamped STOPPED, WAR's last free region outlined gold), with the best send, HOME and NEW GAME on the console. |
 | `v2-16-menu` | The menu: the way home, speed, sound, reduced motion. |
 | `v2-17-desktop` | The same frame on a desktop. |
 

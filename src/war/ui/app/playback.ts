@@ -9,7 +9,15 @@
  * Until a director registers (setDirector), the fallback shows the outcome at once.
  */
 import { batch, signal } from '@preact/signals';
-import type { GameState } from '../../engine';
+import type { Ending, GameState, RegionId } from '../../engine';
+
+export interface PlayOptions {
+  /**
+   * Where the war tag rests once the send has played (undefined: the resolved game's own tag). The
+   * intro keeps its lesson's wording ('WAR · THIS TURN'), never the turn after's count.
+   */
+  afterTag?: { id: RegionId; turns: number; between?: boolean } | null;
+}
 
 export interface Director {
   /**
@@ -18,11 +26,16 @@ export interface Director {
    * show `next` (the outcome has played: ink, counts, coins). The director may set `shown` to `next`
    * earlier itself (for example when the map's colours should follow the ink).
    */
-  playSend(prev: GameState, next: GameState): Promise<void>;
+  playSend(prev: GameState, next: GameState, opts?: PlayOptions): Promise<void>;
   /** A tap (frame px) or a key (null) during playback: skip ahead if the director allows it. */
   tapSkip(at: { x: number; y: number } | null): void;
-  /** Jump to the end of any playback now (leaving the game, the back button). */
-  skip(): void;
+  /**
+   * Jump to the end of any playback now (the back button, Esc). With `teardown` the screen is being
+   * replaced (leaving the game, a new game, the intro torn down): the send stops where it is and
+   * writes nothing more (no final world on the map, no HUD signals), so nothing stale lands on
+   * whatever replaces it.
+   */
+  skip(teardown?: boolean): void;
 }
 
 const instant: Director = {
@@ -59,8 +72,18 @@ export const slam = signal<'idle' | 'slide' | 'hit'>('idle');
 /** Seat hops: seat index -> counter (each increment hops the seat once). */
 export const hops = signal<Record<number, number>>({});
 
-/** A score of 10x the target or more, stamped big over the map (n retriggers it). */
-export const showcase = signal<{ text: string; sub: string; n: number } | null>(null);
+/**
+ * Stamped big over the map, in the half away from `region` (n retriggers it): a score of 16x the
+ * target or more (SHOWCASE_AT, three regions on the ladder), or, kind 'united', WORLD UNITED.
+ */
+export const showcase = signal<{ text: string; sub: string; n: number; kind?: 'score' | 'united'; region?: RegionId } | null>(null);
+
+/**
+ * While the outcome plays, the console no longer talks about the send: it says what comes next
+ * ('turn': NEXT TARGET and 'NEXT CRISIS…'; 'shop': 'SHOP…'; 'end': nothing more about the turn),
+ * and from the ending's first beat how the game ended. null while choosing and while the send scores.
+ */
+export const ahead = signal<'turn' | 'shop' | 'end' | Ending | null>(null);
 
 /**
  * The goal counts while the outcome plays: the GOLD and WAR flaps and bars tick one region at a
@@ -94,6 +117,7 @@ export function resetPlayback(): void {
     slam.value = 'idle';
     hops.value = {};
     showcase.value = null;
+    ahead.value = null;
     goal.value = null;
     goalGlow.value = null;
     coins.value = null;

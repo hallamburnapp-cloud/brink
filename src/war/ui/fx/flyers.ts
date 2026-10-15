@@ -41,6 +41,12 @@ export interface Flight {
   underline?: boolean;
   /** ...and a smaller gold suffix after the number ('· new'). */
   suffix?: string;
+  /**
+   * A big number flying into something small (the showcase score into the ring): it shrinks along
+   * the whole path to this scale and fades only over its last `fadeMs`, as it lands.
+   */
+  shrinkTo?: number;
+  fadeMs?: number;
   seed: number;
 }
 
@@ -69,6 +75,8 @@ const W = 390;
 const H = 844;
 /** How close (pt) the middle of a flying number may come to the frame's side edges. */
 const EDGE = 26;
+/** How close (pt) a flying label's box may come to the frame's side edges. */
+const LABEL_MARGIN = 8;
 /** The last part of the flight in which the number shrinks and fades into its box. */
 const ARRIVE = 0.28;
 
@@ -230,7 +238,13 @@ export class FlyerLayer {
       const q = Math.min(1, (el - f.pop) / flyMs);
       p = f.ease === 'in' ? easeIn(q) : easeInOut(q);
       [x, y] = arcPoint(f, p);
-      ({ scale, alpha } = arrival(q));
+      if (f.shrinkTo !== undefined) {
+        scale = 1 + (f.shrinkTo - 1) * p;
+        const tail = Math.min(1, (f.fadeMs ?? 80) / flyMs);
+        alpha = q < 1 - tail ? 1 : (1 - q) / tail;
+      } else {
+        ({ scale, alpha } = arrival(q));
+      }
     }
     if (f.trail && el >= f.pop && p > 0.02) this.trail(ctx, f, p, tone.trail, alpha);
 
@@ -250,9 +264,9 @@ export class FlyerLayer {
       ctx.font = suffixFont;
       tail = size * 0.2 + ctx.measureText(f.suffix).width;
     }
-    // The whole label stays inside the frame, even off a pin on the map's edge.
+    // The whole label stays inside the frame (8 pt in from its edges), even off a pin on the map's edge.
     const width = main + tail;
-    const left = Math.max(4, Math.min(W - 4 - width, x - width / 2));
+    const left = Math.max(LABEL_MARGIN, Math.min(W - LABEL_MARGIN - width, x - width / 2));
     ctx.font = font;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';

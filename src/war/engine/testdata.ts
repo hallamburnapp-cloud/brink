@@ -34,7 +34,7 @@ export interface Fixtures {
   ladder: Array<{ target: number; score: string; regions: number; next: string }>;
   legal: Array<{ crisis: RegionId; lit: RegionId[]; pins: RegionId[]; legal: boolean }>;
   groups: Array<{ crisis: RegionId; lit: RegionId[]; count: number }>;
-  winOrder: Array<{ owner: string; crisis: RegionId; k: number; order: RegionId[] }>;
+  winOrder: Array<{ owner: string; crisis: RegionId; k: number; pins: RegionId[]; order: RegionId[] }>;
   warSpread: Array<{ owner: string; spreadsTo: RegionId | null }>;
   lift: Array<{ pinsInTapOrder: RegionId[]; lift: RegionId; left: RegionId[] }>;
   firstWorld: Array<{

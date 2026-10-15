@@ -153,10 +153,13 @@ function regionsWon(g: Game): number {
   return n;
 }
 
+/** Pin it to claim it: the crisis, then pinned regions that are not gold, then the nearest others. */
 function winOrder(g: Game, k: number): RegionId[] {
   const d = joinsFrom(g.crisis);
+  const pinned = (id: RegionId) => (g.pins.includes(id) ? 0 : 1);
   const cand = REGIONS.filter((r) => r.id !== g.crisis && g.owner[r.id] !== 'gold').sort(
     (a, b) =>
+      pinned(a.id) - pinned(b.id) ||
       d.get(a.id)! - d.get(b.id)! ||
       (g.owner[a.id] === 'red' ? 0 : 1) - (g.owner[b.id] === 'red' ? 0 : 1) ||
       b.weight - a.weight ||
@@ -257,7 +260,6 @@ function startPlay(): void {
       void map.fx.shockwave(game.crisis);
       if (!game.brass.includes(game.crisis)) game.brass = [...game.brass, game.crisis];
       await claim(game.crisis, game.crisis, 'gold', 600);
-      void map.fx.dropBrass(game.crisis);
       for (const id of winOrder(game, won).slice(1)) {
         const path = chain(game.crisis, id);
         await map.fx.travel(path, 'gold');

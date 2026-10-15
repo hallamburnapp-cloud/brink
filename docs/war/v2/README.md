@@ -8,10 +8,11 @@
    (WAR 3/10).
 3. Each turn a crisis flares beside your gold with a target; you pin up to five nearby lit regions that touch,
    add their numbers and multiply by how many you pinned (pinning the crisis itself doubles it); beat the target
-   and the crisis turns gold for good, beat it by more and you win more regions, miss and war takes it.
+   and the crisis turns gold for good, beat it by more and you win more regions (your own pins first: pin it to
+   claim it), miss and war takes it.
 4. Every second turn you hire staff (ten kinds) who multiply each send left to right, so scores climb from
    hundreds to millions and a broken build can turn seven regions gold in one send.
-5. A game lasts about 15 minutes (13.6 by the time model for a first game, 17.8 for a slow first-timer) and ends
+5. A game lasts about 15 minutes (13.5 by the time model for a first game, 17.7 for a slow first-timer) and ends
    WORLD UNITED at 30/30, in a CEASEFIRE if the last push for war's regions fails, or in WAR.
 
 ## What is here
@@ -35,15 +36,16 @@ on 4 cores). Nothing outside `docs/war/v2/` was changed.
 
 | | Sensible | Preview-number buyer | Breaker | Greedy, no shop | Novice | Random |
 | --- | --: | --: | --: | --: | --: | --: |
-| WORLD UNITED (30/30) | 48.9% | 27.1% | 30.5% | 0% | 0% | 0% |
-| CEASEFIRE | 14.2% | 17.9% | 9.4% | 0% | 0% | 0% |
-| WAR | 36.9% | 55.0% | 60.2% | 100% | 100% | 100% |
+| WORLD UNITED (30/30) | 48.3% | 26.6% | 29.5% | 0% | 0% | 0% |
+| CEASEFIRE | 14.2% | 18.1% | 10.0% | 0% | 0% | 0% |
+| WAR | 37.5% | 55.3% | 60.5% | 100% | 100% | 100% |
 | median turns | 15 | 15 | 13 | 9 | 8 | 6 |
-| first-game minutes, median / p90 | 13.6 / 16.5 | 13.4 / 16.0 | 11.7 / 15.7 | 9.0 | 6.7 | 5.0 |
+| first-game minutes, median / p90 | 13.5 / 16.3 | 13.3 / 15.8 | 11.7 / 15.6 | 9.0 | 6.7 | 5.0 |
 
-Best send at least 2x the median on 99.3% of turns; best send wins where the median would lose to war on 58.5%.
-Held games where war reached 6+: 51%. Close losses (WAR holding 18+ gold): 8.7%. Sends over 1,000,000 in 8% of
-sensible games; a 5+ region send in 7.2%. No stalls, no game past turn 25.
+Best send at least 2x the median on 99.3% of turns; best send wins where the median would lose to war on 57.8%.
+Held games where war reached 6+: 66%. Close losses (WAR holding 18+ gold): 9.3%. Sends over 1,000,000 in 8.8% of
+sensible games; a 5+ region send in 7.1%. No stalls, no game past turn 25. (With pin it to claim it; the earlier
+rule's run is in git history: every gate moved by sampling noise except war reaching 6+, which was 51%.)
 
 ## Decision record
 
@@ -107,6 +109,18 @@ Each variant was run at 300-1,500 games per bot before the final 5,000-game run.
 - Four war regions at the start: no length gain; three kept.
 - Prices: the Harbourmaster at ◆5 sat in 93% of winning line-ups; ◆6 brought it to 72%.
 
+### After the first review of the build: pin it to claim it
+
+The critics found one rule a newcomer could not follow: a win's extra regions went to the regions nearest the
+crisis whether or not they were pinned, so a pinned region war was about to take could go to war while an
+unpinned one turned gold. The lead's decision: **pin it to claim it.** A win claims the crisis first, then the
+pinned regions that are not gold (nearest first, then the old tie-breaks), then, if the send wins more, the
+nearest other regions. The reference, its fixtures (each win-order case now carries pins), the calibration
+(ALL GATES PASS; war reaching 6+ in held games rose from 51% to 66%), the engine, the simulator, the map's win
+preview and the coach ("Beat it by more: win more regions. Your pins go first.") all follow it. The same review
+made free regions one neutral grey (no bloc hue), stopped gold from ever dimming, and cut the bearing strip;
+CEASEFIRE, the crisis ×2 and the ten staff are unchanged.
+
 ### What changed from the slice the owner played
 
 | The slice | v2 |
@@ -126,7 +140,7 @@ Each variant was run at 300-1,500 games per bot before the final 5,000-game run.
 
 1. **CEASEFIRE.** If the final push misses, the game ends as a CEASEFIRE (you keep 21-29 regions, ★★ or ★), because
    war cannot take more ground there and the game must end. Is that right, or should the push forgive two misses?
-2. **Length.** The model gives 13.6 minutes for a first game and 17.8 for a slow first-timer. Should the target be the
+2. **Length.** The model gives 13.5 minutes for a first game and 17.7 for a slow first-timer. Should the target be the
    middle of that, or a touch longer (the 5x/25x ladder adds about a turn)?
 3. **The crisis ×2.** "Pin the white ring to double your score" is the first lesson and right about 90% of the time.
    Happy with that as the hook, or should it matter less?

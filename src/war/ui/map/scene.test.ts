@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { MapView, RegionView } from './contract';
 import { REGIONS } from './data';
-import { FxState } from './fx';
+import { FxState, TRAVEL_LINGER_MS } from './fx';
 import { ownerTone, toneLuminance } from './palette';
-import { buildScene, changedRegions, joinKind, landSignature } from './scene';
+import { buildScene, changedRegions, joinKind, landSignature, plateLevel } from './scene';
 
 function view(over: Partial<MapView> = {}, regions: Record<string, Partial<RegionView>> = {}): MapView {
   const base: Record<string, RegionView> = {};
@@ -19,7 +19,6 @@ function view(over: Partial<MapView> = {}, regions: Record<string, Partial<Regio
       capital: r.capital,
       port: r.port,
       preview: null,
-      brass: false,
       ...regions[r.id],
     };
   }
@@ -32,7 +31,6 @@ function view(over: Partial<MapView> = {}, regions: Record<string, Partial<Regio
     highlight: null,
     finger: null,
     hover: null,
-    pinOrder: null,
     ...over,
   };
 }
@@ -52,7 +50,7 @@ describe('scene: ownership and the deal', () => {
     expect(s.regions.NWK.lit).toBe(false);
   });
 
-  it('drops a lit region that cannot be added to the dark plate at once (its marks at 30%)', () => {
+  it('drops a lit region that cannot be added to the dark plate at once', () => {
     const s = buildScene(view({}, { SHL: pin, LNK: lit, KLP: { lit: true, addable: false } }), new FxState(), 0, false);
     expect(s.regions.SHL.live).toBe(true);
     expect(s.regions.LNK.live).toBe(true);
@@ -88,39 +86,48 @@ describe('scene: ownership and the deal', () => {
     fx.scoring = new Set(['SHL', 'PBB']);
     expect(buildScene(v, fx, 0, false).regions.PBB.preview).toBeNull();
   });
+  it("keeps a miss's red hatch on the crisis while the send plays (it never reads as safe)", () => {
+    const v = view({}, { SHL: { ...pin, preview: { kind: 'war', order: 1 } } });
+    const fx = new FxState();
+    fx.scoring = new Set(['SHL']);
+    expect(buildScene(v, fx, 0, false).regions.SHL.preview).toEqual({ kind: 'war', order: 1 });
+  });
+
 
   it('shows the three owners at three brightnesses, gold over grey over hatched red, lit and dark', () => {
     const v = view({}, { LNK: { owner: 'gold', ...lit }, SHL: lit, ORN: { owner: 'red', lit: true, addable: true }, WMS: { owner: 'gold' }, NWK: {}, FLE: { owner: 'red' } });
     const s = buildScene(v, new FxState(), 0, false);
-    const L = (id: string) => toneLuminance(ownerTone(s.regions[id].owner, s.regions[id].def.colour, s.regions[id].live, s.ceased));
+    const L = (id: string) => toneLuminance(ownerTone(s.regions[id].owner, plateLevel(s.regions[id], s.rest), s.ceased));
     expect(L('LNK')).toBeGreaterThan(L('SHL'));
     expect(L('SHL')).toBeGreaterThan(L('ORN'));
     expect(L('WMS')).toBeGreaterThan(L('NWK'));
     expect(L('NWK')).toBeGreaterThan(L('FLE'));
   });
+
+  it('draws the plain world at rest when no deal is on the table, and dark plates only beside a deal', () => {
+    const rest = buildScene(view({}, { LNK: { owner: 'gold' } }), new FxState(), 0, false);
+    expect(rest.rest).toBe(true);
+    expect(plateLevel(rest.regions.SHL, rest.rest)).toBe('rest');
+    const dealt = buildScene(view({ crisis: { id: 'SHL', target: '64', doubled: false } }, { SHL: lit }), new FxState(), 0, false);
+    expect(dealt.rest).toBe(false);
+    expect(plateLevel(dealt.regions.SHL, dealt.rest)).toBe('lit');
+    expect(plateLevel(dealt.regions.NWK, dealt.rest)).toBe('dark');
+    // Going to rest is a table-wide change: the whole land layer repaints.
+    expect(changedRegions(landSignature(dealt), landSignature(rest))).toBeNull();
+  });
 });
 
 describe('scene: the send', () => {
-  it('dims everything outside the scoring set (lit to 30%, the rest of the world to 50%)', () => {
+  it('dims everything outside the scoring set (lit to 30%, the rest of the world to 50%), but never gold', () => {
     const fx = new FxState();
     fx.scoring = new Set(['LNK', 'SHL']);
-    const s = buildScene(view({}, { LNK: pin, SHL: pin, GUL: lit }), fx, 1000, false);
+    const s = buildScene(view({}, { LNK: pin, SHL: pin, GUL: lit, DRF: { ...lit, owner: 'gold' }, WMS: { owner: 'gold' } }), fx, 1000, false);
     expect(s.sweeping).toBe(true);
     expect(s.regions.LNK.dim).toBe(1);
     expect(s.regions.GUL.dim).toBe(0.3);
     expect(s.regions.NWK.dim).toBe(0.5);
-  });
-
-  it('badges the pins in the view’s order and turns a badge to linen once its pin has scored', () => {
-    const fx = new FxState();
-    const v = view({ pinOrder: { PBB: 1, LNK: 2, SHL: 3 } }, { PBB: pin, LNK: pin, SHL: pin });
-    expect(buildScene(v, fx, 0, false).regions.LNK.order).toBe(2);
-    fx.scoring = new Set(['PBB', 'LNK', 'SHL']);
-    fx.scored.add('PBB');
-    const s = buildScene(v, fx, 0, false);
-    expect(s.regions.PBB.orderDone).toBe(true);
-    expect(s.regions.PBB.scored).toBe(true);
-    expect(s.regions.LNK.orderDone).toBe(false);
+    expect(s.regions.DRF.dim).toBe(1);
+    expect(s.regions.WMS.dim).toBe(1);
   });
 
   it('draws joins between pins as threads, dashed over sea lanes, each pair once', () => {
@@ -227,11 +234,13 @@ describe('effect timeline', () => {
     expect(fx.inks).toHaveLength(0);
   });
 
-  it('runs a travel for one step per join', () => {
+  it('runs a travel for one step per join, then lets its lit path linger and fade', () => {
     const fx = new FxState();
     fx.travels.push({ path: ['LTL', 'DNM', 'ORN'], colour: 'gold', stepMs: 150, start: 0, dur: 300 });
     expect(fx.prune(299)).toBe(true);
-    fx.prune(500);
+    fx.prune(300 + TRAVEL_LINGER_MS - 1);
+    expect(fx.travels).toHaveLength(1);
+    fx.prune(300 + TRAVEL_LINGER_MS + 1);
     expect(fx.travels).toHaveLength(0);
   });
 });

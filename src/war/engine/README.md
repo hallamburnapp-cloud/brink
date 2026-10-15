@@ -65,20 +65,20 @@ Checks that return a reason or `null` (the actions use the same checks): `sendPr
 
 | Function | Returns |
 | --- | --- |
-| `goalView(s)` | Big Board: `gold`, `red`, `grey`, `goldGoal` (30), `warLimit` (10), `warNext: {id, turns} \| null` (turns 3, 2, 1), `warTag` (`'WAR · 2 TURNS'`, `'WAR · THIS TURN'`), `finalPush`, `after: {gold, red} \| null` (the ghost segments for the current pins). |
-| `mapView(s)` | The whole `MapView` of `ui/map/contract.ts` (`regions`, `joinedPins` west to east, `crisis: {id, target: '1,100', doubled}`, `warNext`, `ceased`, `pinOrder`; `highlight`, `finger`, `hover` are null for the UI to set on a copy). |
-| `regionViews(s)` | `Record<RegionId, RegionView>`: `owner`, `lit` (in this turn's deal; outside `'choose'` nothing is lit, so the map shows the plain world), `pinned`, `addable` (the tap rule), `joinable` (addable with a pin down), `capital`, `port`, `preview` (`{kind: 'win', order}` 1..k in spread order, or `{kind: 'war', order: 1}` on the crisis for a miss; none for a push miss), `brass`. |
-| `preview(s)` | `LivePreview \| null` for the current pins: `pins` (tap order), `order` (west to east), `points`, `m10`, `score`, `regions` (the ladder's count capped by the regions left to win, so it matches what SEND does), `wins` (ids in spread order), `unites` (the send would make all 30 gold), `nextMark`, `short`, `doubled`, `firing` (seats that will fire). |
+| `goalView(s)` | Big Board: `gold`, `red`, `grey`, `goldGoal` (30), `warLimit` (10), `warNext: {id, turns} \| null` (turns 3, 2, 1), `warTag` (`'WAR · 2 TURNS'`, `'WAR · THIS TURN'` while choosing; `'WAR · IN 2 TURNS'`, `'WAR · NEXT TURN'` between turns), `finalPush`, `after: {gold, red} \| null` (the ghost segments for the current pins). |
+| `mapView(s)` | The whole `MapView` of `ui/map/contract.ts` (`regions`, `joinedPins` west to east, `crisis: {id, target: '1,100', doubled}`, `warNext`, `ceased`; `highlight`, `finger`, `hover` are null for the UI to set on a copy). |
+| `regionViews(s)` | `Record<RegionId, RegionView>`: `owner`, `lit` (in this turn's deal; outside `'choose'` nothing is lit, so the map shows the plain world), `pinned`, `addable` (the tap rule), `joinable` (addable with a pin down), `capital`, `port`, `preview` (`{kind: 'win', order}` 1..k in claim order, or `{kind: 'war', order: 1}` on the crisis for a miss; none for a push miss). |
+| `preview(s)` | `LivePreview \| null` for the current pins: `pins` (tap order), `order` (west to east), `points`, `m10`, `score`, `regions` (the ladder's count capped by the regions left to win, so it matches what SEND does), `wins` (ids in claim order: the crisis, your pins, then the nearest others), `unites` (the send would make all 30 gold), `nextMark`, `short`, `doubled`, `firing` (seats that will fire). |
 | `readoutView(s)` | `target`, `targetText` (`'1,100'`), `line` (`'NEED 1,100'` / `'NEXT REGION AT 4,400'` / `'UNITES THE WORLD'` when nothing is left beyond), `nextMark`, `regions`, `points`, `m10`, `pointsText`, `multiplierText` (`'1,381.4'`), `score`, `nearNext` (within 10% below the next mark). Outside `'choose'` it shows the last send. |
 | `sendLabel(s)` | `{ text, tone, enabled, regions }`: `'WINS 2 REGIONS'` (`win`), `'MISS · SHORT BY 620'` / `'MISS · CEASEFIRE'` (`miss`), `'PIN A REGION'` (`off`, disabled); `''` outside a turn. |
-| `controlsView(s)` | `swap: {enabled, sub ('1 left' \| 'used' \| 'next turn' \| 'none left'), reason}`, `coins`, `coinsText` (`'◆ 7'`), `send` (the label). |
+| `controlsView(s)` | `swap: {enabled, sub ('1 left' \| 'used' \| 'from turn 2' \| 'no new regions'), reason}`, `coins`, `coinsText` (`'◆ 7'`), `send` (the label). |
 | `seatViews(s)` | Per seated staff: `seat`, `uid`, `id`, `name`, `object`, `rule`, `price`, `sell`, `sellText` (`'SELL ◆3'`), `chip` (live: Surveyor `'+7'`, Old Hand `'×1.4'`), `chipLines` (`['ALL PINS', '★ ⚓']`, `['COPY', '→ Sovereign']`), `tone` (`'points'` cyan / `'multiplier'` amber; a Deputy takes its copy's), `copies`, `isNew` (hired since the last send). |
-| `shopView(s)` | `null` outside the shop. `visit`, `nextTarget`, `title` (`'SHOP · NEXT TARGET 1,600'`), `offers[3]` (`slot`, `id` (null once hired), `name`, `object`, `rule`, `price`, `priceText`, `affordable`, `affordableWithSale`, `reason`, `preview` (`{before, after, seat, replaces, text: '390 → 2,343', beforeText, afterText}`), `replace` (full table only: per seat `{seat, after, text, affordable}`)), `reroll: {cost, text: 'REROLL ◆2', enabled}`, `fullTable`, `nothingAffordable`, `receipt: {line: 'LAST TURN · WIN 2 · +◆2', spread: 'WAR SPREAD TO MARRAM' \| null}`. |
-| `endView(s)` | `null` until the game ends. `ending`, `stars` (3 / 2 / 1 / 0), `title` (`'WORLD UNITED · 30 of 30'`, `'CEASEFIRE · 26 of 30 gold'`, `'WAR'`), `lines` (`'Turn 15 · war peaked at 6'`; `'War held 4 regions when it stopped.'`; `'War took 10 regions. You held 18 of 30.'`, `'2 grey regions from the final push.'`), `turn`, `gold`, `red`, `grey`, `peakWar`, `best: {score, target, text: '749,414 · 39x the target'}`, `biggestTurn: {regions, text: '7 regions'}`, `staff` (seat order), `nearMiss` (WAR with 1-3 grey left: outline them gold; no grey line when none is left). |
+| `shopView(s)` | `null` outside the shop. `visit`, `nextTarget`, `title` (`'SHOP · NEXT TARGET 1,600'`), `behind` (`{best, text: 'YOUR BEST 2,926 · NEXT TARGET 5,500'}` when the line-up's best last turn would miss the next target, else `null`), `offers[3]` (`slot`, `id` (null once hired), `name`, `object`, `rule`, `price`, `priceText`, `affordable`, `affordableWithSale`, `reason`, `preview` (`{before, after, seat, replaces, text: '390 → 2,343', beforeText, afterText}`), `replace` (full table only: per seat `{seat, after, text, affordable}`)), `reroll: {cost, text: 'REROLL ◆2', enabled}`, `fullTable`, `nothingAffordable`, `receipt: {line: 'LAST TURN · WIN 2 · +◆2', spread: 'WAR SPREAD TO MARRAM' \| null}`. |
+| `endView(s)` | `null` until the game ends. `ending`, `stars` (3 / 2 / 1 / 0), `title` (`'WORLD UNITED · 30 of 30'`, `'CEASEFIRE · 26 of 30 gold'`, `'WAR'`), `lines` (`'Turn 15 · war peaked at 6'`; `'War held 4 regions when it stopped.'`; `'War took 10 regions. You held 18 of 30.'`, `'Only 2 free regions were left to win.'`), `turn`, `gold`, `red`, `grey`, `peakWar`, `best: {score, target, text: '749,414 · 39x the target'` or `'6 · needed 64'` when it missed`}`, `biggestTurn: {regions, text: '7 regions'} \| null` (null when no region was won), `staff` (seat order), `nearMiss` (WAR with 1-3 grey left: outline them gold; no grey line when none is left). |
 | `menuView(s)` | `{ turn, nextShopAfter, line: 'Turn 9 · next shop after turn 10' }`. |
 | `actsOn(s, staffId)` | Regions a staff acts on (long-press highlight): your gold (Governor, Surveyor), ports (Harbourmaster), capitals (Sovereign), every region (Herald). |
 | `receipt(s)` | The shop receipt for the last send (also in `shopView`). |
-| `previewNumber(s, slot, replaceSeat?)` | `{before, after, seat, replaces}`: the best send of the turn just played (its crisis and opening 10 lit, today's map) before and after hiring. Full table without `replaceSeat`: the best seat to replace. |
+| `previewNumber(s, slot, replaceSeat?)` | `{before, after, seat, replaces}`: the best send of the turn just played (its crisis, its lit regions as first dealt and as they stood at SEND, on the map at SEND: `ownerAtSend`) before and after hiring; played as the best send, `before` is the score the player saw. Full table without `replaceSeat`: the best seat to replace. |
 
 ## State shape (`GameState`)
 
@@ -101,7 +101,7 @@ best: { score, target, turn, regions } | null   (the biggest win; the biggest mi
 peakWar, brass: id[] (regions won as a crisis)
 ```
 
-`deal` stays after the send (phases `'outcome'`, `'shop'`, `'over'`) so the shop can rescore its opening deal.
+`deal` stays after the send (phases `'outcome'`, `'shop'`, `'over'`) so the shop can rescore the turn's deal (`opening` and `lit`).
 
 ## SendRecord (`state.lastSend`) and the trace
 
@@ -141,14 +141,14 @@ copying the Herald, it fires nothing. The Herald never fires (it is passive). A 
 | `Scorer(seats, gold, oldHandM10).score(features)` | The fast scorer for enumerating (cached; agrees with `scorePins`). `featuresOf(pins, owner, crisis)`, `maskFeatures(mask, goldMask, crisisMask)`. |
 | `effective(seats)` | What each seat fires as (Deputy resolved). |
 | `touching`, `legal(pins, lit, crisis)`, `groups(lit, crisis)`, `groupMasks`, `canAdd(pins, r, lit, crisis)`, `lift(pins, r)`, `pinnable` | Legal groups and the tap and lift rules. |
-| `winOrder(crisis, owner, k)` | The k regions a win takes: the crisis, then the nearest non-gold by joins (war before grey, then higher number, west, north). |
+| `winOrder(crisis, owner, k, pins?)` | The k regions a win takes (pin it to claim it): the crisis, then the pinned regions that are not gold, then the other non-gold regions; within each group the nearest by joins first (war before grey, then higher number, west, north). |
 | `warSpreadTarget(owner)` | Where war spreads by itself: grey touching war, nearest your gold, then higher number, west, north; null if none. |
 | `warSource(owner, id)` | The touching war region red ink runs from (nearest pin), or null. |
 | `crisisPool(owner)` | `{pool, finalPush}`: grey touching gold; else any grey; else red touching gold (the final push). |
 | `deal(owner, crisis, rng)`, `dealPool`, `scriptedDeal`, `swapLit` | The deal and the swap. |
 | `distance(a, b)`, `pathBetween(a, b)`, `isJoined`, `isLane`, `ADJ`, `IDS`, `westToEast` | The join graph. |
 | `countOwner`, `regionsOf`, `freshOwners`, `encodeOwners`, `decodeOwners` | Ownership helpers (the fixture string form). |
-| `bestScore(lit, crisis, owner, seats, oldHandM10)`, `dealFeatures(lit, crisis, owner)` (the distinct feature sets of a deal's legal sends, for scoring many line-ups fast), `bestOnOpening(s, seats)`, `shopDue(t)`, `nextShopAfter(t)`, `drawOffers`, `price`, `sellValue` | Shop internals (and what a shopping bot needs). |
+| `bestScore(lit, crisis, owner, seats, oldHandM10)`, `dealFeatures(lit, crisis, owner)` (the distinct feature sets of a deal's legal sends, for scoring many line-ups fast), `bestLastTurn(s, seats)` (the shop card's number: the turn just played, as first dealt and at SEND, on the map at SEND), `ownerAtSend(s)`, `shopDue(t)`, `nextShopAfter(t)`, `drawOffers`, `price`, `sellValue` | Shop internals (and what a shopping bot needs). |
 | `RULES` | Every tunable (`rules.ts`). |
 
 ## Saving, display, determinism

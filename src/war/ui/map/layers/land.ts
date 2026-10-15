@@ -3,18 +3,19 @@
  * sea under it, gold's glow on the water, the plates by owner (gold, grey, hatched red), terrain,
  * borders, bevels, coast hairlines, gold rims, causeways and sea lanes.
  */
-import type { Colour, Owner, RegionId } from '../contract';
+import type { Owner, RegionId } from '../contract';
 import { MAP_H as H, MAP_W as W, MASSES, REGION } from '../data';
 import type { Gfx } from '../draw';
 import { getGeometry } from '../geometry';
-import { css, GOLD, GOLD_DEEP, GOLD_RIM, HATCH_STEP, HATCH_WIDTH, INK, lampCore, ownerTone, WAR_TEXT } from '../palette';
+import { css, GOLD, GOLD_DEEP, GOLD_RIM, HATCH_STEP, HATCH_WIDTH, INK, lampCore, ownerTone, WAR_TEXT, type PlateLevel } from '../palette';
 import { getPaths } from '../paths';
-import type { Scene } from '../scene';
+import { plateLevel, type Scene } from '../scene';
 import { blurredShape, makeLayer, type Layer } from './static';
 
 export interface PlateStyle {
   owner: Owner;
-  colour: Colour;
+  /** The plate's tone: lit (in play), rest (no deal on the table) or dark (left out of the deal). */
+  level: PlateLevel;
   /** The lamp under the glass is on (lit and in play). */
   live: boolean;
   /** Flashed by the current send: the lamp holds brighter. */
@@ -53,7 +54,7 @@ export function paintPlate(g: Gfx, id: RegionId, p: PlateStyle): void {
   const { ctx } = g;
   const path = getPaths().region[id];
   const r = REGION[id];
-  const tone = ownerTone(p.owner, p.colour, p.live, p.ceased);
+  const tone = ownerTone(p.owner, p.level, p.ceased);
   ctx.fillStyle = css(tone.fill);
   ctx.fill(path);
 
@@ -165,7 +166,7 @@ export function paintLand(g: Gfx, s: Scene, statics: LandStatics): void {
   ctx.restore();
 
   for (const r of s.list) {
-    paintPlate(g, r.id, { owner: r.owner, colour: r.def.colour, live: r.live, scored: r.scored, dim: r.dim, ceased: s.ceased });
+    paintPlate(g, r.id, { owner: r.owner, level: plateLevel(r, s.rest), live: r.live, scored: r.scored, dim: r.dim, ceased: s.ceased });
   }
 
   ctx.save();

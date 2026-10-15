@@ -74,12 +74,22 @@ export function paintWarNext(g: Gfx, s: Scene): void {
 /**
  * A long-press highlight (the ports, capitals or gold a shop card acts on) or the intro's emphasis:
  * the rest of the table recedes a little and each highlighted region breathes (a soft light on its
- * plate and a turning ring round its pin, plus an edge when there are only a few).
+ * plate and a turning ring round its pin, plus an edge when there are only a few). `nearMiss`: the
+ * WAR card points at the free regions that were left, over lights out: each is outlined in marching
+ * gold (what it would have taken), and nothing else recedes (lights out has already dimmed it).
  */
-export function paintHighlight(g: Gfx, s: Scene, fadeIn: number): void {
+export function paintHighlight(g: Gfx, s: Scene, fadeIn: number, nearMiss = false): void {
   const valid = s.highlight;
   if (!valid) return;
   const { ctx } = g;
+  if (nearMiss) {
+    for (const id of valid) {
+      if (!REGION[id]) continue;
+      regionFill(g, id, css(GOLD_RIM, 0.12 * fadeIn));
+      dashedOutline(g, id, css(GOLD, fadeIn), 1.8, [6, 4], march(s));
+    }
+    return;
+  }
   const breath = s.reduced ? 0.6 : 0.5 + 0.5 * Math.sin((s.now / 1200) * Math.PI * 2);
   for (const r of s.list) if (!valid.has(r.id)) regionFill(g, r.id, css(INK, 0.3 * fadeIn));
   // An edge marks a few regions well; on many it would turn the borders into a wireframe.

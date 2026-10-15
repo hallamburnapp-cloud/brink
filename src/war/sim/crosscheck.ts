@@ -168,7 +168,7 @@ function checkOwnership(fx: Fixtures): Section {
   const sec = new Section('win order and war spread');
   fx.winOrder.forEach((c, i) => {
     sec.cases++;
-    sec.same(`winOrder #${i}`, 'order', c.order, winOrder(c.crisis, owners(c.owner), c.k));
+    sec.same(`winOrder #${i}`, 'order', c.order, winOrder(c.crisis, owners(c.owner), c.k, c.pins));
   });
   fx.warSpread.forEach((c, i) => {
     sec.cases++;

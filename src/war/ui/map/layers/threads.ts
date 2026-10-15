@@ -1,11 +1,12 @@
 /**
  * Threads between pins (SPEC 8: white #F4F1E8 at 90%, dashed over sea lanes; red is war only) and
- * the pulses that run along joins: the white scoring pulse and the gold or red comet of `travel`.
+ * the pulses that run along joins: the white scoring pulse and the gold or red comet of `travel`,
+ * which lights the joins it has crossed.
  */
 import type { InkColour, RegionId } from '../contract';
 import { REGION } from '../data';
 import type { Gfx } from '../draw';
-import { css, GOLD_RIM, RING_WHITE, WAR_TEXT, type RGB } from '../palette';
+import { css, GOLD, GOLD_RIM, RING_WHITE, WAR_TEXT, type RGB } from '../palette';
 import type { JoinKind } from '../scene';
 
 export interface Curve {
@@ -81,6 +82,55 @@ export function drawThread(g: Gfx, c: Curve, kind: JoinKind, alpha: number): voi
   ctx.restore();
 }
 
+/**
+ * The part of a join from its start to `t`, lit as a thread of `rgb` (4 pt, over a dark keyline,
+ * with a white core): the path ownership has travelled along.
+ */
+export function strokeJoin(g: Gfx, c: Curve, t: number, rgb: RGB, alpha: number): void {
+  if (t <= 0 || alpha <= 0) return;
+  const { ctx } = g;
+  const seg = subCurve(c, 0, Math.min(1, t));
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = `rgba(8,12,18,${0.55 * alpha})`;
+  ctx.lineWidth = 6;
+  strokeCurve(g, seg);
+  ctx.strokeStyle = css(rgb, alpha);
+  ctx.lineWidth = 4;
+  strokeCurve(g, seg);
+  ctx.strokeStyle = `rgba(255,252,240,${0.85 * alpha})`;
+  ctx.lineWidth = 1.2;
+  strokeCurve(g, seg);
+  ctx.restore();
+}
+
+/**
+ * The path a win's gold travelled, lit so it never reads as a white pin thread: saturated gold over
+ * a dark keyline, a soft gold glow, and a light dash running along it towards the region won.
+ */
+export function strokeTravel(g: Gfx, c: Curve, t: number, alpha: number, now: number): void {
+  if (t <= 0 || alpha <= 0) return;
+  const { ctx, k } = g;
+  const seg = subCurve(c, 0, Math.min(1, t));
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = `rgba(8,12,18,${0.55 * alpha})`;
+  ctx.lineWidth = 6.5;
+  strokeCurve(g, seg);
+  ctx.shadowColor = css(GOLD, 0.85 * alpha);
+  ctx.shadowBlur = 7 * k;
+  ctx.strokeStyle = css(GOLD, alpha);
+  ctx.lineWidth = 4.2;
+  strokeCurve(g, seg);
+  ctx.shadowBlur = 0;
+  ctx.setLineDash([5, 7]);
+  ctx.lineDashOffset = -now / 40;
+  ctx.strokeStyle = `rgba(255,248,225,${0.9 * alpha})`;
+  ctx.lineWidth = 1.4;
+  strokeCurve(g, seg);
+  ctx.restore();
+}
+
 const COMET: Record<InkColour | 'white', RGB> = { white: [255, 250, 240], gold: GOLD_RIM, red: WAR_TEXT };
 
 /**
@@ -101,12 +151,14 @@ export function drawComet(g: Gfx, c: Curve, t: number, colour: InkColour | 'whit
   ctx.lineWidth = width;
   strokeCurve(g, seg);
   const [hx, hy] = pointOn(c, Math.min(1, t));
-  const glow = ctx.createRadialGradient(hx, hy, 1, hx, hy, 8);
-  glow.addColorStop(0, css(rgb, 0.85));
+  // The head: a bigger glow on a travelling pulse of ownership than on a scoring pulse.
+  const reach = width >= 4 ? 12 : 8;
+  const glow = ctx.createRadialGradient(hx, hy, 1, hx, hy, reach);
+  glow.addColorStop(0, css(rgb, 0.9));
   glow.addColorStop(1, css(rgb, 0));
   ctx.fillStyle = glow;
   ctx.beginPath();
-  ctx.arc(hx, hy, 8, 0, Math.PI * 2);
+  ctx.arc(hx, hy, reach, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = '#FFFAF0';
   ctx.beginPath();

@@ -12,24 +12,32 @@
  *   - `skip()`: jump to the end now (leaving the game, the menu, the back button).
  *
  * WHAT PLAYS (1x; every time is divided by the speed, 2x or 4x):
- *   - Cascade (schedule.ts `sendSchedule`): the lever drops and everything but the pins dims (150 ms);
- *     from 450 ms each pin, west to east, flashes under the scan line and flings '+n' into POINTS and
- *     '+1' into MULTIPLIER (320 ms, 6% quicker each); each staff hops and flings its number (250 ms
- *     each), a per-region staff popping '×1.5' / '×2' off every matching pin (150 ms each, a shudder
- *     on every ×); the ring stamps its ×2; a held breath (240-320 ms); the 200 ms slam, sized by
- *     score ÷ target (at 10x the gold bloom and the showcase over the map); the plate holds 520 ms
- *     (showcase 900 ms) and the score flies into the crisis ring (300 ms). 3.3 s for the first send,
- *     about 6.6 s for the CROWN; capped at 8 s.
+ *   - Cascade (schedule.ts `sendSchedule`): the lever drops and everything but the pins dims (150 ms;
+ *     gold is only shaded); from 450 ms each pin, west to east under the scan line, flashes and
+ *     flings '+n' into POINTS and '+1' into MULTIPLIER (320 ms, 6% quicker each); each staff hops and
+ *     flings its number (250 ms each), a per-region staff popping '×1.5' / '×2' off every matching pin
+ *     (150 ms each, a shudder on every ×); the ring stamps its ×2; a held breath (240-320 ms); the
+ *     200 ms slam, sized by score ÷ target (from 16x, three regions on the ladder, the gold bloom and
+ *     the showcase over the map, in the half away from the ring); the plate holds 520 ms (showcase
+ *     900 ms) and the score flies into the crisis ring (300 ms), which swells to catch it, its chip
+ *     turning to a gold check (red on a miss), and holds 160 ms. 3.5 s for the first send, about 6.7 s
+ *     for the CROWN; capped at 8 s. A send that changes little (a miss, or one region under 4x) plays
+ *     brisk: beats at 1.6x and a 300 ms plate hold. The coached first turns always play in full.
  *   - Outcome (`outcomeSchedule`): WIN: the ring collapses (300 ms), a shockwave and gold ink flood
- *     the crisis (600 ms) and its brass pin drops, then each further region gets a gold pulse along
- *     its joins (150 ms a join, at most 450 ms) and gold ink (400 ms), one every 0.5 s (1.0 s + 0.5 s
- *     a region, capped at 5 s); every region ticks GOLD (and WAR, when won back) and flies a coin to
- *     the chip. MISS (0.8 s): the drone dips, red ink runs in from the nearest war region (700 ms),
- *     WAR ticks, a 2 px shake. War spreading: 0.5 s later, a low drum and red ink (700 ms), then the
- *     tag moves. Then the table clears (pins lift, lamps off) and the result holds 150 ms (700 ms
- *     before the shop). Endings: WORLD UNITED (sunrise from the east, then a gold wave from the last
- *     region won, 2.4 s), CEASEFIRE (red stops pulsing, 1.1 s), WAR (lights out over grey, 2.5 s).
- *   - Reduced motion: no flights, shakes or travel; the cascade in 0.55 s and the outcome in 0.45 s.
+ *     the crisis (600 ms), then each further region gets a gold pulse along its joins that leaves
+ *     the path lit (150 ms a join, at most 450 ms) and gold ink (400 ms), one every 0.5 s (1.0 s + 0.5
+ *     s a region, capped at 5 s); every region ticks GOLD (and WAR, when won back) and flies a coin to
+ *     the chip. MISS (0.8 s): the drone dips, a red pulse crosses from the nearest war region and red
+ *     ink runs in (700 ms), WAR ticks, a 2 px shake. War spreading: 0.5 s later, a low drum, a red
+ *     pulse over the border, then red ink (700 ms) into the tagged region, its tag reading WAR · NOW;
+ *     then the tag hops on. A war tag never vanishes: when its region changes hands, or a change
+ *     moves where war goes this turn, it hops to the new target. Then the table clears (pins lift,
+ *     lamps off, the plain world at rest) and the result holds 150 ms (700 ms before the shop).
+ *     Endings: WORLD UNITED (sunrise from the east, then a gold wave from the last region won, 2.4 s),
+ *     CEASEFIRE (red stops pulsing, its outlines flash once, 1.1 s), WAR (lights out over grey with a
+ *     heavy haptic, red pulsing once, 2.5 s).
+ *   - Reduced motion: no flights, shakes or travel; the cascade in 0.55 s and the outcome in 0.45 s,
+ *     with one pin note, one multiplier note, the slam and no sound repeating within 120 ms.
  *
  * SKIPPING. A tap jumps to the slam having landed (it still sounds, buzzes and shakes) and the
  * outcome then plays; a second tap jumps to the end of the outcome. Taps in the first 700 ms after
@@ -40,21 +48,25 @@
  */
 import { batch } from '@preact/signals';
 import { audio } from '../../../audio';
-import { formatInt, formatShort, mapView, type GameState, type RegionId, type SendRecord } from '../../engine';
+import { endView, formatInt, formatShort, mapView, type GameState, type RegionId, type SendRecord } from '../../engine';
+import { coachSpread } from '../app/hints';
 import * as P from '../app/playback';
 import { hoverRegion, reduced, speed } from '../app/store';
-import { centre, MAP_X, MAP_Y, R, SEAT_H, SEAT_W, SEAT_X, SEAT_Y, type Rect } from '../common/layout';
+import { centre, MAP_X, MAP_Y, R, SEAT_H, SEAT_W, SEAT_X, SEAT_Y, showcaseAt, type Rect } from '../common/layout';
 import type { FlyerLayer, Tone } from '../fx/flyers';
 import { buzz, shake, stopShake } from '../fx/shake';
 import { ringLayout } from '../map';
 import type { MapView } from '../map/contract';
 import { getMap, pinOnFrame } from '../table/mapRef';
+import { warTag } from '../table/view';
 import {
+  isBrisk,
   outcomeSchedule,
   ratio,
   sendSchedule,
   SHOP_HOLD_MS,
   shakeFor,
+  SHOWCASE_AT,
   showcaseLine,
   slamIntensity,
   type Anchor,
@@ -63,7 +75,7 @@ import {
   type OutcomeCue,
 } from './schedule';
 import { Timeline } from './timeline';
-import { addBrass, claim, clearTable, take, viewOf, worldFrom, type World } from './world';
+import { aimAt, claim, clearTable, spreadInto, take, viewOf, worldFrom, type WarTag, type World } from './world';
 
 let flyers: FlyerLayer | null = null;
 /** The flying-number canvas registers itself here (FlyerCanvas). */
@@ -80,8 +92,10 @@ interface Show {
   reduced: boolean;
   /** The table as it was sent: the outcome's views are this with the world's ownership. */
   base: MapView;
-  /** The resolved game's view (where the war tag moves to). */
-  after: MapView;
+  /** Where the war tag goes once the turn has played (counted from the coming turn). */
+  afterTag: WarTag;
+  /** Where a tag on a region that changes hands hops to: this turn's spread, or the next target. */
+  hopTag: WarTag;
   world: World;
   collided: boolean;
   tapSkipped: boolean;
@@ -89,6 +103,10 @@ interface Show {
   riserPlayed: boolean;
   /** skip(): every remaining stage jumps to its end. */
   aborted: boolean;
+  /** skip(true): the screen is being replaced; the send writes nothing more. */
+  torn: boolean;
+  /** The ring has caught the score (its chip shows the result). */
+  caught: boolean;
 }
 
 interface Playing {
@@ -108,9 +126,15 @@ const GOLD = '#F2D27A';
 
 // ---------------------------------------------------------------- entry points
 
-/** Jump to the end now, whatever is playing. */
-export function skip(): void {
-  if (show) show.aborted = true;
+/**
+ * Jump to the end now, whatever is playing. With `teardown` (the screen is being replaced) the send
+ * also stops writing: no final world, no HUD signals, so nothing stale lands on what replaced it.
+ */
+export function skip(teardown = false): void {
+  if (show) {
+    show.aborted = true;
+    if (teardown) show.torn = true;
+  }
   playing?.line.finish();
 }
 
@@ -133,10 +157,14 @@ export function tapSkip(at: { x: number; y: number } | null): void {
 }
 
 /** Plays a send from `prev` (the table as it was sent) to `next` (the resolved game). */
-export async function playSend(prev: GameState, next: GameState): Promise<void> {
+export async function playSend(prev: GameState, next: GameState, opts: P.PlayOptions = {}): Promise<void> {
   const rec = next.lastSend;
   if (!rec || show) return;
-  const base = mapView(prev);
+  // The table as the player saw it, war tag included (it already points where this send takes war).
+  const sent = mapView(prev);
+  const base: MapView = { ...sent, warNext: warTag(prev, sent.warNext) };
+  const after = mapView(next).warNext;
+  const afterTag: WarTag = opts.afterTag !== undefined ? opts.afterTag : after ? { ...after, between: true } : null;
   const s: Show = {
     prev,
     next,
@@ -144,12 +172,15 @@ export async function playSend(prev: GameState, next: GameState): Promise<void> 
     rate: speed.value,
     reduced: reduced.value,
     base,
-    after: mapView(next),
+    afterTag,
+    hopTag: rec.spread ? { id: rec.spread.id, turns: 1 } : afterTag,
     world: worldFrom(base),
     collided: false,
     tapSkipped: false,
     riserPlayed: false,
     aborted: false,
+    torn: false,
+    caught: false,
   };
   show = s;
   // The map is driven from here until the end: a stray hover must not redraw the table under it.
@@ -163,8 +194,10 @@ export async function playSend(prev: GameState, next: GameState): Promise<void> 
   const noSkip = prev.mode === 'first' && prev.turn === 1;
   try {
     await playCascade(s, noSkip);
+    if (s.torn) return tearDown();
     endCascade(s);
     const playedOut = await playOutcome(s);
+    if (s.torn) return tearDown();
     endOutcome(s, playedOut);
   } finally {
     playing = null;
@@ -179,6 +212,8 @@ P.setDirector({ playSend, tapSkip, skip });
 async function playCascade(s: Show, noSkip: boolean): Promise<void> {
   const { rec, prev } = s;
   const newSeats = new Set(prev.seats.flatMap((seat, i) => (rec.newHires.includes(seat.uid) ? [i] : [])));
+  // The coached first turns play at full length; later, a send that changes little plays brisk.
+  const coached = prev.mode === 'first' && prev.turn <= 3;
   const sched = sendSchedule({
     trace: rec.trace,
     score: rec.score,
@@ -187,6 +222,7 @@ async function playCascade(s: Show, noSkip: boolean): Promise<void> {
     newSeats,
     reduced: s.reduced,
     rate: s.rate,
+    brisk: !coached && isBrisk(rec.result === 'win', rec.regions, ratio(rec.score, rec.target)),
   });
   if (s.aborted) return;
   const line = new Timeline<Cue>(sched.cues, sched.end, (c) => scoreCue(c, s), s.rate);
@@ -269,7 +305,10 @@ function scoreCue(c: Cue, s: Show): void {
       P.leverDown.value = false;
       break;
     case 'landed':
-      // The score hits the ring: the crisis flashes white as the ring takes it.
+      // The score hits the ring: the ring swells to catch it, its chip turns to a check (or red),
+      // and the crisis flashes white.
+      s.caught = true;
+      map?.fx.ringCatch?.(rec.result === 'win');
       map?.fx.flash(rec.crisis);
       break;
   }
@@ -295,10 +334,9 @@ function seatLaunch(seat: number): { x: number; y: number } {
 
 /** The ring's ×2 chip, joined to the right of the target on the badge above the ring. */
 function ringChipPoint(crisis: RegionId, targetText: string): { x: number; y: number } {
-  const L = ringLayout(crisis);
-  // The badge is the target (13 pt mono, about 7.9 pt a glyph, padded) plus the 24 pt ×2 segment.
-  const width = targetText.length * 7.9 + 14 + 24;
-  return { x: MAP_X + L.badge.x + width / 2 - 12, y: MAP_Y + L.badge.y };
+  const L = ringLayout(crisis, targetText);
+  // The badge is the target plus the 24 pt ×2 segment on its right.
+  return { x: MAP_X + L.badge.x + L.width / 2 - 12, y: MAP_Y + L.badge.y };
 }
 
 function anchorPoint(a: Anchor, s: Show): { x: number; y: number } {
@@ -351,15 +389,20 @@ function launchNumber(c: Extract<Cue, { do: 'fly' }>, s: Show): void {
 
 /** The plate's result line, where the score leaves the readout. */
 const PLATE_SCORE = { x: 285, y: 718 };
-const MAP_CENTRE = centre(R.map);
 
 /** The score leaves the readout (or the showcase over the map) and lands in the crisis ring. */
 function scoreToRing(from: 'plate' | 'showcase', ms: number, s: Show): void {
-  const start = from === 'showcase' ? MAP_CENTRE : PLATE_SCORE;
+  // The showcase sits in the half of the map away from the ring (the readout places it the same
+  // way); its big number is a little above its centre, its line under it.
+  const at = showcaseAt(getMap()?.pinPos(s.rec.crisis).y ?? null);
+  const start = from === 'showcase' ? { x: at.x, y: at.y - 10 } : PLATE_SCORE;
   if (from === 'showcase') P.showcase.value = null;
   const ring = pinOnFrame(s.rec.crisis);
+  // The showcase's big number shrinks into the ring along the whole path (it never crosses the map's
+  // labels at full size) and fades only as it lands.
+  const big = from === 'showcase';
   flyers?.launch({
-    text: formatShort(s.rec.score, from === 'showcase' ? 10 : 7),
+    text: formatShort(s.rec.score, big ? 10 : 7),
     tone: 'score',
     x0: start.x,
     y0: start.y,
@@ -368,11 +411,19 @@ function scoreToRing(from: 'plate' | 'showcase', ms: number, s: Show): void {
     pop: 0,
     rise: 0,
     ms: ms / s.rate,
-    size: from === 'showcase' ? 52 : 24,
+    size: big ? 52 : 24,
     trail: true,
     hot: false,
     ease: 'in',
+    ...(big ? { shrinkTo: 0.25, fadeMs: 80 / s.rate } : {}),
   });
+}
+
+/** The screen is being replaced: stop what is moving and write nothing more. */
+function tearDown(): void {
+  flyers?.clear();
+  stopShake();
+  getMap()?.fx.scanTo(null);
 }
 
 /** The cascade is over (played out or skipped): show its final state. A skipped slam still lands. */
@@ -389,9 +440,11 @@ function endCascade(s: Show): void {
     P.hops.value = {};
   });
   if (!s.collided && !s.aborted) slamNow(s);
+  // A skipped send still shows the ring's verdict before it collapses.
+  if (!s.caught && !s.aborted) getMap()?.fx.ringCatch?.(rec.result === 'win');
 }
 
-/** A skipped slam still lands: its sound, its haptic, its shake and (at 10x) its bloom. */
+/** A skipped slam still lands: its sound, its haptic, its shake and (from SHOWCASE_AT) its bloom. */
 function slamNow(s: Show): void {
   const { rec } = s;
   const r = ratio(rec.score, rec.target);
@@ -402,7 +455,7 @@ function slamNow(s: Show): void {
   buzz(30);
   if (s.reduced || quiet) return;
   shake(shakeFor(r), 250);
-  if (r >= 10) getMap()?.fx.bloom(rec.crisis, GOLD, 600);
+  if (r >= SHOWCASE_AT) getMap()?.fx.bloom(rec.crisis, GOLD, 600);
 }
 
 // ---------------------------------------------------------------- the outcome
@@ -441,9 +494,11 @@ function outcomeCue(c: OutcomeCue, s: Show): void {
   const map = getMap();
   switch (c.do) {
     case 'settle':
-      // The score is in the ring: the whole world comes back to full light.
+      // The score is in the ring: the whole world comes back to full light, and the console stops
+      // talking about the send (no stale 'NEED 550 MORE' or 'WINS 1 REGION' while the map changes).
       map?.fx.dimExcept(null);
       draw(s);
+      P.ahead.value = s.next.phase === 'over' ? 'end' : s.next.phase === 'shop' ? 'shop' : 'turn';
       break;
     case 'collapse':
       if (!map) break;
@@ -457,11 +512,12 @@ function outcomeCue(c: OutcomeCue, s: Show): void {
       void map?.fx.shockwave(c.region, 600);
       break;
     case 'travel':
-      void map?.fx.travel(c.path, 'gold', c.stepMs);
+      void map?.fx.travel(c.path, c.colour, c.stepMs);
       break;
     case 'claim':
-      // The view takes the new owner in the same tick as the ink (the map's ownership rule).
-      s.world = claim(s.world, c.region);
+      // The view takes the new owner in the same tick as the ink (the map's ownership rule). A war
+      // tag on the region hops to where war goes instead.
+      s.world = aimAt(claim(s.world, c.region, s.hopTag), s.rec.spread?.id);
       draw(s);
       void map?.fx.inkSpread(c.from, [c.region], 'gold', c.ms);
       P.goal.value = { gold: c.gold, red: c.red };
@@ -472,19 +528,15 @@ function outcomeCue(c: OutcomeCue, s: Show): void {
     case 'coins':
       P.coins.value = c.coins;
       break;
-    case 'brass':
-      s.world = addBrass(s.world, c.region);
-      draw(s);
-      void map?.fx.dropBrass(c.region);
-      break;
     case 'take':
-      s.world = take(s.world, c.region);
+      // War spreading by itself keeps its tag on the region (WAR · NOW) until the tag moves on.
+      s.world = c.spread ? spreadInto(s.world, c.region) : aimAt(take(s.world, c.region, s.hopTag), s.rec.spread?.id);
       draw(s);
       void map?.fx.inkSpread(c.from, [c.region], 'red', c.ms);
       P.goal.value = { gold: c.gold, red: c.red };
       break;
     case 'tag':
-      s.world = { ...s.world, warNext: s.after.warNext };
+      s.world = { ...s.world, warNext: s.afterTag };
       draw(s);
       break;
     case 'clear':
@@ -508,8 +560,35 @@ function outcomeCue(c: OutcomeCue, s: Show): void {
     case 'wave':
       void map?.fx.wave(c.region, 'gold', c.ms);
       break;
-    case 'lightsOut':
-      void map?.fx.lightsOut(c.ms);
+    case 'lightsOut': {
+      // The free regions the WAR card points at (the near miss) stay lit, outlined in marching gold
+      // from the moment the lights start going out.
+      const near = nearMiss(s);
+      if (near.length) {
+        s.world = { ...s.world, highlight: near };
+        draw(s);
+      }
+      void map?.fx.lightsOut(c.ms, near);
+      break;
+    }
+    case 'ending':
+      // The console says how the game ended; the score plate and the boxes have done their work.
+      batch(() => {
+        P.ahead.value = c.ending;
+        P.slam.value = 'idle';
+        P.boxes.value = null;
+      });
+      break;
+    case 'united':
+      P.showcase.value = { text: 'WORLD UNITED', sub: `${s.rec.gold} OF ${s.rec.gold} · THE WORLD IS GOLD`, n: P.nextN(), kind: 'united', region: c.region };
+      if (!s.reduced) map?.fx.bloom(c.region, GOLD, 900);
+      break;
+    case 'unitedOff':
+      P.showcase.value = null;
+      break;
+    case 'spreadLine':
+      // Named with the drum, as the red runs in, not after the send has played.
+      coachSpread(c.region);
       break;
     case 'sound':
       audio.play(c.sfx, { intensity: c.intensity });
@@ -549,7 +628,7 @@ function launchCoin(region: RegionId, ms: number, s: Show): void {
 /** The world once every change has played: the resolved game's, so the screen hands over seamlessly. */
 function finalWorld(s: Show): World {
   const { next } = s;
-  return clearTable({ ...s.world, owner: { ...next.owner }, brass: new Set(next.brass), warNext: s.after.warNext, ceased: next.ending === 'CEASEFIRE' });
+  return clearTable({ ...s.world, owner: { ...next.owner }, warNext: s.afterTag, ceased: next.ending === 'CEASEFIRE' });
 }
 
 /** The outcome is over (played out or skipped): the map, the counts and the coins show the result. */
@@ -561,7 +640,11 @@ function endOutcome(s: Show, playedOut: boolean): void {
   if (!playedOut && map) {
     // Effects still running (ink, travel, the wave) stop where they are; the world jumps to the end.
     map.fx.reset();
-    if (rec.ending === 'WAR') void map.fx.lightsOut(200);
+    if (rec.ending === 'WAR') {
+      const near = nearMiss(s);
+      s.world = { ...s.world, highlight: near.length ? near : null };
+      void map.fx.lightsOut(200, near);
+    }
   }
   s.world = finalWorld(s);
   draw(s);
@@ -570,6 +653,11 @@ function endOutcome(s: Show, playedOut: boolean): void {
     P.coins.value = rec.coinsAfter;
     P.goalGlow.value = null;
   });
+}
+
+/** WAR with three or fewer free regions left: the regions the end card points at. */
+function nearMiss(s: Show): RegionId[] {
+  return s.rec.ending === 'WAR' ? (endView(s.next)?.nearMiss ?? []) : [];
 }
 
 function inside(r: Rect, p: { x: number; y: number }): boolean {

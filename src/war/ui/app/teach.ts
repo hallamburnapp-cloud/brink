@@ -4,7 +4,8 @@
  * the lines and remembers which one-time lines a device has seen.
  */
 import { REGION } from '../../content/map';
-import { formatInt, goalView, preview, readoutView, sendLabel, swapProblem, type GameState, type RegionId } from '../../engine';
+import { STAFF_DEF, type StaffId } from '../../content/staff';
+import { ADJ, bestScore, formatInt, goalView, preview, readoutView, regionViews, sendLabel, shopView, swapProblem, type GameState, type RegionId } from '../../engine';
 
 // ---------------------------------------------------------------- the coached first turn
 
@@ -48,15 +49,27 @@ export interface Line {
   at: CoachSpot;
   /** 'device': shown once per device, ever. 'game': once per game. null: whenever earned. */
   once: 'device' | 'game' | null;
-  /** The SEND lever beckons while this line is up. */
-  beckon?: boolean;
+  /** The control that beckons while this line is up. */
+  beckon?: 'send' | 'swap';
+  /**
+   * A teaching line that must be read: it stays its whole time (a queued line waits, a tap does not
+   * end it). Other timed lines give way to a newer line once they have been up a moment.
+   */
+  full?: boolean;
 }
 
 const STICKY = Infinity;
 const LINE_MS = 3500;
+/** War's own spread: up through its ink and the 'WAR · NOW' hold; the next deal clears it sooner. */
+const SPREAD_LINE_MS = 2600;
 
-function line(key: string, text: string, ms: number, once: Line['once'] = null, at: CoachSpot = 'map', beckon = false): Line {
-  return { key, text, ms, at, once, beckon };
+function line(key: string, text: string, ms: number, once: Line['once'] = null, at: CoachSpot = 'map', beckon?: Line['beckon']): Line {
+  return { key, text, ms, at, once, ...(beckon ? { beckon } : {}) };
+}
+
+/** A teaching line: it stays its whole time. */
+function teach(l: Line): Line {
+  return { ...l, full: true };
 }
 
 const regionName = (id: RegionId) => REGION[id].name;
@@ -77,15 +90,15 @@ function turnOneLines(prev: GameState | null, s: GameState): Line[] {
       const p = preview(s);
       if (was?.step === 2 && p && p.regions > 0) {
         const beats = `${formatInt(p.score)} beats ${formatInt(s.deal.target)}. ${regionName(s.deal.crisis)} will turn gold.`;
-        out.push(line('t1-beats', beats, 2000));
+        out.push(teach(line('t1-beats', beats, 2200)));
       }
       out.push(line('t1-more', 'More pins score more. Up to 5.', STICKY));
       return out;
     }
     case 4:
       return [
-        line('t1-bymore', 'Beat it by more: win more regions.', 2500, 'game', 'map', true),
-        line('t1-send', 'SEND.', STICKY, null, 'map', true),
+        teach(line('t1-bymore', 'Beat it by more: win more regions. Your pins go first.', 3000, 'game', 'map', 'send')),
+        line('t1-send', 'SEND.', STICKY, null, 'map', 'send'),
       ];
   }
 }
@@ -93,10 +106,38 @@ function turnOneLines(prev: GameState | null, s: GameState): Line[] {
 /** A new turn has been dealt: prev is the game before (the outcome or shop), s the new deal. */
 function turnStartLines(s: GameState): Line[] {
   const out: Line[] = [];
-  if (s.mode === 'first' && s.turn === 2) out.push(line('t2-gold', 'Gold regions can be pinned too.', 4000, 'game'));
-  if (s.mode === 'first' && s.turn === 3) out.push(line('t3-war', 'War spreads by itself every 3rd turn. Watch the red tag.', 4500, 'game'));
-  if (s.deal.finalPush) out.push(line('push', 'No grey left. Win back the red. One miss: ceasefire.', 4500, 'device'));
+  if (s.mode === 'first' && s.turn === 2) {
+    out.push(teach(line('t2-gold', 'Gold regions can be pinned too.', 3500, 'game')));
+    out.push(teach(line('t2-swap', 'Once a turn, SWAP brings new regions. Your pins stay.', 4000, 'game', 'map', 'swap')));
+  }
+  if (s.mode === 'first' && s.turn === 3) out.push(teach(line('t3-war', 'Every 3rd turn war spreads into the red tag. Pin it in a win to save it.', 4500, 'game')));
+  if (s.deal.finalPush) out.push(teach(line('push', 'No grey left. Win back the red. One miss: ceasefire.', 4500, 'device')));
+  const dead = deadDealLines(s);
+  out.push(...dead);
+  if (!dead.length) out.push(...unlitGoldLines(s));
   return out;
+}
+
+/** The best any legal send of the lit regions scores now (the fast scorer, a few hundred groups). */
+export function bestNow(s: GameState): bigint {
+  return bestScore(
+    s.deal.lit,
+    s.deal.crisis,
+    s.owner,
+    s.seats.map((x) => x.id),
+    s.oldHandM10,
+  );
+}
+
+/**
+ * No send on the table can beat the target (a dealt turn, or after a swap): say so at once, so a
+ * miss is never a surprise. With a swap left, SWAP beckons.
+ */
+function deadDealLines(s: GameState): Line[] {
+  if (s.phase !== 'choose' || bestNow(s) >= s.deal.target) return [];
+  if (swapProblem(s) === null) return [line('dead-swap', 'No send wins this deal. SWAP brings new regions.', 5000, null, 'map', 'swap')];
+  const end = s.deal.finalPush ? 'a miss now is a ceasefire.' : 'war will take the crisis.';
+  return [line('dead', `No send can win this turn: ${end}`, 4500)];
 }
 
 /** A send has resolved: prev was the game SEND was pressed on. */
@@ -104,12 +145,25 @@ function sendLines(prev: GameState, s: GameState): Line[] {
   const rec = s.lastSend;
   if (!rec || s.phase === 'over') return [];
   const out: Line[] = [];
-  if (prev.mode === 'first' && prev.turn === 1 && rec.result === 'win') out.push(line('t1-gold', 'Gold is yours for good.', LINE_MS, 'game'));
+  if (prev.mode === 'first' && prev.turn === 1 && rec.result === 'win') out.push(teach(line('t1-gold', 'Gold is yours for good. Each region won pays ◆1.', LINE_MS, 'game')));
   if (rec.result === 'miss') out.push(line('miss', 'War took it. Ten red and you lose.', LINE_MS, 'device'));
-  if (rec.spread && s.mode !== 'first') out.push(line('spread', 'War spread by itself.', 1500, 'device'));
-  const red = goalView(s).red;
-  if (red >= 8 && goalView(prev).red < 8) out.push(line('war8', 'Two more red and the war wins.', LINE_MS, 'device'));
+  // War's own spread is named by the director, with its drum (spreadLine), not here after the send.
+  const g = goalView(s);
+  if (g.red >= 8 && goalView(prev).red < 8) out.push(line('war8', warStakes(g.warLimit - g.red), LINE_MS, 'device'));
   return out;
+}
+
+/** The stakes as war nears its limit, with the number that is really left. */
+export function warStakes(left: number): string {
+  return left <= 1 ? 'One more red and the war wins.' : `${left === 2 ? 'Two' : String(left)} more red and the war wins.`;
+}
+
+/**
+ * War spread by itself: every time, in every game, the region named (half of war's own moves come
+ * on turns with no shop and no receipt). Said as the drum sounds; the next deal clears it.
+ */
+export function spreadLine(region: RegionId): Line {
+  return line('spread', `War spread to ${regionName(region)} by itself.`, SPREAD_LINE_MS);
 }
 
 /** The shop has opened, or changed. */
@@ -118,25 +172,74 @@ function shopLines(prev: GameState | null, s: GameState): Line[] {
   const out: Line[] = [];
   const opened = prev?.phase !== 'shop';
   if (opened && s.mode === 'first' && s.shop.visit === 1) {
-    out.push(line('shop-hire', 'Hire staff. They boost every send. The number shows by how much.', 6000, 'game', 'tray'));
+    out.push(teach(line('shop-hire', 'Hire staff. They boost every send. The number shows by how much.', 6000, 'game', 'tray')));
   }
-  if (s.seats.length >= 5 && s.shop.offers.some((o) => o !== null)) out.push(line('full', 'Full table. Tap a seat to replace it.', 4500, 'device', 'tray'));
+  // The first card that scores ports or capitals: the marks on the map, said once.
+  const marks = s.shop.offers.some((id) => id !== null && (STAFF_DEF[id].actsOn === 'port' || STAFF_DEF[id].actsOn === 'capital' || id === 'HERALD'));
+  if (opened && marks) out.push(teach(line('marks', '⚓ marks a port, ★ a capital. Some staff score them.', 4500, 'device', 'tray')));
+  // A full table is taught when a shop opens on one (when there is something to replace), read in full.
+  if (opened && s.seats.length >= 5 && s.shop.offers.some((o) => o !== null)) {
+    out.push(teach(line('full', 'Full table. Tap a seat to replace it.', 4500, 'device', 'tray')));
+  }
+  // The header says YOUR BEST ... · NEXT TARGET ... in red: said in words the first time.
+  if (opened && shopView(s)?.behind) out.push(teach(line('behind', 'Behind: your best last turn would miss the next target. Hire to catch up.', 5000, 'device', 'tray')));
   return out;
+}
+
+/**
+ * A + staff has just landed to the right of a × staff (hires take the leftmost free seat): order
+ * matters and dragging fixes it, said once.
+ */
+function orderLines(prev: GameState | null, s: GameState): Line[] {
+  if (!prev || s.seats.length <= prev.seats.length || !adderRightOfMultiplier(s.seats.map((x) => x.id))) return [];
+  return [teach(line('order', 'Order matters: + multiplier staff work best left of × staff. Drag to reorder.', 4500, 'device', s.phase === 'shop' ? 'tray' : 'map'))];
+}
+
+/** Staff that add to the MULTIPLIER (order-sensitive; + points can sit anywhere) and staff that multiply it. */
+const ADDS_MULT: ReadonlySet<StaffId> = new Set(['DUTY', 'SURVEYOR']);
+const TIMES_MULT: ReadonlySet<StaffId> = new Set(['OLDHAND', 'SOVEREIGN', 'STRATEGIST', 'GOVERNOR', 'HARBOUR']);
+
+/** A + multiplier staff sits right of a × staff: it would add more on the left. */
+export function adderRightOfMultiplier(seats: readonly StaffId[]): boolean {
+  let multiplied = false;
+  for (const id of seats) {
+    if (TIMES_MULT.has(id)) multiplied = true;
+    else if (multiplied && ADDS_MULT.has(id)) return true;
+  }
+  return false;
 }
 
 /** Lines earned while choosing (a tap, a swap). */
 function choosingLines(prev: GameState | null, s: GameState): Line[] {
   if (s.phase !== 'choose' || s.turn === 1) return [];
   const out: Line[] = [];
+  const swapped = !!prev && prev.phase === 'choose' && prev.turn === s.turn && prev.deal.swapsLeft > s.deal.swapsLeft;
+  if (swapped) out.push(...deadDealLines(s));
   const label = sendLabel(s);
-  // Only when SWAP can actually be pressed (not used, not locked, the pile not empty).
-  if (label.tone === 'miss' && s.deal.pins.length >= 5 && swapProblem(s) === null && !s.deal.finalPush) {
-    out.push(line('swap', 'Short? SWAP brings new regions. Your pins stay.', 4500, 'device'));
+  // A miss with no way to grow it here (5 pins, or nothing lit can be added) and SWAP pressable.
+  if (label.tone === 'miss' && swapProblem(s) === null && !s.deal.finalPush && (s.deal.pins.length >= 5 || boxedIn(s))) {
+    out.push(line('swap', 'Short? SWAP brings new regions. Your pins stay.', 4500, 'device', 'map', 'swap'));
   }
   if (readoutView(s).nearNext && !(prev && prev.phase === 'choose' && readoutView(prev).nearNext)) {
     out.push(line('near', 'Close to the next region. Try other pins.', LINE_MS, 'device'));
   }
   return out;
+}
+
+/** Your own gold touches the crisis but is not lit this turn: only lit regions can be pinned (said once). */
+function unlitGoldLines(s: GameState): Line[] {
+  if (s.phase !== 'choose' || s.mode === 'first' && s.turn <= 2) return [];
+  const d = s.deal;
+  const unlit = ADJ[d.crisis].some((r) => s.owner[r] === 'gold' && !d.lit.includes(r));
+  if (!unlit) return [];
+  const text = swapProblem(s) === null ? 'Only lit regions can be pinned. SWAP brings others.' : 'Only lit regions can be pinned, even your own gold.';
+  return [line('unlit-gold', text, 4500, 'device', 'map', swapProblem(s) === null ? 'swap' : undefined)];
+}
+
+/** Pins are down and no lit region can be added to them. */
+function boxedIn(s: GameState): boolean {
+  if (s.deal.pins.length === 0) return false;
+  return !Object.values(regionViews(s)).some((r) => r.addable);
 }
 
 /** The Deputy has just taken a seat. */
@@ -158,6 +261,7 @@ export function linesFor(prev: GameState | null, s: GameState): Line[] {
   out.push(...turnOneLines(newTurn ? null : prev, s));
   out.push(...shopLines(prev, s));
   out.push(...deputyLines(prev, s));
+  out.push(...orderLines(prev, s));
   if (!newTurn) out.push(...choosingLines(prev, s));
   return out;
 }

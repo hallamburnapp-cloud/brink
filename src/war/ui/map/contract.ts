@@ -6,17 +6,17 @@
  */
 
 export type RegionId = string;
-/** The five blocs. A region's bloc colour only tints it while it is grey. */
+/** The five blocs (content identity; the map draws no bloc colour). */
 export type Colour = 'CAP' | 'HMR' | 'SCT' | 'SND' | 'FRS';
 /** Ownership, the only thing colour means on the map: grey is free, gold is yours, red is war's. */
 export type Owner = 'grey' | 'gold' | 'red';
 
 export interface RegionView {
   id: RegionId;
-  /** The region's bloc (drives the grey tint and the glyph). */
+  /** The region's bloc. Not drawn: every free region is one neutral grey (colour means ownership only). */
   colour: Colour;
   owner: Owner;
-  /** Lit this turn (can be pinned, or is the crisis). Dark regions draw at 30%. */
+  /** Lit this turn (can be pinned, or is the crisis). With no deal on the table nothing is lit: the plain world. */
   lit: boolean;
   /** Pinned in the current selection. */
   pinned: boolean;
@@ -27,12 +27,13 @@ export interface RegionView {
   capital: boolean;
   port: boolean;
   /**
-   * The outcome preview of the current pins: 'win' outlines the region dashed gold with its order
-   * number (1 = the crisis); 'war' hatches it red (the crisis on a MISS preview).
+   * The outcome preview of the current pins: 'win' outlines the region dashed gold with a gold check
+   * (it turns gold; `order` is the engine's spread order and is not drawn); 'war' hatches it red
+   * (the crisis on a MISS preview).
    */
   preview: { kind: 'win' | 'war'; order: number } | null;
-  /** Won as a crisis at some point: a small brass pin as decoration. */
-  brass: boolean;
+  /** Won as a crisis at some point. Not drawn: the brass tacks meant nothing a player could act on. */
+  brass?: boolean;
 }
 
 export interface CrisisView {
@@ -49,9 +50,14 @@ export interface MapView {
   joinedPins: Array<[RegionId, RegionId]>;
   /** The crisis ring and its target badge; null between turns and on end screens. */
   crisis: CrisisView | null;
-  /** Where war spreads next by itself, and in how many turns (3, 2, 1 = 'THIS TURN'); null when it cannot. */
-  warNext: { id: RegionId; turns: number } | null;
-  /** The war has stopped (CEASEFIRE): red stops pulsing and fades to 60%. */
+  /**
+   * Where war spreads next by itself, and in how many turns (3, 2, 1 = 'THIS TURN'; 0 = 'NOW', as
+   * its ink runs in); null when it cannot. `between`: the count runs from the coming turn (between
+   * turns), so the tag reads 'WAR · NEXT TURN' or 'WAR · IN 2 TURNS'. When the tag moves to another
+   * region it hops there.
+   */
+  warNext: { id: RegionId; turns: number; between?: boolean } | null;
+  /** The war has stopped (CEASEFIRE): red stops pulsing and fades to 60%, its outlines flashing once as it stops. */
   ceased: boolean;
   /** Temporary emphasis (long-press on a shop card, the intro): these regions light, the rest dim. */
   highlight: RegionId[] | null;
@@ -59,8 +65,8 @@ export interface MapView {
   finger: RegionId | null;
   /** The lit region under a mouse pointer (desktop hover): it breathes like a joinable one. */
   hover: RegionId | null;
-  /** 1-based pin order badges while choosing (west to east, the scoring order). */
-  pinOrder: Record<RegionId, number> | null;
+  /** A send's outcome is playing: the pin threads step back (35%) so only the paths a win travels are bright. */
+  outcome?: boolean;
 }
 
 export type InkColour = 'gold' | 'red';
@@ -84,14 +90,23 @@ export interface MapFx {
   travel(path: RegionId[], colour: InkColour, msPerStep?: number): Promise<void>;
   /** Ink floods the targets from the source over `ms` (600): gold for a win, red for war. */
   inkSpread(source: RegionId, targets: RegionId[], colour: InkColour, ms?: number): Promise<void>;
-  /** Light blooms out from a region across the table (a slam of 10x the target or more). */
+  /** Light blooms out from a region across the table (a showcase slam: 16x the target or more). */
   bloom(from: RegionId, hex: string, ms?: number): void;
   /** A wave of colour rolls out from a region over the whole map and fades back (the intro's goal wave, the WORLD UNITED wave). */
   wave(from: RegionId, colour: InkColour, ms?: number): Promise<void>;
-  /** A brass pin drops onto a region (250 ms fall, 60 ms bounce). */
-  dropBrass(id: RegionId): Promise<void>;
-  /** WAR: grey regions go dark one by one over `ms` (2000); gold stays lit, red pulses once. */
-  lightsOut(ms?: number): Promise<void>;
+  /**
+   * WAR: grey regions go dark one by one over `ms` (2000); gold stays lit, red pulses once. `keep`:
+   * free regions that stay lit (the near miss the end card points at).
+   */
+  lightsOut(ms?: number, keep?: RegionId[]): Promise<void>;
+  /** The next change of the map cross-fades over `ms` instead of snapping (a rewind in the intro). */
+  crossFade?(ms: number): void;
+  // ---- optional additions (renderers may leave these out; callers use ?.)
+  /**
+   * The score lands in the crisis ring: the ring swells to catch it (120 ms) and its target chip
+   * turns to a gold check on a win, or red on a miss.
+   */
+  ringCatch?(win: boolean): void;
   /** Cancel every running effect and return to the plain state. */
   reset(): void;
 }

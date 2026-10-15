@@ -5,6 +5,12 @@
  * opens the menu, from which QUIT TO TITLE goes home. During the intro it skips the intro. On the
  * bare title back leaves as usual (the native shell exits). The shop and the end card are inside
  * the game: back opens the menu over them.
+ *
+ * The war room never navigates the history itself: it only ever pushes its one entry. When nothing
+ * of ours is open any more the entry is released, not popped (a history.back() of our own would race
+ * the next push, and a lost race sent the browser off the site). A released entry is taken up again
+ * the next time it is wanted, so the history never holds more than one entry of ours, and a back
+ * press on the bare title lands on the page's own entry and does nothing.
  */
 import { effect } from '@preact/signals';
 import { skipIntro } from './actions';
@@ -25,30 +31,56 @@ export function backStep(o: { screen: 'title' | 'game'; sheetOpen: boolean; intr
   return 'menu';
 }
 
-/** Our entry is on top of the history. */
+/**
+ * What the guard does when the screen changes (pure, for tests): 'push' a new entry of ours,
+ * 'adopt' the entry of ours already on top (released earlier, never popped), 'release' it (nothing
+ * of ours is open: no navigation), or nothing.
+ */
+export function guardStep(o: { want: boolean; guarded: boolean; onOurEntry: boolean }): 'push' | 'adopt' | 'release' | null {
+  if (o.want && !o.guarded) return o.onOurEntry ? 'adopt' : 'push';
+  if (!o.want && o.guarded) return 'release';
+  return null;
+}
+
+/** Our entry is on top of the history and back is ours to handle. */
 let guarded = false;
-/** A history.back() of our own is on its way: its popstate is not the player's. */
-let ownBack = false;
 
 function wanted(): boolean {
   return screen.value === 'game' || sheet.value !== null;
 }
 
-function push(): void {
+function onOurEntry(): boolean {
   try {
-    history.pushState({ war: 'game' }, '');
-    guarded = true;
+    return (history.state as { war?: string } | null)?.war === 'game';
   } catch {
-    /* a sandboxed frame without history: back behaves as the host decides */
+    return false;
+  }
+}
+
+function guard(): void {
+  switch (guardStep({ want: wanted(), guarded, onOurEntry: onOurEntry() })) {
+    case 'push':
+      try {
+        history.pushState({ war: 'game' }, '');
+        guarded = true;
+      } catch {
+        /* a sandboxed frame without history: back behaves as the host decides */
+      }
+      break;
+    case 'adopt':
+      guarded = true;
+      break;
+    case 'release':
+      guarded = false;
+      break;
   }
 }
 
 function onPop(): void {
-  if (ownBack) {
-    ownBack = false;
-    return;
-  }
+  // Back (or forward) moved off our entry while it was released: the title, nothing to do.
   if (!guarded) return;
+  // Forward onto an entry of ours, or a stray event that left us where we were: nothing was popped.
+  if (onOurEntry()) return;
   guarded = false;
   const step = backStep({
     screen: screen.value,
@@ -77,21 +109,13 @@ function onPop(): void {
     case 'leave':
       return;
   }
-  if (!guarded && wanted()) push();
+  guard();
 }
 
 /** Keeps the war room's history entry in step with the screen; returns the uninstaller. */
 export function installBackButton(): () => void {
   window.addEventListener('popstate', onPop);
-  const stop = effect(() => {
-    const want = wanted();
-    if (want && !guarded) push();
-    else if (!want && guarded) {
-      guarded = false;
-      ownBack = true;
-      history.back();
-    }
-  });
+  const stop = effect(() => guard());
   return () => {
     window.removeEventListener('popstate', onPop);
     stop();

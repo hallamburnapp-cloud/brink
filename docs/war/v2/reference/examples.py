@@ -88,6 +88,10 @@ def main():
     print('  legal sends %d; median %s; %d of them win; %d win 2 regions; best %s (%s)' % (
         len(vals), fmt(int(med)), wins, sum(1 for v, _ in vals if v >= 4 * g.target), fmt(vals[0][0]),
         ' + '.join(R.NAME[r] for r in vals[0][1])))
+    pins = ['SHL', 'LNK', 'LTL', 'TLM']
+    p = g.preview(pins)
+    print('  pin it to claim it: %s = %s, %s -> %s (Pebbleby is nearer but not pinned)' % (
+        ' + '.join(R.NAME[r] for r in pins), fmt(p['score']), p['label'], ' then '.join(R.NAME[r] for r in p['regions'])))
     rec = g.send(['SHL', 'LNK', 'PBB', 'MRM', 'TRN'])
     print('  SEND Shoal + Lantern Key + Pebbleby + Marram + Tern Isle: %s, WIN %d -> %s turn gold. GOLD %d/30, coins %d.' % (
         fmt(rec['score']), rec['regions'], ' then '.join(R.NAME[r] for r in rec['won']), rec['gold'], rec['coins']))
@@ -133,7 +137,7 @@ def main():
     print('  BEST: ' + ' + '.join(R.NAME[r] for r in sorted(best, key=R.west)))
     sc = show_trace(best, seats, owner, crisis)
     k = R.regions_won(sc, T)
-    print('  = %.1fx the target: WIN %d -> %s' % (sc / T, k, ', '.join(R.NAME[r] for r in R.win_order(crisis, owner, k))))
+    print('  = %.1fx the target: WIN %d -> %s' % (sc / T, k, ', '.join(R.NAME[r] for r in R.win_order(crisis, owner, k, best))))
     vals, med, wins = spread(lit, crisis, owner, seats, T)
     print('  legal sends %d, median %s (%.1fx below best), %d of them win' % (len(vals), fmt(int(med)), vals[0][0] / med, wins))
     for pins, note in ((['LTL', 'TLM'], 'crisis + Tallowmere'),
@@ -161,7 +165,7 @@ def main():
     print('  seats: ' + ', '.join('%d %s' % (i + 1, R.STAFF[s][0]) for i, s in enumerate(seats3)) + ' (the Deputy copies the Sovereign)')
     sc3 = show_trace(best, seats3, owner, crisis)
     k3 = R.regions_won(sc3, T3)
-    print('  = %sx the target: WIN %d -> %s' % (fmt(sc3 // T3), k3, ', '.join(R.NAME[r] for r in R.win_order(crisis, owner, k3))))
+    print('  = %sx the target: WIN %d -> %s' % (fmt(sc3 // T3), k3, ', '.join(R.NAME[r] for r in R.win_order(crisis, owner, k3, best))))
     alt3 = ['DUTY', 'SOVEREIGN', 'DEPUTY', 'HARBOUR', 'HERALD']
     s3b = R.score_pins(best, alt3, owner, crisis)[0]
     print('  Deputy moved to seat 3 (it now copies the Harbourmaster): %s, %sx: WIN %d' % (fmt(s3b), fmt(s3b // T3), R.regions_won(s3b, T3)))
@@ -172,9 +176,9 @@ def main():
     print()
 
     # ------------------------------------------------------------------ outcomes on the map
-    print('EXAMPLE 4. OUTCOMES ON THE EXAMPLE 2 MAP (crisis Lintel)')
+    print('EXAMPLE 4. OUTCOMES ON THE EXAMPLE 2 MAP (crisis Lintel, the best pins: only the crisis is not gold)')
     for k in (1, 2, 3, 5, 8):
-        print('  WIN %d -> %s' % (k, ', '.join(R.NAME[r] for r in R.win_order('LTL', owner, k))))
+        print('  WIN %d -> %s' % (k, ', '.join(R.NAME[r] for r in R.win_order('LTL', owner, k, best))))
     print('  MISS -> Lintel turns red (war %d -> %d)' % (len(red), len(red) + 1))
     o2 = dict(owner)
     r = R.war_spread_target(o2)

@@ -8,20 +8,25 @@
  * novice   a weak human: a random touching group of 3-5; never thinks about the crisis x2 or its
  *          staff; swaps only when it cannot make 3; buys the cheapest affordable offer into a free seat.
  * greedy   the best send every turn; swaps once, keeping its best group, when that misses. Never shops.
- * preview  greedy play; in the shop it follows only the preview number printed on each card and buys
- *          while the number goes up.
+ * preview  greedy play; in the shop it follows only the preview number on each card and buys while
+ *          the number goes up. It reads the number as the reference prints it (bots.py preview_number:
+ *          last turn's opening deal on today's map), so the Python replay stays turn for turn identical.
+ *          The card itself now prints the engine's bestLastTurn (the deal as it stood at SEND, on the
+ *          map at SEND); a bot following that number held the world in 44.4% of 2,000 games (G14 ≥ 30%).
  */
 import { Rng } from '../../engine/rng';
 import {
-  bestOnOpening,
   buy,
+  dealFeatures,
+  goldCount,
   must,
-  previewNumber,
   price,
   RULES,
+  Scorer,
   sellValue,
   type GameState,
   type RegionId,
+  type StaffId,
 } from '../engine';
 import { bestSend, randomGroup } from './choose';
 import { arrangeSeats, seatIds } from './drive';
@@ -113,13 +118,33 @@ export class GreedyBot implements Bot {
   }
 }
 
+const openingCache = new WeakMap<GameState, ReturnType<typeof dealFeatures>>();
+
+/** The reference's card number (bots.py preview_number): the best send of last turn's opening deal on today's map. */
+export function referencePreview(s: GameState, seats: readonly StaffId[]): bigint {
+  let features = openingCache.get(s);
+  if (!features) {
+    features = dealFeatures(s.deal.opening, s.deal.crisis, s.owner);
+    openingCache.set(s, features);
+  }
+  const old = seats.includes('OLDHAND') && s.seats.some((x) => x.id === 'OLDHAND') ? s.oldHandM10 : RULES.oldHandStartM10;
+  const scorer = new Scorer(seats, goldCount(s.owner), old);
+  let best = 0n;
+  for (const f of features) {
+    const v = scorer.score(f);
+    if (v > best) best = v;
+  }
+  return best;
+}
+
 export class PreviewBot extends GreedyBot {
   override readonly name: BotName = 'preview';
 
   /** Buy the offer (and, with a full table, the seat to replace) whose card number is highest, while it beats today's. */
   override shop(s: GameState): GameState {
     for (;;) {
-      const base = bestOnOpening(s, seatIds(s));
+      const seats = seatIds(s);
+      const base = referencePreview(s, seats);
       let best: { after: bigint; slot: number; replace?: number } | null = null;
       const offers = s.shop!.offers;
       for (let slot = 0; slot < offers.length; slot++) {
@@ -127,10 +152,12 @@ export class PreviewBot extends GreedyBot {
         if (!id) continue;
         const options: Array<{ after: bigint; replace?: number }> = [];
         if (s.seats.length < RULES.seats) {
-          if (s.coins >= price(id)) options.push({ after: previewNumber(s, slot)!.after });
+          if (s.coins >= price(id)) options.push({ after: referencePreview(s, [...seats, id]) });
         } else {
           s.seats.forEach((old, j) => {
-            if (s.coins + sellValue(old.id) >= price(id)) options.push({ after: previewNumber(s, slot, j)!.after, replace: j });
+            if (s.coins + sellValue(old.id) >= price(id)) {
+              options.push({ after: referencePreview(s, seats.map((x, i) => (i === j ? id : x))), replace: j });
+            }
           });
         }
         for (const o of options) if (o.after > base && (!best || o.after > best.after)) best = { ...o, slot };

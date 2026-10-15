@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { must, newGame, nextTurn, pinAll, send, swap } from '../../engine';
-import { freshlyLit, mapViewFor, NO_EXTRAS } from './view';
+import { must, newGame, nextTurn, pinAll, preview, send, swap, warSpreadTarget } from '../../engine';
+import { freshlyLit, mapViewFor, NO_EXTRAS, warTag } from './view';
 
 const first = () => newGame('FIRST-WORLD');
 
@@ -16,14 +16,42 @@ describe('the map view', () => {
     expect([...v.joinedPins[0]].sort()).toEqual(['LNK', 'SHL']);
   });
 
-  it('draws the intro\'s calm world: every region lit, no ring, no tag, no pins', () => {
+  it('draws the intro\'s calm world at rest: nothing lit, no ring, no tag, no pins', () => {
     const v = mapViewFor(pinAll(first(), ['SHL']), { ...NO_EXTRAS, calm: true });
     expect(v.crisis).toBeNull();
     expect(v.warNext).toBeNull();
     expect(v.joinedPins).toEqual([]);
-    expect(Object.values(v.regions).every((r) => r.lit && !r.pinned && r.preview === null)).toBe(true);
+    expect(Object.values(v.regions).every((r) => !r.lit && !r.pinned && r.preview === null)).toBe(true);
     expect(v.regions.LNK.owner).toBe('gold');
     expect(['DNM', 'ORN', 'FLE'].map((id) => v.regions[id].owner)).toEqual(['red', 'red', 'red']);
+  });
+
+  it('words the war tag from the coming turn between turns, and from this turn during one', () => {
+    const s1 = first();
+    expect(mapViewFor(s1, NO_EXTRAS).warNext).toEqual({ id: expect.any(String), turns: 3 });
+    const done = must(send(pinAll(s1, ['SHL', 'LNK'])));
+    expect(done.phase).not.toBe('choose');
+    expect(mapViewFor(done, NO_EXTRAS).warNext).toMatchObject({ turns: 2, between: true });
+  });
+
+  it('on the turn war spreads, points the tag where war would go if SEND went now', () => {
+    // FIRST-WORLD played as coached to turn 3, when war spreads by itself.
+    let s = must(send(pinAll(first(), ['SHL', 'LNK', 'PBB', 'MRM'])));
+    s = must(nextTurn(s));
+    s = must(nextTurn(must(send(pinAll(s, ['TRN', 'MRD', 'EDV', 'LNK', 'SHL'])))));
+    const tag = mapViewFor(s, NO_EXTRAS).warNext!;
+    expect(tag.turns).toBe(1);
+    // Nothing pinned: the tag is the engine's.
+    expect(warTag(s, tag)).toEqual(tag);
+    // The crisis alone misses: it turns red, and war spreads from there if that moves its target.
+    const alone = pinAll(s, [s.deal.crisis]);
+    expect(preview(alone)!.regions).toBe(0);
+    // Ashkettle missed turns red beside Edda Vale, which war then takes instead of Marram.
+    expect([s.deal.crisis, tag.id]).toEqual(['ASK', 'MRM']);
+    expect(warSpreadTarget({ ...s.owner, ASK: 'red' })).toBe('EDV');
+    expect(mapViewFor(alone, NO_EXTRAS).warNext).toEqual({ id: 'EDV', turns: 1 });
+    // A tag two turns out is left alone (only this turn's spread is redirected).
+    expect(warTag(alone, { ...tag, turns: 2 })).toEqual({ ...tag, turns: 2 });
   });
 
   it('shows no finger or hover outside a turn', () => {

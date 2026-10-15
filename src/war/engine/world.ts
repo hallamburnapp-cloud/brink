@@ -79,22 +79,29 @@ export function crisisPool(owner: Readonly<OwnerMap>): { pool: RegionId[]; final
 }
 
 /**
- * The k regions a winning send turns gold: the crisis first, then the nearest regions that are not
- * gold (fewest joins from the crisis); at equal distance war's before grey, then the higher number,
- * then west, then north.
+ * The k regions a winning send turns gold. Pin it to claim it: the crisis first; then the pinned
+ * regions that are not gold; then the other regions that are not gold. Within each of the last two
+ * groups the nearest go first (fewest joins from the crisis); at equal distance war's before grey,
+ * then the higher number, then west, then north.
  */
-export function winOrder(crisis: RegionId, owner: Readonly<OwnerMap>, k: number): RegionId[] {
+export function winOrder(
+  crisis: RegionId,
+  owner: Readonly<OwnerMap>,
+  k: number,
+  pins: readonly RegionId[] = [],
+): RegionId[] {
   if (k <= 0) return [];
+  const near = (a: RegionId, b: RegionId) =>
+    distance(crisis, a) - distance(crisis, b) ||
+    (owner[a] === 'red' ? 0 : 1) - (owner[b] === 'red' ? 0 : 1) ||
+    REGION[b].weight - REGION[a].weight ||
+    REGION[a].x - REGION[b].x ||
+    REGION[a].y - REGION[b].y;
+  const pinned = new Set(pins);
   const cand = IDS.filter((r) => r !== crisis && owner[r] !== 'gold');
-  cand.sort(
-    (a, b) =>
-      distance(crisis, a) - distance(crisis, b) ||
-      (owner[a] === 'red' ? 0 : 1) - (owner[b] === 'red' ? 0 : 1) ||
-      REGION[b].weight - REGION[a].weight ||
-      REGION[a].x - REGION[b].x ||
-      REGION[a].y - REGION[b].y,
-  );
-  return [crisis, ...cand.slice(0, k - 1)];
+  const mine = cand.filter((r) => pinned.has(r)).sort(near);
+  const rest = cand.filter((r) => !pinned.has(r)).sort(near);
+  return [crisis, ...mine, ...rest].slice(0, k);
 }
 
 /**

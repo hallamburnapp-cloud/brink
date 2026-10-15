@@ -34,6 +34,7 @@ import {
   shown,
   speed,
   trayLeaving,
+  unsaved,
 } from './store';
 import { clearSave, readSave, writeSave } from './storage';
 import { turnOneStep } from './teach';
@@ -53,9 +54,29 @@ const TRAY_LEAVE_MS = 220;
 
 // ---------------------------------------------------------------- saving
 
+/** The finished game whose end card has been seen: there is nothing left of it to continue. */
+let endSeen: GameState | null = null;
+
+/**
+ * Save the game. A finished game stays saved until its end card has shown, so a reload, a killed
+ * app or a discarded tab during the last send still shows how the world ended (CONTINUE).
+ */
 function persist(s: GameState): void {
+  // Practice over a game in progress never touches the save: CONTINUE still finds that game.
+  if (unsaved.value) return;
+  if (s.phase === 'over' && s === endSeen) {
+    clearSave();
+    saved.value = false;
+    return;
+  }
   writeSave(s);
-  saved.value = s.phase !== 'over';
+  saved.value = true;
+}
+
+/** The end card is on show: the finished game is done with. */
+export function endShown(s: GameState): void {
+  endSeen = s;
+  if (run.value === s) persist(s);
 }
 
 /** Save the game on show (the page is being hidden). The intro's scenes are never saved. */
@@ -118,12 +139,18 @@ function randomSeed(): string {
   return `WORLD-${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
 }
 
-/** Put a game on the table. */
-function begin(s: GameState): void {
+/** A saved game that is not over: starting another game would lose it. */
+function inProgress(): boolean {
+  const s = readSave();
+  return !!s && s.phase !== 'over';
+}
+
+/** Put a game on the table. `practice`: it is never saved (a game in progress keeps the save). */
+function begin(s: GameState, { practice = false } = {}): void {
   // From the title, the title stays up until the war room's table has drawn.
   if (screen.value === 'title') raiseCurtain();
   stopIntro();
-  director().skip();
+  director().skip(true);
   cancelTimers();
   resetPlayback();
   getMap()?.fx.reset();
@@ -131,6 +158,7 @@ function begin(s: GameState): void {
   batch(() => {
     sheet.value = null;
     busy.value = false;
+    unsaved.value = practice;
     run.value = s;
     shown.value = s;
     screen.value = 'game';
@@ -168,7 +196,20 @@ export function play(): void {
   newGameNow();
 }
 
-/** NEW GAME (the title with a save, the end card): a new deal at once. */
+/**
+ * NEW GAME (the title with a save, the end card): a new deal at once, unless that would lose a saved
+ * game in progress that is not the one on show (the title's CONTINUE, or the game under a practice):
+ * then it asks once ('START A NEW GAME?').
+ */
+export function askNewGame(): void {
+  if (inProgress() && (screen.value === 'title' || unsaved.value)) {
+    sheet.value = 'newgame';
+    return;
+  }
+  newGameNow();
+}
+
+/** A new deal at once (the save is replaced). */
 export function newGameNow(): void {
   clearSave();
   saved.value = false;
@@ -186,31 +227,50 @@ export function continueGame(): void {
   begin(r?.ok ? r.state : s);
 }
 
-/** PRACTICE (the rules sheet): the coached first game again. */
+/**
+ * PRACTICE (the rules sheet): the coached first game again. A game in progress is kept: it is saved
+ * as it stands, and the practice is never saved over it, so CONTINUE on the title picks it up.
+ */
 export function practice(): void {
-  begin(E.newGame(E.FIRST_WORLD_SEED));
+  if (screen.value === 'game' && !introRunning()) saveNow();
+  begin(E.newGame(E.FIRST_WORLD_SEED), { practice: inProgress() });
 }
 
-/** CROWN DEMO: Example 3, the break, set up at turn 14. */
+/** CROWN DEMO: Example 3, the break, set up at turn 14 (like PRACTICE, never saved over a game in progress). */
 export function crownDemo(): void {
-  begin(E.newGame(E.CROWN_SEED, { demo: 'crown' }));
+  begin(E.newGame(E.CROWN_SEED, { demo: 'crown' }), { practice: inProgress() });
 }
 
 /** HOW TO PLAY (title or menu): the three intro screens, then the rules sheet. */
 export function howToPlay(): void {
-  if (busy.value) director().skip();
+  // From the menu over a send that is playing: it jumps to its end and settles first, so nothing
+  // of it lands on the intro (and the next turn is not dealt underneath it).
+  if (busy.value && sending) {
+    director().skip();
+    void sending.then(() => howToPlay());
+    return;
+  }
+  cancelTimers();
   const fromGame = screen.value === 'game' && run.value !== null;
   runIntro('rules', () => {
+    // One write: the screen never passes through a frame with nothing of ours open (the back
+    // button's guard would let go of its history entry in that frame).
+    batch(() => {
+      if (fromGame && run.value) {
+        shown.value = run.value;
+      } else {
+        dropCurtain();
+        screen.value = 'title';
+        shown.value = null;
+      }
+      sheet.value = 'rules';
+    });
     if (fromGame && run.value) {
-      shown.value = run.value;
-      coachStart(run.value);
       droneFor(run.value);
-    } else {
-      dropCurtain();
-      screen.value = 'title';
-      shown.value = null;
+      // A turn that had played out deals the next one now (its timer was cancelled for the intro).
+      if (run.value.phase === 'outcome') advance(run.value);
+      else coachStart(run.value);
     }
-    sheet.value = 'rules';
   });
 }
 
@@ -230,7 +290,7 @@ function cancelQuit(): void {
 /** Back to the title: the game is saved, the war room fades to the table colour, the title comes up. */
 export function quitToTitle(): void {
   saveNow();
-  director().skip();
+  director().skip(true);
   stopIntro();
   coachStop();
   cancelTimers();
@@ -252,6 +312,7 @@ function leaveGame(): void {
   resetPlayback();
   batch(() => {
     busy.value = false;
+    unsaved.value = false;
     screen.value = 'title';
     run.value = null;
     shown.value = null;
@@ -297,8 +358,21 @@ function cancelTimers(): void {
   trayLeaving.value = false;
 }
 
+/** The send playing now, settled once its outcome is on show (busy is false again). */
+let sending: Promise<void> | null = null;
+
 /** SEND: resolve the turn, play it, then show the outcome (and deal the next turn, or open the shop). */
-export async function sendNow(): Promise<void> {
+export function sendNow(): Promise<void> {
+  const p = sendAndPlay();
+  if (!busy.value) return p;
+  const mine = p.finally(() => {
+    if (sending === mine) sending = null;
+  });
+  sending = mine;
+  return mine;
+}
+
+async function sendAndPlay(): Promise<void> {
   const s = current();
   if (!s || s.phase !== 'choose') return;
   const step = turnOneStep(s);
@@ -323,8 +397,8 @@ export async function sendNow(): Promise<void> {
   } catch (e) {
     console.error('[war] playback failed', e);
   }
-  // The game was left or replaced while it played.
-  if (run.value !== next) return;
+  // The game was left (or is being left) or replaced while it played.
+  if (run.value !== next || quitting) return;
   batch(() => {
     resetPlayback();
     shown.value = next;

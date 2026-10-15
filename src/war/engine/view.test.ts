@@ -42,6 +42,9 @@ describe('goalView (the Big Board)', () => {
     expect(goalView(t2).warTag).toBe('WAR · 2 TURNS');
     const shop = must(send(pinAll(t2, ['TRN', 'MRD', 'EDV', 'LNK', 'SHL'])));
     expect(goalView(shop).warNext).toEqual({ id: 'MRM', turns: 1 });
+    // Over the shop no turn is being played: the tag counts from the coming turn.
+    expect(goalView(shop).warTag).toBe('WAR · NEXT TURN');
+    expect(goalView(after1).warTag).toBe('WAR · IN 2 TURNS');
     expect(goalView(must(nextTurn(shop))).warTag).toBe('WAR · THIS TURN');
   });
 
@@ -52,7 +55,7 @@ describe('goalView (the Big Board)', () => {
 });
 
 describe('the map', () => {
-  it('draws the crisis ring, the threads between pins and their scoring order', () => {
+  it('draws the crisis ring and the threads between pins', () => {
     const view = mapView(pinAll(t1, ['SHL', 'LNK', 'PBB']));
     expect(view.crisis).toEqual({ id: 'SHL', target: '64', doubled: true });
     expect(view.joinedPins).toEqual([
@@ -60,7 +63,6 @@ describe('the map', () => {
       ['PBB', 'SHL'],
       ['LNK', 'SHL'],
     ]);
-    expect(view.pinOrder).toEqual({ PBB: 1, LNK: 2, SHL: 3 });
     expect(view.warNext).toEqual({ id: 'MRM', turns: 3 });
     expect(mapView(t1).crisis!.doubled).toBe(false);
     expect(mapView(after1).crisis).toBeNull();
@@ -87,7 +89,7 @@ describe('the map', () => {
     expect(win.SHL.preview).toEqual({ kind: 'win', order: 1 });
     expect(win.PBB.preview).toEqual({ kind: 'win', order: 2 });
     expect(IDS.filter((r) => win[r].preview)).toHaveLength(2);
-    expect(regionViews(after1).SHL).toMatchObject({ owner: 'gold', brass: true, preview: null });
+    expect(regionViews(after1).SHL).toMatchObject({ owner: 'gold', preview: null });
   });
 
   it('knows where a staff acts', () => {
@@ -129,11 +131,11 @@ describe('the readout, the SEND label and the controls', () => {
   });
 
   it('labels SWAP and the coins', () => {
-    expect(controlsView(t1).swap).toEqual({ enabled: false, sub: 'next turn', reason: 'Swap opens next turn.' });
+    expect(controlsView(t1).swap).toEqual({ enabled: false, sub: 'from turn 2', reason: 'Swap opens next turn.' });
     expect(controlsView(t2).swap).toMatchObject({ enabled: true, sub: '1 left' });
     expect(controlsView(must(swap(t2))).swap).toMatchObject({ enabled: false, sub: 'used' });
     // An empty pile: SWAP is refused and says so instead of '1 left'.
-    expect(controlsView({ ...t2, deal: { ...t2.deal, pile: [] } }).swap).toMatchObject({ enabled: false, sub: 'none left' });
+    expect(controlsView({ ...t2, deal: { ...t2.deal, pile: [] } }).swap).toMatchObject({ enabled: false, sub: 'no new regions' });
     expect(controlsView(t1).coinsText).toBe('◆ 4');
   });
 });
@@ -191,7 +193,7 @@ describe('the end card', () => {
       ending: 'WAR',
       stars: 0,
       title: 'WAR',
-      lines: ['War took 10 regions. You held 18 of 30.', '2 grey regions from the final push.'],
+      lines: ['War took 10 regions. You held 18 of 30.', 'Only 2 free regions were left to win.'],
       nearMiss: IDS.slice(28),
     });
     // Lost on the last grey region: no '0 grey regions' line.

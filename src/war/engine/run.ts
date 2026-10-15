@@ -266,7 +266,7 @@ export function send(s: GameState): Result {
   let won: WonRegion[] = [];
   let lost: SendRecord['lost'] = null;
   if (k > 0) {
-    won = winOrder(crisis, d.owner, k).map((id, i) => ({
+    won = winOrder(crisis, d.owner, k, d.deal.pins).map((id, i) => ({
       id,
       order: i + 1,
       wasRed: d.owner[id] === 'red',

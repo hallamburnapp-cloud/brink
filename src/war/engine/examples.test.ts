@@ -10,10 +10,10 @@ import { regionsWon, target } from './ladder';
 import { newGame, nextTurn, send } from './run';
 import { scorePins } from './score';
 import { CROWN } from './seeds';
-import { bestOnOpening, previewNumber } from './shop';
+import { bestLastTurn, previewNumber } from './shop';
 import { medianScore, must, ownersFrom, pinAll, position, sendOptions } from './testkit';
 import type { GameState } from './types';
-import { preview, readoutView, sendLabel } from './view';
+import { preview, readoutView, sendLabel, shopView } from './view';
 import { countOwner, crisisPool, regionsOf, warSpreadTarget, winOrder } from './world';
 
 const sorted = (ids: readonly RegionId[]) => [...ids].sort();
@@ -55,6 +55,16 @@ describe('Example 1: FIRST-WORLD turns 1-2 (no staff)', () => {
     const four = previewOf(turn1, ['SHL', 'LNK', 'PBB', 'MRM']).p;
     expect([four.points, formatM10(four.m10)]).toEqual([33n, '8.0']);
     expect(four.wins).toEqual(['SHL', 'PBB']);
+  });
+
+  it('pin it to claim it: Shoal + Lantern Key + Lintel + Tallowmere (264) wins Shoal then the pinned Lintel, not the nearer Pebbleby', () => {
+    const v = previewOf(turn1, ['SHL', 'LNK', 'LTL', 'TLM']);
+    expect([v.p.score, v.label]).toEqual([264n, 'WINS 2 REGIONS']);
+    expect(v.p.wins).toEqual(['SHL', 'LTL']);
+    const s = must(send(pinAll(turn1, ['SHL', 'LNK', 'LTL', 'TLM'])));
+    expect(s.lastSend!.won.map((w) => w.id)).toEqual(['SHL', 'LTL']);
+    expect(s.owner.LTL).toBe('gold');
+    expect(s.owner.PBB).toBe('grey');
   });
 
   it('has 137 legal sends: median 145, 100 win, 40 win 2, best 390', () => {
@@ -108,8 +118,8 @@ describe('Example 1: FIRST-WORLD turns 1-2 (no staff)', () => {
     const p = [0, 1, 2].map((slot) => previewNumber(afterTurn2, slot)!);
     expect(p.map((x) => x.before)).toEqual([390n, 390n, 390n]);
     expect(p.map((x) => x.after)).toEqual([702n, 590n, 2_343n]);
-    expect(bestOnOpening(afterTurn2, ['DUTY', 'QM'])).toBe(1_062n);
-    expect(bestOnOpening(afterTurn2, ['QM', 'DUTY'])).toBe(1_062n);
+    expect(bestLastTurn(afterTurn2, ['DUTY', 'QM'])).toBe(1_062n);
+    expect(bestLastTurn(afterTurn2, ['QM', 'DUTY'])).toBe(1_062n);
   });
 });
 
@@ -192,6 +202,46 @@ describe('Example 2: an ordinary turn 11 (target 3,700, seed W56)', () => {
   });
 });
 
+describe("the shop's preview number: the turn just played, as it stood at SEND", () => {
+  // Example 2's deal on a shop turn (turn 12): the best send is played and the shop opens.
+  const shopAfter = (opening?: RegionId[], seats: StaffId[] = EX2_SEATS) =>
+    must(
+      send(
+        pinAll(
+          position(newGame('EX2'), { owner: ex2Owner, seats, turn: 12, deal: { crisis: 'LTL', lit: EX2_LIT, opening, target: target(12) } }),
+          BEST_TAPS,
+        ),
+      ),
+    );
+
+  it('its left number is the score just made when the best send was played (the won crisis is not counted gold)', () => {
+    const s = shopAfter();
+    expect(s.phase).toBe('shop');
+    expect(s.lastSend!.score).toBe(82_884n);
+    // Lintel (the crisis) and Dunmarrow are gold now; at SEND they were grey, so the Governor
+    // must not count them: rescored on today's map the same pins would make more than was made.
+    expect(scorePins(BEST, EX2_SEATS, s.owner, 'LTL').score).toBeGreaterThan(82_884n);
+    expect(bestLastTurn(s, EX2_SEATS)).toBe(82_884n);
+    expect(previewNumber(s, 0)!.before).toBe(82_884n);
+  });
+
+  it('counts the deal after a swap: a send made from swapped-in regions is never above the best', () => {
+    // Dealt without Marram, Floe End, Tallowmere and Orrinth; the swap brought them in.
+    const s = shopAfter(['LNK', 'DNM', 'GUL', 'PBB', 'DRF', 'WMS']);
+    expect(bestLastTurn(s, EX2_SEATS)).toBe(82_884n);
+  });
+
+  it('the header says when the line-up is behind: its best last turn cannot beat the next target', () => {
+    expect(shopView(shopAfter())!.behind).toBeNull();
+    const weak = shopAfter(undefined, ['DUTY']);
+    const v = shopView(weak)!;
+    const best = bestLastTurn(weak, ['DUTY']);
+    expect(best).toBeLessThan(target(13));
+    expect(v.behind).toEqual({ best, text: `YOUR BEST ${best.toLocaleString('en-US')} · NEXT TARGET 8,300` });
+    expect(v.offers.every((o) => o.preview === null || o.preview.before === best)).toBe(true);
+  });
+});
+
 describe('Example 3: the Crown (turn 14, target 12,000)', () => {
   it('loads the CROWN demo exactly', () => {
     const s = newGame('anything', { demo: 'crown' });
@@ -242,6 +292,16 @@ describe('Example 4: where wins and war go (Example 2 map, crisis Lintel)', () =
     expect(winOrder('LTL', ex2Owner, 3)).toEqual(['LTL', 'DNM', 'BRN']);
     expect(winOrder('LTL', ex2Owner, 5)).toEqual(['LTL', 'DNM', 'BRN', 'ICW', 'EDV']);
     expect(winOrder('LTL', ex2Owner, 8)).toEqual(['LTL', 'DNM', 'BRN', 'ICW', 'EDV', 'ASK', 'VSY', 'NWK']);
+    // The best pins are all gold but the crisis, so they change nothing here.
+    expect(winOrder('LTL', ex2Owner, 8, BEST)).toEqual(winOrder('LTL', ex2Owner, 8));
+  });
+
+  it('pinned regions that are not gold go first, nearest first, then the nearest others', () => {
+    // Vessary and Northwake (war's, 5 joins each; Vessary has the higher number) jump the nearer Dunmarrow.
+    expect(winOrder('LTL', ex2Owner, 4, ['NWK', 'VSY', 'LTL', 'MRM'])).toEqual(['LTL', 'VSY', 'NWK', 'DNM']);
+    // Gold pins are skipped; a win smaller than the pins takes the nearest pins.
+    expect(winOrder('LTL', ex2Owner, 2, ['NWK', 'VSY'])).toEqual(['LTL', 'VSY']);
+    expect(winOrder('LTL', ex2Owner, 1, ['NWK', 'VSY'])).toEqual(['LTL']);
   });
 
   it('a miss turns Lintel red (war 5 → 6)', () => {

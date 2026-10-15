@@ -5,7 +5,7 @@
  */
 import type { MapController, MapView, Owner, RegionId, RegionView } from './contract';
 import { REGIONS } from './data';
-import { isJoin, westEast } from './scene';
+import { isJoin } from './scene';
 
 export interface ViewSpec {
   gold?: RegionId[];
@@ -60,10 +60,8 @@ export function makeView(s: ViewSpec): MapView {
       capital: r.capital,
       port: r.port,
       preview: order >= 0 ? { kind: 'win', order: order + 1 } : s.preview === 'miss' && s.crisis?.id === r.id ? { kind: 'war', order: 1 } : null,
-      brass: !!s.brass?.includes(r.id),
     };
   }
-  const byWest = [...pins].sort(westEast);
   return {
     regions,
     joinedPins: joinsAmong(pins),
@@ -73,7 +71,6 @@ export function makeView(s: ViewSpec): MapView {
     highlight: s.highlight ?? null,
     finger: s.finger ?? null,
     hover: s.hover ?? null,
-    pinOrder: pins.length ? Object.fromEntries(byWest.map((id, i) => [id, i + 1])) : null,
   };
 }
 

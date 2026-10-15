@@ -11,7 +11,7 @@ import { BRAND } from '../../../config';
 import { goalView, newGame } from '../../engine';
 import { WAR_META } from '../../meta';
 import { createMap, Glyph } from '../art';
-import { continueGame, crownDemo, howToPlay, newGameNow, play } from '../app/actions';
+import { askNewGame, continueGame, crownDemo, howToPlay, play } from '../app/actions';
 import { prefs, reduced, saved, sheet } from '../app/store';
 import { readSave } from '../app/storage';
 import { FlapRow, type FlapStyle } from '../board/SplitFlap';
@@ -33,7 +33,11 @@ export function Title({ leaving = false, lifting = false }: { leaving?: boolean;
     const t = window.setTimeout(() => setWord(BRAND.name), reduced.value ? 0 : 250);
     return () => clearTimeout(t);
   }, []);
-  const hasSave = saved.value;
+  // While the title is the curtain over a game that has just started (which saves it), it keeps
+  // the buttons it was tapped on: PLAY never turns into CONTINUE as it fades.
+  const savedShown = useRef(saved.value);
+  if (!leaving) savedShown.current = saved.value;
+  const hasSave = savedShown.current;
   const first = !prefs.value.playedFirst;
   // Without the demo button the stack sits a little lower, nearer the thumb.
   const y = (top: number) => `${top + (REVIEW ? 0 : 24)}px`;
@@ -62,7 +66,7 @@ export function Title({ leaving = false, lifting = false }: { leaving?: boolean;
             <span class="btn-title">CONTINUE</span>
             <span class="btn-sub">{saveLine()}</span>
           </button>
-          <button class="btn-outline title-btn abs" style={{ top: y(614) }} onClick={newGameNow}>
+          <button class="btn-outline title-btn abs" style={{ top: y(614) }} onClick={askNewGame}>
             <span class="btn-title">NEW GAME</span>
           </button>
         </>
@@ -103,10 +107,11 @@ export function Title({ leaving = false, lifting = false }: { leaving?: boolean;
   );
 }
 
-/** 'Turn 9 · GOLD 14 · WAR 4' for the CONTINUE button. */
+/** 'Turn 9 · Gold 14 · War 4' for the CONTINUE button ('See how it ended' for a finished game). */
 function saveLine(): string {
   const s = readSave();
   if (!s) return '';
+  if (s.phase === 'over') return 'See how your world ended';
   const g = goalView(s);
   return `Turn ${s.turn} · Gold ${g.gold} · War ${g.red}`;
 }

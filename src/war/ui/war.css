@@ -440,6 +440,58 @@ body {
 .goal-bar.glow .seg.on {
   filter: brightness(1.25);
 }
+/* WORLD UNITED: the full GOLD bar shimmers end to end. */
+.goal-bar.gold.united {
+  overflow: hidden;
+}
+.goal-bar.gold.united::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, rgba(255, 250, 235, 0) 30%, rgba(255, 250, 235, 0.85) 50%, rgba(255, 250, 235, 0) 70%);
+  mix-blend-mode: screen;
+  animation: united-shimmer calc(1100ms / var(--speed, 1)) var(--ease-in-out) 2 both;
+}
+@keyframes united-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+/* CEASEFIRE: the war stops where it stands; its bar freezes in the ceased tone, stamped STOPPED. */
+.goal-bar.war.ceased .seg.on {
+  filter: saturate(0.45) brightness(0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 200, 190, 0.2);
+}
+.goal-count.war.ceased .flap .g {
+  color: #c9a8a2;
+}
+.war-stopped {
+  left: 245px;
+  top: 83px;
+  width: 129px;
+  height: 18px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 13, 17, 0.86);
+  box-shadow: inset 0 0 0 1.5px rgba(233, 226, 210, 0.7);
+  font: 700 10px/10px var(--font-label);
+  letter-spacing: 0.32em;
+  padding-left: 0.32em;
+  color: var(--linen);
+  rotate: -2deg;
+  animation: stamp-in calc(260ms / var(--speed, 1)) var(--ease-back) both;
+}
+@keyframes stamp-in {
+  from {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
 /* A miss in the final push ends the game: the board ghosts CEASEFIRE over the WAR bar. */
 .ceasefire-ghost {
   left: 245px;
@@ -805,7 +857,8 @@ body {
 .replace-tag {
   position: absolute;
   left: 50%;
-  top: 62px;
+  /* Inside the seat, over its chip: it never hangs over the map's top edge. */
+  top: 36px;
   transform: translateX(-50%);
   z-index: 2;
   display: inline-flex;
@@ -823,6 +876,15 @@ body {
 .replace-tag .rt-arrow {
   font-family: var(--font-label);
   font-weight: 700;
+}
+/* The tag takes the chip's place while the seat is offered for replacing. */
+.seat.replaceable .chip {
+  visibility: hidden;
+}
+/* Replacing this seat would score less than the line-up does now: the dim tone, not a gain's gold. */
+.replace-tag.worse {
+  background: linear-gradient(180deg, #4a4f57, #2c3036);
+  color: var(--pewter-hi);
 }
 .replace-tag.poor {
   background: linear-gradient(180deg, #3a1714, #241011);
@@ -857,9 +919,67 @@ body {
   --rim-hi: var(--gold-hi);
   --rim: var(--gold);
   --rim-lo: var(--gold-lo);
-  box-shadow: 0 0 16px rgba(242, 201, 76, 0.6), 0 2px 0 rgba(0, 0, 0, 0.55);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.55);
   animation: card-in 320ms var(--ease-out) both;
+  transition: opacity 300ms var(--ease-out);
 }
+/* ---- Screens fixer: the intro's lamp is a ghost (dashed, half lit): a hire to come, never a staff
+   the player owns and then loses. When its +4 lands it pops and lights for the beat. The empty
+   rail says what it is for ('STAFF · HIRE AFTER TURN 2') on a plate across the seats. */
+.seat.intro-seat {
+  opacity: 0.55;
+  /* A ghost: a dashed gold rim, no solid brass, no glow. */
+  background: none;
+  padding: 0;
+  border: 1.5px dashed rgba(247, 224, 163, 0.8);
+  box-shadow: none;
+}
+/* Its +4 lands: a scale bump only. It stays a ghost (dashed, 55%, no glow): never a staff owned. */
+.seat.intro-seat.fired {
+  animation: ghost-fire 420ms var(--ease-back) both;
+}
+/* TRY IT: the ghost fades away as turn 1 starts with the rail empty. */
+.seat.intro-seat.leaving {
+  opacity: 0;
+}
+@keyframes ghost-fire {
+  0% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-6px) scale(1.06);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+.seat.empty.quiet .felt {
+  background: rgba(0, 0, 0, 0.12);
+}
+.rail-plate {
+  z-index: 20;
+  left: 17px;
+  top: 128px;
+  width: 356px;
+  height: 22px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 13, 17, 0.82);
+  box-shadow: inset 0 0 0 1px rgba(233, 226, 210, 0.14);
+  font: 700 10px/10px var(--font-label);
+  letter-spacing: 0.22em;
+  padding-left: 0.22em;
+  color: var(--text-2);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.rail-plate.beside {
+  left: 90px;
+  width: 283px;
+}
+/* ---- end screens fixer */
 
 /* ------------------------------------------------------------------- map */
 .table {
@@ -927,6 +1047,15 @@ body {
   color: var(--text);
   transform-origin: 0 70%;
 }
+/* The game has ended: the readout says how, in the ending's colour (WORLD UNITED 30/30, WAR 10/10). */
+.ro-value.end-gold {
+  color: var(--own-gold-hi);
+  text-shadow: 0 0 10px rgba(242, 210, 122, 0.55);
+}
+.ro-value.end-red {
+  color: var(--alarm);
+  text-shadow: 0 0 10px rgba(224, 72, 60, 0.5);
+}
 .ro-value.arrive {
   animation: target-arrive calc(900ms / var(--speed, 1)) var(--ease-out) calc(250ms / var(--speed, 1)) both;
 }
@@ -951,6 +1080,24 @@ body {
   color: var(--own-gold);
   text-shadow: 0 0 8px rgba(242, 210, 122, 0.35);
 }
+/* ---- Screens fixer: before any pin the line is a hint ('PIN THE CRISIS FOR ×2'), quieter than a
+   number. During the intro the console wakes only when the lesson reaches it: on the goal screen
+   it rests dimmed and blank; once the ring drops, TARGET comes up alone. */
+.ro-line.hint {
+  color: var(--text-3);
+}
+.readout-layer.veil-off > :not(.readout),
+.readout-layer.veil-target > :not(.readout):not(.ro-target),
+.controls-layer.veil > :not(.controls) {
+  opacity: 0.3;
+  transition: opacity 300ms var(--ease-out);
+}
+.controls-layer.veil .btn-sub,
+.controls-layer.veil .send-sub,
+.controls-layer.veil .amount {
+  visibility: hidden;
+}
+/* ---- end screens fixer */
 .box {
   border: 2px solid var(--c);
   border-radius: 6px;
@@ -1167,7 +1314,7 @@ body {
   font-size: 26px;
   line-height: 26px;
 }
-/* A score of 10x the target or more, stamped over the middle of the map in 52 pt. */
+/* A score of 16x the target or more (SHOWCASE_AT), stamped over the map in 52 pt, in the half away from the ring. */
 .readout-layer > .showcase {
   left: 0;
   top: 171px;
@@ -1180,14 +1327,18 @@ body {
   gap: 6px;
   pointer-events: none;
 }
+/* Screens fixer: the showcase is placed (inline) in the half of the map away from the crisis ring;
+   its dark plate fills it and fades in with the number, a beat after the gold bloom, never a frame
+   before the number shows. */
 .showcase::before {
   content: '';
   position: absolute;
   left: 40px;
   right: 40px;
-  top: 178px;
-  height: 164px;
-  background: radial-gradient(closest-side, rgba(5, 8, 11, 0.9) 58%, rgba(5, 8, 11, 0));
+  top: 0;
+  bottom: 0;
+  background: radial-gradient(closest-side, rgba(5, 8, 11, 0.78) 58%, rgba(5, 8, 11, 0));
+  animation: fade-in calc(160ms / var(--speed, 1)) calc(80ms / var(--speed, 1)) both;
 }
 .showcase .big {
   position: relative;
@@ -1206,6 +1357,27 @@ body {
   background: rgba(5, 8, 11, 0.85);
   color: var(--own-gold-hi);
   animation: fade-in calc(200ms / var(--speed, 1)) calc(120ms / var(--speed, 1)) both;
+}
+/* WORLD UNITED: the loudest stamp in the game, in gold stencil over the all-gold map. */
+.showcase.united .big {
+  font: 400 42px/46px var(--font-stencil);
+  letter-spacing: 0.04em;
+  color: var(--own-gold-hi);
+  text-shadow: 0 0 20px rgba(255, 233, 168, 0.95), 0 0 52px rgba(242, 201, 76, 0.7), 0 3px 0 rgba(0, 0, 0, 0.65);
+  animation: united-in calc(320ms / var(--speed, 1)) var(--ease-back) both;
+}
+.showcase.united .sub {
+  font-size: 13px;
+  letter-spacing: 0.28em;
+}
+@keyframes united-in {
+  from {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+  55% {
+    opacity: 1;
+  }
 }
 @keyframes showcase-in {
   from {
@@ -1426,6 +1598,35 @@ body {
 .brass.beckon {
   animation: beckon 1.2s ease-in-out infinite;
 }
+/* ---- Screens fixer: SWAP can beckon too (the coach's swap lines, a deal no send can win). The
+   unlit SEND lever is brass with its lamp off: desaturated toward pewter, so it reads as off, not
+   as dirty metal. A word and its drawn glyph never part at a line end ('port ⚓'). */
+.btn-outline.swap.beckon {
+  animation: swap-beckon 1.2s ease-in-out infinite;
+}
+@keyframes swap-beckon {
+  50% {
+    transform: translateY(-1px);
+    border-color: var(--brass-hi) !important;
+    box-shadow: 0 0 0 1px rgba(247, 224, 163, 0.6), 0 0 18px 2px rgba(247, 224, 163, 0.45);
+  }
+}
+.brass.send.disabled {
+  background: linear-gradient(180deg, #7d786c 0%, #5e5a50 46%, #4a463e 78%, #3d3a34 100%) !important;
+}
+.brass.send.disabled .btn-title {
+  color: rgba(18, 16, 12, 0.6);
+}
+.rich-keep {
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-outline.swap.beckon {
+    animation: none;
+    border-color: var(--brass-hi) !important;
+  }
+}
+/* ---- end screens fixer */
 @keyframes beckon {
   50% {
     transform: translateY(-1px);
@@ -1572,13 +1773,15 @@ body {
   animation: coach-drop 200ms var(--ease-out) both;
 }
 /* UI v2: anchored by its foot, so a two-line line grows up from under the tray's lip. */
+/* Screens fixer: the shop's lines sit at the map's top edge too, not on the tray's lip, so the gold
+   in the middle of the map (the reason to shop) stays in view above the tray. */
 .coach.on-tray {
+  z-index: 17;
   left: 14px;
-  bottom: 386px;
+  top: 172px;
   width: 362px;
-  padding-bottom: 12px;
   rotate: 0.4deg;
-  animation: coach-tuck 220ms var(--ease-out) both;
+  animation: coach-drop 200ms var(--ease-out) both;
 }
 .coach.out {
   animation: coach-out 160ms var(--ease-in) both;
@@ -1695,6 +1898,17 @@ body {
 .tray-head .v {
   font: 800 13px/13px var(--font-num);
   color: var(--text);
+}
+/* Behind: the line-up's best last turn would miss the next target. Said in red, a turn early. */
+.tray-head.behind {
+  gap: 5px;
+}
+.tray-head.behind .n {
+  letter-spacing: 0.08em;
+}
+.tray-head.behind .n:first-child,
+.tray-head.behind .v.short {
+  color: var(--alarm);
 }
 .tray-coins {
   right: 16px;
@@ -2121,6 +2335,49 @@ body {
   background: linear-gradient(180deg, #1c2129, #10141a) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 3px 0 rgba(0, 0, 0, 0.55), 0 8px 16px rgba(0, 0, 0, 0.5);
 }
+/* ---- Screens fixer: the end card is compact (the map stays in view) and the console carries on:
+   the best send in the readout band, HOME and NEW GAME on the controls. */
+.end-layer .report {
+  padding: 12px 18px;
+}
+.end-layer .report-stars {
+  margin: 7px 0 4px;
+}
+.end-layer .report-line {
+  margin-top: 4px;
+}
+.end-layer .report-rows {
+  margin-top: 10px;
+}
+.end-layer .report-row {
+  min-height: 30px;
+}
+.end-best {
+  z-index: 34;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-top: 10px;
+  white-space: nowrap;
+}
+.end-best .eb-value {
+  font: 800 19px/20px var(--font-num);
+  color: var(--text);
+}
+.end-best .eb-note {
+  margin-left: auto;
+  font: 700 11px/16px var(--font-label);
+  letter-spacing: 0.12em;
+  color: var(--text-2);
+}
+.end-best .eb-note.won {
+  color: var(--own-gold);
+}
+.end-layer .end-btn,
+.end-layer .end-home {
+  animation: fade-in 260ms 300ms var(--ease-out) both;
+}
+/* ---- end screens fixer */
 
 /* =============================================================== sheets */
 /* UI v2 (screens): the menu, the quit confirmation and the rules (How to play) with PRACTICE. */
@@ -2168,6 +2425,7 @@ body {
   letter-spacing: 0.02em;
   color: var(--text-2);
   margin: 12px 0 0;
+  text-wrap: pretty;
 }
 .menu {
   left: 32px;
@@ -2261,6 +2519,7 @@ body {
   width: 358px;
 }
 .rules-goal {
+  text-wrap: pretty;
   margin: 0 0 12px;
   padding: 10px 12px;
   border-radius: 8px;
@@ -2278,6 +2537,7 @@ body {
 }
 .steps li {
   position: relative;
+  text-wrap: pretty;
   padding: 0 0 9px 28px;
   font: 500 14px/18px var(--font-label);
   letter-spacing: 0.02em;
@@ -2298,6 +2558,13 @@ body {
   font: 800 10px/10px var(--font-num);
   color: #2a1c08;
   background: radial-gradient(circle at 35% 30%, var(--brass-hi), var(--brass) 60%, var(--brass-2));
+}
+/* Screens fixer: what the map's marks mean, under the rules. */
+.rules-marks {
+  margin: 2px 0 10px 28px;
+  font: 600 13px/17px var(--font-label);
+  letter-spacing: 0.03em;
+  color: var(--text-3);
 }
 .w-gold {
   color: var(--own-gold);
@@ -2345,7 +2612,14 @@ body {
 }
 .title-screen.lifting {
   opacity: 0;
-  transition: opacity 260ms var(--ease-out);
+  /* Its background stays opaque until the words are gone (curtain.ts TITLE_WORDS_MS). */
+  transition: opacity 260ms var(--ease-out) 110ms;
+}
+/* Screens fixer: lifting, the title's words and buttons go first (110 ms), then its map fades into
+   the war room's: two text layers never cross-fade at the same spot. */
+.title-screen.lifting > .abs:not(.title-map) {
+  opacity: 0;
+  transition: opacity 110ms var(--ease-in);
 }
 /* The title's table fades up once it has drawn (the lamp coming on), never popping in. */
 .title-map {
@@ -2366,7 +2640,9 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, var(--table) 0%, rgba(11, 15, 20, 0.97) 28%, rgba(11, 15, 20, 0.25) 40%, rgba(11, 15, 20, 0.1) 52%,
+  /* Opaque behind the board, the premise and the legend (to y 300), clear by y 360: no map label
+     ever sits under the title's words. */
+  background: linear-gradient(180deg, var(--table) 0%, var(--table) 35.5%, rgba(11, 15, 20, 0.25) 42.7%, rgba(11, 15, 20, 0.1) 52%,
       rgba(11, 15, 20, 0.55) 62%, rgba(11, 15, 20, 0.96) 68%, var(--table) 74%);
 }
 .title-board {
@@ -2451,8 +2727,9 @@ body {
 .title-legend .red i {
   background: repeating-linear-gradient(135deg, rgba(122, 30, 23, 0.6) 0 1.5px, rgba(122, 30, 23, 0) 1.5px 4px), var(--own-red);
 }
+/* Map fixer: the swatch is the map's own free grey at rest (palette.ts greyTone('rest')), one neutral slate. */
 .title-legend .grey i {
-  background: #3a4552;
+  background: #595b5e;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 .title-main {
@@ -2499,12 +2776,15 @@ body {
   inset: 0;
   z-index: 50;
 }
+/* ---- Screens fixer: the intro's strip runs the map's full width (SKIP lives in the foot row), so a
+   beat sets in at most two lines at 16 pt; each new beat drops in. */
 .coach.big {
-  width: 302px;
+  width: 362px;
   min-height: 0;
-  padding: 8px 10px;
+  padding: 8px 12px;
   font: 600 16px/19px var(--font-label);
 }
+/* ---- end screens fixer */
 .intro-skip {
   border-radius: 7px;
   border: 1.5px solid rgba(201, 205, 212, 0.45) !important;
@@ -2521,17 +2801,38 @@ body {
   position: absolute;
   inset: -6px -4px;
 }
+/* The intro's foot row sits on a dark band of its own, so the bottom row's names never show
+   through the pill or get cut by its edges (those three regions play no part in the lessons). */
+.intro-foot {
+  left: 0;
+  top: 628px;
+  width: 390px;
+  height: 63px;
+  background: linear-gradient(180deg, rgba(11, 15, 20, 0), #0b0f14 14px);
+  pointer-events: none;
+}
+/* Screen 3 replays the same table: said, so a rewind never reads as the map changing its mind. */
+.intro-replay {
+  left: 14px;
+  top: 236px;
+  padding: 4px 8px 4px calc(8px + 0.22em);
+  border-radius: 3px;
+  background: #0b0f14;
+  box-shadow: inset 0 0 0 1px rgba(247, 224, 163, 0.5), 0 2px 6px rgba(0, 0, 0, 0.5);
+  font: 700 10px/10px var(--font-label);
+  letter-spacing: 0.22em;
+  color: var(--brass-hi);
+  pointer-events: none;
+  animation: fade-in 300ms var(--ease-out) both;
+}
 .intro-next {
-  left: 95px;
-  top: 632px;
-  width: 200px;
-  height: 44px;
-  border-radius: 22px;
+  /* Screens fixer: placed from R.introNext, in one row with SKIP at the foot of the map. */
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  background: rgba(10, 13, 17, 0.88);
+  background: #0b0f14;
   box-shadow: inset 0 0 0 1px rgba(247, 224, 163, 0.35), 0 6px 14px rgba(0, 0, 0, 0.55);
   opacity: 0;
   transition: opacity 300ms var(--ease-out);
@@ -2602,6 +2903,8 @@ body {
   .goal-bar.war.danger .seg.off,
   .goal-count.war.danger .goal-label,
   .ceasefire-ghost,
+  .goal-bar.gold.united::after,
+  .war-stopped,
   .brass.beckon {
     animation: none !important;
   }

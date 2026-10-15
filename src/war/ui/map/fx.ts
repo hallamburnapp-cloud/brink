@@ -18,7 +18,7 @@ export interface Pulse extends Timed {
   from: RegionId;
   to: RegionId;
 }
-/** Light blooming out from a point across the table (a slam of 10x the target or more). */
+/** Light blooming out from a point across the table (a showcase slam: 16x the target or more). */
 export interface Bloom extends Timed {
   rgb: RGB;
   x: number;
@@ -56,6 +56,9 @@ interface Waiter {
   resolve: () => void;
 }
 
+/** A travel's lit path stays on the joins this long after its pulse arrives, fading. */
+export const TRAVEL_LINGER_MS = 900;
+
 export function progress(t: Timed, now: number): number {
   if (t.dur <= 0) return 1;
   const p = (now - t.start) / t.dur;
@@ -81,10 +84,9 @@ export class FxState {
   pulses: Pulse[] = [];
   bloom: Bloom | null = null;
   shock: Shockwave | null = null;
-  drops: RegionTimed[] = [];
-  /** A brass pin landing: a brass ripple spreads from the tack. */
-  ripples: RegionTimed[] = [];
   lightsOut: LightsOut | null = null;
+  /** CEASEFIRE: the war's regions flash their outline once. */
+  cease: Timed | null = null;
   inks: InkSpread[] = [];
   travels: Travel[] = [];
   waves: Wave[] = [];
@@ -101,6 +103,12 @@ export class FxState {
   ringStamp: Timed | null = null;
   /** The ring collapsing into its region; `crisis` is the region it collapsed on. */
   ringCollapse: (Timed & { crisis: RegionId }) | null = null;
+  /** The ring catching the score (it stays caught until the next crisis). */
+  ringCatch: (Timed & { crisis: RegionId; win: boolean }) | null = null;
+  /** The war tag hopping to its next region. */
+  tagHop: (Timed & { from: RegionId; to: RegionId }) | null = null;
+  /** The war tag's count stamping in. */
+  tagStamp: Timed | null = null;
   /** Regions lighting up one by one on a deal or a swap. */
   lightUps = new Map<RegionId, LightUp>();
   private waiters: Waiter[] = [];
@@ -115,15 +123,16 @@ export class FxState {
     const live = <T extends Timed>(list: T[], tail = 0) => list.filter((e) => !ended(e, now, tail));
     this.flashes = live(this.flashes);
     this.pulses = live(this.pulses);
-    this.drops = live(this.drops);
-    this.ripples = live(this.ripples);
     // A finished ink lingers (fully flooded) until its owner has settled, so the plate never flickers back.
     this.inks = live(this.inks, 100);
-    this.travels = live(this.travels, 120);
+    this.travels = live(this.travels, TRAVEL_LINGER_MS);
     this.waves = live(this.waves);
     if (this.bloom && ended(this.bloom, now)) this.bloom = null;
     if (this.shock && ended(this.shock, now, 120)) this.shock = null;
     if (this.ringStamp && ended(this.ringStamp, now)) this.ringStamp = null;
+    if (this.tagHop && ended(this.tagHop, now)) this.tagHop = null;
+    if (this.tagStamp && ended(this.tagStamp, now)) this.tagStamp = null;
+    if (this.cease && ended(this.cease, now)) this.cease = null;
     for (const [id, l] of this.lightUps) if (ended(l, now)) this.lightUps.delete(id);
     for (const [key, t] of this.joinSnaps) if (now >= t + 420) this.joinSnaps.delete(key);
     for (const [id, t] of this.pinDrops) if (now >= t + 200) this.pinDrops.delete(id);
@@ -140,14 +149,16 @@ export class FxState {
     return (
       this.flashes.length > 0 ||
       this.pulses.length > 0 ||
-      this.drops.length > 0 ||
-      this.ripples.length > 0 ||
       this.inks.length > 0 ||
       this.travels.length > 0 ||
       this.waves.length > 0 ||
       this.bloom !== null ||
       this.shock !== null ||
       this.ringStamp !== null ||
+      this.tagHop !== null ||
+      this.tagStamp !== null ||
+      this.cease !== null ||
+      (this.ringCatch !== null && !ended(this.ringCatch, now)) ||
       (this.ringCollapse !== null && !ended(this.ringCollapse, now)) ||
       this.lightUps.size > 0 ||
       this.joinSnaps.size > 0 ||
@@ -171,9 +182,8 @@ export class FxState {
     this.pulses = [];
     this.bloom = null;
     this.shock = null;
-    this.drops = [];
-    this.ripples = [];
     this.lightsOut = null;
+    this.cease = null;
     this.inks = [];
     this.travels = [];
     this.waves = [];
@@ -183,6 +193,9 @@ export class FxState {
     this.pinDrops.clear();
     this.ringStamp = null;
     this.ringCollapse = null;
+    this.ringCatch = null;
+    this.tagHop = null;
+    this.tagStamp = null;
     this.lightUps.clear();
     const waiters = this.waiters;
     this.waiters = [];

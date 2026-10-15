@@ -6,6 +6,7 @@ import type { CrisisView, MapView, Owner, RegionId, RegionView } from './contrac
 import { LAND_JOINS, REGION, REGIONS, SEA_LANES, pairKey, type MapRegion } from './data';
 import { clamp01, easeOut, lerp } from './draw';
 import { progress, type FxState } from './fx';
+import type { PlateLevel } from './palette';
 
 /** A join between two pins: across a land border or causeway, or a dashed sea lane. */
 export type JoinKind = 'land' | 'lane';
@@ -19,7 +20,8 @@ export interface RegionVis {
   lit: boolean;
   /**
    * Lit and in play: pinned, or a pin here would be legal. Its lamp is on and its socket bright.
-   * A lit region that cannot be added drops to the dark plate at once, its marks at 30%.
+   * A lit region that cannot be added drops to the dark plate at once; its marks step back a
+   * little (gold's never do).
    */
   live: boolean;
   pinned: boolean;
@@ -29,17 +31,12 @@ export interface RegionVis {
   port: boolean;
   crisis: boolean;
   preview: RegionView['preview'];
-  brass: boolean;
   /** Flashed by the current send: its lamp holds bright. */
   scored: boolean;
   /** Dim the land layer is baked at (1 = full light; a send fades the rest). */
   dim: number;
   /** Dim right now, mid-transition (markers and overlays). */
   dimNow: number;
-  /** 1-based pin order badge, or null. */
-  order: number | null;
-  /** The badge turns to linen once the pin has scored. */
-  orderDone: boolean;
   /** Lighting up on a deal: 0 just lit, 1 fully warm (1 for everything else). */
   warm: number;
 }
@@ -57,6 +54,8 @@ export interface RingVis extends CrisisView {
   stamp: number | null;
   /** The collapse, 0..1 while it plays; 1 once collapsed (the ring is gone). */
   collapse: number | null;
+  /** The ring catching the score, 0..1 while it swells; and how the send came out once caught. */
+  caught: { p: number; win: boolean } | null;
 }
 
 export interface Scene {
@@ -66,9 +65,18 @@ export interface Scene {
   list: RegionVis[];
   /** A send is playing (dimExcept with ids): the sea veil and quieter coasts. */
   sweeping: boolean;
+  /**
+   * No deal is on the table (between turns, the title, the shop, the end cards): the plain world,
+   * its free regions at the rest tone with their names, rather than dark as though left out of a deal.
+   */
+  rest: boolean;
   threads: ThreadVis[];
   ring: RingVis | null;
   warNext: MapView['warNext'];
+  /** The war tag hopping from one region to another, 0..1. */
+  tagHop: { from: RegionId; to: RegionId; p: number } | null;
+  /** The war tag's count stamping in, 0..1. */
+  tagStamp: number | null;
   ceased: boolean;
   highlight: Set<RegionId> | null;
   finger: RegionId | null;
@@ -94,11 +102,28 @@ export function westEast(a: RegionId, b: RegionId): number {
 
 /**
  * During a send the scoring pins stay at full light; lit regions outside it fade to 30% and the
- * rest of the world to 50%, so the world stays legible as a world while the pins blaze.
+ * rest of the world to 50%, so the world stays legible as a world while the pins blaze. Gold never
+ * dims: it is yours for good, and dimmed gold reads as lost (the pins still stand out on it by
+ * their heads, threads and flashes).
  */
-function dimTarget(scoring: ReadonlySet<RegionId> | null, id: RegionId, lit: boolean): number {
-  if (!scoring || scoring.has(id)) return 1;
+export function dimTarget(scoring: ReadonlySet<RegionId> | null, id: RegionId, lit: boolean, owner: Owner): number {
+  if (!scoring || scoring.has(id) || owner === 'gold') return 1;
   return lit ? 0.3 : 0.5;
+}
+
+/** A plate's tone level: lit and in play, the plain world at rest, or dark (left out of the deal). */
+export function plateLevel(r: Pick<RegionVis, 'live'>, rest: boolean): PlateLevel {
+  return r.live ? 'lit' : rest ? 'rest' : 'dark';
+}
+
+/** No deal on the table: no ring and nothing lit or pinned. */
+export function atRest(view: MapView): boolean {
+  if (view.crisis) return false;
+  for (const id in view.regions) {
+    const r = view.regions[id];
+    if (r.lit || r.pinned) return false;
+  }
+  return true;
 }
 
 const EMPTY_REGION = (def: MapRegion): RegionView => ({
@@ -112,7 +137,6 @@ const EMPTY_REGION = (def: MapRegion): RegionView => ({
   capital: def.capital,
   port: def.port,
   preview: null,
-  brass: false,
 });
 
 export function buildScene(view: MapView, fx: FxState, now: number, reduced: boolean): Scene {
@@ -133,13 +157,13 @@ export function buildScene(view: MapView, fx: FxState, now: number, reduced: boo
     const waiting = !!light && now < light.start;
     const lit = v.lit && !waiting;
     const pinned = v.pinned;
-    const target = dimTarget(scoring, def.id, lit || pinned);
+    const owner = inkBefore.get(def.id) ?? fx.ownerOverride.get(def.id)?.owner ?? v.owner;
+    const target = dimTarget(scoring, def.id, lit || pinned, owner);
     const from = fx.dimFrom.get(def.id) ?? target;
-    const order = pinned ? (view.pinOrder?.[def.id] ?? null) : null;
     const vis: RegionVis = {
       id: def.id,
       def,
-      owner: inkBefore.get(def.id) ?? fx.ownerOverride.get(def.id)?.owner ?? v.owner,
+      owner,
       lit,
       live: lit && (pinned || v.addable),
       pinned,
@@ -147,13 +171,12 @@ export function buildScene(view: MapView, fx: FxState, now: number, reduced: boo
       capital: v.capital,
       port: v.port,
       crisis: def.id === crisisId,
-      preview: scoring ? null : v.preview,
-      brass: v.brass,
+      // While the send plays the win outlines step aside for the pins; a miss keeps its red hatch on
+      // the crisis, so it never reads as safe before the red ink runs.
+      preview: scoring && v.preview?.kind !== 'war' ? null : v.preview,
       scored: fx.scored.has(def.id),
       dim: target,
       dimNow: lerp(from, target, dimP),
-      order,
-      orderDone: order !== null && !!scoring && fx.scored.has(def.id),
       warm: light && !waiting ? easeOut(progress(light, now)) : 1,
     };
     regions[def.id] = vis;
@@ -173,10 +196,12 @@ export function buildScene(view: MapView, fx: FxState, now: number, reduced: boo
   let ring: RingVis | null = null;
   if (view.crisis && REGION[view.crisis.id]) {
     const c = fx.ringCollapse && fx.ringCollapse.crisis === view.crisis.id ? fx.ringCollapse : null;
+    const k = fx.ringCatch && fx.ringCatch.crisis === view.crisis.id ? fx.ringCatch : null;
     ring = {
       ...view.crisis,
       stamp: fx.ringStamp ? progress(fx.ringStamp, now) : null,
       collapse: c ? progress(c, now) : null,
+      caught: k ? { p: progress(k, now), win: k.win } : null,
     };
   }
 
@@ -186,9 +211,12 @@ export function buildScene(view: MapView, fx: FxState, now: number, reduced: boo
     regions,
     list,
     sweeping: !!scoring,
+    rest: atRest(view),
     threads,
     ring,
     warNext: view.warNext && REGION[view.warNext.id] ? view.warNext : null,
+    tagHop: fx.tagHop && now < fx.tagHop.start + fx.tagHop.dur ? { from: fx.tagHop.from, to: fx.tagHop.to, p: progress(fx.tagHop, now) } : null,
+    tagStamp: fx.tagStamp && now < fx.tagStamp.start + fx.tagStamp.dur ? progress(fx.tagStamp, now) : null,
     ceased: view.ceased,
     highlight: view.highlight ? new Set(view.highlight) : null,
     finger: view.finger && REGION[view.finger] ? view.finger : null,
@@ -208,7 +236,7 @@ export interface LandSignature {
 const OWNER_CODE: Record<Owner, string> = { grey: '.', gold: 'g', red: 'r' };
 
 export function landSignature(s: Scene): LandSignature {
-  const parts: string[] = [s.sweeping ? 'S' : '-', s.ceased ? 'C' : '-'];
+  const parts: string[] = [s.sweeping ? 'S' : '-', s.ceased ? 'C' : '-', s.rest ? 'R' : '-'];
   const regions: Record<RegionId, string> = {};
   for (const r of s.list) {
     parts.push(`${OWNER_CODE[r.owner]}${r.dim}`);

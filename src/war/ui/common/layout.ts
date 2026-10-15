@@ -20,8 +20,10 @@ export const R = {
   warBar: [245, 84, 129, 16],
   rail: [0, 107, 390, 64],
   map: [0, 171, 390, 520],
-  /** The intro's SKIP, top right of the map (a 44 pt hit height). */
-  skip: [322, 179, 52, 32],
+  /** The intro's SKIP, in the tap-to-continue row at the foot of the map (a 44 pt hit height). */
+  skip: [310, 648, 64, 32],
+  /** The intro's tap-to-continue pill (TRY IT on a first launch's last screen). */
+  introNext: [95, 644, 200, 40],
   // The readout.
   readout: [0, 691, 390, 48],
   target: [16, 693, 170, 20],
@@ -42,10 +44,13 @@ export const R = {
   reroll: [16, 677, 171, 44],
   next: [203, 677, 171, 44],
   receipt: [16, 729, 358, 28],
-  // The end screens.
-  endCard: [24, 200, 342, 300],
-  endNew: [24, 520, 342, 56],
-  endHome: [24, 584, 342, 44],
+  // The end screens: the card over the upper map (or the lower, when the near-miss regions are up
+  // there), the best send in the readout band, HOME and NEW GAME on the console's controls.
+  endCard: [24, 182, 342, 240],
+  endCardLow: [24, 446, 342, 240],
+  endBest: [16, 693, 358, 44],
+  endHome: [16, 745, 182, 56],
+  endNew: [206, 745, 168, 56],
 } as const satisfies Record<string, Rect>;
 
 export const OFFER_RECTS: readonly Rect[] = [R.offer0, R.offer1, R.offer2];
@@ -59,6 +64,17 @@ export const SEATS = 5;
 
 export const MAP_X = R.map[0];
 export const MAP_Y = R.map[1];
+
+/**
+ * Where the showcase (a score of 16x the target or more, stamped big over the map) is centred, in
+ * frame px: in the half of the map away from the crisis, so it never covers the ring and its target
+ * badge, and the score visibly travels into the ring afterwards. `crisisMapY` is the crisis pin's y
+ * in map px (null: no crisis known, the upper half).
+ */
+export function showcaseAt(crisisMapY: number | null): { x: number; y: number } {
+  const y = crisisMapY !== null && crisisMapY < R.map[3] / 2 ? 400 : 150;
+  return { x: R.map[0] + R.map[2] / 2, y: R.map[1] + y };
+}
 
 export function centre(r: Rect): { x: number; y: number } {
   return { x: r[0] + r[2] / 2, y: r[1] + r[3] / 2 };

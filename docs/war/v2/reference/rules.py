@@ -385,13 +385,16 @@ def lift(pins, r):
 
 
 # -------------------------------------------------------------------------------------- spread order
-def win_order(crisis, owner, k):
-    """The k regions a winning send turns gold: the crisis first, then the nearest regions that are not
-    gold (fewest joins from the crisis); at equal distance war's before grey, then the higher number,
-    then west, then north."""
-    cand = [r for r in IDS if r != crisis and owner[r] != 'gold']
-    cand.sort(key=lambda r: (DIST[crisis][r], 0 if owner[r] == 'red' else 1, -NUM[r], X[r], Y[r]))
-    return [crisis] + cand[:k - 1]
+def win_order(crisis, owner, k, pins=()):
+    """The k regions a winning send turns gold. Pin it to claim it: the crisis first; then the pinned
+    regions that are not gold; then the other regions that are not gold. Within each of the last two
+    groups the nearest go first (fewest joins from the crisis); at equal distance war's before grey,
+    then the higher number, then west, then north."""
+    key = lambda r: (DIST[crisis][r], 0 if owner[r] == 'red' else 1, -NUM[r], X[r], Y[r])
+    pinned = set(pins)
+    mine = sorted((r for r in IDS if r != crisis and r in pinned and owner[r] != 'gold'), key=key)
+    rest = sorted((r for r in IDS if r != crisis and r not in pinned and owner[r] != 'gold'), key=key)
+    return ([crisis] + mine + rest)[:k]
 
 
 def war_spread_target(owner):
@@ -541,7 +544,7 @@ class Game:
         sc, pts, m10 = score_pins(pins, self.seats, self.owner, self.crisis, self.oldhand_m10)
         k = regions_won(sc, self.target)
         if k:
-            regions = win_order(self.crisis, self.owner, k)
+            regions = win_order(self.crisis, self.owner, k, pins)
             label = 'WINS %d REGION%s' % (k, '' if k == 1 else 'S')
         elif self.final_push:
             regions, label = [], 'MISS · CEASEFIRE'
@@ -563,7 +566,7 @@ class Game:
                    firing=sum(1 for s in effective(self.seats) if s and s != 'HERALD'),
                    pops=self._pops(pins))
         if k:
-            won = win_order(self.crisis, self.owner, k)
+            won = win_order(self.crisis, self.owner, k, pins)
             rec.update(result='win', regions=len(won), won=won,
                        retaken=sum(1 for r in won if self.owner[r] == 'red'))
             for r in won:

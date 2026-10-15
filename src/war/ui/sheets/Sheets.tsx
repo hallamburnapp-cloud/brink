@@ -1,16 +1,17 @@
 /**
  * Sheets over the war room (SPEC section 11): the menu (always one tap away on the Big Board, and
- * on the back button and Esc), the quit confirmation, and the rules ('How to play', section 2's
- * copy word for word) with PRACTICE.
+ * on the back button and Esc), the quit confirmation, the rules ('How to play', section 2's copy
+ * word for word) with PRACTICE, and NEW GAME's confirmation when a saved game would be lost.
  */
 import type { JSX } from 'preact';
 import { useState } from 'preact/hooks';
 import { audio } from '../../../audio';
 import { menuView, type GameState } from '../../engine';
 import { Glyph } from '../art';
-import { howToPlay, practice, quitToTitle } from '../app/actions';
-import { RULES_COPY } from '../app/copy';
-import { prefs, reduced, screen, setPrefs, sheet } from '../app/store';
+import { howToPlay, newGameNow, practice, quitToTitle } from '../app/actions';
+import { MARKS_COPY, RULES_COPY } from '../app/copy';
+import { Rich } from '../common/text';
+import { prefs, reduced, screen, setPrefs, sheet, unsaved } from '../app/store';
 
 function stop(e: Event): void {
   e.stopPropagation();
@@ -28,6 +29,7 @@ export function Sheets({ s }: { s: GameState | null }): JSX.Element | null {
       {which === 'menu' && <Menu s={s} />}
       {which === 'quit' && <QuitConfirm />}
       {which === 'rules' && <Rules />}
+      {which === 'newgame' && <NewGameConfirm />}
     </div>
   );
 }
@@ -128,16 +130,38 @@ function Menu({ s }: { s: GameState | null }): JSX.Element {
 }
 
 function QuitConfirm(): JSX.Element {
+  // A practice over a game in progress is never saved: the game under it is what CONTINUE finds.
+  const practice = unsaved.value;
   return (
     <div class="sheet confirm" onClick={stop} role="alertdialog" aria-label="Leave this game?">
-      <div class="sheet-title">LEAVE THIS GAME?</div>
-      <p class="sheet-line">Leave this game? It is saved.</p>
+      <div class="sheet-title">{practice ? 'LEAVE PRACTICE?' : 'LEAVE THIS GAME?'}</div>
+      <p class="sheet-line">
+        {practice ? 'Practice is not saved. CONTINUE on the title picks up your game.' : 'Your game is saved. CONTINUE on the title picks it up.'}
+      </p>
       <div class="confirm-row">
         <button class="btn-outline" onClick={() => (sheet.value = 'menu')}>
           <span class="btn-title">STAY</span>
         </button>
         <button class="btn-outline leave" onClick={quitToTitle}>
           <span class="btn-title">LEAVE</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** NEW GAME over a saved game in progress: asked once, so a tap never loses a game. */
+function NewGameConfirm(): JSX.Element {
+  return (
+    <div class="sheet confirm" onClick={stop} role="alertdialog" aria-label="Start a new game?">
+      <div class="sheet-title">START A NEW GAME?</div>
+      <p class="sheet-line">Your game in progress will be lost.</p>
+      <div class="confirm-row">
+        <button class="btn-outline" onClick={() => (sheet.value = null)}>
+          <span class="btn-title">KEEP MY GAME</span>
+        </button>
+        <button class="btn-outline leave" onClick={newGameNow}>
+          <span class="btn-title">NEW GAME</span>
         </button>
       </div>
     </div>
@@ -155,7 +179,7 @@ function Coloured({ text }: { text: string }): JSX.Element {
             {p}
           </b>
         ) : (
-          <span key={i}>{p}</span>
+          <Rich key={i} text={p} size={11} />
         ),
       )}
     </>
@@ -164,7 +188,10 @@ function Coloured({ text }: { text: string }): JSX.Element {
 
 function Rules(): JSX.Element {
   const [goal, ...rest] = RULES_COPY;
-  const back = () => (sheet.value = screen.value === 'game' ? 'menu' : null);
+  // Opened from a game, BACK to it is the bright button; PRACTICE is the quiet one (it never loses
+  // the game in progress either way: practice over it is not saved).
+  const inGame = screen.value === 'game';
+  const back = () => (sheet.value = inGame ? 'menu' : null);
   return (
     <div class="sheet rules" onClick={stop} role="dialog" aria-label="How to play">
       <div class="sheet-head">
@@ -183,13 +210,29 @@ function Rules(): JSX.Element {
           </li>
         ))}
       </ol>
+      <p class="rules-marks">
+        <Rich text={MARKS_COPY} size={11} />
+      </p>
       <div class="confirm-row">
-        <button class="btn-outline" onClick={back}>
-          <span class="btn-title">{screen.value === 'game' ? 'BACK' : 'CLOSE'}</span>
-        </button>
-        <button class="brass" onClick={practice}>
-          <span class="btn-title">PRACTICE</span>
-        </button>
+        {inGame ? (
+          <>
+            <button class="btn-outline" onClick={practice}>
+              <span class="btn-title">PRACTICE</span>
+            </button>
+            <button class="brass" onClick={back}>
+              <span class="btn-title">BACK</span>
+            </button>
+          </>
+        ) : (
+          <>
+            <button class="btn-outline" onClick={back}>
+              <span class="btn-title">CLOSE</span>
+            </button>
+            <button class="brass" onClick={practice}>
+              <span class="btn-title">PRACTICE</span>
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

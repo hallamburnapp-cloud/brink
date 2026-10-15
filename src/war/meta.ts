@@ -5,7 +5,7 @@
  */
 export const WAR_META = {
   /** One line for the manifest, the search snippet's lead and the title screen. */
-  tagline: 'Turn the whole world gold before war takes ten regions.',
+  tagline: 'Turn the whole world gold before war holds 10.',
   /** The page's meta description and link-preview text. */
   description:
     'Win the world: a short strategy game on a world map in a war room. Each turn a crisis flares; pin the regions ' +

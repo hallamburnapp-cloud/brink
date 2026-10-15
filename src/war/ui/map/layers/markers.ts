@@ -1,19 +1,21 @@
 /**
- * Markers (STYLE 5.7 layer 14), drawn every frame on top of the land: decorative brass tacks, pin
- * sockets on lit regions and pins pushed into them, glyphs on dark regions, numbers with capital
- * stars and port anchors, names, pin order badges, the numbered gold chips of a win preview and
- * the war tag. Socket and pin art is pre-rendered into small sprites, so a frame is mostly
- * drawImage and text.
+ * Markers (STYLE 5.7 layer 14), drawn every frame on top of the land: pin sockets on lit regions
+ * and pins pushed into them, numbers with capital stars and port anchors, names, the gold check of
+ * a win preview and the war tag. The only numbers on the map are the regions' own (and the target
+ * on the ring): no order badges, no glyphs that look like prices. Socket and pin art is
+ * pre-rendered into small sprites, so a frame is mostly drawImage and text.
  */
 import type { Owner } from '../contract';
-import { GLYPH, MAP_H as H, MAP_W as W, REGION } from '../data';
+import { MAP_H as H, MAP_W as W, REGION, REGIONS } from '../data';
 import {
   anchor,
   easeIn,
+  easeInOut,
+  easeOut,
   FONT_LABEL,
   FONT_MONO,
   glowStroke,
-  glyphPath,
+  lerp,
   roundRect,
   starPath,
   text,
@@ -21,10 +23,9 @@ import {
   withShadow,
   type Gfx,
 } from '../draw';
-import { BRASS, css, GOLD, GOLD_INK, greyGlyph, hex, LINEN, markInk, mix, RING_WHITE, TYPE_INK, WAR, WAR_TEXT, WHITE, type RGB } from '../palette';
+import { BRASS, css, GOLD, GOLD_INK, hex, LINEN, markInk, mix, RING_WHITE, WAR, WAR_TEXT, WHITE, type RGB } from '../palette';
 import type { RegionVis, Scene } from '../scene';
-import { BRASS_TACK } from './effects';
-import { ringRadius, WIN_CHIP_AT, WIN_CHIP_HALF } from './ring';
+import { BADGE_H, labelBoxes, ringLayout, ringRadius, WIN_CHIP_AT, WIN_CHIP_HALF, type Box } from './ring';
 import { makeLayer, type Layer } from './static';
 
 /** Sprite canvases are SPRITE pt square with the pin centre at SPRITE_C. */
@@ -155,82 +156,12 @@ function litHalo(g: Gfx, x: number, y: number, alpha: number, breath: number): v
   ctx.fill();
 }
 
-/** One brass tack (4 pt), lit from the top-left: a crisis this region was won on. */
-function tack(g: Gfx, bx: number, by: number, alpha: number, shadowK = 1, size = 1): void {
-  const { ctx } = g;
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  if (size !== 1) {
-    ctx.translate(bx, by);
-    ctx.scale(size, size);
-    ctx.translate(-bx, -by);
-  }
-  withShadow(g, `rgba(0,0,0,${0.8 * shadowK})`, 2.5 / 3, 1 / 3, 1.6 / 3, () => {
-    ctx.fillStyle = css(BRASS.lo);
-    ctx.beginPath();
-    ctx.arc(bx, by, 4, 0, Math.PI * 2);
-    ctx.fill();
-  });
-  const grad = ctx.createLinearGradient(bx - 3, by - 3, bx + 3, by + 3);
-  grad.addColorStop(0, css(BRASS.hi));
-  grad.addColorStop(0.5, css(BRASS.b));
-  grad.addColorStop(1, css(BRASS.c));
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(bx, by, 3.3, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = 'rgba(255,248,225,0.9)';
-  ctx.beginPath();
-  ctx.arc(bx - 1.1, by - 1.2, 0.9, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(40,26,8,0.9)';
-  ctx.lineWidth = 0.6;
-  ctx.beginPath();
-  ctx.arc(bx, by, 4, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.restore();
-}
-
-/**
- * The decorative brass tack. `drop` (0..1) animates it: big, close to the eye, falling from 60 pt
- * above onto the glass (250 ms, shrinking from 2.5x as it falls, its shadow gathering under it),
- * then a 60 ms bounce.
- */
-function paintBrass(g: Gfx, x: number, y: number, alpha: number, drop: number | null): void {
-  const bx = x + BRASS_TACK.dx;
-  const restY = y + BRASS_TACK.dy;
-  let by = restY;
-  let shadowK = 1;
-  let size = 1;
-  if (drop !== null) {
-    const fallEnd = 250 / 310;
-    if (drop < fallEnd) {
-      const f = easeIn(drop / fallEnd);
-      by -= 60 * (1 - f);
-      size = 2.5 - 1.5 * f;
-      shadowK = 0.2 + 0.8 * f;
-      const { ctx } = g;
-      ctx.save();
-      ctx.fillStyle = `rgba(0,0,0,${(0.15 + 0.4 * f) * alpha})`;
-      ctx.beginPath();
-      ctx.ellipse(bx + 1, restY + 1.5, 4 + 6 * (1 - f), 2 + 3 * (1 - f), 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    } else {
-      by -= 3 * Math.sin(Math.PI * ((drop - fallEnd) / (1 - fallEnd)));
-    }
-  }
-  tack(g, bx, by, alpha, shadowK, size);
-}
-
 export interface MarkerTiming {
   /** Pin-drop progress per region (0..1), for pins just pushed in. */
   pinDrop: (id: string) => number | null;
-  /** Brass-drop progress per region (0..1). */
-  brassDrop: (id: string) => number | null;
 }
 
-/** Where a region's win-preview number sits: above and right of its pin, clear of its number. */
+/** Where a region's win-preview check sits: above and right of its pin, clear of its number. */
 export function winChipAt(r: RegionVis): { x: number; y: number } {
   return { x: r.def.x + WIN_CHIP_AT.dx, y: r.def.y + WIN_CHIP_AT.dy };
 }
@@ -241,17 +172,55 @@ function nameInk(owner: Owner, a: number): { color: string; halo: [string, numbe
     : { color: css(LINEN, 0.94 * a), halo: [`rgba(6,11,17,${0.85 * a})`, 2.6] };
 }
 
+function numberHalo(owner: Owner, a: number, wide: number): [string, number] {
+  return [owner === 'gold' ? `rgba(255,240,196,${0.6 * a})` : `rgba(6,11,17,${0.85 * Math.max(a, 0.4)})`, wide];
+}
+
+/** The capital star or the port anchor after a number, at `tagX`. */
+function paintTag(g: Gfx, r: RegionVis, tagX: number, y: number, big: boolean, a: number): void {
+  const { ctx } = g;
+  const ink: RGB = r.owner === 'gold' ? GOLD_INK : LINEN;
+  if (r.capital) {
+    ctx.save();
+    starPath(ctx, tagX, y, big ? 4 : 3.4);
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = r.owner === 'gold' ? `rgba(255,240,196,${0.6 * a})` : `rgba(6,11,17,${0.85 * Math.max(a, 0.4)})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = css(ink, a);
+    ctx.fill();
+    ctx.restore();
+  } else if (r.port) {
+    anchor(ctx, tagX, y + 0.2, big ? 7 : 6, css(ink, a * 0.9), big ? 1 : 0.9);
+  }
+}
+
+/** How wide a capital star or port anchor is after a number (0 for neither). */
+function tagWidth(r: RegionVis, big: boolean): number {
+  return r.capital || r.port ? (big ? 9 : 8) : 0;
+}
+
+/**
+ * How strongly a region's marks show (SPEC 8, "While choosing"). A lit region that cannot be added
+ * to these pins steps back (its socket loses its glow, its number and name dim a little) but stays
+ * readable; gold never dims, because faded gold reads as lost. Out of the deal, free and war regions
+ * step back further while a deal is on the table, and read in full when the world is at rest.
+ */
+export function markAlpha(r: Pick<RegionVis, 'owner' | 'lit' | 'live' | 'pinned'>, rest: boolean): { socket: number; number: number; name: number } {
+  const gold = r.owner === 'gold';
+  if (r.pinned || r.live) return { socket: 1, number: 1, name: 1 };
+  if (r.lit) return gold ? { socket: 0.45, number: 1, name: 1 } : { socket: 0.45, number: 0.75, name: 0.62 };
+  if (gold || rest) return { socket: 0, number: gold ? 0.9 : 0.85, name: gold ? 0.9 : 0.72 };
+  return { socket: 0, number: 0.7, name: 0.42 };
+}
+
 function paintRegionMarker(g: Gfx, r: RegionVis, s: Scene, t: MarkerTiming): void {
   const { ctx } = g;
   const { x, y } = r.def;
   const a = r.dimNow;
   const ink = markInk(r.owner);
+  const k = markAlpha(r, s.rest);
 
-  const drop = t.brassDrop(r.id);
-  if (r.brass || drop !== null) paintBrass(g, x, y, Math.max(0.55, a), drop);
-
-  // Lit but not in play (it cannot be added to these pins): its marks drop to 30%.
-  const markA = r.lit && !r.live ? 0.3 * a : a;
   if (r.pinned) {
     const push = t.pinDrop(r.id);
     // Pushed in: from 1.4x above the glass down to 1.0 (accelerating in, stopping dead).
@@ -260,7 +229,7 @@ function paintRegionMarker(g: Gfx, r: RegionVis, s: Scene, t: MarkerTiming): voi
   } else if (r.lit) {
     const breath = s.reduced ? 0.5 : 0.5 + 0.5 * Math.sin((s.now / BREATH_MS) * Math.PI * 2 + r.def.index * 1.7);
     if (r.live) litHalo(g, x, y, a * (r.joinable ? 1.4 : 1), breath);
-    blit(g, socketSprite(g.k), x, y, markA);
+    blit(g, socketSprite(g.k), x, y, k.socket * a);
     if (r.joinable) {
       // It would join the pins already down: a ring breathes round its socket.
       const jb = s.reduced ? 0.6 : 0.5 + 0.5 * Math.sin((s.now / JOIN_BREATH_MS) * Math.PI * 2);
@@ -278,111 +247,133 @@ function paintRegionMarker(g: Gfx, r: RegionVis, s: Scene, t: MarkerTiming): voi
       ring();
       ctx.restore();
     }
-  } else {
-    glyphPath(ctx, GLYPH[r.def.colour], x, y, 6);
-    ctx.fillStyle = css(r.owner === 'grey' ? greyGlyph(r.def.colour) : ink.glyph, 0.85 * a);
-    ctx.fill();
   }
 
-  // The number, then the capital star or the port anchor.
-  const big = r.lit || r.pinned;
-  const wx = x + (r.pinned ? 11.5 : big ? 10.5 : 6);
-  const wFont = big ? `800 11px ${FONT_MONO}` : `700 8.5px ${FONT_MONO}`;
   const label = String(r.def.weight);
-  const wA = big ? markA : 0.88 * a;
-  text(ctx, label, wx, y + 0.5, {
-    font: wFont,
-    color: css(ink.text, wA),
-    align: 'left',
-    halo: [r.owner === 'gold' ? `rgba(255,240,196,${0.6 * wA})` : `rgba(6,11,17,${0.85 * Math.max(wA, 0.4)})`, big ? 3 : 2.4],
-  });
-  const tagX = wx + textWidth(ctx, label, wFont) + (big ? 5 : 4);
-  const tagA = big ? markA : 0.7 * a;
-  const tagInk: RGB = r.owner === 'gold' ? GOLD_INK : LINEN;
-  if (r.capital) {
-    ctx.save();
-    starPath(ctx, tagX, y, big ? 4 : 3.2);
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = r.owner === 'gold' ? `rgba(255,240,196,${0.6 * tagA})` : `rgba(6,11,17,${0.85 * Math.max(tagA, 0.4)})`;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.fillStyle = css(tagInk, tagA);
-    ctx.fill();
-    ctx.restore();
-  } else if (r.port) {
-    anchor(ctx, tagX, y + 0.2, big ? 7 : 5.6, css(tagInk, tagA * 0.9), big ? 1 : 0.85);
-  }
-
-  if (big) {
-    const n = nameInk(r.owner, markA);
+  const numA = k.number * a;
+  const nameA = k.name * a;
+  if (r.lit || r.pinned) {
+    // In the deal: the number right of the socket, then the star or anchor; the name under it.
+    const wx = x + (r.pinned ? 11.5 : 10.5);
+    const font = `800 11px ${FONT_MONO}`;
+    text(ctx, label, wx, y + 0.5, { font, color: css(ink.text, numA), align: 'left', halo: numberHalo(r.owner, numA, 3) });
+    paintTag(g, r, wx + textWidth(ctx, label, font) + 5, y, true, numA);
+    const n = nameInk(r.owner, nameA);
     text(ctx, r.def.name.toUpperCase(), x, y + 15.5, { font: `600 9px ${FONT_LABEL}`, color: n.color, halo: n.halo, tracking: 0.6 });
+    return;
   }
-
-  // The scoring order counts off during the send; while choosing, the only numbers on the map are
-  // the gold win numbers, so a pin never carries two.
-  if (r.order !== null && s.sweeping && a > 0.5) {
-    const bx = x - 8.5;
-    const by = y - 8.5;
-    const done = r.orderDone;
-    ctx.save();
-    withShadow(g, 'rgba(0,0,0,0.6)', 2 / 3, 0.5 / 3, 1 / 3, () => {
-      ctx.fillStyle = done ? css(LINEN, 0.95) : 'rgba(20,24,30,0.95)';
-      ctx.beginPath();
-      ctx.arc(bx, by, 5, 0, Math.PI * 2);
-      ctx.fill();
-    });
-    ctx.strokeStyle = done ? 'rgba(42,37,32,0.6)' : css(LINEN, 0.6);
-    ctx.lineWidth = 0.7;
-    ctx.stroke();
-    ctx.restore();
-    text(ctx, String(r.order), bx, by + 0.4, { font: `800 7px ${FONT_MONO}`, color: done ? css(TYPE_INK) : css(LINEN, 0.95) });
-  }
+  // Out of the deal: the number (and its star or anchor) centred on the pin, the name under it.
+  const font = `700 9.5px ${FONT_MONO}`;
+  const nw = textWidth(ctx, label, font);
+  const tw = tagWidth(r, false);
+  const x0 = x - (nw + (tw ? tw + 2 : 0)) / 2;
+  text(ctx, label, x0, y - 2.5, { font, color: css(ink.text, numA), align: 'left', halo: numberHalo(r.owner, numA, 2.6) });
+  if (tw) paintTag(g, r, x0 + nw + 2 + tw / 2, y - 3, false, numA);
+  const n = nameInk(r.owner, nameA);
+  text(ctx, r.def.name.toUpperCase(), x, y + 8.5, { font: `600 8.5px ${FONT_LABEL}`, color: n.color, halo: n.halo, tracking: 0.55 });
 }
 
-/** The numbered gold chip on a region a send would win (1 = the crisis). */
-function paintWinChip(g: Gfx, r: RegionVis, order: number): void {
+/** The gold check on a region a send would win: it turns gold (the order is the engine's, not the player's to read). */
+function paintWinCheck(g: Gfx, r: RegionVis): void {
   const { ctx } = g;
   const { x, y } = winChipAt(r);
-  const label = String(order);
-  const font = `800 9.5px ${FONT_MONO}`;
-  const w = Math.max(2 * WIN_CHIP_HALF, textWidth(ctx, label, font) + 8);
   const h = 2 * WIN_CHIP_HALF;
   ctx.save();
   withShadow(g, 'rgba(0,0,0,0.65)', 1.2, 0.4, 1, () => {
     ctx.fillStyle = css(GOLD);
-    roundRect(ctx, x - w / 2, y - h / 2, w, h, 3.5);
+    roundRect(ctx, x - h / 2, y - h / 2, h, h, 3.5);
     ctx.fill();
   });
   ctx.strokeStyle = 'rgba(58,44,10,0.9)';
   ctx.lineWidth = 0.9;
   ctx.stroke();
-  ctx.strokeStyle = 'rgba(255,250,230,0.7)';
-  ctx.lineWidth = 0.6;
+  ctx.strokeStyle = css(GOLD_INK);
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
   ctx.beginPath();
-  ctx.moveTo(x - w / 2 + 3, y - h / 2 + 1);
-  ctx.lineTo(x + w / 2 - 3, y - h / 2 + 1);
+  ctx.moveTo(x - 3.6, y + 0.2);
+  ctx.lineTo(x - 1, y + 2.8);
+  ctx.lineTo(x + 3.8, y - 2.6);
   ctx.stroke();
   ctx.restore();
-  text(ctx, label, x, y + 0.6, { font, color: css(GOLD_INK) });
 }
 
 const WAR_TAG_FONT = `700 11px ${FONT_LABEL}`;
 const WAR_TAG_H = 17;
 
-/** The war tag's words: 'WAR · 3 TURNS', 'WAR · 2 TURNS', 'WAR · THIS TURN'. */
-export function warTagText(turns: number): string {
-  return turns <= 1 ? 'WAR · THIS TURN' : `WAR · ${turns} TURNS`;
+/**
+ * The war tag's words. During a turn: 'WAR · 3 TURNS', 'WAR · 2 TURNS', 'WAR · THIS TURN'. Between
+ * turns (`between`: the count runs from the coming turn): 'WAR · IN 2 TURNS', 'WAR · NEXT TURN'.
+ * As war spreads into the region: 'WAR · NOW'.
+ */
+export function warTagText(turns: number, between = false): string {
+  if (turns <= 0) return 'WAR · NOW';
+  if (between) return turns === 1 ? 'WAR · NEXT TURN' : `WAR · IN ${turns} TURNS`;
+  return turns === 1 ? 'WAR · THIS TURN' : `WAR · ${turns} TURNS`;
 }
 
-/** Where the war tag sits: under the region's marks (under the ring on a crisis), or above near the bottom edge. */
-export function warTagAt(r: RegionVis, width: number): { x: number; y: number } {
+/** Sideways moves the war tag may make to clear a neighbour's name (map points). */
+const TAG_SHIFTS = [0, 8, 16, 24, 32].flatMap((d) => (d ? [-d, d] : [0]));
+
+const tagSpots = new Map<string, { x: number; y: number }>();
+
+/**
+ * Where the war tag sits: under the region's marks (under the ring on a crisis), or above them near
+ * the bottom edge. It keeps clear of the crisis ring's chip (`avoid`, a must) and of the names and
+ * numbers of the regions round it (the ones a player is about to pin), moving a little sideways or
+ * above its region when it has to; the smallest move that clears them wins.
+ */
+export function warTagAt(r: RegionVis, width: number, avoid: Box | null = null): { x: number; y: number } {
+  const key = `${r.id}|${r.crisis ? 1 : 0}|${Math.round(width)}|${avoid ? `${avoid.x0},${avoid.y0},${avoid.x1},${avoid.y1}` : ''}`;
+  let at = tagSpots.get(key);
+  if (!at) {
+    at = placeWarTag(r, width, avoid);
+    if (tagSpots.size > 512) tagSpots.clear();
+    tagSpots.set(key, at);
+  }
+  return at;
+}
+
+function placeWarTag(r: RegionVis, width: number, avoid: Box | null): { x: number; y: number } {
   // One place whether the region is lit or not, so the tag never jumps when a deal lights it.
   const below = r.crisis ? ringRadius(r.id) + 12 : 31;
   const above = r.crisis ? ringRadius(r.id) + 34 : 30;
-  let y = r.def.y + below;
-  if (y + WAR_TAG_H / 2 > H - 3) y = r.def.y - above;
-  const x = Math.min(W - width / 2 - 3, Math.max(width / 2 + 3, r.def.x));
-  return { x, y };
+  const cx = r.def.x;
+  const clampX = (x: number) => Math.min(W - width / 2 - 3, Math.max(width / 2 + 3, x));
+  const box = (x: number, y: number): Box => ({ x0: x - width / 2, y0: y - WAR_TAG_H / 2, x1: x + width / 2, y1: y + WAR_TAG_H / 2 });
+  const low = r.def.y + below;
+  const high = r.def.y - above;
+  const rows = [
+    ...(low + WAR_TAG_H / 2 <= H - 3 ? [{ y: low, cost: 0 }] : []),
+    ...(high - WAR_TAG_H / 2 >= 6 ? [{ y: high, cost: 18 }] : []),
+  ];
+  if (!rows.length) return { x: clampX(cx), y: high };
+  const names = REGIONS.filter((o) => o.id !== r.id && Math.abs(o.x - cx) < 140 && Math.abs(o.y - r.def.y) < 90).flatMap((o) => labelBoxes(o.id));
+  let best = { x: clampX(cx), y: rows[0].y, cost: Infinity };
+  for (const row of rows) {
+    for (const dx of TAG_SHIFTS) {
+      const x = clampX(cx + dx);
+      const b = box(x, row.y);
+      const chip = avoid ? overlapArea(b, avoid) : 0;
+      const cost = row.cost + 0.5 * Math.abs(x - cx) + (chip > 0 ? 1e6 : 0) + names.reduce((sum, n) => sum + overlapArea(b, n), 0);
+      if (cost < best.cost - 1e-6) best = { x, y: row.y, cost };
+    }
+  }
+  return { x: best.x, y: best.y };
+}
+
+function overlapArea(a: Box, b: Box): number {
+  const w = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
+  const h = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
+  return w > 0 && h > 0 ? w * h : 0;
+}
+
+/** The crisis ring's chip, which the war tag keeps clear of. */
+function chipBox(s: Scene): Box | null {
+  if (!s.ring) return null;
+  const L = ringLayout(s.ring.id, s.ring.target);
+  return { x0: L.badge.x - L.width / 2 - 2, y0: L.badge.y - BADGE_H / 2 - 2, x1: L.badge.x + L.width / 2 + 2, y1: L.badge.y + BADGE_H / 2 + 2 };
 }
 
 function paintWarTag(g: Gfx, s: Scene): void {
@@ -390,16 +381,29 @@ function paintWarTag(g: Gfx, s: Scene): void {
   if (!w) return;
   const r = s.regions[w.id];
   const { ctx } = g;
-  const label = warTagText(w.turns);
+  const label = warTagText(w.turns, w.between);
   const width = textWidth(ctx, label, WAR_TAG_FONT) + 0.9 * label.length + 14;
-  const { x, y } = warTagAt(r, width);
+  const avoid = chipBox(s);
+  let { x, y } = warTagAt(r, width, avoid);
+  // The tag hops from the region it was on, in a low arc, so the player sees where war goes next.
+  const hop = s.tagHop;
+  if (hop && hop.to === w.id && s.regions[hop.from]) {
+    const from = warTagAt(s.regions[hop.from], width, avoid);
+    const e = easeInOut(hop.p);
+    x = lerp(from.x, x, e);
+    y = lerp(from.y, y, e) - 14 * Math.sin(Math.PI * e);
+  }
+  // A new count stamps in: the tag swells and settles.
+  const sc = s.tagStamp === null ? 1 : 1 + 0.22 * (1 - easeOut(s.tagStamp));
   const urgent = w.turns <= 1;
   const beat = urgent && !s.reduced ? 0.5 + 0.5 * Math.sin((s.now / 900) * Math.PI * 2) : 0.5;
   // A send that would win the region first makes the tag moot: it steps back.
   const a = Math.max(0.6, r.dimNow) * (r.preview?.kind === 'win' ? 0.45 : 1);
   ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(sc, sc);
   ctx.globalAlpha = a;
-  const box = () => roundRect(ctx, x - width / 2, y - WAR_TAG_H / 2, width, WAR_TAG_H, 3);
+  const box = () => roundRect(ctx, -width / 2, -WAR_TAG_H / 2, width, WAR_TAG_H, 3);
   if (urgent) {
     glowStroke(ctx, () => {
       box();
@@ -415,19 +419,20 @@ function paintWarTag(g: Gfx, s: Scene): void {
   ctx.lineWidth = 1;
   box();
   ctx.stroke();
-  ctx.restore();
-  text(ctx, label, x, y + 0.6, {
+  ctx.globalAlpha = 1;
+  text(ctx, label, 0, 0.6, {
     font: WAR_TAG_FONT,
     color: urgent ? css(WHITE, a) : css(mix(WAR_TEXT, WHITE, 0.15), a),
     tracking: 0.9,
   });
+  ctx.restore();
 }
 
 export function paintMarkers(g: Gfx, s: Scene, t: MarkerTiming): void {
   // Unpinned first, so pins (the player's choices) always sit on top.
   for (const r of s.list) if (!r.pinned) paintRegionMarker(g, r, s, t);
   for (const r of s.list) if (r.pinned) paintRegionMarker(g, r, s, t);
-  for (const r of s.list) if (r.preview?.kind === 'win') paintWinChip(g, r, r.preview.order);
+  for (const r of s.list) if (r.preview?.kind === 'win') paintWinCheck(g, r);
   paintWarTag(g, s);
   if (s.finger) paintFinger(g, REGION[s.finger].x, REGION[s.finger].y, s.now, s.reduced);
 }

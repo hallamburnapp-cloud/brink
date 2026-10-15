@@ -138,11 +138,11 @@ describe('staff', () => {
 
   it('has the seat chips, with the Surveyor and Old Hand live', () => {
     expect(STAFF.map((x) => seatChip(x.id))).toEqual([
-      '+4', '+20', '+0', '×1.0', '×2 CAPITAL', '×3 IF 4+', '×1.5 GOLD', '×1.5 PORT', 'ALL PINS ★ ⚓', 'COPY',
+      '+4', '+20', '+0', '×1', '×2 CAPITAL', '×3 IF 4+', '×1.5 GOLD', '×1.5 PORT', 'ALL PINS ★ ⚓', 'COPY',
     ]);
     expect(seatChip('SURVEYOR', { gold: 14 })).toBe('+4');
     expect(seatChip('OLDHAND', { oldHandM10: 14 })).toBe('×1.4');
-    expect(seatChip('OLDHAND', { oldHandM10: 30 })).toBe('×3.0');
+    expect(seatChip('OLDHAND', { oldHandM10: 30 })).toBe('×3');
   });
 
   it('colours chips by what they add and knows where each acts', () => {

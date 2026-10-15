@@ -19,10 +19,15 @@ import {
 } from '../../engine';
 import {
   beatsOf,
+  BRISK_PLATE_HOLD_MS,
+  CEASEFIRE_BUZZ,
+  CALM_GAP_MS,
+  CATCH_MS,
   COLLAPSE_MS,
   CASCADE_CAP_MS,
   eventDuration,
   HOLD_AFTER_MULT_MS,
+  isBrisk,
   multPitch,
   multWeight,
   outcomeSchedule,
@@ -35,13 +40,18 @@ import {
   sendSchedule,
   shakeFor,
   SHOP_HOLD_MS,
+  SHOWCASE_AT,
   SHOWCASE_HOLD_MS,
   showcaseLine,
   sizeOf,
   slamIntensity,
   SLIDE_MS,
   tickIntensity,
+  thinSounds,
   TO_RING_MS,
+  UNITED_BUZZ,
+  UNITED_HOLD_MS,
+  WAR_ENDING_BUZZ,
   WIN_CAP_MS,
   type Cue,
   type OutcomeCue,
@@ -70,7 +80,7 @@ function ex2(owner = ownersFrom(EX2_GOLD, EX2_RED), target?: bigint, finalPush =
 }
 const example2 = () => sent(ex2(), ['LTL', 'TLM', 'ORN', 'FLE', 'MRM']);
 
-function cascade(rec: SendRecord, opts: { reduced?: boolean; rate?: number; newSeats?: Set<number> } = {}) {
+function cascade(rec: SendRecord, opts: { reduced?: boolean; rate?: number; newSeats?: Set<number>; brisk?: boolean } = {}) {
   return sendSchedule({
     trace: rec.trace,
     score: rec.score,
@@ -79,7 +89,20 @@ function cascade(rec: SendRecord, opts: { reduced?: boolean; rate?: number; newS
     newSeats: opts.newSeats,
     reduced: !!opts.reduced,
     rate: opts.rate ?? 1,
+    brisk: opts.brisk,
   });
+}
+
+/** No sound repeats closer than `gap` ms to itself. */
+function spaced(cues: readonly (Cue | OutcomeCue)[], gap: number): boolean {
+  const last = new Map<string, number>();
+  for (const c of cues) {
+    if (c.do !== 'sound') continue;
+    const at = last.get(c.sfx);
+    if (at !== undefined && c.t - at < gap) return false;
+    last.set(c.sfx, c.t);
+  }
+  return true;
 }
 
 function outcomeInput(rec: SendRecord, opts: { reduced?: boolean; riserPlayed?: boolean } = {}) {
@@ -189,8 +212,9 @@ describe('FIRST-WORLD turn 1: 264, WIN 2', () => {
     expect(of(s.cues, 'showcase')).toHaveLength(0);
     const toRing = of(s.cues, 'toRing')[0];
     expect(toRing).toMatchObject({ t: s.hitAt + PLATE_HOLD_MS, from: 'plate', ms: TO_RING_MS });
-    expect(s.end).toBe(toRing.t + TO_RING_MS);
-    expect(of(s.cues, 'landed')[0].t).toBe(s.end);
+    expect(of(s.cues, 'landed')[0].t).toBe(toRing.t + TO_RING_MS);
+    // The ring catches the score and holds a beat before the outcome collapses it.
+    expect(s.end).toBe(toRing.t + TO_RING_MS + CATCH_MS);
   });
 
   it('runs about 3.3 s to the ring, and the whole turn about 5 s', () => {
@@ -209,10 +233,9 @@ describe('FIRST-WORLD turn 1: 264, WIN 2', () => {
       ['SHL', 'SHL', 300, 600, 2, 3],
       ['PBB', 'SHL', 1150, 400, 3, 3],
     ]);
-    expect(out(o.cues, 'travel')).toEqual([{ t: 1000, do: 'travel', path: ['SHL', 'PBB'], stepMs: 150 }]);
+    expect(out(o.cues, 'travel')).toEqual([{ t: 1000, do: 'travel', path: ['SHL', 'PBB'], stepMs: 150, colour: 'gold' }]);
     expect(out(o.cues, 'coins').map((c) => c.coins)).toEqual([5, 6]);
     expect(out(o.cues, 'coin').map((c) => c.region)).toEqual(['SHL', 'PBB']);
-    expect(out(o.cues, 'brass').map((c) => c.region)).toEqual(['SHL']);
     // No war this turn, no ending: the tag settles once the regions have changed hands.
     expect(out(o.cues, 'take')).toHaveLength(0);
     expect(out(o.cues, 'tag')).toHaveLength(1);
@@ -246,7 +269,7 @@ describe('FIRST-WORLD turn 1: 264, WIN 2', () => {
     expect(s.end / 4).toBeLessThan(900);
   });
 
-  it('fits in 1.2 s with reduced motion, keeping every sound and flying nothing', () => {
+  it('fits in 1.2 s with reduced motion, flying nothing, with one pin note, one multiplier note and the slam', () => {
     const r = cascade(rec, { reduced: true });
     const o = outcome(rec, { reduced: true, riserPlayed: false });
     expect(r.end).toBeLessThanOrEqual(REDUCED_BUDGET);
@@ -254,7 +277,14 @@ describe('FIRST-WORLD turn 1: 264, WIN 2', () => {
     expect(of(r.cues, 'fly')).toHaveLength(0);
     expect(of(r.cues, 'shake')).toHaveLength(0);
     expect(of(r.cues, 'toRing')).toHaveLength(0);
-    expect(of(r.cues, 'sound').length).toBe(of(s.cues, 'sound').length);
+    expect(sounds(r.cues.filter((c) => c.t < r.hitAt), 'tally_tick')).toHaveLength(1);
+    expect(sounds(r.cues, 'tally_mult')).toHaveLength(1);
+    // The one multiplier note is the climb's top pitch.
+    const top = Math.max(...sounds(s.cues, 'tally_mult').map((c) => (c as { intensity: number }).intensity));
+    expect(sounds(r.cues, 'tally_mult')[0]).toMatchObject({ intensity: top });
+    expect(sounds(r.cues, 'tally_slam')).toHaveLength(1);
+    expect(spaced(r.cues, CALM_GAP_MS)).toBe(true);
+    expect(spaced(o.cues, CALM_GAP_MS)).toBe(true);
     expect(out(o.cues, 'claim')).toHaveLength(2);
     expect(out(o.cues, 'travel')).toHaveLength(0);
   });
@@ -383,6 +413,10 @@ describe('the CROWN: 5,598,720, WIN 7 (466x)', () => {
     expect(out(o.cues, 'claim')).toHaveLength(7);
     expect(out(o.cues, 'coin')).toHaveLength(0);
     expect(out(o.cues, 'coins')).toHaveLength(7);
+    // Calm, not a burst: no sound repeats within 120 ms (the full CROWN plays 15 ×2 thumps).
+    expect(spaced(r.cues, CALM_GAP_MS)).toBe(true);
+    expect(spaced(o.cues, CALM_GAP_MS)).toBe(true);
+    expect(of(r.cues, 'sound').length).toBeLessThan(of(s.cues, 'sound').length / 4);
   });
 
   it('caps a longer send at 8 s by playing its beats closer together', () => {
@@ -430,26 +464,41 @@ describe('war spreads by itself after turn 3', () => {
   s = must(nextTurn(s));
   s = must(send(pinAll(s, ['TRN', 'MRD', 'EDV', 'LNK', 'SHL'])));
   s = must(nextTurn(must(buy(s, 2))));
-  const best = sendOptions(s)[0];
-  const { rec } = sent(s, best.pins);
+  // The best send that wins but leaves Marram (war's tag) unpinned: war takes it after the claims.
+  const opts = sendOptions(s);
+  const leaves = opts.find((o) => !o.pins.includes('MRM') && sent(s, o.pins).rec.spread?.id === 'MRM' && sent(s, o.pins).rec.result === 'win')!;
+  const { rec } = sent(s, leaves.pins);
 
-  it('takes Marram half a second after the outcome, with a low drum, and moves the tag', () => {
+  it('drums half a second after the outcome, runs a red pulse over the border, then takes Marram, and moves the tag', () => {
     expect(rec.turn).toBe(3);
     expect(rec.spread).toMatchObject({ id: 'MRM' });
     const o = outcome(rec);
     const take = out(o.cues, 'take').find((c) => c.region === 'MRM')!;
     const lastClaim = out(o.cues, 'claim').at(-1)!;
-    expect(take.t).toBe(lastClaim.t + lastClaim.ms + 500);
-    expect(take.from).toBe(rec.spread!.from);
-    expect(take.ms).toBe(700);
-    expect(take.red).toBe(rec.red);
-    expect(sounds(o.cues, 'flashpoint_hit').map((c) => c.t)).toEqual([take.t]);
+    const drum = lastClaim.t + lastClaim.ms + 500;
+    expect(sounds(o.cues, 'flashpoint_hit').map((c) => c.t)).toEqual([drum]);
+    expect(out(o.cues, 'travel').filter((c) => c.colour === 'red')).toEqual([
+      { t: drum, do: 'travel', path: [rec.spread!.from, 'MRM'], stepMs: 150, colour: 'red' },
+    ]);
+    expect(take).toMatchObject({ t: drum + 150, from: rec.spread!.from, ms: 700, red: rec.red, spread: true });
     // The tag moves once, after war has spread: never to its next target before then.
     expect(out(o.cues, 'tag').map((c) => c.t)).toEqual([take.t + 700]);
+    // The coach names the region with the drum, not after the send has played.
+    expect(out(o.cues, 'spreadLine')).toEqual([{ t: drum, do: 'spreadLine', region: 'MRM' }]);
   });
 
   it('draws the Harbourmaster hired in the shop as new on this send', () => {
     expect(rec.newHires).toHaveLength(1);
+  });
+
+  it('pin it to claim it: the best send pins Marram and wins it, so war spreads elsewhere', () => {
+    const best = sent(s, opts[0].pins).rec;
+    expect(opts[0].pins).toContain('MRM');
+    expect(best.won.map((w) => w.id)).toContain('MRM');
+    expect(best.spread?.id).not.toBe('MRM');
+    // The red ink runs into the region war really takes, and nothing red runs into Marram.
+    const o = outcome(best);
+    expect(out(o.cues, 'take').map((c) => c.region)).toEqual([best.spread!.id]);
   });
 });
 
@@ -472,7 +521,18 @@ describe('endings', () => {
     expect(sunrise.t).toBeGreaterThanOrEqual(o.settled);
     expect(wave).toMatchObject({ region: 'QLN', t: sunrise.t + RISER_MS, ms: 1200 });
     expect(sounds(o.cues, 'ante_smash').map((c) => c.t)).toEqual([sunrise.t]);
-    expect(o.end).toBe(wave.t + 1200 + 300);
+    // The loudest beat in the game: the console says so, WORLD UNITED slams over the map with the
+    // wave, a rising run of notes and the longest haptic; the stamp lifts, then the gold world holds.
+    expect(out(o.cues, 'ending')).toEqual([{ t: sunrise.t, do: 'ending', ending: 'WORLD UNITED' }]);
+    expect(out(o.cues, 'united')).toEqual([{ t: wave.t, do: 'united', region: 'QLN' }]);
+    expect(out(o.cues, 'shake')).toContainEqual({ t: wave.t, do: 'shake', px: 6, ms: 300 });
+    expect(out(o.cues, 'buzz').map((c) => c.pattern)).toContainEqual(UNITED_BUZZ);
+    const run = out(o.cues, 'sound').filter((c) => c.sfx === 'tally_tick' && c.t >= wave.t);
+    expect(run).toHaveLength(12);
+    expect(run.map((c) => c.intensity)).toEqual([...run.map((c) => c.intensity)].sort((a, b) => a - b));
+    const off = out(o.cues, 'unitedOff')[0];
+    expect(off.t).toBe(wave.t + 1200 + 300);
+    expect(o.end).toBe(off.t + UNITED_HOLD_MS);
   });
 
   it('CEASEFIRE: a push miss changes no region; red stops pulsing', () => {
@@ -483,6 +543,9 @@ describe('endings', () => {
     expect(out(o.cues, 'claim')).toHaveLength(0);
     expect(out(o.cues, 'ceasefire')).toHaveLength(1);
     expect(out(o.cues, 'drone').at(-1)!.level).toBe(0);
+    // The war stopping is felt as well as heard, and the console says how it ended.
+    expect(out(o.cues, 'buzz').map((c) => c.pattern)).toContainEqual(CEASEFIRE_BUZZ);
+    expect(out(o.cues, 'ending').map((c) => c.ending)).toEqual(['CEASEFIRE']);
   });
 
   it('WAR: the tenth red region, then the lights go out over grey for 2 s', () => {
@@ -493,6 +556,11 @@ describe('endings', () => {
     const o = outcome(rec);
     const take = out(o.cues, 'take')[0];
     expect(take).toMatchObject({ region: 'LTL', red: 10 });
+    expect(take.spread).toBeUndefined();
+    // War's red pulse crosses from the war region next to Lintel as the miss lands.
+    expect(out(o.cues, 'travel')).toEqual([{ t: 0, do: 'travel', path: [take.from, 'LTL'], stepMs: take.t, colour: 'red' }]);
+    // The loss buzzes heavier than any miss.
+    expect(out(o.cues, 'buzz').map((c) => c.pattern)).toContainEqual(WAR_ENDING_BUZZ);
     const lights = out(o.cues, 'lightsOut')[0];
     expect(lights.ms).toBe(2000);
     expect(lights.t).toBeGreaterThanOrEqual(take.t + take.ms);
@@ -500,5 +568,49 @@ describe('endings', () => {
     const r = outcome(rec, { reduced: true });
     expect(r.end).toBeLessThanOrEqual(REDUCED_OUTCOME_BUDGET);
     expect(out(r.cues, 'lightsOut')).toHaveLength(1);
+  });
+});
+
+describe('fanfare and pace', () => {
+  const { rec } = firstWorld();
+  const at = (r: number) => sendSchedule({ trace: rec.trace, score: rec.score, target: (rec.score * 10n) / BigInt(Math.round(r * 10)), win: true, reduced: false });
+
+  it('plays the showcase and the gold bloom from 16x the target (three regions on the ladder), not at 12x', () => {
+    expect(SHOWCASE_AT).toBe(16);
+    const twelve = at(12);
+    expect(of(twelve.cues, 'showcase')).toHaveLength(0);
+    expect(of(twelve.cues, 'bloom')).toHaveLength(0);
+    expect(of(twelve.cues, 'toRing')[0].from).toBe('plate');
+    const sixteen = at(16);
+    expect(of(sixteen.cues, 'showcase')).toHaveLength(1);
+    expect(of(sixteen.cues, 'bloom')).toHaveLength(1);
+  });
+
+  it('plays a send that changes little brisk: a miss, or one region under 4x', () => {
+    expect(isBrisk(false, 0, 0.2)).toBe(true);
+    expect(isBrisk(true, 1, 2.3)).toBe(true);
+    expect(isBrisk(true, 1, 4)).toBe(false);
+    expect(isBrisk(true, 2, 4.1)).toBe(false);
+    const full = cascade(rec);
+    const brisk = cascade(rec, { brisk: true });
+    expect(brisk.end).toBeLessThan(full.end - 400);
+    expect(of(brisk.cues, 'toRing')[0].t).toBe(brisk.hitAt + BRISK_PLATE_HOLD_MS);
+    expect(of(brisk.cues, 'land').map((c) => c.value)).toEqual(of(full.cues, 'land').map((c) => c.value));
+  });
+
+  it('thins a burst of one sound to one every gap, keeping other cues', () => {
+    const cues = [
+      { t: 0, do: 'sound', sfx: 'thump', intensity: 1 },
+      { t: 30, do: 'sound', sfx: 'thump', intensity: 1 },
+      { t: 30, do: 'sound', sfx: 'tick', intensity: 1 },
+      { t: 30, do: 'press' },
+      { t: 130, do: 'sound', sfx: 'thump', intensity: 1 },
+    ] as Cue[];
+    expect(thinSounds(cues, 120).map((c) => [c.t, c.do === 'sound' ? c.sfx : c.do])).toEqual([
+      [0, 'thump'],
+      [30, 'tick'],
+      [30, 'press'],
+      [130, 'thump'],
+    ]);
   });
 });

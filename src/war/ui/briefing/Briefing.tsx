@@ -1,6 +1,7 @@
 /**
  * The shop (SPEC 7 and 9), in the Briefing tray that rises over the lower map after turns 2, 4,
- * 6 ...: 'SHOP · NEXT TARGET 1,600' and the coins in hand, three staff cards (object, name, rule,
+ * 6 ...: 'SHOP · NEXT TARGET 1,600' (or, when the line-up's best last turn would miss it, 'YOUR BEST
+ * 2,926 · NEXT TARGET 5,500' in red) and the coins in hand, three staff cards (object, name, rule,
  * price and the preview line 'BEST LAST TURN 390 → 2,343'), REROLL, NEXT TURN and last turn's
  * receipt. Tap a card to hire; with five seats taken the seats show what replacing each would make
  * and a tap on a seat hires into it. Long-press a card to light where it acts on the map.
@@ -13,10 +14,10 @@ import { buyOffer, nextTurnNow, rerollOffers, TRAY_TOAST } from '../app/actions'
 import { busy, pressHighlight, reduced, replacing, showToast, speed, trayLeaving } from '../app/store';
 import { FitText } from '../common/FitText';
 import { OFFER_RECTS, R, rectStyle } from '../common/layout';
+import { formatPair } from '../common/numbers';
 import { Funds, RuleText } from '../common/text';
 import { buzz } from '../fx/shake';
 import { ReceiptPaper } from '../readout/ReceiptPaper';
-import { Coach } from '../sheets/Coach';
 
 const LONG_PRESS_MS = 300;
 /** NEXT TURN listens once the tray has risen and settled, so a tap meant for the cascade can't skip the shop. */
@@ -34,7 +35,6 @@ export function Briefing({ s }: { s: GameState }): JSX.Element | null {
   const peek = pressHighlight.value !== null ? ' peek' : '';
   return (
     <div class={`layer tray-layer${reduced.value ? '' : ' rising'}${peek}${trayLeaving.value ? ' leaving' : ''}`} style={rise}>
-      <Coach at="tray" />
       <div class="tray" />
       <i class="grab abs" />
       <Header shop={shop} coins={s.coins} />
@@ -57,14 +57,26 @@ export function Briefing({ s }: { s: GameState }): JSX.Element | null {
 }
 
 function Header({ shop, coins }: { shop: ShopView; coins: number }): JSX.Element {
+  // Behind: the line-up's best last turn (the cards' left number) cannot beat the next target.
+  const behind = shop.behind;
   return (
     <>
-      <div class="tray-head abs">
-        <span class="t">SHOP</span>
-        <span class="sep">·</span>
-        <span class="n">NEXT TARGET</span>
-        <span class="v num">{formatInt(shop.nextTarget)}</span>
-      </div>
+      {behind ? (
+        <div class="tray-head behind abs" aria-label={`Your best last turn, ${formatInt(behind.best)}, would miss the next target, ${formatInt(shop.nextTarget)}`}>
+          <span class="n">YOUR BEST</span>
+          <span class="v num short">{formatShort(behind.best, 7)}</span>
+          <span class="sep">·</span>
+          <span class="n">NEXT TARGET</span>
+          <span class="v num">{formatShort(shop.nextTarget, 7)}</span>
+        </div>
+      ) : (
+        <div class="tray-head abs">
+          <span class="t">SHOP</span>
+          <span class="sep">·</span>
+          <span class="n">NEXT TARGET</span>
+          <span class="v num">{formatInt(shop.nextTarget)}</span>
+        </div>
+      )}
       <div class="tray-coins abs" aria-label={`${coins} coins`}>
         <Coin size={18} class="coin" />
         <span class="amount num">{coins}</span>
@@ -181,17 +193,23 @@ function OfferCard({ s, o, shop }: { s: GameState; o: OfferView; shop: ShopView 
       <span class="rule-text">
         <RuleText rule={o.rule} size={9} />
       </span>
-      {o.preview && (
-        <span class="preview">
-          <span class="pv-head">{selected ? 'TAP A SEAT TO REPLACE' : 'BEST LAST TURN'}</span>
-          <span class="pv-line num">
-            <span class="pv-before">{formatShort(o.preview.before, 5)}</span>
-            <span class="pv-arrow">→</span>
-            <span class="pv-after">{formatShort(o.preview.after, 5)}</span>
-          </span>
-        </span>
-      )}
+      {o.preview && <PreviewLine before={o.preview.before} after={o.preview.after} head={selected ? 'TAP A SEAT TO REPLACE' : 'BEST LAST TURN'} />}
     </div>
+  );
+}
+
+/** 'BEST LAST TURN' over '390 → 2,343': both numbers in one form, never '3,931 → 13.3K'. */
+function PreviewLine({ before, after, head }: { before: bigint; after: bigint; head: string }): JSX.Element {
+  const [a, b] = formatPair(before, after, 5);
+  return (
+    <span class="preview">
+      <span class="pv-head">{head}</span>
+      <span class="pv-line num">
+        <span class="pv-before">{a}</span>
+        <span class="pv-arrow">→</span>
+        <span class="pv-after">{b}</span>
+      </span>
+    </span>
   );
 }
 

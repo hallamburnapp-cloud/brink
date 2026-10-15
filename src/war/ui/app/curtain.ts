@@ -6,13 +6,15 @@
  */
 import { signal } from '@preact/signals';
 import { getMap } from '../table/mapRef';
-import { reduced, speed } from './store';
+import { reduced } from './store';
 
 /** 'up': the title covers the war room while its table bakes; 'lifting': the title fades out. */
 export type Curtain = 'up' | 'lifting' | null;
 export const curtain = signal<Curtain>(null);
 
 export const CURTAIN_FADE_MS = 260;
+/** Lifting, the title's words go first; its table fades only once they are gone (war.css). */
+export const TITLE_WORDS_MS = 110;
 
 /** Leaving the war room: it fades to the table colour before the title comes up. */
 export const veil = signal(false);
@@ -29,7 +31,8 @@ export function raiseCurtain(): void {
   curtain.value = 'up';
   void tableDrawn().then(() => {
     if (token !== mine) return;
-    const fade = reduced.value ? 0 : CURTAIN_FADE_MS / speed.value;
+    // The CSS fade runs at its own pace (words, then the title's table), whatever the game speed.
+    const fade = reduced.value ? 0 : TITLE_WORDS_MS + CURTAIN_FADE_MS;
     curtain.value = 'lifting';
     window.setTimeout(() => {
       if (token === mine) lift();

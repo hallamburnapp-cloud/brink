@@ -484,3 +484,25 @@ export function hitTest(geo: Geometry, x: number, y: number, prefer: ReadonlySet
     list.reduce<{ id: RegionId; d: number } | null>((b, c) => (!b || c.d < b.d ? c : b), null)?.id ?? null;
   return pick(candidates.filter((c) => prefer.has(c.id))) ?? pick(candidates);
 }
+
+/** How far past a plate's bounds a partial repaint reaches (map points): its rim, glow and shadow. */
+export const REPAINT_PAD = 4;
+
+/**
+ * A plate's partial-repaint clip in whole device pixels: its bounds grown by REPAINT_PAD, scaled by
+ * the layer's backing scale `k`, snapped outward and kept on the layer. A clip edge that falls
+ * inside a device pixel is anti-aliased, and repainting translucent layers through it blends them
+ * over the old pixel twice: hairline seams that stay until the next full bake.
+ */
+export function deviceClip(
+  b: { x0: number; y0: number; x1: number; y1: number },
+  k: number,
+  width: number,
+  height: number,
+): { x: number; y: number; w: number; h: number } {
+  const x0 = Math.max(0, Math.floor((b.x0 - REPAINT_PAD) * k));
+  const y0 = Math.max(0, Math.floor((b.y0 - REPAINT_PAD) * k));
+  const x1 = Math.min(width, Math.ceil((b.x1 + REPAINT_PAD) * k));
+  const y1 = Math.min(height, Math.ceil((b.y1 + REPAINT_PAD) * k));
+  return { x: x0, y: y0, w: Math.max(0, x1 - x0), h: Math.max(0, y1 - y0) };
+}

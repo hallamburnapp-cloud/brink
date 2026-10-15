@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ISLAND_R, LAND_JOINS, MAP_H, MAP_W, REGION, REGIONS, SEA_LANES, isIsland, pairKey, type Pt } from './data';
-import { computeGeometry, getGeometry, hitTest, insidePoly, regionAt, type Segment } from './geometry';
+import { computeGeometry, deviceClip, getGeometry, hitTest, insidePoly, regionAt, REPAINT_PAD, type Segment } from './geometry';
 
 const geo = getGeometry();
 const mainlandJoins = new Set(LAND_JOINS.filter(([a, b]) => !(isIsland(a) && isIsland(b))).map(([a, b]) => pairKey(a, b)));
@@ -198,5 +198,26 @@ describe('hit testing', () => {
     expect(hitTest(geo, 195, 366, none)).toBeNull();
     expect(hitTest(geo, -5, 100, new Set(['NWK']))).toBeNull();
     expect(hitTest(geo, 100, 600, none)).toBeNull();
+  });
+});
+
+describe('partial repaints: the clip is whole device pixels', () => {
+  it('snaps every plate outward to integers at phone and desktop scales, inside the layer', () => {
+    for (const k of [1, 1.5, 2, 2.625, 3, 3.5, 4]) {
+      const W = Math.round(MAP_W * k);
+      const H = Math.round(MAP_H * k);
+      for (const r of REGIONS) {
+        const b = geo.bounds[r.id];
+        const c = deviceClip(b, k, W, H);
+        for (const v of [c.x, c.y, c.w, c.h]) expect(Number.isInteger(v)).toBe(true);
+        // It covers the plate and its pad (where the layer reaches that far).
+        expect(c.x).toBeLessThanOrEqual(Math.max(0, (b.x0 - REPAINT_PAD) * k));
+        expect(c.y).toBeLessThanOrEqual(Math.max(0, (b.y0 - REPAINT_PAD) * k));
+        expect(c.x + c.w).toBeGreaterThanOrEqual(Math.min(W, (b.x1 + REPAINT_PAD) * k));
+        expect(c.y + c.h).toBeGreaterThanOrEqual(Math.min(H, (b.y1 + REPAINT_PAD) * k));
+        expect(c.x + c.w).toBeLessThanOrEqual(W);
+        expect(c.y + c.h).toBeLessThanOrEqual(H);
+      }
+    }
   });
 });

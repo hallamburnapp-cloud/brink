@@ -82,13 +82,14 @@ export function isStaffId(x: unknown): x is StaffId {
 }
 
 /** A multiplier held in tenths, always with one decimal: 10 -> '1.0', 14 -> '1.4'. */
+/** A multiplier from tenths, printed as the board prints one: whole when whole ('2'), else one decimal ('1.4'). */
 function tenths(m10: number): string {
-  return `${Math.floor(m10 / 10)}.${m10 % 10}`;
+  return m10 % 10 === 0 ? String(m10 / 10) : `${Math.floor(m10 / 10)}.${m10 % 10}`;
 }
 
 /**
  * The seat chip with live values filled in: the Surveyor's '+n' (gold held ÷ 3, rounded down)
- * and the Old Hand's '×n.n'. The Deputy's chip is 'COPY' (the seat view adds what it copies).
+ * and the Old Hand's '×n.n' (whole when whole: '×2'). The Deputy's chip is 'COPY' (the seat view adds what it copies).
  */
 export function seatChip(id: StaffId, live: { gold?: number; oldHandM10?: number } = {}): string {
   const chip = STAFF_DEF[id].chip;

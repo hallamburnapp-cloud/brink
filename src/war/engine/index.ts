@@ -73,7 +73,7 @@ export type {
 } from './view';
 
 // The shop
-export { bestOnOpening, bestScore, dealFeatures, drawOffers, nextShopAfter, previewNumber, price, sellValue, shopDue } from './shop';
+export { bestLastTurn, bestScore, dealFeatures, drawOffers, nextShopAfter, ownerAtSend, previewNumber, price, sellValue, shopDue } from './shop';
 export type { PreviewNumber } from './shop';
 
 // Rules underneath: the graph, legal groups, scoring, the ladder, ownership, the deal

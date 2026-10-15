@@ -34,6 +34,7 @@ def rand_owner(rng):
 
 def main():
     rng = random.Random('fixtures-v2')
+    prng = random.Random('fixtures-v2-pins')
     out = dict(
         about='BRINK v2 Win the World reference fixtures. See docs/war/v2/SPEC.md section 15.',
         ids=R.IDS,
@@ -82,7 +83,9 @@ def main():
             continue
         c = rng.choice(non)
         k = rng.randint(1, 9)
-        out['winOrder'].append(dict(owner=enc(owner), crisis=c, k=k, order=R.win_order(c, owner, k)))
+        # pin it to claim it: pins drawn from a stream of their own, so the other cases stay as they were
+        pins = prng.sample(R.IDS, prng.randint(0, 5))
+        out['winOrder'].append(dict(owner=enc(owner), crisis=c, k=k, pins=pins, order=R.win_order(c, owner, k, pins)))
     for i in range(150):
         owner = rand_owner(rng)
         if not any(owner[r] == 'gold' for r in R.IDS):

@@ -226,7 +226,7 @@ const seatCentre = (page: Page, seat: number) => framePoint(page, SEAT_X[seat] +
 
 // ---------------------------------------------------------------- the explanation at the start
 
-test('the intro: three screens on the real map, taps wait 1.5 s, TRY IT starts the coached first turn', async ({ page }) => {
+test('the intro: three screens on the real map, beats follow the lesson, an early tap hurries it, TRY IT starts the coached first turn', async ({ page }) => {
   await open(page, 'new');
   const play = page.getByRole('button', { name: /^PLAY/ });
   await expect(play).toContainText('A short how-to, then your first world');
@@ -234,31 +234,36 @@ test('the intro: three screens on the real map, taps wait 1.5 s, TRY IT starts t
 
   // Screen 1: the goal, with the live counts on the Big Board.
   await expect(introLayer(page, 1)).toBeVisible();
-  await expect(page.locator('.intro-layer .coach-text')).toHaveText(INTRO_COPY[1]);
+  await expect(page.locator('.intro-layer .coach-text')).toHaveText(INTRO_COPY[1][0]);
   await expect(page.getByRole('button', { name: 'SKIP' })).toBeVisible();
+  // Before any crisis exists the console rests: no target, no send label.
+  await expect(page.locator('.ro-target')).not.toContainText('64');
   await expect(goldCount(page)).toHaveAttribute('aria-label', 'Gold: 1 of 30 regions');
   await expect(warCount(page)).toHaveAttribute('aria-label', 'War: 3 of 10 regions');
-  // A tap in the first 1.5 s is ignored.
+  // A tap before the lesson has played hurries it (2x); it never leaves the screen.
   await page.locator('.intro-layer').tap({ position: { x: 200, y: 600 } });
   await expect(introLayer(page, 1)).toBeVisible();
   await introReady(page);
+  await expect(page.locator('.intro-layer .coach-text')).toHaveText(INTRO_COPY[1].at(-1)!);
   await page.locator('.intro-layer').tap({ position: { x: 200, y: 600 } });
 
   // Screen 2: the turn. The ghost finger pins Shoal, Lantern Key, Pebbleby and Marram: WINS 2.
   await expect(introLayer(page, 2)).toBeVisible();
-  await expect(page.locator('.intro-layer .coach-text')).toHaveText(INTRO_COPY[2]);
+  await expect(page.locator('.intro-layer .coach-text')).toHaveText(INTRO_COPY[2][0]);
   await expect(sendSub(page)).toHaveText('WINS 2 REGIONS', { timeout: 10_000 });
   await expect(box(page, 'points')).toHaveAttribute('aria-label', '33');
-  await expect(box(page, 'mult')).toHaveAttribute('aria-label', '8.0');
+  await expect(box(page, 'mult')).toHaveAttribute('aria-label', '8');
   expect((await drawn(page)).previews).toEqual({ SHL: 'win 1', PBB: 'win 2' });
   await introReady(page);
+  await expect(page.locator('.intro-layer .coach-text')).toHaveText(INTRO_COPY[2].at(-1)!);
   await page.locator('.intro-layer').tap({ position: { x: 200, y: 600 } });
 
   // Screen 3: the outcome, and TRY IT on a first launch.
   await expect(introLayer(page, 3)).toBeVisible();
-  await expect(page.locator('.intro-layer .coach-text')).toHaveText(INTRO_COPY[3]);
-  await expect(page.locator('.intro-next .label')).toHaveText('TRY IT');
+  await expect(page.locator('.intro-layer .coach-text')).toHaveText(INTRO_COPY[3][0]);
   await introReady(page);
+  await expect(page.locator('.intro-next .label')).toHaveText('TRY IT');
+  await expect(page.locator('.intro-layer .coach-text')).toHaveText(INTRO_COPY[3].at(-1)!);
   await page.locator('.intro-layer').tap({ position: { x: 200, y: 600 } });
 
   // Turn 1 of FIRST-WORLD on the same map, coached.
@@ -284,8 +289,9 @@ test('SKIP leaves the intro; HOW TO PLAY replays the three screens, then the rul
   await page.getByRole('dialog', { name: 'Menu' }).getByRole('button', { name: /HOW TO PLAY/ }).tap();
   for (const n of [1, 2, 3]) {
     await expect(introLayer(page, n)).toBeVisible();
-    await expect(page.locator('.intro-layer .coach-text')).toHaveText(INTRO_COPY[n as 1 | 2 | 3]);
+    await expect(page.locator('.intro-layer .coach-text')).toHaveText(INTRO_COPY[n as 1 | 2 | 3][0]);
     await introReady(page);
+    await expect(page.locator('.intro-layer .coach-text')).toHaveText(INTRO_COPY[n as 1 | 2 | 3].at(-1)!);
     if (n === 3) await expect(page.locator('.intro-next .label')).toHaveText('TAP TO CONTINUE');
     await page.locator('.intro-layer').tap({ position: { x: 200, y: 600 } });
   }
@@ -311,7 +317,7 @@ test('FIRST-WORLD turn 1, coached step by step; turn 2; the first shop with 702 
   await page.getByRole('button', { name: /^PLAY/ }).tap();
   await expect(coach(page)).toHaveText('Tap the crisis: the white ring.', { timeout: 8_000 });
   await expect(sendSub(page)).toHaveText('PIN A REGION');
-  await expect(page.locator('.ro-line')).toHaveText('NEED 64');
+  await expect(page.locator('.ro-line')).toHaveText('PIN THE CRISIS FOR ×2');
 
   // Step 1: only Shoal can be tapped.
   await tapRegion(page, 'LNK');
@@ -320,8 +326,9 @@ test('FIRST-WORLD turn 1, coached step by step; turn 2; the first shop with 702 
   await tapRegion(page, 'SHL');
   expect((await info(page))!.pins).toEqual(['SHL']);
   await expect(box(page, 'points')).toHaveAttribute('aria-label', '7');
-  await expect(box(page, 'mult')).toHaveAttribute('aria-label', '2.0');
+  await expect(box(page, 'mult')).toHaveAttribute('aria-label', '2');
   await expect(sendSub(page)).toHaveText('MISS · SHORT BY 50');
+  await expect(page.locator('.ro-line')).toHaveText('NEED 50 MORE');
   expect((await drawn(page)).previews).toEqual({ SHL: 'war 1' });
 
   // Step 2: a lit region touching it. Lantern Key, Pebbleby and Lintel can be added; the rest dim.
@@ -333,24 +340,25 @@ test('FIRST-WORLD turn 1, coached step by step; turn 2; the first shop with 702 
   expect((await info(page))!.phase).toBe('choose');
   await tapRegion(page, 'LNK');
   await expect(box(page, 'points')).toHaveAttribute('aria-label', '17');
-  await expect(box(page, 'mult')).toHaveAttribute('aria-label', '4.0');
+  await expect(box(page, 'mult')).toHaveAttribute('aria-label', '4');
   await expect(sendSub(page)).toHaveText('WINS 1 REGION');
-  await expect(page.locator('.ro-line')).toHaveText('NEXT REGION AT 256');
+  // How far the next region is, worked out: nobody multiplies POINTS by MULTIPLIER in their head.
+  await expect(page.locator('.ro-line')).toHaveText('NEXT REGION AT 256 · 188 MORE');
   expect((await drawn(page)).previews).toEqual({ SHL: 'win 1' });
   await expect(coach(page)).toHaveText('68 beats 64. Shoal will turn gold.');
 
   // Step 3: more pins. Pebbleby (138), then Marram over the dashed sea lane: WINS 2.
   await tapRegion(page, 'PBB');
   await expect(box(page, 'points')).toHaveAttribute('aria-label', '23');
-  await expect(box(page, 'mult')).toHaveAttribute('aria-label', '6.0');
+  await expect(box(page, 'mult')).toHaveAttribute('aria-label', '6');
   await expect(sendSub(page)).toHaveText('WINS 1 REGION');
   await tapRegion(page, 'MRM');
   await expect(sendSub(page)).toHaveText('WINS 2 REGIONS');
   await expect(box(page, 'points')).toHaveAttribute('aria-label', '33');
-  await expect(box(page, 'mult')).toHaveAttribute('aria-label', '8.0');
-  await expect(page.locator('.ro-line')).toHaveText('NEXT REGION AT 1,024');
+  await expect(box(page, 'mult')).toHaveAttribute('aria-label', '8');
+  await expect(page.locator('.ro-line')).toHaveText('NEXT REGION 1,024 · 760 MORE');
   expect((await drawn(page)).previews).toEqual({ SHL: 'win 1', PBB: 'win 2' });
-  await expect(coach(page)).toHaveText('Beat it by more: win more regions.');
+  await expect(coach(page)).toHaveText('Beat it by more: win more regions. Your pins go first.', { timeout: 8_000 });
   // Ghost segments on the GOLD bar show the two regions before SEND.
   await expect(page.locator('.goal-bar.gold .seg.gain')).toHaveCount(2);
 
@@ -391,7 +399,7 @@ test('FIRST-WORLD turn 1, coached step by step; turn 2; the first shop with 702 
   // NEXT TURN: turn 3, and the war's beat is explained.
   await page.locator('button.next').tap();
   await waitFor(page, 'choose', 3);
-  await expect(coach(page)).toHaveText('War spreads by itself every 3rd turn. Watch the red tag.', { timeout: 8_000 });
+  await expect(coach(page)).toHaveText('Every 3rd turn war spreads into the red tag. Pin it in a win to save it.', { timeout: 8_000 });
   expect((await drawn(page)).warNext).toEqual({ id: 'MRM', turns: 1 });
 });
 
@@ -425,6 +433,27 @@ test('the touch rule: sea lanes join; a lit region that cannot be added dims wit
   expect(joins).toContain('MRD-TRN');
   // Five pins: nothing more can be added.
   expect((await drawn(page)).addable).toEqual([]);
+});
+
+// ---------------------------------------------------------------- pin it to claim it
+
+test('pin it to claim it: a win takes the crisis, then your own pins, before a nearer region', async ({ page }) => {
+  await open(page, 'taught');
+  await page.getByRole('button', { name: /^PLAY/ }).tap();
+  await expect(coach(page)).toHaveText('Tap the crisis: the white ring.', { timeout: 8_000 });
+  // Shoal, Lantern Key, Lintel (over the sea lane) and Tallowmere: 264, two regions.
+  await tapRegions(page, ['SHL', 'LNK', 'LTL', 'TLM']);
+  await expect(sendSub(page)).toHaveText('WINS 2 REGIONS');
+  // The map marks what SEND will turn gold: Shoal and the pinned Lintel, not Pebbleby (nearer, not pinned).
+  expect((await drawn(page)).previews).toEqual({ SHL: 'win 1', LTL: 'win 2' });
+  await page.evaluate(() => window.__war!.speed(4));
+  await tapSend(page);
+  await waitFor(page, 'choose', 2);
+  const s = (await info(page))!;
+  expect(s.last).toMatchObject({ score: '264', regions: 2, result: 'win', won: ['SHL', 'LTL'] });
+  expect(s.owner.LTL).toBe('gold');
+  expect(s.owner.PBB).toBe('grey');
+  await expect(goldCount(page)).toHaveAttribute('aria-label', 'Gold: 3 of 30 regions');
 });
 
 // ---------------------------------------------------------------- the break, and a full table
@@ -510,11 +539,13 @@ test('a miss turns the crisis red and WAR ticks; after turn 3 war spreads by its
   await waitFor(page, 'shop', 2);
   await page.locator('button.next').tap();
   await waitFor(page, 'choose', 3);
+  expect((await drawn(page)).warNext!.turns).toBe(1);
+  s = (await info(page))!;
+  // With the miss pinned, the tag shows where war really goes this turn.
+  await tapRegion(page, s.crisis);
   const tag = (await drawn(page)).warNext!;
   expect(tag.turns).toBe(1);
-  s = (await info(page))!;
   expect(s.owner[tag.id]).toBe('grey');
-  await tapRegion(page, s.crisis);
   await tapSend(page);
   await waitFor(page, 'choose', 4);
   s = (await info(page))!;
@@ -592,7 +623,7 @@ test('the three endings: WORLD UNITED, CEASEFIRE and WAR, with NEW GAME and HOME
   const war = page.getByRole('dialog', { name: 'WAR' });
   await expect(war).toBeVisible({ timeout: 20_000 });
   await expect(war).toContainText('War took 10 regions. You held 19 of 30.');
-  await expect(war).toContainText('1 grey region from the final push.');
+  await expect(war).toContainText('Only 1 free region was left to win.');
   await expect(war.locator('.report-stars')).toHaveAttribute('aria-label', 'No stars');
   expect((await drawn(page)).highlight).toEqual(['WNM']);
   await expect(warCount(page)).toHaveAttribute('aria-label', 'War: 10 of 10 regions');
@@ -624,7 +655,7 @@ test('the way home: back opens and closes the menu; QUIT TO TITLE asks once; the
   await page.getByRole('button', { name: 'Menu', exact: true }).tap();
   await menu.getByRole('button', { name: /QUIT TO TITLE/ }).tap();
   const confirm = page.getByRole('alertdialog', { name: 'Leave this game?' });
-  await expect(confirm).toContainText('Leave this game? It is saved.');
+  await expect(confirm).toContainText('Your game is saved. CONTINUE on the title picks it up.');
   await confirm.getByRole('button', { name: 'STAY' }).tap();
   await expect(menu).toBeVisible();
   const saved = await page.evaluate(() => window.__war!.hash().state);
@@ -645,6 +676,138 @@ test('the way home: back opens and closes the menu; QUIT TO TITLE asks once; the
   await waitFor(page, 'choose', 1);
   expect((await info(page))!.pins).toEqual([crisis]);
   expect(await page.evaluate(() => window.__war!.hash().state)).toBe(saved);
+});
+
+test('the way home from How to play: closing the rules on the title never leaves the game', async ({ page }) => {
+  // Another page before the game in this tab: a stray history.back() would land on it.
+  await page.goto('data:text/html,<p>the page before</p>');
+  await open(page, 'taught');
+  const home = page.url();
+  const rules = page.getByRole('dialog', { name: 'How to play' });
+  const fromTitle = async () => {
+    await page.getByRole('button', { name: /HOW TO PLAY/ }).tap();
+    await expect(introLayer(page, 1)).toBeVisible();
+    await page.getByRole('button', { name: 'SKIP' }).tap();
+    await expect(rules).toBeVisible();
+  };
+  const closes: Array<[string, () => Promise<void>]> = [
+    ['CLOSE', () => rules.getByRole('button', { name: /^CLOSE/ }).tap()],
+    ['the X', () => rules.getByRole('button', { name: 'Close', exact: true }).tap()],
+    ['the scrim', () => page.locator('.scrim').tap({ position: { x: 10, y: 10 } })],
+  ];
+  for (const [how, close] of closes) {
+    await fromTitle();
+    await close();
+    await expect(rules, how).toHaveCount(0);
+    // Long enough for a history.back() to have landed.
+    await page.waitForTimeout(500);
+    expect(page.url(), how).toBe(home);
+    await expect(page.getByRole('button', { name: /^PLAY/ }), how).toBeVisible();
+  }
+
+  // PRACTICE from the same sheet, then QUIT TO TITLE: still the game's page, with CONTINUE.
+  await fromTitle();
+  await rules.getByRole('button', { name: 'PRACTICE' }).tap();
+  await expect(coach(page)).toHaveText('Tap the crisis: the white ring.', { timeout: 8_000 });
+  await page.getByRole('button', { name: 'Menu', exact: true }).tap();
+  await page.getByRole('dialog', { name: 'Menu' }).getByRole('button', { name: /QUIT TO TITLE/ }).tap();
+  await page.getByRole('alertdialog', { name: 'Leave this game?' }).getByRole('button', { name: 'LEAVE' }).tap();
+  await expect(page.getByRole('button', { name: /^CONTINUE/ })).toBeVisible();
+  await page.waitForTimeout(500);
+  expect(page.url()).toBe(home);
+});
+
+test('PRACTICE never loses a game in progress, and NEW GAME asks before it would', async ({ page }) => {
+  await open(page, 'veteran');
+  await page.getByRole('button', { name: /^PLAY/ }).tap();
+  await waitFor(page, 'choose', 1);
+  const crisis = (await info(page))!.crisis;
+  await tapRegion(page, crisis);
+  await tapSend(page);
+  await waitFor(page, 'choose', 2);
+  const game = (await info(page))!;
+
+  // Menu > HOW TO PLAY > SKIP: over a game, BACK is the bright button and PRACTICE the quiet one.
+  await page.getByRole('button', { name: 'Menu', exact: true }).tap();
+  await page.getByRole('dialog', { name: 'Menu' }).getByRole('button', { name: /HOW TO PLAY/ }).tap();
+  await page.getByRole('button', { name: 'SKIP' }).tap();
+  const rules = page.getByRole('dialog', { name: 'How to play' });
+  await expect(rules.locator('button.brass')).toHaveText('BACK');
+  await rules.getByRole('button', { name: 'PRACTICE' }).tap();
+  await expect(coach(page)).toHaveText('Tap the crisis: the white ring.', { timeout: 8_000 });
+  expect((await info(page))!).toMatchObject({ seed: 'FIRST-WORLD', turn: 1 });
+
+  // Leaving the practice says it is not saved; the title still continues the real game.
+  await page.getByRole('button', { name: 'Menu', exact: true }).tap();
+  await page.getByRole('dialog', { name: 'Menu' }).getByRole('button', { name: /QUIT TO TITLE/ }).tap();
+  const confirm = page.getByRole('alertdialog', { name: 'Leave this game?' });
+  await expect(confirm).toContainText('LEAVE PRACTICE?');
+  await expect(confirm).toContainText('Practice is not saved.');
+  await confirm.getByRole('button', { name: 'LEAVE' }).tap();
+  const cont = page.getByRole('button', { name: /^CONTINUE/ });
+  await expect(cont).toContainText('Turn 2');
+
+  // NEW GAME over it asks once; KEEP MY GAME keeps it.
+  await page.getByRole('button', { name: 'NEW GAME' }).tap();
+  const ask = page.getByRole('alertdialog', { name: 'Start a new game?' });
+  await expect(ask).toContainText('Your game in progress will be lost.');
+  await ask.getByRole('button', { name: 'KEEP MY GAME' }).tap();
+  await expect(ask).toHaveCount(0);
+  await cont.tap();
+  await waitFor(page, 'choose', 2);
+  expect((await info(page))!).toMatchObject({ seed: game.seed, turn: 2, crisis: game.crisis });
+});
+
+test('a reload during the game-ending send still shows how the world ended, once', async ({ page }) => {
+  await open(page, 'veteran');
+  await page.evaluate(() => {
+    window.__war!.seed('E2E-END');
+    window.__war!.setOwner('G'.repeat(26) + 'RRRR');
+  });
+  await tapRegion(page, (await info(page))!.crisis);
+  await expect(sendSub(page)).toHaveText('MISS · CEASEFIRE');
+  await tapSend(page);
+  // The tab is reloaded (or killed) while the last send plays.
+  await page.waitForTimeout(300);
+  await page.reload();
+  await page.waitForFunction(() => !!window.__war);
+  const cont = page.getByRole('button', { name: /^CONTINUE/ });
+  await expect(cont).toContainText('See how your world ended');
+  await cont.tap();
+  await expect(page.getByRole('dialog', { name: 'CEASEFIRE · 26 of 30 gold' })).toBeVisible({ timeout: 20_000 });
+  // Seen: the finished game is done with.
+  await page.getByRole('button', { name: 'HOME' }).tap();
+  await expect(page.getByRole('button', { name: /^PLAY/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^CONTINUE/ })).toHaveCount(0);
+  await page.reload();
+  await page.waitForFunction(() => !!window.__war);
+  await expect(page.getByRole('button', { name: /^PLAY/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^CONTINUE/ })).toHaveCount(0);
+});
+
+test('HOW TO PLAY from the menu during a send: the send settles, the intro plays, BACK finds the next turn', async ({ page }) => {
+  await open(page, 'veteran');
+  const start = newGame('E2E-HOW');
+  const best = tapOrder(sendOptions(start)[0].pins);
+  await page.evaluate(() => window.__war!.seed('E2E-HOW'));
+  await waitFor(page, 'choose', 1);
+  await tapRegions(page, best);
+  await tapSend(page);
+  await page.waitForTimeout(900);
+  expect(await page.evaluate(() => window.__war!.busy())).toBe(true);
+  await page.getByRole('button', { name: 'Menu', exact: true }).tap();
+  await page.getByRole('dialog', { name: 'Menu' }).getByRole('button', { name: /HOW TO PLAY/ }).tap();
+  await expect(introLayer(page, 1)).toBeVisible({ timeout: 10_000 });
+  // Nothing of the send is dealt under the intro.
+  expect((await info(page))!.turn).toBe(1);
+  await page.getByRole('button', { name: 'SKIP' }).tap();
+  const rules = page.getByRole('dialog', { name: 'How to play' });
+  await expect(rules).toBeVisible();
+  await rules.getByRole('button', { name: /^BACK/ }).tap();
+  await waitFor(page, 'choose', 2);
+  const s = (await info(page))!;
+  expect(s.last).toMatchObject({ result: 'win' });
+  await expect(goldCount(page)).toHaveAttribute('aria-label', `Gold: ${s.gold} of 30 regions`);
 });
 
 // ---------------------------------------------------------------- fit, motion, determinism
