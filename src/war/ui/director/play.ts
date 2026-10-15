@@ -189,6 +189,7 @@ export async function playSend(prev: GameState, next: GameState, opts: P.PlayOpt
     P.revealOutcome.value = false;
     P.boxes.value = { points: 0n, m10: 0n };
     P.goal.value = { gold: rec.goldBefore, red: rec.redBefore };
+    P.pushMisses.value = prev.pushMisses;
     P.coins.value = rec.coinsBefore;
   });
   const noSkip = prev.mode === 'first' && prev.turn === 1;
@@ -469,6 +470,7 @@ async function playOutcome(s: Show): Promise<boolean> {
     result: rec.result,
     won: rec.won,
     lost: rec.lost,
+    pushMisses: rec.pushMisses,
     spread: rec.spread,
     ending: rec.ending,
     coinsBefore: rec.coinsBefore,
@@ -553,6 +555,9 @@ function outcomeCue(c: OutcomeCue, s: Show): void {
     case 'ceasefire':
       s.world = { ...s.world, ceased: true };
       draw(s);
+      break;
+    case 'strike':
+      P.pushMisses.value = c.misses;
       break;
     case 'sunrise':
       flyers?.sunrise(R.map, c.ms / s.rate);
@@ -650,6 +655,7 @@ function endOutcome(s: Show, playedOut: boolean): void {
   draw(s);
   batch(() => {
     P.goal.value = { gold: rec.gold, red: rec.red };
+    P.pushMisses.value = rec.pushMisses;
     P.coins.value = rec.coinsAfter;
     P.goalGlow.value = null;
   });

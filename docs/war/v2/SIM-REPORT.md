@@ -11,6 +11,34 @@ sampling noise of the Python reference's `RESULTS.txt`. No engine bug was found:
 reference agree on all 1,504 fixture cases, and the unmodified reference plays all 30,000 games of this run
 again on the same random streams, identically, turn for turn.
 
+**Update: the final fix (dead under every seat order; the push draws where it can be won).** A deal is now dead
+(NO SEND CAN WIN) only when no legal send wins under any seat order of the line-up; a deal that only another
+order wins says REORDER STAFF TO WIN, and the best-send bots (greedy, preview, sensible, breaker) drag their staff
+into the best seating for it before they send. In the final push the crisis is drawn from the red regions some
+fresh deal can win, when any can. The reference, its fixtures (now 1,850 cases: 200 dead / reorder / live deals,
+120 push crisis draws and 80 final-push sends among them) and `RESULTS.txt` were regenerated (no tunable
+changed). `npx tsx tools/war-sim.ts --replay 300 --strict` (2,000 games per bot): all 1,904 cross-checks agree,
+the unmodified reference plays 1,800 of the games again identically (20,530 turns, every reorder and every push
+draw included) and prints the same gates, and **all 17 gates pass**: G1 62.9% (reference 62.5%), G2 50.2%
+(49.7%), G7 13.2 (13.6), G8 17.7 (18.0), G9 14.2 (14.2), G10 64.4% (65.9%), G11 8.1% (9.3%), G13 8 (8), G14
+56.4% (56.5%), G15 Old Hand 20.3% (21.8%), G16 Strategist 73.2% (72.9%), the rest as before. Two gates moved in
+the reference: G14 (the preview-number buyer) from 44.7% to 56.5%, because it now acts on REORDER STAFF TO WIN
+(3.7% of its turns), and G8 (the first-game p90) from 17.4 to 18.0 minutes, exactly its limit, because pushes
+whose crises can be won run longer (p90 7 turns, was 6). SPEC section 16 has the table and the honest account of
+what the push's misses still are for a best-send player.
+
+**Update: the fair game (the forgiving push and announced dead deals).** After the second review the final
+push allows three misses (a push miss changes no region; the third is a CEASEFIRE), and a deal no legal send can
+win is announced before any pin (NO SEND CAN WIN); the novice bot now swaps on such a deal, as the game tells it
+to. The reference, its fixtures (now 1,680 cases, 150 dead deals and 80 final-push sends among them) and
+`RESULTS.txt` were regenerated. `npm run sim:war -- --replay 300` (2,000 games per bot): all 1,734 cross-checks
+agree, the unmodified reference plays 1,800 of the games again identically (20,048 turns) and prints the same
+gates, and **all 17 gates pass**: G1 62.9% (reference 62.5%), G2 49.0% (48.7%), G7 13.2 (13.6), G8 17.3 (17.4),
+G9 14.2 (14.2), G10 64.4% (65.9%), G13 8 (8), G14 44.0% (44.7%), G15 Old Hand 20.5% (22.2%), G16 Strategist
+72.8% (73.4%), the rest as before. The largest move against the one-miss push is G8, the first-game p90, from
+16.3 to 17.4 minutes (limit 18): push games last 3 turns at the median instead of 2. SPEC section 16 has the
+whole before-and-after table and what the three misses buy (rarely a push saved for a best-send player: 0.7%).
+
 **Update: pin it to claim it.** After the first review of the build, a win's extra regions go to the regions
 the player pinned before the nearest others (SPEC section 5, step 6). The reference, its fixtures and
 `RESULTS.txt` were regenerated, and the run was repeated: `npx tsx tools/war-sim.ts --games 5000 --replay 5000

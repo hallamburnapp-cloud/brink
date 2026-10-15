@@ -37,6 +37,63 @@ export interface Fixtures {
   winOrder: Array<{ owner: string; crisis: RegionId; k: number; pins: RegionId[]; order: RegionId[] }>;
   warSpread: Array<{ owner: string; spreadsTo: RegionId | null }>;
   lift: Array<{ pinsInTapOrder: RegionId[]; lift: RegionId; left: RegionId[] }>;
+  /**
+   * What the game says of a deal before any pin: the best legal send as seated and under the best
+   * seating, the deal's state ('live', 'reorder' for REORDER STAFF TO WIN, 'dead' for NO SEND CAN WIN),
+   * the readout's line and the SEND label (SWAP usable or not, in the final push or not).
+   */
+  dead: Array<{
+    owner: string;
+    crisis: RegionId;
+    lit: RegionId[];
+    seats: StaffId[];
+    oldhandM10: number;
+    target: string;
+    best: string;
+    bestAnyOrder: string;
+    /** The best seating (the first in seat-order enumeration with the top score). */
+    seating: StaffId[];
+    state: 'live' | 'reorder' | 'dead';
+    dead: boolean;
+    /** SWAP is usable (one swap left and a pile to draw from). */
+    swap: boolean;
+    finalPush: boolean;
+    pile: RegionId[];
+    label: string;
+    /** The readout's line before any pin ('REORDER STAFF TO WIN', 'NO SEND CAN WIN'), or null. */
+    line: string | null;
+  }>;
+  /** The final push's crisis draw: the red regions some fresh deal can win, else all of them. */
+  pushDraw: Array<{
+    owner: string;
+    turn: number;
+    seats: StaffId[];
+    oldhandM10: number;
+    /** The red regions touching gold (crisisPool's push pool). */
+    red: RegionId[];
+    pool: RegionId[];
+    draw: 'winnable' | 'any';
+  }>;
+  /** The forgiving final push: one send with 0-2 push misses already made. */
+  push: Array<{
+    owner: string;
+    crisis: RegionId;
+    lit: RegionId[];
+    pins: RegionId[];
+    seats: StaffId[];
+    oldhandM10: number;
+    turn: number;
+    target: string;
+    pushMissesBefore: number;
+    /** The SEND label for these pins before sending ('MISS · 2 MISSES LEFT', 'MISS · CEASEFIRE', 'WINS 1 REGION'). */
+    label: string;
+    score: string;
+    result: 'win' | 'miss';
+    won: RegionId[];
+    pushMissesAfter: number;
+    ending: 'WORLD UNITED' | 'CEASEFIRE' | 'WAR' | null;
+    ownerAfter: string;
+  }>;
   firstWorld: Array<{
     turn: number;
     crisis: RegionId;

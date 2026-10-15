@@ -12,11 +12,12 @@ import { formatFunds, formatInt, formatM10Short, formatShort } from './format';
 import { canAdd } from './groups';
 import { nextMark, regionsWon, target } from './ladder';
 import { RULES } from './rules';
-import { effective, scorePins } from './score';
-import { bestLastTurn, nextShopAfter, previewNumber, sellValue, type PreviewNumber } from './shop';
+import { effective, scorePins, type Features } from './score';
+import { bestSeating, orderState, reduceFeatures, type DealState } from './order';
+import { bestLastTurn, dealFeatures, nextShopAfter, previewNumber, sellValue, type PreviewNumber } from './shop';
 import { sendProblem, swapProblem } from './run';
 import type { Ending, GameState } from './types';
-import { countOwner, regionsOf, warSpreadTarget, winOrder } from './world';
+import { countOwner, encodeOwners, regionsOf, warSpreadTarget, winOrder } from './world';
 
 function memo<T>(fn: (s: GameState) => T): (s: GameState) => T {
   const cache = new WeakMap<GameState, T>();
@@ -30,6 +31,44 @@ function memo<T>(fn: (s: GameState) => T): (s: GameState) => T {
 
 const name = (id: RegionId) => REGION[id].name;
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+// ---------------------------------------------------------------- a dead deal
+
+/** The legal sends' feature sets for one deal on one map (a tap or a seat drag does not enumerate again). */
+let featureCache: { key: string; fs: Features[] } | null = null;
+
+function lineUpFeatures(s: GameState): Features[] {
+  const d = s.deal;
+  const key = `${d.crisis}|${d.lit.join(',')}|${encodeOwners(s.owner)}`;
+  if (featureCache?.key !== key) featureCache = { key, fs: reduceFeatures(dealFeatures(d.lit, d.crisis, s.owner)) };
+  return featureCache.fs;
+}
+
+/**
+ * What the game says of the deal before any pin (decisions B and B2; reference rules.py deal_state).
+ * 'live': some legal send of the lit regions (the crisis among them) reaches the target with the
+ * line-up as it sits. 'reorder': none does as seated, but one does under another seating (seats can
+ * be dragged during a turn): the readout says REORDER STAFF TO WIN and the seats beckon. 'dead': none
+ * does under any seating: NO SEND CAN WIN ('· SWAP' while SWAP can bring new regions, else how the
+ * turn ends). After a swap or a seat drag it is asked again. It enumerates the legal groups with the
+ * fast scorer, as the shop's preview number does, under every distinct seating (at most 120). null
+ * outside phase 'choose'. The deal rule itself is unchanged.
+ */
+export const dealState = memo((s: GameState): DealState | null => {
+  if (s.phase !== 'choose') return null;
+  return orderState(lineUpFeatures(s), s.seats.map((x) => x.id), countOwner(s.owner, 'gold'), s.oldHandM10, s.deal.target);
+});
+
+/** A dead deal: no legal send of the lit regions reaches the target under any seating (dealState 'dead'). */
+export const deadDeal = (s: GameState): boolean => dealState(s) === 'dead';
+
+/** No send wins as seated, but one does after a reorder (dealState 'reorder'). */
+export const reorderDeal = (s: GameState): boolean => dealState(s) === 'reorder';
+
+/** The seating whose best send on the current deal scores most (what to drag the staff into on REORDER STAFF TO WIN). */
+export function bestSeatingNow(s: GameState): StaffId[] {
+  return bestSeating(lineUpFeatures(s), s.seats.map((x) => x.id), countOwner(s.owner, 'gold'), s.oldHandM10).seats;
+}
 
 // ---------------------------------------------------------------- the live preview
 
@@ -103,6 +142,12 @@ export interface GoalView {
   warTag: string | null;
   /** No grey is left and war still holds some: crises flare on red. */
   finalPush: boolean;
+  /**
+   * The push's misses, while the game is in the final push and when it ended in its CEASEFIRE (null
+   * otherwise): `left` of `limit` (3) are left, and the last of them is a CEASEFIRE. The Big Board
+   * shows them as lamps beside WAR.
+   */
+  push: { misses: number; left: number; limit: number } | null;
   /** The ghost segments: the counts after SEND with the current pins (null with nothing pinned). */
   after: { gold: number; red: number } | null;
 }
@@ -126,6 +171,7 @@ export const goalView = memo((s: GameState): GoalView => {
       after = { gold, red: s.deal.finalPush ? red : red + 1 };
     }
   }
+  const finalPush = s.phase === 'choose' ? s.deal.finalPush : gold + red === RULES.regions && red > 0;
   return {
     gold,
     red,
@@ -134,7 +180,12 @@ export const goalView = memo((s: GameState): GoalView => {
     warLimit: RULES.loseAt,
     warNext,
     warTag: warNext ? warTagText(warNext.turns, s.phase !== 'choose') : null,
-    finalPush: s.phase === 'choose' ? s.deal.finalPush : gold + red === RULES.regions && red > 0,
+    finalPush,
+    // The push's lamps stay on the board through its CEASEFIRE (all out), and go with any other end.
+    push:
+      finalPush && (!s.ending || s.ending === 'CEASEFIRE')
+        ? { misses: s.pushMisses, left: RULES.pushMisses - s.pushMisses, limit: RULES.pushMisses }
+        : null,
     after,
   };
 });
@@ -222,7 +273,11 @@ export interface ReadoutView {
   target: bigint;
   /** '1,100' (the readout prints 'TARGET' before it). */
   targetText: string;
-  /** 'NEED 1,100' before the pins win; 'NEXT REGION AT 4,400' once they do; 'UNITES THE WORLD' when nothing is left beyond. */
+  /**
+   * 'NEED 1,100' before the pins win; 'NEXT REGION AT 4,400' once they do; 'UNITES THE WORLD' when
+   * nothing is left beyond. Before any pin: 'NO SEND CAN WIN' on a dead deal, 'REORDER STAFF TO WIN'
+   * when only another seating wins.
+   */
   line: string;
   nextMark: bigint;
   /** Regions the pins would win now. */
@@ -236,7 +291,16 @@ export interface ReadoutView {
   score: bigint;
   /** The live score is within 10% below the next mark (the coach's 'Close to the next region'). */
   nearNext: boolean;
+  /** What the deal allows (dealState): 'live', 'reorder' or 'dead' (null outside a turn). */
+  deal: DealState | null;
+  /** A dead deal: no legal send of the lit regions reaches the target under any seating. */
+  dead: boolean;
+  /** No send wins as seated, one does after a reorder: REORDER STAFF TO WIN. */
+  reorder: boolean;
 }
+
+/** What the readout says before any pin when the deal cannot be won as it stands. */
+export const DEAL_LINE: Readonly<Record<'reorder' | 'dead', string>> = { reorder: 'REORDER STAFF TO WIN', dead: 'NO SEND CAN WIN' };
 
 export const readoutView = memo((s: GameState): ReadoutView => {
   const p = preview(s);
@@ -249,10 +313,18 @@ export const readoutView = memo((s: GameState): ReadoutView => {
   const next = p || last ? nextMark(score, T) : T;
   // Nothing left to win beyond these: there is no next region, the send unites the world.
   const unites = !!p?.unites;
+  const deal = dealState(s);
   return {
     target: T,
     targetText: formatInt(T),
-    line: unites ? 'UNITES THE WORLD' : regions > 0 ? `NEXT REGION AT ${formatInt(next)}` : `NEED ${formatInt(next)}`,
+    line:
+      !p && (deal === 'dead' || deal === 'reorder')
+        ? DEAL_LINE[deal]
+        : unites
+          ? 'UNITES THE WORLD'
+          : regions > 0
+            ? `NEXT REGION AT ${formatInt(next)}`
+            : `NEED ${formatInt(next)}`,
     nextMark: next,
     regions,
     points,
@@ -261,34 +333,69 @@ export const readoutView = memo((s: GameState): ReadoutView => {
     multiplierText: formatM10Short(m10, 7),
     score,
     nearNext: p !== null && !unites && next - score <= next / 10n,
+    deal,
+    dead: deal === 'dead',
+    reorder: deal === 'reorder',
   };
 });
 
 export interface SendLabel {
-  /** 'WINS 2 REGIONS', 'MISS · SHORT BY 620', 'MISS · CEASEFIRE', 'PIN A REGION' ('' outside a turn). */
+  /**
+   * 'WINS 2 REGIONS', 'MISS · SHORT BY 620', in the final push 'MISS · 2 MISSES LEFT', 'MISS · 1 MISS
+   * LEFT', then 'MISS · CEASEFIRE' on its last miss; 'PIN A REGION' before any pin. On a dead deal,
+   * before any pin: 'NO SEND CAN WIN · SWAP' while SWAP can bring new regions, else how the turn ends:
+   * 'NO SEND CAN WIN · SEND TO PASS' ('NO SEND CAN WIN · USES A MISS' in the final push). '' outside a turn.
+   */
   text: string;
-  /** 'win' gold, 'miss' red, 'off' disabled at 40%. */
+  /** 'win' gold, 'miss' red (a dead deal too), 'off' disabled at 40%. */
   tone: 'win' | 'miss' | 'off';
+  /** SEND can be pressed: pins are down and legal (a dead deal too, once a pin is down). */
   enabled: boolean;
   regions: number;
+  /** A dead deal: no legal send of the lit regions reaches the target under any seating. */
+  dead: boolean;
+  /** No send wins as seated, one does after a reorder (the readout says REORDER STAFF TO WIN). */
+  reorder: boolean;
+}
+
+/** The lever on a dead deal, before any pin: what can change it (SWAP), or how the turn ends. */
+export function deadLabel(s: GameState): string {
+  const how = swapProblem(s) === null ? 'SWAP' : s.deal.finalPush ? 'USES A MISS' : 'SEND TO PASS';
+  return `${DEAL_LINE.dead} · ${how}`;
+}
+
+/** 'MISS · 2 MISSES LEFT', 'MISS · 1 MISS LEFT', or 'MISS · CEASEFIRE' for the push's last miss. */
+export function pushMissLabel(missesBefore: number): string {
+  const left = RULES.pushMisses - missesBefore - 1;
+  return left > 0 ? `MISS · ${plural(left, 'MISS', 'MISSES')} LEFT` : 'MISS · CEASEFIRE';
 }
 
 export const sendLabel = memo((s: GameState): SendLabel => {
-  if (s.phase !== 'choose') return { text: '', tone: 'off', enabled: false, regions: 0 };
+  if (s.phase !== 'choose') return { text: '', tone: 'off', enabled: false, regions: 0, dead: false, reorder: false };
   const p = preview(s);
-  if (!p) return { text: 'PIN A REGION', tone: 'off', enabled: false, regions: 0 };
+  const deal = dealState(s);
+  const dead = deal === 'dead';
+  const reorder = deal === 'reorder';
+  if (!p) {
+    if (dead) return { text: deadLabel(s), tone: 'miss', enabled: false, regions: 0, dead, reorder };
+    return { text: 'PIN A REGION', tone: 'off', enabled: false, regions: 0, dead, reorder };
+  }
   const enabled = sendProblem(s) === null;
-  if (p.regions > 0) return { text: `WINS ${plural(p.regions, 'REGION', 'REGIONS')}`, tone: 'win', enabled, regions: p.regions };
-  if (s.deal.finalPush) return { text: 'MISS · CEASEFIRE', tone: 'miss', enabled, regions: 0 };
-  return { text: `MISS · SHORT BY ${formatInt(p.short)}`, tone: 'miss', enabled, regions: 0 };
+  if (p.regions > 0) return { text: `WINS ${plural(p.regions, 'REGION', 'REGIONS')}`, tone: 'win', enabled, regions: p.regions, dead, reorder };
+  // The push forgives: the label counts what this miss would leave; its last miss is the ceasefire.
+  if (s.deal.finalPush) return { text: pushMissLabel(s.pushMisses), tone: 'miss', enabled, regions: 0, dead, reorder };
+  return { text: `MISS · SHORT BY ${formatInt(p.short)}`, tone: 'miss', enabled, regions: 0, dead, reorder };
 });
 
 export interface ControlsView {
-  swap: { enabled: boolean; sub: string; reason: string | null };
+  /** `beckon`: the deal is dead and SWAP can still bring new regions. */
+  swap: { enabled: boolean; sub: string; reason: string | null; beckon: boolean };
   coins: number;
   /** '◆ 7' */
   coinsText: string;
   send: SendLabel;
+  /** The seats beckon: no send wins as seated, one does after a reorder (REORDER STAFF TO WIN). */
+  seatsBeckon: boolean;
 }
 
 export const controlsView = memo((s: GameState): ControlsView => {
@@ -297,10 +404,11 @@ export const controlsView = memo((s: GameState): ControlsView => {
   const pileEmpty = d.swapsLeft > 0 && !d.swapLocked && d.pile.length === 0;
   const sub = d.swapLocked ? 'from turn 2' : d.swapsLeft === 0 ? 'used' : pileEmpty ? 'no new regions' : `${d.swapsLeft} left`;
   return {
-    swap: { enabled: reason === null, sub, reason },
+    swap: { enabled: reason === null, sub, reason, beckon: reason === null && deadDeal(s) },
     coins: s.coins,
     coinsText: formatFunds(s.coins, { spaced: true }),
     send: sendLabel(s),
+    seatsBeckon: reorderDeal(s),
   };
 });
 
@@ -422,12 +530,15 @@ export function receipt(s: GameState): ShopView['receipt'] {
   const r = s.lastSend;
   if (!r) return null;
   const gained = r.coinsAfter - r.coinsBefore;
+  const left = RULES.pushMisses - r.pushMisses;
   const line =
     r.result === 'win'
       ? `LAST TURN · WIN ${r.regions} · +${formatFunds(gained)}`
       : r.ending === 'CEASEFIRE'
         ? 'LAST TURN · MISS · CEASEFIRE'
-        : `LAST TURN · MISS · WAR TOOK ${name(r.crisis).toUpperCase()}`;
+        : r.finalPush
+          ? `LAST TURN · MISS · ${plural(left, 'MISS', 'MISSES')} LEFT`
+          : `LAST TURN · MISS · WAR TOOK ${name(r.crisis).toUpperCase()}`;
   return { line, spread: r.spread ? `WAR SPREAD TO ${name(r.spread.id).toUpperCase()}` : null };
 }
 
@@ -508,6 +619,9 @@ export interface EndView {
   nearMiss: RegionId[];
 }
 
+/** 'three times': the push's misses in words, for the CEASEFIRE card. */
+const PUSH_TIMES = ['no times', 'once', 'twice', 'three times', 'four times', 'five times'][RULES.pushMisses] ?? `${RULES.pushMisses} times`;
+
 function timesTarget(score: bigint, T: bigint): string {
   if (score >= 10n * T) return `${formatInt(score / T)}x`;
   const tenths = (score * 10n) / T;
@@ -530,6 +644,7 @@ export const endView = memo((s: GameState): EndView | null => {
   } else if (s.ending === 'CEASEFIRE') {
     stars = gold >= 25 ? 2 : 1;
     title = `CEASEFIRE · ${gold} of ${RULES.regions} gold`;
+    lines.push(`The final push missed ${PUSH_TIMES}.`);
     lines.push(`War held ${plural(red, 'region', 'regions')} when it stopped.`);
   } else {
     title = 'WAR';

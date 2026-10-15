@@ -31,7 +31,10 @@ newGame ─► 'choose' ──pin/unpin/swap──► send ─┬─► 'outcome
 ```
 
 `send` resolves the whole turn at once: the outcome on the map, war spreading by itself after turns 3, 6, 9 ...,
-the Old Hand's growth and the end check, then opens the shop when one is due. Play the cascade from
+the Old Hand's growth and the end check, then opens the shop when one is due. In the final push (no grey left) a
+miss changes no region and spends one of `RULES.pushMisses` (3) misses (`state.pushMisses`); the third ends the
+game as a CEASEFIRE. The push's crisis is drawn from the red regions touching gold that the line-up can win on
+some fresh deal under its best seat order (`pushPool`), or from all of them when none can. Play the cascade from
 `state.lastSend` before showing the new phase. In `'outcome'` the UI calls `nextTurn` itself once the animation ends.
 
 ## Starting
@@ -65,16 +68,19 @@ Checks that return a reason or `null` (the actions use the same checks): `sendPr
 
 | Function | Returns |
 | --- | --- |
-| `goalView(s)` | Big Board: `gold`, `red`, `grey`, `goldGoal` (30), `warLimit` (10), `warNext: {id, turns} \| null` (turns 3, 2, 1), `warTag` (`'WAR · 2 TURNS'`, `'WAR · THIS TURN'` while choosing; `'WAR · IN 2 TURNS'`, `'WAR · NEXT TURN'` between turns), `finalPush`, `after: {gold, red} \| null` (the ghost segments for the current pins). |
+| `goalView(s)` | Big Board: `gold`, `red`, `grey`, `goldGoal` (30), `warLimit` (10), `warNext: {id, turns} \| null` (turns 3, 2, 1), `warTag` (`'WAR · 2 TURNS'`, `'WAR · THIS TURN'` while choosing; `'WAR · IN 2 TURNS'`, `'WAR · NEXT TURN'` between turns), `finalPush`, `push: {misses, left, limit} \| null` (the push's lamps: in the final push and through its CEASEFIRE), `after: {gold, red} \| null` (the ghost segments for the current pins). |
+| `dealState(s)` | What the deal allows before any pin: `'live'` (some legal send of the lit regions, the crisis among them, reaches the target with the line-up as it sits), `'reorder'` (none does as seated, but one does under another seat order: REORDER STAFF TO WIN), `'dead'` (none does under any seat order: NO SEND CAN WIN). The fast scorer over the legal groups (as the shop's preview number), dominated sends dropped, every distinct seating scored (`seatOrders`, at most 120); asked again after a SWAP or a seat drag; `null` outside `'choose'`. |
+| `deadDeal(s)`, `reorderDeal(s)` | `dealState(s) === 'dead'`, `=== 'reorder'`. |
+| `bestSeatingNow(s)` | The seating whose best send on the current deal scores most (ties to the first in `seatOrders`): what a player drags the staff into on REORDER STAFF TO WIN, and what the rail's beckon compares with. |
 | `mapView(s)` | The whole `MapView` of `ui/map/contract.ts` (`regions`, `joinedPins` west to east, `crisis: {id, target: '1,100', doubled}`, `warNext`, `ceased`; `highlight`, `finger`, `hover` are null for the UI to set on a copy). |
 | `regionViews(s)` | `Record<RegionId, RegionView>`: `owner`, `lit` (in this turn's deal; outside `'choose'` nothing is lit, so the map shows the plain world), `pinned`, `addable` (the tap rule), `joinable` (addable with a pin down), `capital`, `port`, `preview` (`{kind: 'win', order}` 1..k in claim order, or `{kind: 'war', order: 1}` on the crisis for a miss; none for a push miss). |
 | `preview(s)` | `LivePreview \| null` for the current pins: `pins` (tap order), `order` (west to east), `points`, `m10`, `score`, `regions` (the ladder's count capped by the regions left to win, so it matches what SEND does), `wins` (ids in claim order: the crisis, your pins, then the nearest others), `unites` (the send would make all 30 gold), `nextMark`, `short`, `doubled`, `firing` (seats that will fire). |
-| `readoutView(s)` | `target`, `targetText` (`'1,100'`), `line` (`'NEED 1,100'` / `'NEXT REGION AT 4,400'` / `'UNITES THE WORLD'` when nothing is left beyond), `nextMark`, `regions`, `points`, `m10`, `pointsText`, `multiplierText` (`'1,381.4'`), `score`, `nearNext` (within 10% below the next mark). Outside `'choose'` it shows the last send. |
-| `sendLabel(s)` | `{ text, tone, enabled, regions }`: `'WINS 2 REGIONS'` (`win`), `'MISS · SHORT BY 620'` / `'MISS · CEASEFIRE'` (`miss`), `'PIN A REGION'` (`off`, disabled); `''` outside a turn. |
-| `controlsView(s)` | `swap: {enabled, sub ('1 left' \| 'used' \| 'from turn 2' \| 'no new regions'), reason}`, `coins`, `coinsText` (`'◆ 7'`), `send` (the label). |
+| `readoutView(s)` | `target`, `targetText` (`'1,100'`), `line` (`'NEED 1,100'` / `'NEXT REGION AT 4,400'` / `'UNITES THE WORLD'` when nothing is left beyond; before any pin `'NO SEND CAN WIN'` on a dead deal, `'REORDER STAFF TO WIN'` on a reorder deal: `DEAL_LINE`), `nextMark`, `regions`, `points`, `m10`, `pointsText`, `multiplierText` (`'1,381.4'`), `score`, `nearNext` (within 10% below the next mark), `deal` (`dealState`), `dead`, `reorder`. Outside `'choose'` it shows the last send. |
+| `sendLabel(s)` | `{ text, tone, enabled, regions, dead, reorder }`: `'WINS 2 REGIONS'` (`win`), `'MISS · SHORT BY 620'` (`miss`); in the final push `'MISS · 2 MISSES LEFT'`, `'MISS · 1 MISS LEFT'` and on its last miss `'MISS · CEASEFIRE'` (`miss`, `pushMissLabel`); `'PIN A REGION'` (`off`, disabled; also on a reorder deal); before any pin on a dead deal `'NO SEND CAN WIN · SWAP'` while SWAP is usable, else `'NO SEND CAN WIN · SEND TO PASS'`, in the final push `'NO SEND CAN WIN · USES A MISS'` (`miss`, disabled until a pin is down: `deadLabel`); `''` outside a turn. |
+| `controlsView(s)` | `swap: {enabled, sub ('1 left' \| 'used' \| 'from turn 2' \| 'no new regions'), reason, beckon (a dead deal SWAP can still help)}`, `coins`, `coinsText` (`'◆ 7'`), `send` (the label), `seatsBeckon` (a reorder deal: the staff to move beckon). |
 | `seatViews(s)` | Per seated staff: `seat`, `uid`, `id`, `name`, `object`, `rule`, `price`, `sell`, `sellText` (`'SELL ◆3'`), `chip` (live: Surveyor `'+7'`, Old Hand `'×1.4'`), `chipLines` (`['ALL PINS', '★ ⚓']`, `['COPY', '→ Sovereign']`), `tone` (`'points'` cyan / `'multiplier'` amber; a Deputy takes its copy's), `copies`, `isNew` (hired since the last send). |
 | `shopView(s)` | `null` outside the shop. `visit`, `nextTarget`, `title` (`'SHOP · NEXT TARGET 1,600'`), `behind` (`{best, text: 'YOUR BEST 2,926 · NEXT TARGET 5,500'}` when the line-up's best last turn would miss the next target, else `null`), `offers[3]` (`slot`, `id` (null once hired), `name`, `object`, `rule`, `price`, `priceText`, `affordable`, `affordableWithSale`, `reason`, `preview` (`{before, after, seat, replaces, text: '390 → 2,343', beforeText, afterText}`), `replace` (full table only: per seat `{seat, after, text, affordable}`)), `reroll: {cost, text: 'REROLL ◆2', enabled}`, `fullTable`, `nothingAffordable`, `receipt: {line: 'LAST TURN · WIN 2 · +◆2', spread: 'WAR SPREAD TO MARRAM' \| null}`. |
-| `endView(s)` | `null` until the game ends. `ending`, `stars` (3 / 2 / 1 / 0), `title` (`'WORLD UNITED · 30 of 30'`, `'CEASEFIRE · 26 of 30 gold'`, `'WAR'`), `lines` (`'Turn 15 · war peaked at 6'`; `'War held 4 regions when it stopped.'`; `'War took 10 regions. You held 18 of 30.'`, `'Only 2 free regions were left to win.'`), `turn`, `gold`, `red`, `grey`, `peakWar`, `best: {score, target, text: '749,414 · 39x the target'` or `'6 · needed 64'` when it missed`}`, `biggestTurn: {regions, text: '7 regions'} \| null` (null when no region was won), `staff` (seat order), `nearMiss` (WAR with 1-3 grey left: outline them gold; no grey line when none is left). |
+| `endView(s)` | `null` until the game ends. `ending`, `stars` (3 / 2 / 1 / 0), `title` (`'WORLD UNITED · 30 of 30'`, `'CEASEFIRE · 26 of 30 gold'`, `'WAR'`), `lines` (`'Turn 15 · war peaked at 6'`; `'War held 4 regions when it stopped.'`; `'The final push missed three times.'`; `'War took 10 regions. You held 18 of 30.'`, `'Only 2 free regions were left to win.'`), `turn`, `gold`, `red`, `grey`, `peakWar`, `best: {score, target, text: '749,414 · 39x the target'` or `'6 · needed 64'` when it missed`}`, `biggestTurn: {regions, text: '7 regions'} \| null` (null when no region was won), `staff` (seat order), `nearMiss` (WAR with 1-3 grey left: outline them gold; no grey line when none is left). |
 | `menuView(s)` | `{ turn, nextShopAfter, line: 'Turn 9 · next shop after turn 10' }`. |
 | `actsOn(s, staffId)` | Regions a staff acts on (long-press highlight): your gold (Governor, Surveyor), ports (Harbourmaster), capitals (Sovereign), every region (Herald). |
 | `receipt(s)` | The shop receipt for the last send (also in `shopView`). |
@@ -83,7 +89,7 @@ Checks that return a reason or `null` (the actions use the same checks): `sendPr
 ## State shape (`GameState`)
 
 ```
-version: 2, seed, mode: 'game' | 'first' | 'crown'
+version: 3, seed, mode: 'game' | 'first' | 'crown'
 rng: { war, crisis, deal, shop }              RngState each
 phase: 'choose' | 'outcome' | 'shop' | 'over'
 turn                                          from 1 (CROWN starts at 14)
@@ -95,6 +101,7 @@ deal: { crisis, target (bigint), finalPush, lit (light-up order, crisis not list
 shop: { visit, offers: (StaffId | null)[3], rerollCost } | null      (non-null exactly in phase 'shop')
 shopVisits
 ending: 'WORLD UNITED' | 'CEASEFIRE' | 'WAR' | null                  (non-null exactly in phase 'over')
+pushMisses                                    misses made in the final push (0 before it; 3 ends it)
 lastSend: SendRecord | null
 log: [{ turn, target, score, regions, result: 'win' | 'miss', spread, gold, red }]
 best: { score, target, turn, regions } | null   (the biggest win; the biggest miss while nothing has won)
@@ -114,6 +121,7 @@ spread: { id, from } | null                   war spread by itself after this tu
 coinsBefore, coinsAfter, goldBefore, redBefore, gold, red, grey
 newHires: uid[]                               hired since the previous send: draw their first firing 1.5x
 ending: Ending | null                         this send ended the game
+pushMisses                                    the push's misses after this send
 trace: TraceEvent[]
 ```
 
@@ -145,6 +153,8 @@ copying the Herald, it fires nothing. The Herald never fires (it is passive). A 
 | `warSpreadTarget(owner)` | Where war spreads by itself: grey touching war, nearest your gold, then higher number, west, north; null if none. |
 | `warSource(owner, id)` | The touching war region red ink runs from (nearest pin), or null. |
 | `crisisPool(owner)` | `{pool, finalPush}`: grey touching gold; else any grey; else red touching gold (the final push). |
+| `pushPool(owner, red, seats, oldHandM10, T)`, `pushWinnable(owner, c, seats, oldHandM10, T)` | The final push's draw (decision A2): `{pool, draw}`, the red regions some fresh deal can win (any touching group of up to 5 of `dealPool` and the crisis, under the best seat order) with `draw: 'winnable'`, else all of them with `draw: 'any'`. `beginTurn` uses it; the crisis stream draws once, as ever. |
+| `seatOrders(seats)`, `orderKey(seats)`, `reduceFeatures(fs)`, `orderState(fs, seats, gold, oldHandM10, T)`, `bestSeating(fs, seats, gold, oldHandM10)` | Seat order: every seating that can score differently (seated first; seatings equal up to the Quartermaster, an idle Deputy, the Herald and neighbouring + multiplier staff are merged), the sends no other beats in every feature, `'live' / 'reorder' / 'dead'`, and the seating that scores most. |
 | `deal(owner, crisis, rng)`, `dealPool`, `scriptedDeal`, `swapLit` | The deal and the swap. |
 | `distance(a, b)`, `pathBetween(a, b)`, `isJoined`, `isLane`, `ADJ`, `IDS`, `westToEast` | The join graph. |
 | `countOwner`, `regionsOf`, `freshOwners`, `encodeOwners`, `decodeOwners` | Ownership helpers (the fixture string form). |
@@ -155,7 +165,7 @@ copying the Herald, it fires nothing. The Herald never fires (it is passive). A 
 
 | Function | What it does |
 | --- | --- |
-| `saveGame(s)` / `loadGame(text)` | Versioned JSON (`{format: 'brink.war', version: 2, state}`), BigInts as decimal strings. `loadGame` returns `null` for anything unreadable or not a v2 game. The app stores it under `SAVE_KEY` (`'brink.war.v2.save'`). |
+| `saveGame(s)` / `loadGame(text)` | Versioned JSON (`{format: 'brink.war', version: 3, state}`), BigInts as decimal strings. A version 2 save (before the push forgave) is brought up to version 3 exactly (`pushMisses` 0, or 3 for a CEASEFIRE); `loadGame` returns `null` for anything else unreadable. The app stores it under `SAVE_KEY` (`'brink.war.v2.save'`). |
 | `formatInt(n)` | `'10,920'` |
 | `formatShort(n, maxGlyphs = 7)` | `'10,920'`, `'1.24M'`, `'1.23e25'`, `'GOOGOL'`; never more than `maxGlyphs` glyphs. |
 | `formatM10(m10)` / `formatM10Short(m10, max = 5)` | `40n` -> `'4.0'`, `13814n` -> `'1,381.4'`; short: `'29.0M'`. |
@@ -165,7 +175,7 @@ copying the Herald, it fires nothing. The Herald never fires (it is passive). A 
 ## Test and bot helpers (`testkit.ts`)
 
 `must(result)`, `pinAll(s, ids)`, `tapOrder(group)` (a touching group in an order that can be tapped),
-`ownersFrom(gold, red)`, `position(s, {owner, seats, coins, turn, oldHandM10, deal})` (a hand-made position in
+`ownersFrom(gold, red)`, `position(s, {owner, seats, coins, turn, oldHandM10, pushMisses, deal})` (a hand-made position in
 phase `'choose'`), `sendOptions(s)` (every legal send of the current deal with `score` and `regions`, best first;
 ties by pins), `medianScore(options)`. `testdata.ts` (Node only, not exported from `index.ts`) has
 `loadFixtures()` (`fixtures.json`, typed) and `toReference(trace)` (a trace in the reference's row form), for the
@@ -178,10 +188,13 @@ simulator's cross-check.
 - `lost.from` / `spread.from`: the touching war region whose pin is nearest the target's pin (ties west to east).
 - `won[].path`: a shortest chain of joins from the crisis; ties go to the neighbour first in id order.
 - The CEASEFIRE and the final push never spread war (gold is gold for good and no grey is left).
+- The push's misses count over the whole push (a win between does not give one back). `setOwners` keeps the count
+  when the new map is still a push and starts it afresh when grey is back.
 - The engine does not reproduce Python's random numbers; FIRST-WORLD and CROWN are scripted, and the fixtures are
   fixed data.
 
 ## Tests
 
 `npx vitest run src/war/engine src/war/content`. `docs/war/v2/reference/fixtures.json` (written by the reference's
-own `fixtures.py`) holds 1,450 cases; the engine must agree with every one, traces included.
+own `fixtures.py`) holds 1,680 cases (150 dead deals and 80 final-push sends among them); the engine must agree
+with every one, traces included.

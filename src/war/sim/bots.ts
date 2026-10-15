@@ -3,24 +3,32 @@
  * through its public actions only. Each bot picks a send (or a swap) on its turn and spends its
  * coins in the shop. The look-ahead shoppers (sensible, breaker) are in sensible.ts.
  *
- * random   a random touching group of 1-5 pinnable regions; never swaps; buys each affordable
- *          offer half the time and seats at random.
+ * random   a random touching group of 1-5 pinnable regions; never swaps (not even on a dead deal:
+ *          it is the floor); buys each affordable offer half the time and seats at random.
  * novice   a weak human: a random touching group of 3-5; never thinks about the crisis x2 or its
- *          staff; swaps only when it cannot make 3; buys the cheapest affordable offer into a free seat.
- * greedy   the best send every turn; swaps once, keeping its best group, when that misses. Never shops.
+ *          staff; swaps when the game says NO SEND CAN WIN · SWAP (a dead deal) or when it cannot
+ *          make 3; buys the cheapest affordable offer into a free seat.
+ * greedy   the best send every turn; swaps once, keeping its best group, when that misses. Never
+ *          shops. When the game says REORDER STAFF TO WIN (no send wins as seated, one does after a
+ *          reorder) it first drags its staff into the best seating for the deal, as every best-send
+ *          bot (preview, sensible, breaker) does; otherwise it never reorders during a turn.
  * preview  greedy play; in the shop it follows only the preview number on each card and buys while
  *          the number goes up. It reads the number as the reference prints it (bots.py preview_number:
  *          last turn's opening deal on today's map), so the Python replay stays turn for turn identical.
  *          The card itself now prints the engine's bestLastTurn (the deal as it stood at SEND, on the
- *          map at SEND); a bot following that number held the world in 44.4% of 2,000 games (G14 ≥ 30%).
+ *          map at SEND); a bot following that number held the world in 44.4% of 2,000 games (G14 ≥ 30%),
+ *          measured before the bots acted on REORDER STAFF TO WIN.
  */
 import { Rng } from '../../engine/rng';
 import {
+  bestSeatingNow,
   buy,
+  deadDeal,
   dealFeatures,
   goldCount,
   must,
   price,
+  reorderDeal,
   RULES,
   Scorer,
   sellValue,
@@ -33,8 +41,11 @@ import { arrangeSeats, seatIds } from './drive';
 
 export type BotName = 'random' | 'novice' | 'greedy' | 'preview' | 'sensible' | 'breaker';
 
-/** A bot's move on its turn: send these pins, or swap keeping these pins (then pick again). */
-export type Pick = { kind: 'send'; pins: RegionId[] } | { kind: 'swap'; keep: RegionId[] };
+/**
+ * A bot's move on its turn: send these pins, or swap keeping these pins (then pick again). `seats`:
+ * drag the staff into this order first (REORDER STAFF TO WIN).
+ */
+export type Pick = ({ kind: 'send'; pins: RegionId[] } | { kind: 'swap'; keep: RegionId[] }) & { seats?: StaffId[] };
 
 export interface Bot {
   readonly name: BotName;
@@ -74,6 +85,8 @@ export class NoviceBot extends RandomBot {
   override readonly name: BotName = 'novice';
 
   override pick(s: GameState, afterSwap: boolean): Pick {
+    // The game says NO SEND CAN WIN · SWAP before any pin, and SWAP beckons: even a novice swaps.
+    if (!afterSwap && s.deal.swapsLeft > 0 && s.deal.pile.length > 0 && deadDeal(s)) return { kind: 'swap', keep: [] };
     let group: RegionId[] = [];
     for (let i = 0; i < 6; i++) {
       group = randomGroup(s, this.rng, 3, 5);
@@ -108,6 +121,11 @@ export class GreedyBot implements Bot {
   }
 
   pick(s: GameState, afterSwap: boolean): Pick {
+    // REORDER STAFF TO WIN: the readout says a reorder wins this deal; drag the staff, then send.
+    if (reorderDeal(s)) {
+      const seats = bestSeatingNow(s);
+      return { ...sendPins(bestSend(arrangeSeats(s, seats)).pins), seats };
+    }
     const best = bestSend(s);
     if (best.regions === 0 && !afterSwap && s.deal.swapsLeft > 0) return { kind: 'swap', keep: best.pins };
     return sendPins(best.pins);

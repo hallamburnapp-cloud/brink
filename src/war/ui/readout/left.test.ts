@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { must, newGame, pinAll, send } from '../../engine';
+import { must, newGame, pinAll, position, send, sendOptions } from '../../engine';
 import { readoutLeft } from './left';
 
 const first = () => newGame('FIRST-WORLD');
@@ -15,6 +15,24 @@ describe('the readout says what this moment needs', () => {
     // 264 (WINS 2): the next mark is 1,024. The long form drops 'AT' to fit the line.
     const four = pinAll(first(), ['SHL', 'LNK', 'PBB', 'MRM']);
     expect(readoutLeft(four, 'NEXT REGION AT 1,024').line).toBe('NEXT REGION 1,024 · 760 MORE');
+  });
+
+  it('on a dead deal, before any pin: NO SEND CAN WIN, in red; pinned, how far short as ever', () => {
+    const dead = position(first(), { deal: { ...first().deal, target: 1_000_000n } });
+    expect(lineOf(dead)).toEqual({ label: 'TARGET', value: '1,000,000', line: 'NO SEND CAN WIN', lineTone: 'dead' });
+    expect(lineOf(pinAll(dead, ['SHL']))).toEqual({ label: 'TARGET', value: '1,000,000', line: 'NEED 999,986 MORE' });
+  });
+
+  it('on a deal only another seating wins, before any pin: REORDER STAFF TO WIN, in brass', () => {
+    // Strategist then Duty Officer: as seated (50 x3 +40) the best send falls short; Duty first wins.
+    const t = first();
+    const seated = position(t, { seats: ['STRATEGIST', 'DUTY'], deal: { ...t.deal, target: 1n } });
+    const best = (seats: Array<'STRATEGIST' | 'DUTY'>) => sendOptions(position(t, { seats, deal: { ...t.deal } }))[0].score;
+    const T = best(['STRATEGIST', 'DUTY']) + 1n;
+    expect(best(['DUTY', 'STRATEGIST'])).toBeGreaterThanOrEqual(T);
+    const s = position(seated, { deal: { ...t.deal, target: T } });
+    expect(lineOf(s)).toMatchObject({ line: 'REORDER STAFF TO WIN', lineTone: 'reorder' });
+    expect(lineOf(pinAll(s, ['SHL'])).line).toMatch(/^NEED /);
   });
 
   it('once the send is in the ring: the next target, nothing stale', () => {

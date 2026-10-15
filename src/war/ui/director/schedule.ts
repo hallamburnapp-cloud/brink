@@ -566,6 +566,11 @@ export type OutcomeCue =
   | { t: number; do: 'drone'; level: number }
   /** CEASEFIRE: red stops pulsing and fades. */
   | { t: number; do: 'ceasefire' }
+  /**
+   * A miss in the final push: one of the push's lamps beside WAR goes out (`misses`: the push's
+   * misses after this one). No region changes.
+   */
+  | { t: number; do: 'strike'; misses: number }
   /** WORLD UNITED: sunrise sweeps the map from the east... */
   | { t: number; do: 'sunrise'; ms: number }
   /** ...then a gold wave rolls out from the last region won. */
@@ -593,6 +598,8 @@ export interface OutcomeInput {
   won: readonly WonRegion[];
   /** A miss: the crisis turned red (null in the final push, where a miss changes no region). */
   lost: WarTake | null;
+  /** The push's misses after this send (a push miss spends one of its lamps). */
+  pushMisses?: number;
   /** War spread by itself after this turn. */
   spread: WarTake | null;
   ending: Ending | null;
@@ -631,6 +638,8 @@ const COIN_MS = 300;
 /** A miss: red ink runs into the crisis (700 ms), the whole miss 0.8 s. */
 const MISS_INK_AT = 100;
 const WAR_INK_MS = 700;
+/** A push miss: its lamp goes out and the board holds a beat (the miss reads before anything moves on). */
+export const STRIKE_MS = 600;
 /** War spreads by itself 0.5 s after the outcome. */
 const SPREAD_GAP_MS = 500;
 /** Before war's own ink runs, a red pulse crosses the border it comes over. */
@@ -740,10 +749,18 @@ function fullOutcome(input: OutcomeInput): Outcome {
     add({ t, do: 'glow', which: null });
     if (!input.spread) add({ t, do: 'tag' });
   } else {
-    // A miss in the final push: no region changes; the war simply stops (the ending follows).
+    // A miss in the final push: no region changes. One of the push's lamps beside WAR goes out with
+    // a knock; on the last one the war stops where it stands (the ending follows).
     add({ t: 0, do: 'sound', sfx: 'ante_miss', intensity: 0.6 });
     add({ t: 0, do: 'drone', level: 0.05 });
-    t = COLLAPSE_MS + 200;
+    const at = COLLAPSE_MS;
+    add({ t: at, do: 'strike', misses: input.pushMisses ?? 0 });
+    add({ t: at, do: 'sound', sfx: 'thump', intensity: 0.7 });
+    add({ t: at, do: 'glow', which: 'war' });
+    add({ t: at, do: 'shake', px: 2, ms: 220 });
+    add({ t: at, do: 'buzz', pattern: [50, 70, 50] });
+    t = at + STRIKE_MS;
+    add({ t, do: 'glow', which: null });
   }
 
   // War spreads by itself (after turns 3, 6, 9 ...): a low drum, a red pulse over the border, then

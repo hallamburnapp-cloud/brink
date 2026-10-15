@@ -2,13 +2,17 @@
 
 Each bot has pick(game, after_swap) -> ('send', pins) | ('swap', keep) and shop(game).
 
-random    a random touching group of 1-5 pinnable regions; never swaps; buys each affordable offer
-          half the time and seats at random.
+random    a random touching group of 1-5 pinnable regions; never swaps (not even on a dead deal: it
+          is the floor); buys each affordable offer half the time and seats at random.
 novice    a weak human: a random touching group of 3-5 (it has read 'more pins score more'), but it
-          never thinks about the crisis x2 or its staff; swaps only when it cannot make 3; buys the
-          cheapest affordable offer into a free seat; never sells, rerolls or reorders.
+          never thinks about the crisis x2 or its staff; swaps when the game says NO SEND CAN WIN ·
+          SWAP (a dead deal: no seating of its staff wins) or when it cannot make 3; buys the
+          cheapest affordable offer into a free seat; never sells, rerolls or reorders (it does not
+          act on REORDER STAFF TO WIN).
 greedy    the best send every turn (most regions, then the highest score); swaps once, keeping its
-          best group, when that misses. Never shops.
+          best group, when that misses. Never shops. When the game says REORDER STAFF TO WIN (no send
+          wins as seated, one does after a reorder) it drags its staff into the best seating for the
+          deal first, as every best-send bot below does; otherwise it never reorders during a turn.
 preview   greedy play; at the shop it follows only the preview number printed on each card (the best
           send of the turn just played, rescored with that staff hired; with a full table, the best
           seat to replace) and buys while the number goes up.
@@ -76,6 +80,9 @@ class NoviceBot(RandomBot):
     name = 'novice'
 
     def pick(self, g, after_swap=False):
+        # The game says NO SEND CAN WIN · SWAP before any pin, and SWAP beckons: even a novice swaps.
+        if not after_swap and g.swap_usable() and g.dead():
+            return ('swap', ())
         for _ in range(6):
             grp = random_group(g, self.rng, 3, 5)
             if len(grp) >= 3:
@@ -99,6 +106,10 @@ class GreedyBot:
         self.rng = random.Random(str(seed) + ':bot')
 
     def pick(self, g, after_swap=False):
+        # REORDER STAFF TO WIN: the readout says a reorder wins this deal; drag the staff, then send.
+        if g.reorder_wins():
+            g.reseat_best()
+            self.reordered = True
         k, v, grp = best_send(g)
         if k == 0 and not after_swap and g.swaps_left:
             return ('swap', grp)
@@ -267,16 +278,34 @@ def play(seed, botname, max_turns=60, first_world=False):
         spread.append((best / max(1, med), R.regions_won(best, g.target), R.regions_won(int(med), g.target),
                        best >= g.target, med >= g.target, len(vals), g.turn))
         g.last_opening = (g.crisis, list(g.opening_lit))
+        # What the game says before any pin, as dealt (deal_state: 'live', 'reorder' for REORDER
+        # STAFF TO WIN, 'dead' for NO SEND CAN WIN) ...
+        dealt = g.deal_state()
+        swap_ok = g.swap_usable()
+        bot.reordered = False
         act = bot.pick(g)
+        swapped = False
         if act[0] == 'swap' and g.swaps_left:
             g.swap(act[1])
+            swapped = True
+            # ... and again on the new lit regions after a swap.
+            at_send = g.deal_state()
             act = bot.pick(g, after_swap=True)
+        else:
+            at_send = dealt
         if act[0] == 'swap':
             act = ('send', best_send(g)[2])
-        g.send(act[1])
+        rec = g.send(act[1])
+        rec['dead_dealt'] = dealt == 'dead'
+        rec['dead'] = at_send == 'dead'
+        rec['reorder_dealt'] = dealt == 'reorder'
+        rec['reorder'] = at_send == 'reorder'
+        rec['reordered'] = bot.reordered
+        rec['swap_ok'] = swap_ok
         if g.shop_due():
             g.open_shop()
             g.log[-1]['shop_affordable'] = g.can_afford_any()
+            g.log[-1]['shop_affordable_sale'] = g.can_afford_any(with_sale=True)
             before = list(g.seats)
             bot.shop(g)
             g.log[-1]['bought'] = sum(1 for s in g.seats if s not in before)

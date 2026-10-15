@@ -3,6 +3,7 @@ import { hashState } from './hash';
 import { newGame, nextTurn, send } from './run';
 import { SAVE_KEY, loadGame, saveGame } from './save';
 import { must, pinAll } from './testkit';
+import type { GameState } from './types';
 import { endView, shopView } from './view';
 
 const t1 = newGame('FIRST-WORLD');
@@ -28,8 +29,33 @@ describe('save and load', () => {
   it('writes BigInts as decimal strings', () => {
     const json = JSON.parse(saveGame(crown)) as { format: string; version: number; state: { lastSend: { score: unknown } } };
     expect(json.format).toBe('brink.war');
-    expect(json.version).toBe(2);
+    expect(json.version).toBe(3);
     expect(json.state.lastSend.score).toBe('5598720');
+  });
+
+  it('brings a version 2 save (before the push forgave) up to version 3', () => {
+    /** The save as version 2 wrote it: no pushMisses anywhere. */
+    const v2 = (s: GameState) => {
+      const data = JSON.parse(saveGame(s)) as { version: number; state: Record<string, unknown> };
+      data.version = 2;
+      data.state.version = 2;
+      delete data.state.pushMisses;
+      if (data.state.lastSend) delete (data.state.lastSend as Record<string, unknown>).pushMisses;
+      return JSON.stringify(data);
+    };
+    for (const s of [t1, shop, crown]) {
+      const back = loadGame(v2(s))!;
+      expect(back).toEqual(s);
+      expect(hashState(back)).toBe(hashState(s));
+    }
+    // A version 2 CEASEFIRE ended on its one push miss: the push is spent.
+    const cease = { ...shop, phase: 'over' as const, ending: 'CEASEFIRE' as const, shop: null };
+    const back = loadGame(v2(cease))!;
+    expect([back.version, back.pushMisses, back.lastSend!.pushMisses, endView(back)!.ending]).toEqual([3, 3, 3, 'CEASEFIRE']);
+    // A version 2 save that already has the field is not one version 2 wrote.
+    const odd = JSON.parse(v2(shop)) as { state: Record<string, unknown> };
+    odd.state.pushMisses = 0;
+    expect(loadGame(JSON.stringify(odd))).toBeNull();
   });
 
   it('plays on from a loaded game exactly as from the original', () => {
@@ -56,6 +82,8 @@ describe('save and load', () => {
     expect(loadGame(edit((s) => (s.phase = 'over')))).toBeNull();
     expect(loadGame(edit((s) => ((s.deal as Record<string, unknown>).target = 'lots')))).toBeNull();
     expect(loadGame(edit((s) => (s.coins = -1)))).toBeNull();
+    expect(loadGame(edit((s) => (s.pushMisses = 4)))).toBeNull();
+    expect(loadGame(edit((s) => delete s.pushMisses))).toBeNull();
   });
 
   it('keeps an ended game ended', () => {

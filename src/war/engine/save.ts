@@ -1,8 +1,10 @@
 /**
  * The save game (SPEC section 11): the whole state as versioned JSON, BigInts as decimal strings.
- * loadGame() checks what it reads and returns null for anything it cannot trust, so an old,
- * truncated or edited save is discarded rather than crashing the game. Storage itself (the
- * localStorage key 'brink.war.v2.save', try/catch) belongs to the app.
+ * loadGame() checks what it reads and returns null for anything it cannot trust, so a truncated or
+ * edited save is discarded rather than crashing the game. A version 2 save (before the final push
+ * forgave misses) is brought up to version 3 exactly: its game had made no push miss unless it had
+ * ended in a CEASEFIRE. Storage itself (the localStorage key 'brink.war.v2.save', try/catch)
+ * belongs to the app.
  */
 import { REGION } from '../content/map';
 import { isStaffId } from '../content/staff';
@@ -12,7 +14,9 @@ import { IDS } from './board';
 
 export const SAVE_KEY = 'brink.war.v2.save';
 const FORMAT = 'brink.war';
-const VERSION = 2;
+const VERSION = 3;
+/** The last version without the push's misses (`pushMisses`): loaded and brought up to VERSION. */
+const PUSH_V = 2;
 
 /** Every state field with one of these names holds a BigInt (and no other field does). */
 const BIGINT_KEYS = new Set(['target', 'score', 'points', 'm10']);
@@ -34,8 +38,22 @@ export function loadGame(text: string | null | undefined): GameState | null {
   } catch {
     return null;
   }
-  if (!isObject(data) || data.format !== FORMAT || data.version !== VERSION) return null;
+  if (!isObject(data) || data.format !== FORMAT) return null;
+  if (data.version === PUSH_V) data.state = fromV2(data.state);
+  else if (data.version !== VERSION) return null;
   return isGameState(data.state) ? data.state : null;
+}
+
+/**
+ * A version 2 game in version 3's shape. Before the push forgave, its first miss ended the game: a
+ * game still going has made no push miss, and a CEASEFIRE has spent the push. Anything else is left
+ * for isGameState to refuse.
+ */
+function fromV2(state: unknown): unknown {
+  if (!isObject(state) || state.version !== PUSH_V || 'pushMisses' in state) return null;
+  const misses = state.ending === 'CEASEFIRE' ? RULES.pushMisses : 0;
+  const last = isObject(state.lastSend) ? { ...state.lastSend, pushMisses: misses } : state.lastSend;
+  return { ...state, version: VERSION, pushMisses: misses, lastSend: last };
 }
 
 // ---------------------------------------------------------------- checks
@@ -104,7 +122,8 @@ function isGameState(x: unknown): x is GameState {
   if ((x.phase === 'shop') !== (x.shop !== null)) return false;
   if (x.ending !== null && !ENDINGS.includes(x.ending as string)) return false;
   if ((x.phase === 'over') !== (x.ending !== null)) return false;
-  if (x.lastSend !== null && !(isObject(x.lastSend) && Array.isArray(x.lastSend.trace) && isBig(x.lastSend.score))) return false;
+  if (!isInt(x.pushMisses) || x.pushMisses > RULES.pushMisses) return false;
+  if (x.lastSend !== null && !(isObject(x.lastSend) && Array.isArray(x.lastSend.trace) && isBig(x.lastSend.score) && isInt(x.lastSend.pushMisses))) return false;
   if (!Array.isArray(x.log) || !x.log.every((l) => isObject(l) && isBig(l.score) && isBig(l.target))) return false;
   if (x.best !== null && !(isObject(x.best) && isBig(x.best.score) && isBig(x.best.target))) return false;
   return isRegionList(x.brass);

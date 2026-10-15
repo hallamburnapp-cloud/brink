@@ -35,7 +35,7 @@ export const RULES_COPY: readonly string[] = [
   'Beat the target: the crisis turns gold for good. Beat it by more, win more regions: your pins first.',
   'Miss: war takes it. Every 3rd turn, war also spreads by itself, into the red tag.',
   'Each region won pays 1 coin. Every 2 turns, hire staff.',
-  'No grey left? Crises flare on red: win each to unite the world. Miss one: ceasefire.',
+  'No grey left? Crises flare on red: win each back. Three misses: ceasefire.',
 ];
 
 /** Under the rules: what the marks on the map mean. */

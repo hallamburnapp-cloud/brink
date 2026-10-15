@@ -1,7 +1,29 @@
 import { expect, test, type Page } from '@playwright/test';
 import { REGION } from '../src/war/content/map';
 import { INTRO_COPY, RULES_COPY } from '../src/war/ui/app/copy';
-import { hashState, hashTrace, must, newGame, pinAll, send, sendOptions, setOwners, tapOrder, type GameState } from '../src/war/engine';
+import {
+  crisisPool,
+  dealState,
+  deadDeal,
+  decodeOwners,
+  hashState,
+  hashTrace,
+  must,
+  newGame,
+  pinAll,
+  position,
+  pushPool,
+  pushWinnable,
+  SAVE_KEY,
+  saveGame,
+  send,
+  sendOptions,
+  setOwners,
+  swap,
+  tapOrder,
+  type GameState,
+} from '../src/war/engine';
+import { DEAD_PASS_LINE, DEAD_SWAP_LINE, PUSH_LINE, REORDER_LINE } from '../src/war/ui/app/teach';
 import { SEAT_W, SEAT_X, SEAT_Y } from '../src/war/ui/common/layout';
 
 /**
@@ -69,6 +91,31 @@ async function open(page: Page, device: 'new' | 'taught' | 'veteran' = 'new'): P
   await page.goto('./');
   await page.waitForFunction(() => !!window.__war);
   await expect(page.getByRole('button', { name: /^(PLAY|CONTINUE)/ })).toBeVisible();
+}
+
+/**
+ * Load the title with a saved game in progress (a position built by the engine in Node) and CONTINUE
+ * it: for positions that would take many turns to reach by hand.
+ */
+async function openSaved(page: Page, s: GameState): Promise<void> {
+  const prefs = { speed: 1, motion: 'system', introSeen: true, playedFirst: true, hints: [] };
+  await page.addInitScript(
+    ([pk, pv, sk, sv]) => {
+      try {
+        if (!localStorage.getItem(pk)) {
+          localStorage.setItem(pk, pv);
+          localStorage.setItem(sk, sv);
+        }
+      } catch {
+        /* storage blocked: the title has nothing to continue */
+      }
+    },
+    [PREFS_KEY, JSON.stringify(prefs), SAVE_KEY, saveGame(s)] as const,
+  );
+  await page.goto('./');
+  await page.waitForFunction(() => !!window.__war);
+  await page.getByRole('button', { name: /^CONTINUE/ }).tap();
+  await waitFor(page, 'choose', s.turn);
 }
 
 /** A point in the 390 x 844 frame, in page coordinates. */
@@ -139,6 +186,7 @@ async function info(page: Page) {
       gold: count('gold'),
       red: count('red'),
       ending: s.ending,
+      pushMisses: s.pushMisses,
       rerollCost: s.shop?.rerollCost ?? null,
       offers: s.shop ? [...s.shop.offers] : null,
       last: s.lastSend
@@ -173,6 +221,9 @@ async function drawn(page: Page) {
 }
 
 const sendSub = (page: Page) => page.locator('.send-sub');
+/** What the SEND lever says, as one line ('NO SEND CAN WIN · SWAP' is drawn on two). */
+const lever = (page: Page) => page.locator('button.send');
+const leverSays = (page: Page, text: string) => expect(lever(page)).toHaveAttribute('aria-label', `Send. ${text}`);
 const coach = (page: Page) => page.locator('.coach:not(.out) .coach-text');
 const goldCount = (page: Page) => page.locator('.goal-count.gold');
 const warCount = (page: Page) => page.locator('.goal-count.war');
@@ -223,6 +274,37 @@ async function longDrag(page: Page, from: { x: number; y: number }, to: { x: num
 }
 
 const seatCentre = (page: Page, seat: number) => framePoint(page, SEAT_X[seat] + SEAT_W / 2, SEAT_Y + 29);
+
+/** No grey left; war holds the last four regions in id order (Tern Isle, Vessary, Wintermast, Wenmoor). */
+const PUSH_MAP = 'G'.repeat(26) + 'RRRR';
+
+/**
+ * One miss in the final push: the crisis alone, far short of the target. `label` is what SEND must
+ * say first. The miss leaves the map as it was; returns once the next turn is dealt (through the
+ * shop when one is due), or, on the push's last miss, as soon as SEND is pressed.
+ */
+async function pushMiss(page: Page, label: string): Promise<void> {
+  const before = (await info(page))!;
+  await tapRegion(page, before.crisis);
+  await expect(sendSub(page)).toHaveText(label);
+  await tapSend(page);
+  if (label === 'MISS · CEASEFIRE') return;
+  await page.waitForFunction(
+    (t) => {
+      const s = window.__war?.state();
+      return !!s && (s.phase === 'shop' || (s.phase === 'choose' && s.turn > t)) && !window.__war!.busy();
+    },
+    before.turn,
+    { timeout: 30_000 },
+  );
+  const after = (await info(page))!;
+  expect(after.owner).toEqual(before.owner);
+  expect(after.last).toMatchObject({ result: 'miss', regions: 0 });
+  if (after.phase === 'shop') {
+    await page.locator('button.next').tap();
+    await waitFor(page, 'choose', before.turn + 1);
+  }
+}
 
 // ---------------------------------------------------------------- the explanation at the start
 
@@ -591,18 +673,19 @@ test('the three endings: WORLD UNITED, CEASEFIRE and WAR, with NEW GAME and HOME
   expect((await info(page))!.seed).not.toBe('E2E-END');
   await expect(goldCount(page)).toHaveAttribute('aria-label', 'Gold: 1 of 30 regions');
 
-  // CEASEFIRE: no grey left, and the push misses. The board ghosts CEASEFIRE before SEND.
-  await page.evaluate(() => {
+  // CEASEFIRE: no grey left, and the push misses three times (the final push test below follows it
+  // miss by miss). The board ghosts CEASEFIRE before the third.
+  await page.evaluate((map) => {
     window.__war!.seed('E2E-END');
-    window.__war!.setOwner('G'.repeat(26) + 'RRRR');
-  });
-  await tapRegion(page, (await info(page))!.crisis);
-  await expect(sendSub(page)).toHaveText('MISS · CEASEFIRE');
-  await expect(page.locator('.ceasefire-ghost')).toHaveText('CEASEFIRE');
-  await tapSend(page);
+    window.__war!.setOwner(map);
+  }, PUSH_MAP);
+  await pushMiss(page, 'MISS · 2 MISSES LEFT');
+  await pushMiss(page, 'MISS · 1 MISS LEFT');
+  await pushMiss(page, 'MISS · CEASEFIRE');
   const ceasefire = page.getByRole('dialog', { name: 'CEASEFIRE · 26 of 30 gold' });
   await expect(ceasefire).toBeVisible({ timeout: 20_000 });
   await expect(ceasefire.locator('.report-stars')).toHaveAttribute('aria-label', '2 of 3 stars');
+  await expect(ceasefire).toContainText('The final push missed three times.');
   await expect(ceasefire).toContainText('War held 4 regions when it stopped.');
 
   // HOME: back to the title; a finished game leaves nothing to continue.
@@ -627,6 +710,217 @@ test('the three endings: WORLD UNITED, CEASEFIRE and WAR, with NEW GAME and HOME
   await expect(war.locator('.report-stars')).toHaveAttribute('aria-label', 'No stars');
   expect((await drawn(page)).highlight).toEqual(['WNM']);
   await expect(warCount(page)).toHaveAttribute('aria-label', 'War: 10 of 10 regions');
+});
+
+test('the final push forgives: three lamps beside WAR, two misses that change nothing, the third a CEASEFIRE', async ({ page }) => {
+  await open(page, 'veteran');
+  await page.evaluate((map) => {
+    window.__war!.seed('E2E-PUSH');
+    window.__war!.speed(4);
+    window.__war!.setOwner(map);
+  }, PUSH_MAP);
+  await waitFor(page, 'choose', 1);
+  const lamps = page.locator('.push-lamps');
+  const lit = page.locator('.push-lamps .lamp.lit');
+  // No grey left: the coach says the rule once, and the board lights the push's three lamps, read as lives.
+  await expect(coach(page)).toHaveText(PUSH_LINE);
+  await expect(lamps).toHaveAttribute('aria-label', 'PUSH · MISSES LEFT: 3 of 3; the last is a ceasefire');
+  await expect(lamps.locator('.push-cap')).toHaveText(['PUSH', 'MISSES LEFT']);
+  await expect(lit).toHaveCount(3);
+  await expect(page.locator('.push-lamps .lamp.out')).toHaveCount(0);
+  const start = (await info(page))!;
+  expect(start).toMatchObject({ gold: 26, red: 4, pushMisses: 0 });
+
+  // A miss preview blinks the lamp it would put out and hands war nothing (no WAR ghost, no CEASEFIRE ghost).
+  await tapRegion(page, start.crisis);
+  await expect(sendSub(page)).toHaveText('MISS · 2 MISSES LEFT');
+  await expect(page.locator('.push-lamps .lamp.next')).toHaveCount(1);
+  await expect(page.locator('.ceasefire-ghost')).toHaveCount(0);
+  await expect(page.locator('.goal-bar.war.blink')).toHaveCount(0);
+  expect((await drawn(page)).previews).toEqual({});
+  await tapRegion(page, start.crisis);
+
+  // Miss one: no region changes, one lamp goes out, the coach counts what is left.
+  await pushMiss(page, 'MISS · 2 MISSES LEFT');
+  await expect(lit).toHaveCount(2);
+  await expect(page.locator('.push-lamps .lamp.out')).toHaveCount(1);
+  await expect(lamps).toHaveAttribute('aria-label', 'PUSH · MISSES LEFT: 2 of 3; the last is a ceasefire');
+  let s = (await info(page))!;
+  expect(s).toMatchObject({ turn: 2, gold: 26, red: 4, pushMisses: 1, ending: null });
+  expect(s.owner).toEqual(start.owner);
+  await expect(warCount(page)).toHaveAttribute('aria-label', 'War: 4 of 10 regions');
+
+  // Miss two, on turn 2: the shop opens after it, and its receipt says what is left.
+  await tapRegion(page, s.crisis);
+  await expect(sendSub(page)).toHaveText('MISS · 1 MISS LEFT');
+  await tapSend(page);
+  await waitFor(page, 'shop', 2);
+  await expect(page.locator('.receipt')).toHaveAttribute('aria-label', 'LAST TURN · MISS · 1 MISS LEFT');
+  await expect(lit).toHaveCount(1);
+  await page.locator('button.next').tap();
+  await waitFor(page, 'choose', 3);
+  s = (await info(page))!;
+  expect(s).toMatchObject({ gold: 26, red: 4, pushMisses: 2 });
+  expect(s.owner).toEqual(start.owner);
+
+  // The third: SEND says so, the board ghosts CEASEFIRE, and the last lamp goes out with the war.
+  await tapRegion(page, s.crisis);
+  await expect(sendSub(page)).toHaveText('MISS · CEASEFIRE');
+  await expect(page.locator('.ceasefire-ghost')).toHaveText('CEASEFIRE');
+  await tapSend(page);
+  const card = page.getByRole('dialog', { name: 'CEASEFIRE · 26 of 30 gold' });
+  await expect(card).toBeVisible({ timeout: 20_000 });
+  await expect(card).toContainText('The final push missed three times.');
+  await expect(card.locator('.report-stars')).toHaveAttribute('aria-label', '2 of 3 stars');
+  await expect(lit).toHaveCount(0);
+  await expect(page.locator('.war-stopped')).toHaveText('STOPPED');
+  expect((await info(page))!).toMatchObject({ ending: 'CEASEFIRE', pushMisses: 3, gold: 26, red: 4 });
+});
+
+test('a dead deal says NO SEND CAN WIN · SWAP, SWAP beckons, and after SWAP the deal is asked again', async ({ page }) => {
+  // Two positions the engine in Node deals from the same seeds: one a SWAP revives, one it cannot.
+  const REVIVED = 'G..GR....R..R.G...RR..GR......';
+  const STILL = 'R.GR..R...GG..RG....R....R...R';
+  const revived = must(setOwners(newGame('E2E-DEAD-3'), REVIVED));
+  const still = must(setOwners(newGame('E2E-DEAD-3'), STILL));
+  expect([deadDeal(revived), deadDeal(must(swap(revived)))]).toEqual([true, false]);
+  expect([deadDeal(still), deadDeal(must(swap(still)))]).toEqual([true, true]);
+
+  await open(page, 'veteran');
+  await page.evaluate((map) => {
+    window.__war!.seed('E2E-DEAD-3');
+    window.__war!.setOwner(map);
+  }, REVIVED);
+  await waitFor(page, 'choose', 1);
+  expect((await info(page))!.lit).toEqual(revived.deal.lit);
+  // Before any pin: the readout and the lever say it plainly, SWAP beckons, the coach explains once
+  // (turn 1: no shop follows, so no hire is suggested).
+  await expect(page.locator('.ro-line')).toHaveText('NO SEND CAN WIN');
+  await expect(page.locator('.ro-line.dead')).toHaveCount(1);
+  await leverSays(page, 'NO SEND CAN WIN · SWAP');
+  await expect(sendSub(page).locator('.dead-news')).toHaveText('NO SEND CAN WIN');
+  await expect(sendSub(page).locator('.dead-act')).toHaveText('SWAP');
+  await expect(page.locator('button.send.disabled')).toHaveCount(1);
+  await expect(page.locator('button.swap.beckon')).toHaveCount(1);
+  await expect(coach(page)).toHaveText(DEAD_SWAP_LINE);
+  // Pinned, the lever says what the pins do; SWAP still beckons.
+  const crisis = (await info(page))!.crisis;
+  await tapRegion(page, crisis);
+  await expect(sendSub(page)).toHaveText(/^MISS · SHORT BY /);
+  await expect(page.locator('button.swap.beckon')).toHaveCount(1);
+  await tapRegion(page, crisis);
+  await leverSays(page, 'NO SEND CAN WIN · SWAP');
+
+  // SWAP: the check runs again on the new lit regions, and this deal can be won.
+  await page.locator('button.swap').tap({ force: true });
+  await expect(sendSub(page)).toHaveText('PIN A REGION');
+  await expect(page.locator('.ro-line')).toHaveText('PIN THE CRISIS FOR ×2');
+  await expect(page.locator('button.swap.beckon')).toHaveCount(0);
+  expect((await info(page))!.lit).toEqual(must(swap(revived)).deal.lit);
+});
+
+test('a dead deal SWAP cannot save says how the turn ends: NO SEND CAN WIN · SEND TO PASS, and one pin lets SEND move on', async ({ page }) => {
+  const STILL = 'R.GR..R...GG..RG....R....R...R';
+  const still = must(swap(must(setOwners(newGame('E2E-DEAD-3'), STILL))));
+  expect(deadDeal(still)).toBe(true);
+
+  await open(page, 'veteran');
+  await page.evaluate((map) => {
+    window.__war!.seed('E2E-DEAD-3');
+    window.__war!.setOwner(map);
+  }, STILL);
+  await waitFor(page, 'choose', 1);
+  await leverSays(page, 'NO SEND CAN WIN · SWAP');
+  await page.locator('button.swap').tap({ force: true });
+  await expect(page.locator('button.swap')).toHaveAttribute('aria-label', 'Swap, used');
+  // Still dead: the lever says how to end the turn, the readout says why, SWAP no longer beckons, and
+  // the coach (turn 1: no shop follows) says what to do now.
+  await leverSays(page, 'NO SEND CAN WIN · SEND TO PASS');
+  await expect(sendSub(page).locator('.dead-news')).toHaveText('NO SEND CAN WIN');
+  await expect(sendSub(page).locator('.dead-act')).toHaveText('SEND TO PASS');
+  await expect(page.locator('.ro-line')).toHaveText('NO SEND CAN WIN');
+  await expect(page.locator('button.swap.beckon')).toHaveCount(0);
+  await expect(coach(page)).toHaveText(DEAD_PASS_LINE);
+  // One pin down and the lever can be pulled: the turn moves on (war takes the crisis).
+  const s = (await info(page))!;
+  await tapRegion(page, s.crisis);
+  await expect(page.locator('button.send.disabled')).toHaveCount(0);
+  await expect(sendSub(page)).toHaveText(/^MISS · SHORT BY /);
+  await page.evaluate(() => window.__war!.speed(4));
+  await tapSend(page);
+  await page.waitForFunction(() => window.__war!.state()?.lastSend?.turn === 1 && !window.__war!.busy(), null, { timeout: 30_000 });
+  const after = (await info(page))!;
+  expect(after.last).toMatchObject({ result: 'miss' });
+  expect(after.owner[s.crisis]).toBe('red');
+});
+
+test('REORDER STAFF TO WIN: a deal only another seat order wins is not dead; one drag and it wins', async ({ page }) => {
+  // The critic's position (CRIT-preview-3, turn 10): as seated (Strategist, Duty Officer, Sovereign)
+  // the best send makes 2,052 against 2,500. The Duty Officer first: 27 x 108 = 2,916.
+  const crit = position(newGame('CRIT-preview-3'), {
+    owner: decodeOwners('G.R.GGR..GR...G.GRGRGGGG.RGG..')!,
+    seats: ['STRATEGIST', 'DUTY', 'SOVEREIGN'],
+    coins: 3,
+    turn: 10,
+    oldHandM10: 10,
+    deal: {
+      crisis: 'GLM',
+      lit: ['VSY', 'NWK', 'WMS', 'DRF', 'KLP', 'FRM', 'GUL', 'TRN', 'SHL', 'BRK'],
+      pile: ['LNK', 'WNM', 'KLM', 'PBB', 'LTL', 'RMH'],
+      target: 2500n,
+    },
+  });
+  expect(dealState(crit)).toBe('reorder');
+
+  await openSaved(page, crit);
+  // The readout says a reorder wins, not NO SEND CAN WIN; the two staff that sit elsewhere in a
+  // winning order beckon; SWAP does not; the coach says it once. The crisis is in the map's top third,
+  // so the coach strip lies along the map's foot, clear of the ring.
+  await expect(page.locator('.ro-line')).toHaveText('REORDER STAFF TO WIN');
+  await expect(page.locator('.ro-line.reorder')).toHaveCount(1);
+  await expect(sendSub(page)).toHaveText('PIN A REGION');
+  await expect(page.locator('.seat.beckon')).toHaveCount(2);
+  await expect(page.locator('button.swap.beckon')).toHaveCount(0);
+  await expect(coach(page)).toHaveText(REORDER_LINE);
+  await expect(page.locator('.coach.on-map.low')).toHaveCount(1);
+  const strip = (await page.locator('.coach.on-map').boundingBox())!;
+  const ring = await regionPoint(page, 'GLM');
+  expect(strip.y).toBeGreaterThan(ring.y + 60);
+
+  // A real long-press drag: the Duty Officer to seat 1.
+  await longDrag(page, await seatCentre(page, 1), await seatCentre(page, 0));
+  await expect.poll(async () => (await info(page))!.seats).toEqual(['DUTY', 'STRATEGIST', 'SOVEREIGN']);
+  await expect(page.locator('.ro-line')).toHaveText('PIN THE CRISIS FOR ×2');
+  await expect(page.locator('.seat.beckon')).toHaveCount(0);
+  await tapRegions(page, ['GLM', 'DRF', 'GUL', 'TRN', 'WMS']);
+  await expect(sendSub(page)).toHaveText('WINS 1 REGION');
+  await expect(box(page, 'points')).toHaveAttribute('aria-label', '27');
+});
+
+test('the final push draws its crisis from the red regions a fresh deal can win', async ({ page }) => {
+  // Turn 8 of the push (target 1,100) with a Strategist: of war's four regions, a fresh deal can win
+  // Tern Isle and Wintermast (some touching group of up to 5 there reaches 1,100), not Vessary or Wenmoor.
+  const s = must(setOwners(position(newGame('E2E-PUSH-DRAW'), { turn: 8, seats: ['STRATEGIST'] }), PUSH_MAP));
+  expect([s.turn, s.deal.target, s.deal.finalPush]).toEqual([8, 1100n, true]);
+  const red = crisisPool(s.owner).pool;
+  expect(red).toEqual(['TRN', 'VSY', 'WMS', 'WNM']);
+  expect(pushPool(s.owner, red, ['STRATEGIST'], s.oldHandM10, s.deal.target)).toEqual({ pool: ['TRN', 'WMS'], draw: 'winnable' });
+  expect(['TRN', 'WMS']).toContain(s.deal.crisis);
+
+  await openSaved(page, s);
+  expect((await info(page))!.crisis).toBe(s.deal.crisis);
+  await expect(page.locator('.push-lamps')).toBeVisible();
+  // Dealt again and again on the same map (the dev hook's setOwner draws this turn's crisis afresh,
+  // from the crisis stream): every crisis is one a fresh deal can win, never Vessary or Wenmoor.
+  const seen = new Set<string>([s.deal.crisis]);
+  for (let i = 0; i < 8; i++) {
+    const c = await page.evaluate((map) => window.__war!.setOwner(map)!.deal.crisis, PUSH_MAP);
+    expect(['TRN', 'WMS']).toContain(c);
+    expect(pushWinnable(decodeOwners(PUSH_MAP)!, c, ['STRATEGIST'], 10, 1100n)).toBe(true);
+    seen.add(c);
+  }
+  expect((await info(page))!).toMatchObject({ turn: 8, target: '1100', seats: ['STRATEGIST'] });
+  expect([...seen].sort()).toEqual(['TRN', 'WMS']);
 });
 
 // ---------------------------------------------------------------- the way home
@@ -760,13 +1054,16 @@ test('PRACTICE never loses a game in progress, and NEW GAME asks before it would
 
 test('a reload during the game-ending send still shows how the world ended, once', async ({ page }) => {
   await open(page, 'veteran');
-  await page.evaluate(() => {
+  await page.evaluate((map) => {
     window.__war!.seed('E2E-END');
-    window.__war!.setOwner('G'.repeat(26) + 'RRRR');
-  });
-  await tapRegion(page, (await info(page))!.crisis);
-  await expect(sendSub(page)).toHaveText('MISS · CEASEFIRE');
-  await tapSend(page);
+    window.__war!.speed(4);
+    window.__war!.setOwner(map);
+  }, PUSH_MAP);
+  // Two push misses are forgiven; the third ends the game.
+  await pushMiss(page, 'MISS · 2 MISSES LEFT');
+  await pushMiss(page, 'MISS · 1 MISS LEFT');
+  await page.evaluate(() => window.__war!.speed(1));
+  await pushMiss(page, 'MISS · CEASEFIRE');
   // The tab is reloaded (or killed) while the last send plays.
   await page.waitForTimeout(300);
   await page.reload();

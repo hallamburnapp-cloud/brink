@@ -4,8 +4,26 @@
  * the lines and remembers which one-time lines a device has seen.
  */
 import { REGION } from '../../content/map';
-import { STAFF_DEF, type StaffId } from '../../content/staff';
-import { ADJ, bestScore, formatInt, goalView, preview, readoutView, regionViews, sendLabel, shopView, swapProblem, type GameState, type RegionId } from '../../engine';
+import { STAFF_DEF, STAFF_IDS, type StaffId } from '../../content/staff';
+import {
+  ADJ,
+  bestScore,
+  dealState,
+  formatInt,
+  goalView,
+  preview,
+  price,
+  readoutView,
+  regionViews,
+  RULES,
+  sellValue,
+  sendLabel,
+  shopDue,
+  shopView,
+  swapProblem,
+  type GameState,
+  type RegionId,
+} from '../../engine';
 
 // ---------------------------------------------------------------- the coached first turn
 
@@ -111,10 +129,10 @@ function turnStartLines(s: GameState): Line[] {
     out.push(teach(line('t2-swap', 'Once a turn, SWAP brings new regions. Your pins stay.', 4000, 'game', 'map', 'swap')));
   }
   if (s.mode === 'first' && s.turn === 3) out.push(teach(line('t3-war', 'Every 3rd turn war spreads into the red tag. Pin it in a win to save it.', 4500, 'game')));
-  if (s.deal.finalPush) out.push(teach(line('push', 'No grey left. Win back the red. One miss: ceasefire.', 4500, 'device')));
-  const dead = deadDealLines(s);
-  out.push(...dead);
-  if (!dead.length) out.push(...unlitGoldLines(s));
+  if (s.deal.finalPush) out.push(teach(line('push', PUSH_LINE, 4500, 'device')));
+  const deal = dealLines(s);
+  out.push(...deal);
+  if (!deal.length) out.push(...unlitGoldLines(s));
   return out;
 }
 
@@ -129,15 +147,50 @@ export function bestNow(s: GameState): bigint {
   );
 }
 
+/** The final push, said once (SPEC section 4). */
+export const PUSH_LINE = 'No grey left. Win back the red. Three misses: ceasefire.';
+/** A dead deal, explained once, with a swap left (SWAP beckons) and a hire within reach at the next shop. */
+export const DEAD_LINE = 'Nothing here can win. SWAP for new regions, and hire stronger staff at the next shop.';
+/** ...with a swap left, when no hire is within reach (no shop after this turn, or nothing likely affordable). */
+export const DEAD_SWAP_LINE = 'Nothing here can win. SWAP for new regions.';
+/** ...once SWAP cannot help (used, locked, or nothing left to bring) and a hire is within reach. */
+export const DEAD_STAFF_LINE = 'Nothing here can win. Hire stronger staff at the next shop.';
+/** ...once SWAP cannot help and no hire is within reach: how to end the turn. */
+export const DEAD_PASS_LINE = 'Nothing here can win. Pin one region and send to move on.';
+/** No send wins as seated, but one does in another order (the readout says REORDER STAFF TO WIN). */
+export const REORDER_LINE = 'Drag your staff into a new order: this deal can win.';
+
 /**
- * No send on the table can beat the target (a dealt turn, or after a swap): say so at once, so a
- * miss is never a surprise. With a swap left, SWAP beckons.
+ * A hire is within reach: a shop opens after this turn, and the coins (a miss pays none), with the
+ * best sale when every seat is taken, buy at least one of the staff it can offer.
  */
-function deadDealLines(s: GameState): Line[] {
-  if (s.phase !== 'choose' || bestNow(s) >= s.deal.target) return [];
-  if (swapProblem(s) === null) return [line('dead-swap', 'No send wins this deal. SWAP brings new regions.', 5000, null, 'map', 'swap')];
-  const end = s.deal.finalPush ? 'a miss now is a ceasefire.' : 'war will take the crisis.';
-  return [line('dead', `No send can win this turn: ${end}`, 4500)];
+export function hireLikely(s: GameState): boolean {
+  if (!shopDue(s.turn)) return false;
+  const seated = new Set(s.seats.map((x) => x.id));
+  const sale = s.seats.length >= RULES.seats ? Math.max(0, ...s.seats.map((x) => sellValue(x.id))) : 0;
+  return STAFF_IDS.some((id) => !seated.has(id) && price(id) <= s.coins + sale);
+}
+
+/**
+ * What the deal allows, said once each (a dealt turn, or after a swap). The readout and the SEND lever
+ * say it every time: 'NO SEND CAN WIN' ('· SWAP' while it can help, and SWAP beckons; else how the turn
+ * ends), or 'REORDER STAFF TO WIN' (the seats to move beckon). The coach explains: what can change it
+ * now (a reorder, SWAP), what changes it for good (staff, only when a hire is within reach), or how to
+ * move on.
+ */
+function dealLines(s: GameState): Line[] {
+  const state = dealState(s);
+  if (state === 'reorder') return [teach(line('reorder', REORDER_LINE, 4500, 'device'))];
+  if (state !== 'dead') return [];
+  const hire = hireLikely(s);
+  if (swapProblem(s) === null) return [teach(hire ? line('dead', DEAD_LINE, 5000, 'device', 'map', 'swap') : line('dead-swap', DEAD_SWAP_LINE, 4500, 'device', 'map', 'swap'))];
+  return [teach(hire ? line('dead-staff', DEAD_STAFF_LINE, 4500, 'device') : line('dead-pass', DEAD_PASS_LINE, 4500, 'device'))];
+}
+
+/** A push miss that left the push going: what is left of it. */
+export function pushMissLine(left: number): Line {
+  const text = left <= 1 ? 'Missed. The red holds. Miss once more: ceasefire.' : `Missed. The red holds. ${left === 2 ? 'Two' : String(left)} misses left.`;
+  return line('push-miss', text, LINE_MS);
 }
 
 /** A send has resolved: prev was the game SEND was pressed on. */
@@ -146,7 +199,8 @@ function sendLines(prev: GameState, s: GameState): Line[] {
   if (!rec || s.phase === 'over') return [];
   const out: Line[] = [];
   if (prev.mode === 'first' && prev.turn === 1 && rec.result === 'win') out.push(teach(line('t1-gold', 'Gold is yours for good. Each region won pays ◆1.', LINE_MS, 'game')));
-  if (rec.result === 'miss') out.push(line('miss', 'War took it. Ten red and you lose.', LINE_MS, 'device'));
+  if (rec.result === 'miss' && rec.lost) out.push(line('miss', 'War took it. Ten red and you lose.', LINE_MS, 'device'));
+  if (rec.result === 'miss' && rec.finalPush) out.push(pushMissLine(RULES.pushMisses - rec.pushMisses));
   // War's own spread is named by the director, with its drum (spreadLine), not here after the send.
   const g = goalView(s);
   if (g.red >= 8 && goalView(prev).red < 8) out.push(line('war8', warStakes(g.warLimit - g.red), LINE_MS, 'device'));
@@ -211,10 +265,12 @@ export function adderRightOfMultiplier(seats: readonly StaffId[]): boolean {
 
 /** Lines earned while choosing (a tap, a swap). */
 function choosingLines(prev: GameState | null, s: GameState): Line[] {
-  if (s.phase !== 'choose' || s.turn === 1) return [];
+  if (s.phase !== 'choose') return [];
   const out: Line[] = [];
+  // After a swap the deal is asked again (on any turn): dead, or won only by a reorder, it is said.
   const swapped = !!prev && prev.phase === 'choose' && prev.turn === s.turn && prev.deal.swapsLeft > s.deal.swapsLeft;
-  if (swapped) out.push(...deadDealLines(s));
+  if (swapped) out.push(...dealLines(s));
+  if (s.turn === 1) return out;
   const label = sendLabel(s);
   // A miss with no way to grow it here (5 pins, or nothing lit can be added) and SWAP pressable.
   if (label.tone === 'miss' && swapProblem(s) === null && !s.deal.finalPush && (s.deal.pins.length >= 5 || boxedIn(s))) {
@@ -256,8 +312,14 @@ export function linesFor(prev: GameState | null, s: GameState): Line[] {
   const out: Line[] = [];
   const sent = !!prev && s.lastSend !== prev.lastSend && !!s.lastSend;
   if (sent) out.push(...sendLines(prev, s));
-  const newTurn = s.phase === 'choose' && (!prev || prev.turn !== s.turn || prev.phase !== 'choose');
+  // A deal put on the table: a new turn, or the same turn dealt again on a new map (the dev hook's setOwner).
+  const redealt =
+    !!prev && prev.phase === 'choose' && s.phase === 'choose' && prev.turn === s.turn && (prev.deal.crisis !== s.deal.crisis || prev.deal.opening.join() !== s.deal.opening.join());
+  const newTurn = s.phase === 'choose' && (!prev || prev.turn !== s.turn || prev.phase !== 'choose' || redealt);
   if (newTurn && prev) out.push(...turnStartLines(s));
+  // A game put on the table (a new game, or one continued from its save): what the deal allows is
+  // said too, so a continued dead or reorder deal is explained as a freshly dealt one is.
+  if (newTurn && !prev) out.push(...dealLines(s));
   out.push(...turnOneLines(newTurn ? null : prev, s));
   out.push(...shopLines(prev, s));
   out.push(...deputyLines(prev, s));

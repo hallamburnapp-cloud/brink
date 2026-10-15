@@ -19,7 +19,7 @@ import {
 } from '../engine';
 import type { Bot, BotName } from './bots';
 import { bestSend, openingSpread, type SpreadSample } from './choose';
-import { pinGroup, seatIds } from './drive';
+import { arrangeSeats, pinGroup, seatIds } from './drive';
 import { makeBot } from './roster';
 
 /** A game still going after this many turns is a stall (gate G17). The reference uses the same cap. */
@@ -112,12 +112,15 @@ function turnRow(rec: SendRecord, seats: readonly StaffId[], swaps: number): Tur
 function playTurn(s: GameState, bot: Bot, log: TurnRow[]): GameState {
   let swaps = 0;
   let move = bot.pick(s, false);
+  // A reorder first (REORDER STAFF TO WIN): the staff are dragged during the turn, before any pin.
+  if (move.seats) s = arrangeSeats(s, move.seats);
   if (move.kind === 'swap' && s.deal.swapsLeft > 0) {
     // The engine refuses a swap with nothing to swap in; the bot then plays on as if it had swapped.
     const r = swap(pinGroup(s, move.keep));
     if (r.ok) swaps = 1;
     s = must(clearPins(r.state));
     move = bot.pick(s, true);
+    if (move.seats) s = arrangeSeats(s, move.seats);
   }
   const pins = move.kind === 'send' ? move.pins : bestSend(s).pins;
   const seats = seatIds(s);

@@ -211,7 +211,7 @@ export const SCENARIOS: Record<string, Scenario> = {
   },
 
   ceasefire: {
-    title: 'CEASEFIRE: the push missed; war stops where it stands (no pulse, faded); 27 of 30 gold',
+    title: 'CEASEFIRE: the push missed three times; war stops where it stands (no pulse, faded); 27 of 30 gold',
     view: {
       gold: ALL.filter((id) => !['EDV', 'ASK', 'QLN'].includes(id)),
       red: ['EDV', 'ASK', 'QLN'],

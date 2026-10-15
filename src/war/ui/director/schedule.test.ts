@@ -21,6 +21,7 @@ import {
   beatsOf,
   BRISK_PLATE_HOLD_MS,
   CEASEFIRE_BUZZ,
+  STRIKE_MS,
   CALM_GAP_MS,
   CATCH_MS,
   COLLAPSE_MS,
@@ -111,6 +112,7 @@ function outcomeInput(rec: SendRecord, opts: { reduced?: boolean; riserPlayed?: 
     result: rec.result,
     won: rec.won,
     lost: rec.lost,
+    pushMisses: rec.pushMisses,
     spread: rec.spread,
     ending: rec.ending,
     coinsBefore: rec.coinsBefore,
@@ -505,7 +507,7 @@ describe('war spreads by itself after turn 3', () => {
 describe('endings', () => {
   const gold27 = [...EX2_GOLD, 'DNM', 'ICW', 'LTL', 'BRN', 'NWK', 'VSY'];
   const push = ownersFrom(gold27, ['EDV', 'ASK', 'QLN']);
-  const pushGame = (target: bigint) => ex2(push, target, true, 'EDV', ['VSY', 'MRD', 'RMH']);
+  const pushGame = (target: bigint, pushMisses = 0): GameState => ({ ...ex2(push, target, true, 'EDV', ['VSY', 'MRD', 'RMH']), pushMisses });
 
   it('WORLD UNITED: three regions won back, then the sunrise and a gold wave from the last one', () => {
     const { rec } = sent(pushGame(1n), ['EDV']);
@@ -535,12 +537,26 @@ describe('endings', () => {
     expect(o.end).toBe(off.t + UNITED_HOLD_MS);
   });
 
-  it('CEASEFIRE: a push miss changes no region; red stops pulsing', () => {
+  it('a push miss changes no region: one lamp goes out beside WAR, and the push goes on', () => {
     const { rec } = sent(pushGame(10n ** 12n), ['EDV']);
-    expect(rec.ending).toBe('CEASEFIRE');
+    expect([rec.ending, rec.pushMisses]).toEqual([null, 1]);
     const o = outcome(rec);
     expect(out(o.cues, 'take')).toHaveLength(0);
     expect(out(o.cues, 'claim')).toHaveLength(0);
+    expect(out(o.cues, 'strike')).toEqual([{ t: 300, do: 'strike', misses: 1 }]);
+    expect(out(o.cues, 'ceasefire')).toHaveLength(0);
+    expect(out(o.cues, 'ending')).toHaveLength(0);
+    expect(out(o.cues, 'buzz')).toHaveLength(1);
+    expect(o.settled).toBe(300 + STRIKE_MS);
+  });
+
+  it('CEASEFIRE: the third push miss puts out the last lamp; red stops pulsing', () => {
+    const { rec } = sent(pushGame(10n ** 12n, 2), ['EDV']);
+    expect([rec.ending, rec.pushMisses]).toEqual(['CEASEFIRE', 3]);
+    const o = outcome(rec);
+    expect(out(o.cues, 'take')).toHaveLength(0);
+    expect(out(o.cues, 'claim')).toHaveLength(0);
+    expect(out(o.cues, 'strike').map((c) => c.misses)).toEqual([3]);
     expect(out(o.cues, 'ceasefire')).toHaveLength(1);
     expect(out(o.cues, 'drone').at(-1)!.level).toBe(0);
     // The war stopping is felt as well as heard, and the console says how it ended.

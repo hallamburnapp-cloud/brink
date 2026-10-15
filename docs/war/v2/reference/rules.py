@@ -15,6 +15,7 @@ The map is a byte-for-byte copy of src/war/content/map.json (30 regions, 45 land
 joins, 9 sea lanes, 18 ports, 5 capitals).
 """
 import json
+import math
 import os
 import random
 from collections import deque
@@ -82,6 +83,7 @@ P = dict(
     SHOP_EVERY=2,          # ... and then after every 2nd turn (4, 6, 8 ...)
     OFFERS=3, SEATS=5,
     REROLL=2,              # reroll costs 2, then 3, 4 ... in the same visit
+    PUSH_MISSES=3,         # the final push forgives: a push miss changes no region; its 3rd miss is a CEASEFIRE
 )
 
 # The ten staff. id: (name, icon object, price, rule as printed (8 words or fewer), seat chip)
@@ -309,6 +311,85 @@ class Scorer:
         return v
 
 
+# ------------------------------------------------------------------------------------- seat order
+# Seats can be dragged during a turn, so what a deal can score depends on every order of the line-up,
+# not only the one it sits in. Two seatings score alike when they fire the same staff in the same
+# order up to what commutes: the Quartermaster's +20 points (points are only multiplied at the end),
+# an idle Deputy and the Herald (they fire nothing), and neighbouring + multiplier staff (Duty
+# Officer, Surveyor: whole tenths added, nothing floored between them).
+ADDS_M = ('DUTY', 'SURVEYOR')
+
+
+def order_key(seats):
+    """Two seatings with the same key give every send the same score."""
+    eff = effective(seats)
+    out, run = [], []
+    for s in eff:
+        if s is None or s in ('HERALD', 'QM'):
+            continue
+        if s in ADDS_M:
+            run.append(s)
+        else:
+            out += sorted(run) + [s]
+            run = []
+    out += sorted(run)
+    return (sum(1 for s in eff if s == 'QM'), tuple(out))
+
+
+def seat_orders(seats):
+    """Every seating of these staff that can score differently, the seated order first; the rest in
+    the order itertools.permutations meets them (seat indices, lexicographic). At most 120 for five
+    seats, usually far fewer once seatings that score alike are merged."""
+    import itertools
+    seen, out = set(), []
+    for p in itertools.permutations(range(len(seats))):
+        o = [seats[i] for i in p]
+        k = order_key(o)
+        if k not in seen:
+            seen.add(k)
+            out.append(o)
+    return out
+
+
+def reduce_feats(fs):
+    """The feature tuples that can be a deal's best send under some line-up. A score never falls when
+    any feature grows (points, pins, capitals, ports, gold pins, the crisis pinned: every step of the
+    multiplier is monotone and points multiply at the end), so a tuple another one matches or beats
+    in every feature is dropped. Sorted, highest first."""
+    top = {}
+    for f in fs:
+        k = f[1:]
+        if top.get(k, -1) < f[0]:
+            top[k] = f[0]
+    out = []
+    for f in sorted(((p,) + k for k, p in top.items()), reverse=True):
+        # A tuple that dominates f is lexicographically larger, so it is already in out.
+        if not any(all(a >= b for a, b in zip(g, f)) for g in out):
+            out.append(f)
+    return out
+
+
+def order_state(fs, seats, held, oldhand_m10, T):
+    """'live': some send of these feature tuples reaches T with the seats as they sit; 'reorder': none
+    does as seated, but one does under another seating; 'dead': none does under any seating."""
+    for i, o in enumerate(seat_orders(seats)):
+        sc = Scorer(o, held, oldhand_m10)
+        if any(sc(f) >= T for f in fs):
+            return 'live' if i == 0 else 'reorder'
+    return 'dead'
+
+
+def best_seating(fs, seats, held, oldhand_m10):
+    """The seating whose best send scores most (ties to the first in seat_orders), and that score."""
+    best = None
+    for o in seat_orders(seats):
+        sc = Scorer(o, held, oldhand_m10)
+        v = max([sc(f) for f in fs] or [0])
+        if best is None or v > best[1]:
+            best = (o, v)
+    return best
+
+
 # ------------------------------------------------------------------------------------- legal groups
 def pinnable(lit, crisis):
     """The lit regions and the crisis region (always lit, always pinnable)."""
@@ -426,6 +507,10 @@ FIRST_WORLD = dict(
 )
 
 
+# The readout's line before any pin, by deal_state() ('live' keeps its hint).
+READOUT_LINE = {'reorder': 'REORDER STAFF TO WIN', 'dead': 'NO SEND CAN WIN'}
+
+
 # --------------------------------------------------------------------------------------------- game
 class Game:
     """One game. Owner of each region: 'grey' (free), 'gold' (yours, for good) or 'red' (war's).
@@ -452,6 +537,7 @@ class Game:
         self.turn = 0
         self.result = None          # 'WORLD UNITED' | 'CEASEFIRE' | 'WAR'
         self.final_push = False
+        self.push_misses = 0        # misses in the final push; the PUSH_MISSES-th ends the game (CEASEFIRE)
         self.crisis = None
         self.target = None
         self.lit = []
@@ -487,11 +573,31 @@ class Game:
         assert red
         return red, True
 
+    def push_winnable(self, c):
+        """In the final push: some legal send on a fresh deal for crisis c could reach this turn's target
+        with the best seating of the line-up. A fresh deal lights 10 of the pile (the regions that are
+        not red, within NEAR joins of c), and any touching group of up to 5 of the pile and c can be
+        among them, so every such group counts."""
+        pile = [r for r in IDS if r != c and self.owner[r] != 'red' and DIST[c][r] <= P['NEAR']]
+        fs = reduce_feats({feats(g, self.owner, c) for g in groups(pile, c)})
+        return order_state(fs, self.seats, self.count('gold'), self.oldhand_m10, self.target) != 'dead'
+
+    def push_pool(self, red):
+        """The final push draws its crisis from the red regions touching gold that the line-up can win on
+        some fresh deal (with its best seating), when there are any, so its three misses are spent on
+        real chances; otherwise from all of them. Sets push_draw: 'winnable' or 'any'."""
+        ok = [c for c in red if self.push_winnable(c)]
+        self.push_draw = 'winnable' if ok else 'any'
+        return ok or red
+
     def begin_turn(self):
         self.turn += 1
         self.target = target(self.turn)
         script = FIRST_WORLD['turns'].get(self.turn) if self.first_world else None
         pool, self.final_push = self.crisis_pool()
+        self.push_draw = None
+        if self.final_push:
+            pool = self.push_pool(pool)
         pick = self.rng_crisis.choice(pool)
         if script:
             assert script[0] in pool, (self.turn, script[0])
@@ -536,18 +642,66 @@ class Game:
     def scorer(self, seats=None):
         return Scorer(self.seats if seats is None else seats, self.count('gold'), self.oldhand_m10)
 
+    def deal_feats(self):
+        """The feature tuples of the lit regions' legal sends that can be best (reduce_feats)."""
+        return reduce_feats({feats(g, self.owner, self.crisis) for g in groups(self.lit, self.crisis)})
+
+    def deal_state(self):
+        """What the game says of the deal before any pin (decision B, refined by B2):
+        'live'     some legal send of the lit regions reaches the target with the line-up as it sits;
+        'reorder'  none does as seated, but one does under another seating (seats can be dragged
+                   during a turn): the readout says REORDER STAFF TO WIN;
+        'dead'     none does under any seating: NO SEND CAN WIN ('· SWAP' while the turn's swap can
+                   bring new regions). After a swap it is asked again of the new lit regions.
+        The deal rule itself is unchanged."""
+        key = (tuple(self.lit), self.crisis, tuple(self.seats), self.target, self.oldhand_m10,
+               tuple(self.owner[r] for r in IDS))
+        if getattr(self, '_state_key', None) != key:
+            self._state_key = key
+            self._state = order_state(self.deal_feats(), self.seats, self.count('gold'), self.oldhand_m10, self.target)
+        return self._state
+
+    def dead(self):
+        """A dead deal: no legal send reaches the target under any seating of the line-up."""
+        return self.deal_state() == 'dead'
+
+    def reorder_wins(self):
+        """Dead as seated, but another seating wins: the readout says REORDER STAFF TO WIN."""
+        return self.deal_state() == 'reorder'
+
+    def swap_usable(self):
+        """SWAP can bring new regions now (the engine's swapProblem is null; no pins are down)."""
+        return bool(self.swaps_left and self.pile and self.lit)
+
+    def reseat_best(self):
+        """Drag the staff into the seating whose best send on the lit regions scores most (what a
+        player does on REORDER STAFF TO WIN)."""
+        self.seats = list(best_seating(self.deal_feats(), self.seats, self.count('gold'), self.oldhand_m10)[0])
+
+    def push_misses_left(self):
+        """Misses the final push still allows; the last of them ends the game (the Big Board's strikes)."""
+        return P['PUSH_MISSES'] - self.push_misses
+
     def preview(self, pins):
         """What the readout, the SEND lamp and the map preview show for these pins."""
         if not pins:
-            return dict(score=0, points=0, m10=0, won=0, regions=[], label='PIN A REGION',
-                        next=self.target, short=self.target)
+            # Before any pin the readout's line says what the deal allows (state): REORDER STAFF TO WIN
+            # or NO SEND CAN WIN; on a dead deal the lever says what to do about it: SWAP while it can
+            # bring new regions, else how the turn ends (a send that misses: in the push it spends a miss).
+            state, label = self.deal_state(), 'PIN A REGION'
+            if state == 'dead':
+                label = 'NO SEND CAN WIN · ' + ('SWAP' if self.swap_usable() else 'USES A MISS' if self.final_push else 'SEND TO PASS')
+            return dict(score=0, points=0, m10=0, won=0, regions=[], label=label, state=state,
+                        line=READOUT_LINE.get(state), next=self.target, short=self.target)
         sc, pts, m10 = score_pins(pins, self.seats, self.owner, self.crisis, self.oldhand_m10)
         k = regions_won(sc, self.target)
         if k:
+            # Never more regions than are left to win (the engine's LivePreview.regions).
             regions = win_order(self.crisis, self.owner, k, pins)
-            label = 'WINS %d REGION%s' % (k, '' if k == 1 else 'S')
+            label = 'WINS %d REGION%s' % (len(regions), '' if len(regions) == 1 else 'S')
         elif self.final_push:
-            regions, label = [], 'MISS · CEASEFIRE'
+            left = self.push_misses_left() - 1
+            regions, label = [], 'MISS · CEASEFIRE' if left <= 0 else 'MISS · %d MISS%s LEFT' % (left, '' if left == 1 else 'ES')
         else:
             regions, label = [self.crisis], 'MISS · SHORT BY {:,}'.format(self.target - sc)
         return dict(score=sc, points=pts, m10=m10, won=k, regions=regions, label=label,
@@ -562,7 +716,7 @@ class Game:
         k = regions_won(sc, T)
         rec = dict(turn=self.turn, target=T, score=sc, pins=len(pins), crisis=self.crisis,
                    on_crisis=self.crisis in pins, swaps=P['SWAPS'] - self.swaps_left,
-                   seats=len(self.seats), final=self.final_push,
+                   seats=len(self.seats), final=self.final_push, push_draw=getattr(self, 'push_draw', None),
                    firing=sum(1 for s in effective(self.seats) if s and s != 'HERALD'),
                    pops=self._pops(pins))
         if k:
@@ -573,8 +727,12 @@ class Game:
                 self.owner[r] = 'gold'
             self.coins += P['COIN_PER_REGION'] * len(won)
         elif self.final_push:
+            # The push forgives: a miss changes no region (no grey is left for war, and gold is gold
+            # for good); the PUSH_MISSES-th miss ends the game as a CEASEFIRE.
+            self.push_misses += 1
             rec.update(result='miss', regions=0, won=[], retaken=0)
-            self.result = 'CEASEFIRE'
+            if self.push_misses >= P['PUSH_MISSES']:
+                self.result = 'CEASEFIRE'
         else:
             self.owner[self.crisis] = 'red'
             rec.update(result='miss', regions=1, won=[], retaken=0, lost=[self.crisis])
@@ -592,7 +750,8 @@ class Game:
                 self.result = 'WAR'
             elif self.count('gold') == len(IDS):
                 self.result = 'WORLD UNITED'
-        rec.update(gold=self.count('gold'), red=self.count('red'), grey=self.count('grey'), coins=self.coins)
+        rec.update(gold=self.count('gold'), red=self.count('red'), grey=self.count('grey'), coins=self.coins,
+                   push_misses=self.push_misses)
         self.log.append(rec)
         return rec
 
@@ -627,8 +786,16 @@ class Game:
         self.rng_shop.shuffle(avail)
         self.offers = avail[:P['OFFERS']]
 
-    def can_afford_any(self):
-        return any(s and self.coins >= price(s) for s in self.offers)
+    def can_afford_any(self, with_sale=False):
+        """Any offer the coins in hand buy into a free seat; with_sale: also after selling one seat
+        (the engine's shopView.nothingAffordable is the opposite of this with a sale)."""
+        full = len(self.seats) >= P['SEATS']
+        if any(s and not full and self.coins >= price(s) for s in self.offers):
+            return True
+        if not with_sale:
+            return any(s and self.coins >= price(s) for s in self.offers)
+        most = max([sell_value(x) for x in self.seats] or [0])
+        return any(s and self.coins + most >= price(s) for s in self.offers)
 
     def buy(self, i, replace=None):
         """Buy offer i into the leftmost free seat, or in place of seat `replace` (that staff is sold)."""
@@ -684,7 +851,52 @@ def selftest():
         b = score_feats(feats(pins, owner, c), effective(seats), 'HERALD' in seats,
                         sum(1 for r in IDS if owner[r] == 'gold'), old)
         assert a == b, (pins, seats, a, b)
+    # The forgiving push: a miss changes no region and says how many misses are left; the 3rd is a CEASEFIRE.
+    g = Game('selftest-push')
+    for r in IDS:
+        g.owner[r] = 'red' if r in ('EDV', 'ASK', 'QLN') else 'gold'
+    n = P['PUSH_MISSES']
+    for i in range(n):
+        g.begin_turn()
+        assert g.final_push and g.push_misses_left() == n - i
+        left = n - i - 1
+        label = 'MISS · %d MISS%s LEFT' % (left, '' if left == 1 else 'ES') if left else 'MISS · CEASEFIRE'
+        assert g.preview([g.crisis])['label'] == label, g.preview([g.crisis])
+        before = dict(g.owner)
+        rec = g.send([g.crisis])
+        assert rec['result'] == 'miss' and g.owner == before and rec['push_misses'] == i + 1
+        assert g.result == (None if i < n - 1 else 'CEASEFIRE')
     import itertools
+    # Seat orders: the distinct seatings score every send as all the raw orders do, seated first.
+    for _ in range(300):
+        seats = rng.sample(STAFF_IDS, rng.randint(0, 5))
+        orders = seat_orders(seats)
+        assert orders[0] == seats and len(orders) <= max(1, math.factorial(len(seats)))
+        held, old = rng.randint(1, 29), rng.randint(10, 60)
+        fs = [(rng.randint(3, 50), n, rng.randint(0, n), rng.randint(0, n), rng.randint(0, n), rng.random() < 0.5)
+              for n in (rng.randint(1, 5) for _ in range(12))]
+        for p in itertools.permutations(seats):
+            k = order_key(list(p))
+            twin = next(o for o in orders if order_key(o) == k)
+            assert [score_feats(f, effective(list(p)), 'HERALD' in seats, held, old) for f in fs] == \
+                   [score_feats(f, effective(twin), 'HERALD' in seats, held, old) for f in fs], (p, twin)
+    # reduce_feats keeps the best send of every line-up; order_state and best_seating agree with every
+    # raw permutation of the seats.
+    for _ in range(150):
+        owner = {r: rng.choice(('grey', 'gold', 'red')) for r in IDS}
+        c = rng.choice(IDS)
+        lit = rng.sample([r for r in IDS if r != c], P['LIT'])
+        raw = {feats(g, owner, c) for g in groups(lit, c)}
+        fs = reduce_feats(raw)
+        seats = rng.sample(STAFF_IDS, rng.randint(0, 5))
+        held, old = sum(1 for r in IDS if owner[r] == 'gold'), rng.randint(10, 60)
+        bests = [max(Scorer(list(p), held, old)(f) for f in raw) for p in itertools.permutations(seats)]
+        assert all(max(Scorer(list(p), held, old)(f) for f in fs) == b
+                   for p, b in zip(itertools.permutations(seats), bests))
+        T = rng.choice((bests[0], bests[0] + 1, max(bests), max(bests) + 1, rng.randint(1, 2 * max(bests))))
+        want = 'live' if bests[0] >= T else 'reorder' if max(bests) >= T else 'dead'
+        assert order_state(fs, seats, held, old, T) == want, (seats, T, bests)
+        assert best_seating(fs, seats, held, old)[1] == max(bests)
     for _ in range(200):
         c = rng.choice(IDS)
         lit = rng.sample([r for r in IDS if r != c], P['LIT'])

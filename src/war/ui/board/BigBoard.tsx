@@ -2,7 +2,10 @@
  * The Big Board (SPEC section 10: 0,47,390,60), the goal display, always on show: GOLD n/30 with a
  * 30-segment bar on the left, WAR n/10 with a 10-segment bar on the right, the menu button between
  * them. Ghost segments show what the current pins would do before SEND; at war 8 or 9 the last
- * segments pulse. Both counts are text as well as bars, so colour is never the only signal.
+ * segments pulse. Both counts are text as well as bars, so colour is never the only signal. In the
+ * final push three lamps beside WAR, between 'PUSH' and 'MISSES LEFT', count the misses left like
+ * lives: a miss preview blinks the lamp it would put out (on the last one the board also ghosts
+ * CEASEFIRE over the WAR bar).
  */
 import type { JSX } from 'preact';
 import { goalView, type GameState } from '../../engine';
@@ -23,9 +26,12 @@ export function BigBoard({ s }: { s: GameState }): JSX.Element {
   // Ghosts only while choosing, and never while the outcome is being counted.
   const after = shownGoal ? null : g.after;
   const glow = P.goalGlow.value;
-  // A miss preview: the WAR bar's next segment blinks; in the final push the board ghosts CEASEFIRE.
+  // A miss preview: the WAR bar's next segment blinks. In the final push a miss puts out one of the
+  // push's lamps (it blinks); on the last one the board ghosts CEASEFIRE.
   const missing = !!after && after.red > red;
-  const ceasefire = !!after && s.phase === 'choose' && s.deal.finalPush && after.gold === gold;
+  const pushMiss = !!after && s.phase === 'choose' && s.deal.finalPush && after.gold === gold;
+  const misses = P.pushMisses.value ?? s.pushMisses;
+  const ceasefire = pushMiss && !!g.push && misses + 1 >= g.push.limit;
   const danger = warDanger(red, g.warLimit);
   // The intro's gold wave steps the count fast: the flaps set each step at once (rolling through
   // the digits between would read '36/30' for a frame). Otherwise the count moves one region at a
@@ -69,6 +75,8 @@ export function BigBoard({ s }: { s: GameState }): JSX.Element {
         <span class="goal-of num">/{g.warLimit}</span>
       </div>
 
+      {g.push && <PushLamps misses={misses} limit={g.push.limit} blink={pushMiss} />}
+
       <Bar kind="gold" segs={segments(g.goldGoal, gold, after?.gold ?? null)} glow={glow === 'gold'} extra={united ? 'united' : ''} />
       <Bar kind="war" segs={segments(g.warLimit, red, after?.red ?? null)} glow={glow === 'war'} danger={danger && !ceased} blink={missing} extra={ceased ? 'ceased' : ''} />
       {ceasefire && <div class="ceasefire-ghost abs">CEASEFIRE</div>}
@@ -103,6 +111,29 @@ function Bar({
       {segs.map((seg, i) => (
         <i key={i} class={`seg ${seg}`} />
       ))}
+    </div>
+  );
+}
+
+/**
+ * The final push's lamps, read as lives: 'PUSH' over one lamp per miss the push allows, 'MISSES LEFT'
+ * under them. A miss still left is lit bright gold-white; a spent one is red-hatched, used up from the
+ * right. `blink`: the pins would miss, so the next lamp to go out blinks.
+ */
+function PushLamps({ misses, limit, blink }: { misses: number; limit: number; blink: boolean }): JSX.Element {
+  const left = Math.max(0, limit - misses);
+  const label = left === 0 ? 'PUSH · MISSES LEFT: none' : `PUSH · MISSES LEFT: ${left} of ${limit}; the last is a ceasefire`;
+  return (
+    <div class="push-lamps abs" style={rectStyle(R.pushLamps)} role="status" aria-label={label}>
+      <span class="push-cap">PUSH</span>
+      <span class="push-row">
+        {Array.from({ length: limit }, (_, i) => {
+          const lit = i < left;
+          const next = blink && i === left - 1;
+          return <i key={i} class={`lamp${lit ? ' lit' : ' out'}${next ? ' next' : ''}`} />;
+        })}
+      </span>
+      <span class="push-cap sub">MISSES LEFT</span>
     </div>
   );
 }

@@ -32,6 +32,9 @@ describe('cross-check: the reference fixtures through the engine', () => {
       ladder: 200,
       'legal, groups and lift': 500,
       'win order and war spread': 350,
+      'dead deals': 200,
+      'push draw': 120,
+      'final push': 80,
       'FIRST-WORLD game': 2,
     });
   });

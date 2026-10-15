@@ -45,8 +45,8 @@ export function ownersFrom(gold: readonly RegionId[], red: readonly RegionId[]):
 }
 
 /**
- * A copy of `s` in phase 'choose' with a hand-made position: any of the map, seats, coins, turn
- * and deal (the deal's target defaults to the turn's).
+ * A copy of `s` in phase 'choose' with a hand-made position: any of the map, seats, coins, turn,
+ * the push's misses and deal (the deal's target defaults to the turn's).
  */
 export function position(
   s: GameState,
@@ -56,6 +56,8 @@ export function position(
     coins?: number;
     turn?: number;
     oldHandM10?: number;
+    /** Misses already made in the final push. */
+    pushMisses?: number;
     deal?: Partial<Deal> & { crisis: RegionId; lit: readonly RegionId[] };
   },
 ): GameState {
@@ -82,6 +84,7 @@ export function position(
     coins: opts.coins ?? s.coins,
     turn: opts.turn ?? s.turn,
     oldHandM10: opts.oldHandM10 ?? s.oldHandM10,
+    pushMisses: opts.pushMisses ?? s.pushMisses,
     deal,
     phase: 'choose',
     shop: null,

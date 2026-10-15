@@ -13,7 +13,7 @@ import { CROWN } from './seeds';
 import { bestLastTurn, previewNumber } from './shop';
 import { medianScore, must, ownersFrom, pinAll, position, sendOptions } from './testkit';
 import type { GameState } from './types';
-import { preview, readoutView, sendLabel, shopView } from './view';
+import { endView, preview, readoutView, sendLabel, shopView } from './view';
 import { countOwner, crisisPool, regionsOf, warSpreadTarget, winOrder } from './world';
 
 const sorted = (ids: readonly RegionId[]) => [...ids].sort();
@@ -344,14 +344,22 @@ describe('Example 5: the final push', () => {
     expect(countOwner(s.owner, 'gold')).toBe(30);
   });
 
-  it('a miss is a CEASEFIRE that changes no region: 27 of 30, two stars', () => {
-    const before = pushTurn(target(20));
-    expect(sendLabel(pinAll(before, ['EDV'])).text).toBe('MISS · CEASEFIRE');
-    const s = must(send(pinAll(before, ['EDV'])));
-    expect(s.ending).toBe('CEASEFIRE');
-    expect(s.owner).toEqual(push);
-    expect(s.lastSend!.lost).toBeNull();
-    expect(s.lastSend!.spread).toBeNull();
+  it('a miss changes no region; the third miss is a CEASEFIRE: 27 of 30, two stars', () => {
+    let s = pushTurn(target(20));
+    const labels: string[] = [];
+    for (let miss = 1; miss <= 3; miss++) {
+      // The same crisis each time, so the count is the only thing that moves.
+      s = position(s, { turn: 19 + miss, deal: { crisis: 'EDV', lit: ['VSY', 'MRD', 'RMH'], target: target(19 + miss), finalPush: true } });
+      labels.push(sendLabel(pinAll(s, ['EDV'])).text);
+      s = must(send(pinAll(s, ['EDV'])));
+      expect(s.owner).toEqual(push);
+      expect(s.lastSend!.lost).toBeNull();
+      expect(s.lastSend!.spread).toBeNull();
+      expect([s.pushMisses, s.lastSend!.pushMisses]).toEqual([miss, miss]);
+      expect(s.ending).toBe(miss < 3 ? null : 'CEASEFIRE');
+    }
+    expect(labels).toEqual(['MISS · 2 MISSES LEFT', 'MISS · 1 MISS LEFT', 'MISS · CEASEFIRE']);
     expect(countOwner(s.owner, 'gold')).toBe(27);
+    expect(endView(s)!.stars).toBe(2);
   });
 });

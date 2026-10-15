@@ -492,6 +492,121 @@ body {
     opacity: 0;
   }
 }
+/* The final push: three lamps beside WAR between 'PUSH' and 'MISSES LEFT', read as lives. A lit lamp
+   is a miss still left (bright gold-white with a gold glow); a spent one is red-hatched like war's
+   regions, with a red rim. A miss preview blinks the lamp it would put out; a push miss puts it out
+   with a red flash. */
+.push-lamps {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  pointer-events: none;
+}
+.push-cap {
+  font: 700 9px/9px var(--font-label);
+  letter-spacing: 0.22em;
+  padding-left: 0.22em;
+  color: var(--text-2);
+}
+.push-cap.sub {
+  font-size: 7.5px;
+  line-height: 7.5px;
+  letter-spacing: 0.1em;
+  padding-left: 0.1em;
+  white-space: nowrap;
+}
+.push-row {
+  display: flex;
+  gap: 4px;
+}
+.push-lamps .lamp {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: repeating-linear-gradient(45deg, #b8392f 0 1.6px, #3a0f0c 1.6px 3.2px);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(224, 72, 60, 0.85);
+  transition: background calc(220ms / var(--speed, 1)) linear, box-shadow calc(220ms / var(--speed, 1)) linear;
+}
+.push-lamps .lamp.lit {
+  background: radial-gradient(circle at 40% 35%, #ffffff, #fff6d8 38%, #f2d27a 100%);
+  box-shadow: 0 0 0 1px rgba(255, 236, 170, 0.9), 0 0 7px 1px rgba(242, 210, 122, 0.85), inset 0 -1px 1px rgba(150, 110, 40, 0.35);
+}
+.push-lamps .lamp.out {
+  animation: lamp-out calc(420ms / var(--speed, 1)) ease-out;
+}
+@keyframes lamp-out {
+  from {
+    background: #ff8a80;
+    box-shadow: 0 0 10px 3px rgba(224, 72, 60, 0.75);
+  }
+}
+.push-lamps .lamp.next {
+  animation: lamp-next 0.7s steps(1, end) infinite;
+}
+@keyframes lamp-next {
+  50% {
+    background: radial-gradient(circle at 40% 35%, #ffb3ab, #e0483c 70%);
+    box-shadow: 0 0 0 1px rgba(255, 138, 128, 0.9), 0 0 8px 2px rgba(224, 72, 60, 0.6);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .push-lamps .lamp.out,
+  .push-lamps .lamp.next {
+    animation: none;
+  }
+  .push-lamps .lamp.next {
+    box-shadow: 0 0 0 1.5px rgba(255, 138, 128, 0.95);
+  }
+}
+/* A dead deal: the unlit lever says NO SEND CAN WIN in red, at full strength (it is the turn's news),
+   and under it what to do: SWAP, or how the turn ends (SEND TO PASS, USES A MISS), in cream. */
+.brass.send:has(.send-sub.dead) {
+  gap: 3px;
+}
+.brass.disabled .send-sub.dead {
+  opacity: 1;
+}
+.send-sub.dead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 8px 3px;
+  letter-spacing: 0.04em;
+}
+.send-sub.dead .dead-news {
+  padding-left: 0.04em;
+}
+.send-sub.dead .dead-act {
+  font-size: 9.5px;
+  line-height: 9.5px;
+  letter-spacing: 0.1em;
+  padding-left: 0.1em;
+  color: #f3e6c4;
+  text-shadow: none;
+}
+/* REORDER STAFF TO WIN: the staff that sit elsewhere in a winning order wear a brass ring, and breathe. */
+.seat.beckon {
+  --rim-hi: var(--brass-hi);
+  --rim: var(--brass);
+  --rim-lo: var(--brass-2);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(247, 224, 163, 0.55), 0 4px 7px rgba(0, 0, 0, 0.5);
+  animation: seat-beckon 1.2s ease-in-out infinite;
+}
+@keyframes seat-beckon {
+  50% {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.55), 0 0 0 1.5px var(--brass-hi), 0 0 14px 2px rgba(247, 224, 163, 0.55);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .seat.beckon {
+    animation: none;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.55), 0 0 0 1.5px var(--brass-hi);
+  }
+}
 /* A miss in the final push ends the game: the board ghosts CEASEFIRE over the WAR bar. */
 .ceasefire-ghost {
   left: 245px;
@@ -1085,6 +1200,16 @@ body {
    it rests dimmed and blank; once the ring drops, TARGET comes up alone. */
 .ro-line.hint {
   color: var(--text-3);
+}
+/* A dead deal: no send on the table can win. Said in war's red, steady, before any pin. */
+.ro-line.dead {
+  color: #ff8a80;
+  text-shadow: 0 0 8px rgba(224, 72, 60, 0.45);
+}
+/* Only another seating wins: a move to make, said in the seats' brass. */
+.ro-line.reorder {
+  color: var(--brass-hi);
+  text-shadow: 0 0 8px rgba(247, 224, 163, 0.4);
 }
 .readout-layer.veil-off > :not(.readout),
 .readout-layer.veil-target > :not(.readout):not(.ro-target),
@@ -1775,6 +1900,17 @@ body {
 /* UI v2: anchored by its foot, so a two-line line grows up from under the tray's lip. */
 /* Screens fixer: the shop's lines sit at the map's top edge too, not on the tray's lip, so the gold
    in the middle of the map (the reason to shop) stays in view above the tray. */
+/* The crisis flares in the top third of the map: the strip lies along the map's foot instead, above
+   the readout, rising from below, so it never covers the ring or its target plate. */
+.coach.on-map.low {
+  top: auto;
+  bottom: 163px;
+  rotate: 0.4deg;
+  animation: coach-tuck 200ms var(--ease-out) both;
+}
+.coach.on-map.low.out {
+  animation: coach-out 160ms var(--ease-in) both;
+}
 .coach.on-tray {
   z-index: 17;
   left: 14px;

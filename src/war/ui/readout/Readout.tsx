@@ -1,7 +1,9 @@
 /**
  * The readout (SPEC 9: 0,691,390,48): what this turn needs and what the pins make. On the left,
- * TARGET and the line under it ('PIN THE CRISIS FOR ×2' before any pin, 'NEED 1,100' while the pins
- * miss, 'NEXT REGION AT 4,400' once they win); on the right POINTS x MULTIPLIER, live on every tap
+ * TARGET and the line under it ('PIN THE CRISIS FOR ×2' before any pin, or 'NO SEND CAN WIN' when
+ * no legal send of the lit regions reaches the target under any seating, or 'REORDER STAFF TO WIN'
+ * when only another seating does; 'NEED 1,100' while the pins miss, 'NEXT
+ * REGION AT 4,400' once they win); on the right POINTS x MULTIPLIER, live on every tap
  * (a whole multiplier prints whole: 'times how many'). During a send the director drives the boxes
  * (they count up as numbers land, then collide into the score plate); a score of 16x the target (SHOWCASE_AT) is
  * also stamped big over the map, in the half away from the crisis ring. Between turns the readout
@@ -51,7 +53,7 @@ export function Readout({ s }: { s: GameState }): JSX.Element {
           {intro === 'off' ? '–' : left.value}
         </span>
       </div>
-      <div class={`ro-line abs${wins ? ' wins' : ''}${pinned ? '' : ' hint'}`} aria-live="polite">
+      <div class={`ro-line abs${wins ? ' wins' : ''}${left.lineTone ? ` ${left.lineTone}` : pinned ? '' : ' hint'}`} aria-live="polite">
         {intro === 'live' ? left.line : ''}
       </div>
       <Box kind="points" label="POINTS" text={shownPoints === null || intro !== 'live' ? null : formatShort(shownPoints, 6)} counting={!!live} />

@@ -53,27 +53,59 @@ The game ends, checked after every turn, in one of three ways:
 | --- | --- | --- |
 | **WORLD UNITED** (win) | all 30 regions are gold | the whole map is yours: the owner's "win when the whole map is yours" |
 | **WAR** (loss) | war holds 10 or more regions | war took too much |
-| **CEASEFIRE** (lesser win) | in the final push (below) a send misses | the war stops where it stands; you keep what you hold (21-29 regions) |
+| **CEASEFIRE** (lesser win) | the final push (below) misses for the third time | the war stops where it stands; you keep what you hold (21-29 regions) |
 
 **The final push.** When no grey region is left and war still holds some, crises flare on red regions
-touching your gold. A win takes the crisis region back (and more, by the same ladder). A miss ends the game
-as a CEASEFIRE. The push is short: in the simulation, 55% of games reach it, it lasts 2 turns at the median,
-and 74% of pushes end WORLD UNITED.
+touching your gold. A win takes the crisis region back (and more, by the same ladder). **The push forgives:** a
+miss there changes no region (no grey is left for war, and gold is gold for good) and spends one of three misses,
+counted over the whole push; the third miss ends the game as a CEASEFIRE. The Big Board shows the misses left
+as three lamps beside WAR, read as lives: "PUSH" over them and "MISSES LEFT" under them, lit gold-white for each
+miss left, red-hatched for each spent (section 10); SEND says what a miss would leave ("MISS · 2 MISSES LEFT",
+"MISS · 1 MISS LEFT", "MISS · CEASEFIRE"), and the rules and the coach say it in words ("Three misses:
+ceasefire."). **The push's crisis is drawn where it can be won** (decision A2): from the red regions touching gold
+where some legal send on a fresh deal, with the best seat order of the line-up, reaches the turn's target, when
+any exist; otherwise from any red region touching gold, as before. So the three misses are spent on real
+chances. In the simulation 55% of games reach the push, it lasts 3 turns at the median (p90 7), and 77% of pushes
+end WORLD UNITED (75% before A2).
 
 **Why this shape.** The judges' first must-fix was that the slice-era design stamped WORLD UNITED with up to
-nine red regions still on the map. Here WORLD UNITED means 30/30, always. The game must also always end:
-a miss in the push cannot hand war more ground (no grey is left and gold is gold for good), so the push ends
-on its first miss. CEASEFIRE is graded with stars on its card so it reads as an honest lesser result:
-★★★ is reserved for WORLD UNITED, ★★ for a CEASEFIRE holding 25-29, ★ for a CEASEFIRE holding 21-24.
+nine red regions still on the map. Here WORLD UNITED means 30/30, always. The game must also always end, and a
+miss in the push cannot hand war more ground, so the push counts its misses. It first ended on its first miss;
+the second review found that every CEASEFIRE then followed a single deal nothing on the table could win, so a
+loss came from no choice of the player's. Now it ends on the third (decision A), and the crisis is drawn where a
+win is possible (A2). **Honestly, the push's misses are still mostly forced.** A best-send bot misses only on a
+deal no seating can win, so every one of its CEASEFIREs ends on three such deals; in 21% of push turns no red
+region could be won on any fresh deal at all (the line-up has fallen behind the target curve, and the crisis is
+drawn from all red, as before). Of the sensible bot's CEASEFIREs, 26% had SWAP unusable on all three misses (in
+the push the pile is the gold within 3 joins of the crisis, and it often all lights, so SWAP has "no new
+regions"), 17% found nothing affordable at any shop after the first miss (even with a sale), and 7% had all three
+(no in-turn choice and nothing to buy); 0.4% of its pushes miss and still unite the world. The real choice is
+made earlier: the hires and seat order that keep the line-up ahead of the targets, which the shop's red "YOUR
+BEST · NEXT TARGET" header warns about before the push (section 7). What the three misses and A2 buy is that the
+push is never lost to one dead deal, and that its crises are ones the line-up could win. CEASEFIRE is graded
+with stars on its card so it reads as an honest lesser result: ★★★ is reserved for WORLD UNITED, ★★ for a
+CEASEFIRE holding 25-29, ★ for a CEASEFIRE holding 21-24.
 
-Every turn decides at least one region (a win turns at least one gold, a miss turns one red, a push miss
-ends the game), so no game can stall. In 30,000 simulated games none did, and none ran past turn 25.
+**Dead deals are announced** (decisions B and B2). Seats can be dragged during a turn, so a deal is **dead** only
+when no legal send of the lit regions reaches the target under **any** seat order of the line-up (every distinct
+seating, at most 120 for five seats). Then, before any pin, the readout says "NO SEND CAN WIN" and the lever says
+what to do about it: "NO SEND CAN WIN · SWAP" while a swap can bring new regions (SWAP beckons), else how the
+turn ends, "NO SEND CAN WIN · SEND TO PASS" ("NO SEND CAN WIN · USES A MISS" in the push); one pin down and SEND
+can be pulled. A deal no send wins **as seated** that another seating wins is not dead: the readout says
+"REORDER STAFF TO WIN", the staff that sit elsewhere in a winning order beckon, and the coach says once "Drag your
+staff into a new order: this deal can win." So a miss is never a surprise, the player can see what would change
+it (a reorder, a swap, stronger staff), and the game never tells a player to stop thinking about a seat order
+that wins.
+
+Every turn moves the game on (a win turns at least one region gold, a miss turns one red, a push miss spends one
+of the push's three misses), so no game can stall. In 30,000 simulated games none did; 0.7% of the best-send
+bot's games reach turn 25.
 
 ---
 
 ## 2. The rules as the player reads them (final copy)
 
-This is the "How to play" sheet, word for word (133 words, then the 9-word marks line; `RULES_COPY` and `MARKS_COPY` in
+This is the "How to play" sheet, word for word (130 words, then the 9-word marks line; `RULES_COPY` and `MARKS_COPY` in
 `src/war/ui/app/copy.ts`). One colour word everywhere: gold is yours, red is war, grey is free.
 
 > Turn all 30 regions gold before war holds 10.
@@ -84,13 +116,17 @@ This is the "How to play" sheet, word for word (133 words, then the 9-word marks
 > Beat the target: the crisis turns gold for good. Beat it by more, win more regions: your pins first.
 > Miss: war takes it. Every 3rd turn, war also spreads by itself, into the red tag.
 > Each region won pays 1 coin. Every 2 turns, hire staff.
-> No grey left? Crises flare on red: win each to unite the world. Miss one: ceasefire.
+> No grey left? Crises flare on red: win each back. Three misses: ceasefire.
 >
 > ★ capital · ⚓ port: some staff score them. (drawn under the list, with the glyphs)
 
 No player ever has to calculate. The readout says "NEXT REGION AT 4,400 · 620 MORE", the SEND lever says
-"WINS 2 REGIONS" or "MISS · SHORT BY 620", and the map puts a gold check on each region a send would win
-before SEND is pressed. **Pin it to claim it:** a win takes the crisis, then the regions you pinned that are
+"WINS 2 REGIONS" or "MISS · SHORT BY 620" (in the final push "MISS · 2 MISSES LEFT", then "MISS · 1 MISS
+LEFT", then "MISS · CEASEFIRE"), and the map puts a gold check on each region a send would win before SEND is
+pressed. No player has to find out the hard way that a deal cannot be won: when no legal send of the lit
+regions reaches the target under any seat order, the readout says "NO SEND CAN WIN" and the lever "NO SEND CAN
+WIN · SWAP" (or "· SEND TO PASS", "· USES A MISS") before any pin; when only another seat order wins, the
+readout says "REORDER STAFF TO WIN" (section 5, step 2). **Pin it to claim it:** a win takes the crisis, then the regions you pinned that are
 not gold yet, then the nearest others (section 5, step 6), so the player decides which regions a big send
 takes, and can save the region war is tagged to spread into by pinning it in a win.
 
@@ -224,18 +260,39 @@ is attributed to the hire.
 spreads into the red tag. Pin it in a win to save it." After turn 3, war spreads (Marram, unless the player
 has won it; pinning Marram in a winning send claims it, and the tag hops to where war will go instead).
 
+**Dead deals are announced, every time.** The coach explains a dead deal once; the console says it on every
+one (section 9): before any pin the readout's line reads "NO SEND CAN WIN" (red), the unlit SEND lever, on two
+lines, "NO SEND CAN WIN" over "SWAP" while SWAP can still bring new regions (SWAP beckons), or over "SEND TO
+PASS" ("USES A MISS" in the push) once it cannot. A deal that only another seat order wins is not dead: the
+readout reads "REORDER STAFF TO WIN" (brass) and the staff that sit elsewhere in a winning order beckon.
+FIRST-WORLD's scripted turns 1-2 are never dead (tests assert it); a FIRST-WORLD line-up that never hires meets
+its first dead deal a few turns later and is told. A game continued from its save says the same lines for the
+deal on the table.
+
 **Coach timing.** Teaching lines (turn 1's "68 beats 64", "Beat it by more", turn 2's two lines, the first
-shop's lines) stay their whole time: a queued line waits and a tap does not end them. Other timed lines
+shop's lines, the push line, the dead-deal and reorder lines) stay their whole time: a queued line waits and a tap does not end them. Other timed lines
 stay at least 1.8 s. Shop lines are dropped when the shop is left.
+
+**A hire within reach** (the dead-deal lines only suggest hiring then): a shop opens after this turn, and the
+coins in hand (a miss pays none), plus the best sale when every seat is taken, buy at least one staff the shop
+could offer (one not seated).
+
+**Where the strip lies.** In play the coach strip lies along the map's top edge, under the rail; when the crisis
+flares in the top third of the map it lies along the map's foot instead (bottom at 681), so a line never covers
+the crisis ring or its target plate.
 
 **Coach lines in every game** (one-time lines show once per device, in any game):
 
 | Trigger | Line |
 | --- | --- |
 | first MISS preview with SWAP usable and 5 pins down or nothing lit that can be added (one-time) | "Short? SWAP brings new regions. Your pins stay." (SWAP beckons) |
-| a dealt turn (or a swap) where no legal send can beat the target, with SWAP usable | "No send wins this deal. SWAP brings new regions." (SWAP beckons) |
-| the same with no swap left | "No send can win this turn: war will take the crisis." (in the push: "...: a miss now is a ceasefire.") |
-| first miss sent (one-time) | "War took it. Ten red and you lose." |
+| first deal no send wins as seated that another seat order wins (a dealt turn, or a swap; one-time, read in full) | "Drag your staff into a new order: this deal can win." (the staff to move beckon) |
+| first dead deal (no legal send under any seat order can beat the target; a dealt turn, or a swap) with SWAP usable and a hire within reach (one-time, read in full) | "Nothing here can win. SWAP for new regions, and hire stronger staff at the next shop." (SWAP beckons) |
+| first dead deal with SWAP usable and no hire within reach (one-time, read in full) | "Nothing here can win. SWAP for new regions." (SWAP beckons) |
+| first dead deal SWAP cannot help (used, locked or nothing left to bring) with a hire within reach (one-time, read in full) | "Nothing here can win. Hire stronger staff at the next shop." |
+| first dead deal SWAP cannot help and no hire within reach (one-time, read in full) | "Nothing here can win. Pin one region and send to move on." |
+| first miss sent that war took (one-time; never a push miss) | "War took it. Ten red and you lose." |
+| a miss in the final push that leaves it going, every time | "Missed. The red holds. Two misses left." / "Missed. The red holds. Miss once more: ceasefire." |
 | war spreads by itself, every time, in every game | "War spread to Marram by itself." (the region named, said with the spread's drum; it holds through the red ink and the next deal clears it) |
 | the first shop offering a port or capital staff, or the Herald (one-time) | "⚓ marks a port, ★ a capital. Some staff score them." |
 | first shop that opens on a full table with offers left (one-time, read in full) | "Full table. Tap a seat to replace it." |
@@ -243,7 +300,7 @@ stay at least 1.8 s. Shop lines are dropped when the shop is left.
 | first time a + multiplier staff sits right of a × staff (one-time) | "Order matters: + multiplier staff work best left of × staff. Drag to reorder." |
 | first deal (after the coached turns) where your own gold touches the crisis but is not lit (one-time) | "Only lit regions can be pinned. SWAP brings others." (SWAP beckons; with no swap: "Only lit regions can be pinned, even your own gold.") |
 | first Deputy seated (one-time) | "The Deputy copies whoever sits to its right." |
-| first final push (one-time) | "No grey left. Win back the red. One miss: ceasefire." |
+| first final push (one-time, read in full) | "No grey left. Win back the red. Three misses: ceasefire." |
 | first WAR at 8 or more (one-time) | "Two more red and the war wins." ("One more red and the war wins." when war went straight to 9) |
 
 ---
@@ -270,10 +327,24 @@ coins ◆4; 5 empty seats; turn 0.
 
    The crisis region is drawn by the `crisis` stream from: grey regions touching gold; if none, any grey
    region; if no grey region is left, red regions touching gold (the final push; such a region always exists).
+   **In the final push** (decision A2) the draw is narrowed to the red regions touching gold that the line-up
+   can win on a fresh deal: some touching group of up to 5 of that crisis's deal pile (step 2) and the crisis
+   reaches T(t) under some seat order of the line-up (its staff, the Old Hand's value and the gold count at the
+   start of the turn), checked with the fast scorer over every distinct seating (`push_pool` in rules.py,
+   `pushPool` in the engine). When no red region qualifies, the draw is from all of them, as before. Only the
+   pool changes: the stream draws once, as ever.
 2. **DEAL (1.2 s).** The pile is every region that is not red and not the crisis, within 3 joins of the
    crisis (land, causeway or sea lane), shuffled by the `deal` stream. The first 10 light. If none of the 10
    touches the crisis, the first pile region that does swaps places with the 10th. The crisis region is
    always lit too (it is the 11th lit region). If the pile has fewer than 10, all of it lights.
+   **What the deal allows.** The engine then asks whether any legal send of the lit regions reaches the target
+   (`dealState`: it enumerates the legal groups with the fast scorer, as the shop's preview number does, drops
+   the sends another send beats in every feature, and scores the rest under every distinct seat order of the
+   line-up, at most 120 for five seats, the seated order first). **'live':** some send wins as seated.
+   **'reorder':** none does as seated, but one does under another seat order (seats can be dragged during a
+   turn): the readout says REORDER STAFF TO WIN. **'dead':** none does under any seat order: the turn cannot be
+   won as dealt, and the game says so before any pin (section 9). It is asked again after a SWAP and after a
+   seat drag. The deal rule itself does not change.
 3. **PIN.** Pin 1-5 lit regions (the crisis counts as one) that form one touching group (land border,
    island causeway or dashed sea lane).
    - Tap rule: a lit region can be pinned if nothing is pinned yet or it touches a pin; with 5 pins, nothing
@@ -285,7 +356,7 @@ coins ◆4; 5 empty seats; turn 0.
    - The readout, the SEND sub-label and the map preview update on every tap.
 4. **SWAP (optional, once a turn).** Every lit region that is not pinned (the crisis excepted) goes dark and
    to the bottom of the pile; as many regions light from the top. Pins stay. If the pile was short, regions
-   that just went dark come back.
+   that just went dark come back. The deal is asked again (step 2) on the new lit regions.
 5. **SEND.** Score the pins (section 6). The cascade takes 3.5-8 s and can be skipped with a tap.
 6. **OUTCOME.**
    - **Win** (score ≥ T): regions won = the number of marks the score reaches: T, 4T, 16T, then each mark
@@ -299,7 +370,9 @@ coins ◆4; 5 empty seats; turn 0.
      grey, then the higher number, then west, then north (the same tie-breaks in steps 2 and 3). So a
      player decides which regions a big send takes, and can save the region war is tagged to spread into
      by pinning it in a winning send. ◆1 per region won.
-   - **Miss** (score < T): the crisis region turns red. In the final push, a miss ends the game: CEASEFIRE.
+   - **Miss** (score < T): the crisis region turns red. In the final push a miss changes no region (no grey is
+     left for war and gold is gold for good): it spends one of the push's three misses (`PUSH_MISSES`), counted
+     over the whole push (a win between does not give one back); the third ends the game: CEASEFIRE.
 7. **WAR SPREADS** after turns 3, 6, 9 ... (not after a turn that ended the game, and not once war holds 10):
    war takes one grey region
    touching war, the one nearest your gold (fewest joins to any gold region), then the higher number, then
@@ -400,7 +473,8 @@ Dunmarrow. A miss: Lintel turns red (war 5 → 6). War spreading by itself on th
 ### Example 5: the final push
 No grey left; war holds Edda Vale, Ashkettle, Quillon (27/30 gold). Crises can flare on any of the three
 (each touches gold). A win of 2 on Edda Vale (no other red pinned) takes Edda Vale, then Ashkettle; a win of 3 takes all three:
-WORLD UNITED. A miss: CEASEFIRE, 27 of 30, ★★.
+WORLD UNITED. A miss changes no region: SEND reads "MISS · 2 MISSES LEFT", then "MISS · 1 MISS LEFT", then
+"MISS · CEASEFIRE"; the third miss: CEASEFIRE, 27 of 30, ★★.
 
 ---
 
@@ -508,8 +582,9 @@ The five blocs of the map carry no colour and no glyph on the map: they are cont
 - WIN preview: a gold check chip on each region the send would win (pin it to claim it: the crisis, your
   non-gold pins, then the nearest others); a war region that would be won back shows gold-over-red stripes.
   No numerals: the only numbers on the map are the regions' own and the ring's target.
-- MISS preview: the crisis region hatched red; the WAR bar's next segment blinks; in the push, the board
-  shows "CEASEFIRE" ghosted.
+- MISS preview: the crisis region hatched red; the WAR bar's next segment blinks. In the push nothing on the
+  map changes: the lit lamp beside WAR that the miss would put out blinks red, and on the push's last miss the
+  board also shows "CEASEFIRE" ghosted over the WAR bar.
 - Ghost segments on the GOLD and WAR bars show the outcome before SEND.
 
 **On SEND** (the existing director, with fewer event kinds):
@@ -542,6 +617,10 @@ hold. Big sends, the showcase and the coached first game's turns 1-3 keep full l
 runs from the nearest war region into the crisis from the shared border (700 ms), or blooms from its centre if
 no war region touches it; the WAR flap ticks, a WAR bar segment fills, a 2 px shake. The miss's red hatch stays
 on the crisis through the cascade and its ink, so it never reads as safe.
+
+**Outcome: a push miss** (0.6 s, `STRIKE_MS`): no ink and no region changes; the drone dips, one of the push's
+lamps beside WAR goes out (gold-white to red-hatched) with a red flash, a knock and a 2 px shake; the WAR count
+glows. On the third the CEASEFIRE ending follows.
 
 While the outcome plays, the pin threads step back to 35%: the gold paths a win travels along are drawn in
 saturated gold with a soft glow and a light dash running towards the region won, never like a white thread.
@@ -595,15 +674,17 @@ SKIP in the foot row of the map.
 | --- | --- |
 | 0, 0, 390, 47 | safe area |
 | 0, 47, 390, 60 | the Big Board: goal counts, menu, the two bars (section 10) |
-| 0, 107, 390, 64 | staff rail, unchanged: 5 seats of 64 x 58 at x 17, 90, 163, 236, 309; tap for the rule balloon; long-press and drag to reorder. With no staff yet it carries a plate "STAFF · HIRE AFTER TURN 2" |
-| 0, 171, 390, 520 | the map; the coach strip overlays its top edge when coaching |
+| 0, 107, 390, 64 | staff rail, unchanged: 5 seats of 64 x 58 at x 17, 90, 163, 236, 309; tap for the rule balloon; long-press and drag to reorder. With no staff yet it carries a plate "STAFF · HIRE AFTER TURN 2". On a REORDER STAFF TO WIN deal the staff that sit elsewhere in a winning seating wear a brass rim and breathe (`controlsView.seatsBeckon`, `bestSeatingNow`) |
+| 0, 171, 390, 520 | the map; the coach strip overlays its top edge when coaching, or its foot when the crisis is in the map's top third |
 | 0, 691, 390, 48 | readout (below) |
 | 0, 739, 390, 68 | controls (below) |
 | 0, 807, 390, 37 | home indicator |
 
 Readout:
 - 16, 693, 170, 20: "TARGET" (11 pt caps, 60% white) then the target (17 pt), e.g. "TARGET 1,100".
-- 16, 717, 170, 16 (11 pt): "PIN THE CRISIS FOR ×2" (quieter) before any pin; "NEED 50 MORE" while the pins
+- 16, 717, 170, 16 (11 pt): "PIN THE CRISIS FOR ×2" (quieter) before any pin, or on a dead deal "NO SEND CAN
+  WIN" (red, #FF8A80, steady: no legal send of the lit regions reaches the target under any seat order), or
+  "REORDER STAFF TO WIN" (brass, steady: none does as seated, one does in another order); "NEED 50 MORE" while the pins
   miss; "NEXT REGION AT 4,400 · 620 MORE" once they win (when that is too long, "NEXT REGION 17,600 · 9,820
   MORE", then units); "UNITES THE WORLD" when nothing is left beyond.
 - Between turns (from the moment the score is in the ring to the next deal, shop or not) the readout shows
@@ -616,12 +697,17 @@ Readout:
 
 Controls:
 - SWAP 16, 745, 104, 56: "SWAP" (15 pt) over "1 left", "used", "no new regions" (the pile is empty) or, locked
-  on the coached turn 1, "from turn 2" (10 pt). It beckons when a coach line points at it.
+  on the coached turn 1, "from turn 2" (10 pt). It beckons when a coach line points at it, and on a dead deal
+  for as long as it can still bring new regions (`controlsView.swap.beckon`), pins or not.
 - Coin chip 128, 745, 70, 56: the coin and "◆ 7" (18 pt).
 - SEND 206, 745, 168, 56: the brass lever, "SEND" (17 pt) over a sub-label (11 pt) that always says what will
-  happen: "WINS 2 REGIONS" (gold), "MISS · SHORT BY 620" (red), "MISS · CEASEFIRE" (red, final push),
-  "PIN A REGION" (disabled: unlit pewter-brass, no glow), and, from the moment the score is in the ring,
-  "NEXT CRISIS…" or "SHOP…" (off tone), blank at an ending.
+  happen: "WINS 2 REGIONS" (gold), "MISS · SHORT BY 620" (red); in the final push "MISS · 2 MISSES LEFT", "MISS
+  · 1 MISS LEFT" (what the miss would leave) and, on its last miss, "MISS · CEASEFIRE" (red); "PIN A REGION"
+  (disabled: unlit pewter-brass, no glow), or on a dead deal before any pin, on two lines, "NO SEND CAN WIN"
+  (11 pt, red at full strength on the unlit lever) over what to do (9.5 pt, cream): "SWAP" while SWAP is
+  usable, else "SEND TO PASS", or in the final push "USES A MISS" (`sendLabel.dead`; read as "NO SEND CAN WIN
+  · SEND TO PASS"); one pin down, the lever lights and says what the pins do; and, from the moment the score
+  is in the ring, "NEXT CRISIS…" or "SHOP…" (off tone), blank at an ending.
 - Desktop and Steam keys: Space sends, S swaps, 1-5 select seats (arrows move a selected seat), Esc opens the menu.
 
 **Shop.** The existing Briefing tray rises to 0, 451, 390, 356 over the map; the Big Board and rail stay visible.
@@ -631,7 +717,8 @@ Controls:
   (11 pt, up to 3 lines), price tag bottom right, and the preview line at the bottom: "BEST LAST TURN" (9 pt
   caps) over "390 → 2,343" (13 pt, the arrow amber).
 - REROLL ◆2: 16, 677, 171, 44. NEXT TURN →: 203, 677, 171, 44.
-- Receipt (the existing ReceiptPaper): 16, 729, 358, 28: "LAST TURN · WIN 2 · +◆2", plus "WAR SPREAD TO MARRAM" when it did.
+- Receipt (the existing ReceiptPaper): 16, 729, 358, 28: "LAST TURN · WIN 2 · +◆2", plus "WAR SPREAD TO MARRAM" when it did;
+  after a push miss "LAST TURN · MISS · 1 MISS LEFT".
 - The shop's coach line sits at the map's top edge (not on the tray's lip), so the gold in the middle of the
   map stays visible above the tray. Both sides of a preview arrow use one number format ("3,931 → 4,139", or
   "3.93K → 13.3K" when either is too long).
@@ -643,8 +730,8 @@ free regions that were left, or the red regions a CEASEFIRE leaves outlined) are
 (16, 745, 182, 56); NEW GAME on the SEND lever (206, 745, 168, 56; "A NEW WORLD", a new deal in under 2 s).
 - WORLD UNITED ★★★: "WORLD UNITED · 30 of 30" (28 pt); "Turn 15 · war peaked at 6"; biggest turn ("7 regions");
   the 5 staff in seat order.
-- CEASEFIRE ★★ or ★: "CEASEFIRE · 26 of 30 gold"; "War held 4 regions when it stopped."; staff. The red
-  regions stay outlined.
+- CEASEFIRE ★★ or ★: "CEASEFIRE · 26 of 30 gold"; "The final push missed three times."; "War held 4 regions
+  when it stopped."; staff. The red regions stay outlined; the push's three lamps stay out (red-hatched) beside STOPPED.
 - WAR: "WAR · war took 10 regions. You held 18 of 30." When grey left ≤ 3: "Only N free regions were left to
   win." Those regions stay lit through the lights out, outlined in marching gold. Staff.
 - BIGGEST TURN is left out when no region was won; no staff reads "None hired".
@@ -662,6 +749,7 @@ The Big Board (0, 47, 390, 60, the existing panel #12161C with split-flap digits
 | 16, 50, 150, 26 | "GOLD" (11 pt caps, #F2D27A), then the count as split-flaps: "14" (22 pt) + "/30" (14 pt) |
 | 179, 50, 32, 32 | the menu button ≡ (existing component; 44 x 44 hit area) |
 | 224, 50, 150, 26 | right-aligned: "WAR" (11 pt caps, #E0483C), then "4" (22 pt) + "/10" (14 pt) |
+| 212, 48, 60, 34 | in the final push only, beside WAR, read as lives: "PUSH" (9 pt caps, `--text-2`) over three lamps (11 pt, 4 pt apart), one per miss the push allows, over "MISSES LEFT" (7.5 pt caps). A lamp is lit bright gold-white with a gold glow for each miss left, and red-hatched with a red rim (war's fill) for each spent, used up from the right. A miss preview blinks the lamp it would put out (red); a push miss puts it out with a red flash. Through a CEASEFIRE all three stay out beside STOPPED. Read as "PUSH · MISSES LEFT: 2 of 3; the last is a ceasefire" (`goalView.push`) |
 | 16, 84, 209, 16 | GOLD bar: 30 segments of 6 x 16 pt with 1 pt gaps, filled gold from the left |
 | 245, 84, 129, 16 | WAR bar: 10 segments of 12 x 16 pt with 1 pt gaps, filled red from the left; at 8 or 9 the last segments pulse and the drone rises |
 
@@ -669,7 +757,8 @@ Both counts are text, so colour is never the only signal. The bars change one se
 the map, and a count's tiles flip together (9 → 10 never reads "19/10" on the way). No clock, turn number, crisis dots, Summit chip, Leverage, pattern name or in-tray. (The turn number
 appears only in the menu sheet and on the end card.) With the readout's target and
 the SEND sub-label, the player always sees: how much of the world is gold, how close war is, what this
-turn needs, what the pins will do, the coins and the five seats.
+turn needs, what the pins will do (and whether anything on the table can win), in the push how many misses are
+left, the coins and the five seats.
 
 ---
 
@@ -692,7 +781,9 @@ turn needs, what the pins will do, the coins and the five seats.
   or the scrim; PRACTICE, then QUIT TO TITLE) can ever send the browser back past the game.
 - The shop and the end card are inside the game: back opens the menu over them.
 - The game saves after every SEND, every shop action and on `visibilitychange` to hidden, to localStorage key
-  `brink.war.v2.save` (versioned JSON with BigInts as strings; unreadable saves are discarded). No network.
+  `brink.war.v2.save` (versioned JSON with BigInts as strings; unreadable saves are discarded). The state is
+  version 3 (it carries the push's misses); a version 2 save is brought up to it exactly (a game still going had
+  made no push miss, a CEASEFIRE had spent the push). No network.
   A finished game stays saved until its end card has shown, so a reload or a killed app during the last send
   still shows how the world ended (CONTINUE "See how your world ended"); the card being seen clears it.
 - HOW TO PLAY from the menu during a send: the send jumps to its end and settles first, nothing of it lands on
@@ -722,21 +813,24 @@ a game; the end card 10 s. A first game adds the intro (25 s) and the coach (15 
 
 | Sensible bot, 5,000 games | median | p10 | p90 |
 | --- | --: | --: | --: |
-| turns | 15 | 12 | 19 |
-| minutes, first-game model | 13.5 | | 16.3 |
-| minutes, first-game model, games that keep the world | 14.1 | | 16.8 |
-| minutes, practised (no intro or coach) | 12.5 | | 15.2 |
-| minutes, slow first-timer (20 s + 3 s a pin, 50 s shops) | 17.7 | | 21.3 |
+| turns | 15 | 12 | 21 |
+| minutes, first-game model | 13.6 | | 18.0 |
+| minutes, first-game model, games that keep the world | 14.2 | | 18.7 |
+| minutes, practised (no intro or coach) | 12.6 | | 17.0 |
+| minutes, slow first-timer (20 s + 3 s a pin, 50 s shops) | 17.8 | | 23.4 |
 | minutes, fast player (8 s + 1.8 s a pin, 20 s shops) | 9.1 | | |
 
 Why it lands there: 26 grey regions are a visible clock that both sides use up. A winning send takes 1.6
-regions on average (1: 47.6%, 2: 45.5%, 3+: 6.7%), war takes about 4 regions by itself and about 1 by misses,
-and 55% of games add a 2-turn final push. Losses come at turns 11-18 (median 15). No game ran past turn 25.
+regions on average (1: 48.3%, 2: 45.0%, 3+: 6.7%), war takes about 4 regions by itself and about 1 by misses,
+and 55% of games add a final push of 3 turns at the median (p90 7; it forgives two misses and draws its crises
+where a win is possible, section 5). Losses come at turns 11-18 (median 15). 0.7% of sensible games reach turn
+25 (a push that keeps winning some crises and missing others runs long).
 (The time model predates the brisk pacing of section 8, which only shortens small late sends.)
 
 The curve, sensible bot (games still going): turns 1-8 are taught and almost always won (98-100% of sends win:
-the shop and war decide the early game); from turn 9 the share of winning sends falls 95% → 87% (turn 11) →
-75% (turn 14) → 60-71% (turns 17-21), while war sits at a median of 5-6.
+the shop and war decide the early game); from turn 9 the share of winning sends falls 95% → 88% (turn 11) →
+75% (turn 14) → 69-77% (turns 17-19, the push's crises drawn where a win is possible) → 51% (turn 20), while war
+sits at a median of 4-6.
 
 ---
 
@@ -808,7 +902,8 @@ cut: they meant nothing a player could act on.
 | `src/war/engine/score.ts` | rewritten: pins, seats, crisis ×2, trace (section 6) |
 | `src/war/engine/run.ts` | rewritten: `newGame(seed, {firstWorld, demo})`, `pin`, `unpin`, `swap`, `send`, `buy(slot, replaceSeat?)`, `sell`, `reroll`, `moveSeat`, `nextTurn`; ownership, outcome, war spread, final push, ends |
 | `src/war/engine/shop.ts` | simplified: 3 offers, buy/replace, sell, reroll, `previewNumber(state, offer, replaceSeat?)` |
-| `src/war/engine/view.ts` | `goalView` (gold, red, grey, warNext {region, turns}, the tag's words), `regionViews` (owner, preview in claim order, lit/dark, pinned, capital, port), `readoutView`, `sendLabel`, `shopView`, `endView` |
+| `src/war/engine/view.ts` | `goalView` (gold, red, grey, warNext {region, turns}, the tag's words, the push's misses), `regionViews` (owner, preview in claim order, lit/dark, pinned, capital, port), `dealState` ('live' / 'reorder' / 'dead'), `readoutView`, `sendLabel`, `controlsView`, `shopView`, `endView` |
+| `src/war/engine/order.ts` | new: seat order (`seatOrders`, `orderKey`), dominated sends dropped (`reduceFeatures`), what a deal allows under every seating (`orderState`, `bestSeating`), the push's crisis pool (`pushWinnable`, `pushPool`) |
 | `src/war/engine/orders.ts`, `hours.ts`, `draft.ts` | deleted |
 | `src/war/ui/map/contract.ts` | `RegionView` gains `owner: 'grey' \| 'gold' \| 'red'`, `preview: {kind: 'win' \| 'war', order} \| null`; loses `stamp`, `brass` (score), `glow`, `airlift`; `MapView.flashpoint` becomes `crisis: {id, target, doubled}`; gains `warNext: {id, turns} \| null`; loses `cables`, `gridlock`, `ferry`, `blackout`, `armed`; `joinedPins` stays |
 | `src/war/ui/map/fx.ts` | `inkSpread(source, targets, ms, colour)` gains the colour (it copied the source bloc colour) and starts at the shared border; `shockwave`, `mapFlash`, `lightsOut`, `flash`, `scanTo`, `pulseThread`, `dimExcept` kept; `ringCatch` added (the ring catches the score); `dropBrass`, `stampPulse`, `standbyPulse`, `scanAgain`, `heat` removed |
@@ -859,15 +954,43 @@ cut: they meant nothing a player could act on.
 10. **War spreads by itself:** Example 2 map → Iceward; FIRST-WORLD start → Marram; the 150 `warSpread` cases;
     no spread when war holds nothing or touches no grey; spread only after turns 3, 6, 9 ...
 11. **Legal groups:** the 300 `legal` and 100 `groups` (count) cases; the 100 `lift` cases (tap order).
-12. **Final push:** Example 5; a miss in the push sets CEASEFIRE and changes no region; WORLD UNITED only at 30
-    gold; WAR at 10 red, checked after war's own spread.
-13. **Shop:** offers never include a seated staff; buy into the leftmost seat; replace sells for half
+12. **Final push (it forgives):** Example 5; a miss in the push changes no region (no ink, no spread) and
+    spends one of three misses (`pushMisses` on the state and on `lastSend`); SEND reads "MISS · 2 MISSES LEFT",
+    "MISS · 1 MISS LEFT", "MISS · CEASEFIRE"; the third sets CEASEFIRE; misses count over the whole push (a win between does
+    not reset them); a push miss on a shop turn opens the shop; `goalView.push` counts the lamps (and is null
+    outside the push); the receipt reads "LAST TURN · MISS · 1 MISS LEFT"; the dev hook's setOwner starts the
+    count afresh when grey is back on the map. Plus the 80 `push` fixture cases (each one send with 0-2 misses
+    already made: the SEND label, score, result, regions won, misses after, ending and map). WORLD UNITED only at
+    30 gold; WAR at 10 red, checked after war's own spread. **The push's crisis draw (A2):** the 120 `pushDraw`
+    fixture cases (the red regions touching gold, the narrowed pool and whether it was narrowed: `pushPool`);
+    a candidate's fresh deals counted over every touching group of its pile and every seat order; a push turn
+    (setOwners at several turns) always deals a crisis from that pool.
+13. **Dead deals and seat order:** the 200 `dead` fixture cases (the best legal send as seated and under the
+    best seat order, the best seating, `dealState` 'live' / 'reorder' / 'dead', the readout's line and the SEND
+    label with SWAP usable or not, in the push or not: `bestScore`, `bestSeating`, `dealState`, `sendLabel`);
+    `seatOrders` merges only seatings that score alike (every raw permutation scores as its merged twin) and
+    starts with the seated order; dropping dominated sends keeps every line-up's best; `orderState` agrees with
+    brute force over all permutations. Before any pin `readoutView.line` "NO SEND CAN WIN" and `sendLabel` "NO
+    SEND CAN WIN · SWAP" (tone miss, disabled, `dead`), `controlsView.swap.beckon`; once SWAP is used, locked
+    (FIRST-WORLD turn 1) or has nothing to bring, "NO SEND CAN WIN · SEND TO PASS" (in the push "· USES A
+    MISS"), and one pin enables SEND; pinned, the usual "MISS · SHORT BY"; after a SWAP the check runs again.
+    The critic's position (CRIT-preview-3, turn 10: Strategist, Duty Officer, Sovereign; best as seated 2,052
+    against 2,500): 'reorder', `readoutView.line` "REORDER STAFF TO WIN", `controlsView.seatsBeckon`, SWAP not
+    beckoning, `bestSeatingNow` Duty Officer first; after `moveSeat(1, 0)` 'live', and Driftholm, Glassmoor,
+    Gullrest, Tern Isle, Wintermast score 27 × 108 = 2,916, WINS 1 REGION; at 2,917 'dead'. FIRST-WORLD's
+    scripted turns 1-2 are not dead, and its line-up that never hires meets a dead deal later and is told.
+    The deal rule is unchanged.
+14. **Save:** version 3 round-trips every phase; a version 2 save loads into version 3 exactly (no push miss
+    made, or the push spent on a CEASEFIRE); anything else unreadable is discarded.
+15. **Shop:** offers never include a seated staff; buy into the leftmost seat; replace sells for half
     (floor); reroll 2, 3, 4 then resets next visit; Old Hand resets on sale; FIRST-WORLD's fixed offers.
-14. **Determinism:** the same seed and actions give the same `hashState` and `hashTrace` in Chromium, WebKit and
+16. **Determinism:** the same seed and actions give the same `hashState` and `hashTrace` in Chromium, WebKit and
     Firefox (Playwright).
 
 **Simulator cross-check** (`src/war/sim/crosscheck.ts`): replays every `fixtures.json` case through the
-TypeScript engine; any difference fails CI.
+TypeScript engine (1,850 cases plus the scripted first game; 1,904 checks with the map, staff and targets); any
+difference fails CI. `tools/war-sim.ts --replay N` has the Python reference play N games per bot again on the
+engine's own random streams and compares every turn (300 per bot: 1,800 of 1,800 identical, 20,530 turns).
 
 **Playwright e2e** (phone viewport 390 x 844 and desktop):
 - intro: three screens, each beat on the strip, an early tap hurries a screen without leaving it, SKIP, TRY IT;
@@ -882,11 +1005,29 @@ TypeScript engine; any difference fails CI.
 - turn 2 → the shop with Duty Officer, Quartermaster, Harbourmaster and preview lines 702 / 590 / 2,343;
 - full-table replace; sell; reroll; drag to reorder;
 - a miss turns the crisis red and the WAR count ticks; war spreads after turn 3 (dev hook);
-- all three end cards via the dev hook; NEW GAME and HOME;
+- all three end cards via the dev hook (the CEASEFIRE through the push's three misses); NEW GAME and HOME;
+- the final push forgives: on a no-grey map (setOwner) the coach says "Three misses: ceasefire", three lamps
+  light beside WAR between "PUSH" and "MISSES LEFT"; a miss preview reads "MISS · 2 MISSES LEFT" and blinks one
+  lamp, with no CEASEFIRE ghost and no WAR ghost; the miss changes no region and puts the lamp out
+  (red-hatched); the second ("MISS · 1 MISS LEFT") is followed by the shop, whose receipt reads "LAST TURN ·
+  MISS · 1 MISS LEFT"; the third reads "MISS · CEASEFIRE" with the ghost and ends on the CEASEFIRE card ("The
+  final push missed three times."), all lamps out, STOPPED;
+- the push's crisis is drawn from a winnable red: a saved game at turn 8 of the push with a Strategist (only Tern
+  Isle and Wintermast can be won on a fresh deal), continued and dealt again eight times, never flares on
+  Vessary or Wenmoor;
+- dead deals: on a position the engine in Node confirms is dead (seed and setOwner), the readout says "NO SEND
+  CAN WIN" in red, the unlit lever "NO SEND CAN WIN" over "SWAP", SWAP beckons and the coach explains once;
+  pinned, the lever says "MISS · SHORT BY …"; after SWAP the check runs again: "PIN A REGION" on a deal the
+  swap revived; on one it could not, "NO SEND CAN WIN · SEND TO PASS" (SWAP "used", no beckon, the coach's
+  "Pin one region and send to move on."), and one pin lights SEND and the turn moves on;
+- REORDER STAFF TO WIN: the critic's position continued from a save: the readout says "REORDER STAFF TO WIN",
+  two seats beckon, SWAP does not, the coach explains once along the map's foot (the crisis is in the top
+  third); a real long-press drag of the Duty Officer to seat 1 makes the deal live, and five pins read "WINS 1
+  REGION" at 27 points;
 - back button: game → menu → game; menu → QUIT TO TITLE → confirm → title shows CONTINUE; reload resumes;
 - the way home from How to play: with another page before the game in the tab, title → HOW TO PLAY → SKIP →
   CLOSE (and the X, and the scrim) keeps the game's URL and the title; PRACTICE → QUIT TO TITLE → LEAVE too;
-- a reload during the game-ending send: the title offers CONTINUE "See how your world ended", the end card
+- a reload during the game-ending send (the push's third miss): the title offers CONTINUE "See how your world ended", the end card
   shows once, then HOME leaves nothing to continue;
 - HOW TO PLAY from the menu during a send: the intro plays, nothing is dealt under it, and BACK finds turn 2.
 
@@ -899,73 +1040,128 @@ reroll(), next(), demo('crown'), setOwner(map)}`.
 
 `python3 calibrate.py 5000` in `reference/` (and the TypeScript port in CI with 2,000 games) must print
 ALL GATES PASS. "Holds the world" means WORLD UNITED or CEASEFIRE. Six bots (`reference/bots.py`): random,
-novice (a weak human: random 3-5 groups, cheapest staff), greedy (best send, never shops), preview (best send,
-buys by the card's preview number only), sensible (best send, look-ahead shop), breaker (sensible, chases the
-Crown).
+novice (a weak human: random 3-5 groups, cheapest staff; it swaps when the game says NO SEND CAN WIN · SWAP, and
+never reorders), greedy (best send, never shops), preview (best send, buys by the card's preview number only),
+sensible (best send, look-ahead shop that seats its staff in a ranked order), breaker (sensible, chases the
+Crown). Every bot but random swaps on a dead deal when it can (the best-send bots always did: their best send
+misses exactly when no seating wins). The best-send bots (greedy, preview, sensible, breaker) also act on
+REORDER STAFF TO WIN: they drag their staff into the seating that scores most on the deal, then send; that is the
+only time they reorder during a turn.
 
-| Gate | Threshold | Result (5,000 games each) |
-| --- | --- | --: |
-| G1 sensible holds the world | 55-70% | 62.5% |
-| G2 sensible WORLD UNITED (30/30) | ≥ 40% | 48.3% |
-| G3 greedy, never shops, holds | < 25% | 0.0% |
-| G4 random holds | < 5% | 0.0% |
-| G5 best send ≥ 2x the median send (sensible, opening deal) | ≥ 85% of turns | 99.3% |
-| G6 sensible median game | 15-19 turns | 15 |
-| G7 first-game minutes, median | 13-16 | 13.5 |
-| G8 first-game minutes, p90 | ≤ 18 | 16.3 |
-| G9 first-game minutes, games that hold, median | 14-17 | 14.1 |
-| G10 held games where war reached 6+ | ≥ 25% | 65.9% |
-| G11 close losses (WAR while holding 18+ gold) | 6-14% of games | 9.3% |
-| G12 hopeless losses (WAR holding ≤ 8 gold) | < 10% of games | 0.6% |
-| G13 novice median game | ≥ 7 turns | 8 |
-| G14 preview bot holds | ≥ 30% | 44.7% |
-| G15 every staff in held line-ups | ≥ 8% each | lowest Old Hand 22.1% |
-| G16 no staff in held line-ups above | ≤ 85% | highest Strategist 73.0% |
-| G17 stalls | 0 | 0 |
+| Gate | Threshold | Result (5,000 games each) | Before this fix (A2, B2) |
+| --- | --- | --: | --: |
+| G1 sensible holds the world | 55-70% | 62.5% | 62.5% |
+| G2 sensible WORLD UNITED (30/30) | ≥ 40% | 49.7% | 48.7% |
+| G3 greedy, never shops, holds | < 25% | 0.0% | 0.0% |
+| G4 random holds | < 5% | 0.0% | 0.0% |
+| G5 best send ≥ 2x the median send (sensible, opening deal) | ≥ 85% of turns | 99.3% | 99.3% |
+| G6 sensible median game | 15-19 turns | 15 | 15 |
+| G7 first-game minutes, median | 13-16 | 13.6 | 13.6 |
+| G8 first-game minutes, p90 | ≤ 18 | 18.0 | 17.4 |
+| G9 first-game minutes, games that hold, median | 14-17 | 14.2 | 14.2 |
+| G10 held games where war reached 6+ | ≥ 25% | 65.9% | 65.9% |
+| G11 close losses (WAR while holding 18+ gold) | 6-14% of games | 9.3% | 9.3% |
+| G12 hopeless losses (WAR holding ≤ 8 gold) | < 10% of games | 0.6% | 0.6% |
+| G13 novice median game | ≥ 7 turns | 8 | 8 |
+| G14 preview bot holds | ≥ 30% | 56.5% | 44.7% |
+| G15 every staff in held line-ups | ≥ 8% each | lowest Old Hand 21.8% | lowest Old Hand 22.2% |
+| G16 no staff in held line-ups above | ≤ 85% | highest Strategist 72.9% | highest Strategist 73.4% |
+| G17 stalls | 0 | 0 | 0 |
+
+**The final fix (decisions A2 and B2).** No tunable changed. Two things moved the numbers:
+
+- **A2, the push's crisis drawn where it can be won.** A push can never be lost to WAR, so G1, G10-G13 do not
+  move; the push's CEASEFIREs turn into WORLD UNITED more often (sensible pushes ending WORLD UNITED 75.0% →
+  76.8%, G2 48.7% → 49.7%) and the push runs longer when it keeps winning some crises and missing others
+  (3 turns at the median, p90 6 → 7). That lengthens the tail of the time model: **G8, the first-game p90, rises
+  from 17.4 to 18.0 minutes, exactly at its 18-minute limit** (the TypeScript port's 2,000 games: 17.7). It
+  passes, with no margin left (section 17). In 21% of the sensible bot's push turns no red region could be won on
+  any fresh deal (the line-up has fallen behind the target curve) and the crisis was drawn from all of them.
+- **B2, a deal is dead only when no seat order wins.** The sensible and breaker bots seat their staff in a
+  ranked order at every shop and almost never meet a deal that only another order wins (under 0.05% of turns),
+  so their games are as before. The preview bot hires by the card's number and seats each hire in the leftmost
+  free seat: 3.7% of its turns are dealt as REORDER STAFF TO WIN (against 15.6% NO SEND CAN WIN), and before
+  this fix the game told it NO SEND CAN WIN on all of them (the critic measured 36.8% of its "dead" deals as
+  false). Acting on the line (a drag before the send) it now holds the world in 56.5% of games (44.7% before):
+  G14's rise is that one change. The novice, which never reorders, is unchanged (G13 8 turns).
+
+**What the three misses and A2 buy, honestly.** A best-send push misses only on a deal no seating can win, so
+every one of its CEASEFIREs ends on three such deals (sensible and preview: 100% of the three misses were dead
+as dealt). Of the sensible bot's CEASEFIREs, 26.4% had SWAP unusable on all three misses (in the push the pile is
+the gold within 3 joins, and when it is 10 or fewer it all lights, so SWAP reads "no new regions"), 16.7% found
+nothing affordable at any shop after the first miss (even with a sale), and 6.6% had all three: no in-turn
+choice and nothing to buy (preview 21.3%, 13.1%, 5.0%). Pushes that miss and still unite the world: 0.4% of
+sensible pushes, 0.5% of preview pushes. The decision that ends a push is made before it, at the shops whose red
+"YOUR BEST · NEXT TARGET" header says when the line-up has fallen behind; the push makes sure its three misses
+are spent on crises the line-up could win when any exist, and never on one dead deal alone.
+
+**Dead deals, measured** (as dealt, and as the lit regions stood at SEND after any swap; dead now means no
+seating wins): sensible 13.0% of turns / 10.0%; preview 15.6% / 12.0%; breaker 22.4% / 18.7%; greedy (never
+shops) 49.2% / 44.9%. A best-send bot misses only on a dead deal (100% of its misses), so every sensible
+CEASEFIRE and WAR follows dead deals, which the game announces; a novice's misses are mostly its own (30.9% of
+them on dead deals), a random bot's 22.1%.
 
 These are the results with pin it to claim it (the win order of section 5, step 6). Against the earlier rule
 (extra wins to the nearest regions, pinned or not) every gate still passes and moves by sampling noise, except
 G10, which rises from 51.4% to 65.9%: the bots pin for score, not to take war's regions back, so a big send
 now takes back fewer red regions and war more often reaches 6 (a closer race; the gate wants at least 25%).
 
-More results (sensible): 14.2% of games end in CEASEFIRE (holding 21-29); 37.5% in WAR. The best send beats the
-median send's regions by 1.16 on average and wins where the median misses on 57.8% of turns; 90.0% of its sends
-pin the crisis (the rest are, for example, five gold ports). Best send per game: median 118,305, p90 878,681,
-max 14,488,371. Staff in held line-ups: Strategist 73%, Harbourmaster 72%, Sovereign 68%, Governor 56%, Surveyor
-47%, Herald 46%, Quartermaster 44%, Duty Officer 38%, Deputy 33%, Old Hand 22%. Misses in a row that end a loss:
-median 3. Breaker: holds 39.5% (it buys pieces before it has an engine). Full output: `reference/RESULTS.txt`.
+More results (sensible): 12.8% of games end in CEASEFIRE (holding 21-29); 37.5% in WAR. The best send beats the
+median send's regions by 1.14 on average and wins where the median misses on 57.2% of turns; 89.8% of its sends
+pin the crisis (the rest are, for example, five gold ports). Best send per game: median 141,966, p90 906,500,
+max 14,488,371. Staff in held line-ups: Strategist 73%, Harbourmaster 71%, Sovereign 68%, Governor 57%, Herald
+49%, Surveyor 48%, Quartermaster 42%, Duty Officer 35%, Deputy 34%, Old Hand 22%. Misses in a row that end a
+loss: median 3. Breaker: holds 39.5% (it buys pieces before it has an engine). Full output:
+`reference/RESULTS.txt`. The TypeScript port (`npm run sim:war`, 2,000 games per bot) passes every gate (G8
+17.7, G14 56.4%), and 1,800 of its games replayed by the reference are identical turn for turn (20,530 turns),
+including every reorder and every push crisis draw.
 
 **Choice spread, honestly.** The crisis ×2 is part of why the best send beats the median by 2x on 99% of turns
 (sends that skip the crisis are half price). The fairer reading is in the other numbers: on most turns the
-best send wins the crisis where the median send would lose it to war (57.8% with pin it to claim it), and a mid-game deal like Example 2 offers
+best send wins the crisis where the median send would lose it to war (57.2% with pin it to claim it), and a mid-game deal like Example 2 offers
 MISS, WIN 2 and WIN 3 among sends a player would actually consider.
 
 ---
 
 ## 17. Risks and open questions
 
-- **Length is modelled, not measured.** First game 13.6 min (p90 16.5), slow first-timer 17.8. Run 5 timed phone
-  playtests before content lock (gate: median 13-17 min). Levers, in order: shop 2 offers or skip the shop when
-  nothing is affordable; target growth x1.45-1.55; ladder (5, 25) instead of (4, 16) adds about a turn.
-- **CEASEFIRE needs the owner's yes** (open question 1 in README). If rejected, the alternative is a forgiving push
-  (three misses end it).
+- **Length is modelled, not measured, and G8 is at its limit.** First game 13.6 min (p90 18.0, exactly the gate's
+  18), slow first-timer 17.8 (p90 23.4). The push's crises drawn where a win is possible (A2) made long pushes
+  longer. Run 5 timed phone playtests before content lock (gate: median 13-17 min). Levers, in order, each a
+  rules change for the lead: shop 2 offers or skip the shop when nothing is affordable; target growth
+  x1.45-1.55; ladder (5, 25) instead of (4, 16) adds about a turn.
+- **The forgiving push rarely saves a best-send push** (decisions A and A2: three misses, then CEASEFIRE; crises
+  drawn where some fresh deal can win). A best-send push misses only on a dead deal, so its three misses are
+  still forced deals: 0.4% of sensible pushes miss and still unite the world, 26% of its CEASEFIREs had SWAP
+  unusable on all three misses, 17% nothing affordable after the first, 7% both and no in-turn choice at all.
+  In 21% of push turns nothing red could be won on any deal and the draw falls back to all red. The choice that
+  decides a push is made at the shops before it (their red YOUR BEST · NEXT TARGET header). Open for the lead:
+  whether SWAP in the push should draw from a wider pile (in the push it is often empty), and whether the game
+  should warn as the last grey region falls when the line-up is behind. Watch in playtests whether players read
+  the lamps (now gold-white for a miss left, red-hatched for one spent, under PUSH and over MISSES LEFT) as
+  lives.
 - **Pinning the crisis is nearly always right** (90.0% of sensible sends). That makes the first lesson simple but
   the decision light; staff that reward not pinning it (five gold ports) are the depth. Watch in playtests.
 - **Wins beyond your pins go to the nearest non-gold region and can jump** across your own territory late
   (Example 2: the third region is 4 joins away). The lit gold thread along the join path (section 8) makes the
   jump readable; pin it to claim it lets a player choose instead.
-- **Dead deals.** Late in a game some deals have no winning send at all, even after a swap (a review's bot
-  count: about 12% of deals, 25% from turn 10, for a player who plays the best send), so some misses and every
-  CEASEFIRE follow a deal nothing could win. The game now says so the moment such a turn is dealt ("No send wins
-  this deal. SWAP brings new regions."). Changing the deal rule (for example, swapping a winning region in from
-  the pile) is a rules change: re-run the gates if it is tried.
+- **Dead deals.** Late in a game some deals have no winning send under any seat order (sensible: 13.0% of turns
+  as dealt, 10.0% still at SEND after a swap), so every miss of a best-send player follows a deal nothing could
+  win. Decisions B and B2 announce them: NO SEND CAN WIN on the readout and the lever before any pin, with what to
+  do (SWAP while it can help and it beckons; else SEND TO PASS, or USES A MISS in the push); the coach says once
+  what changes it, suggesting a hire only when a shop follows and an offer is within reach. A deal only another
+  seat order wins says REORDER STAFF TO WIN instead and the staff to move beckon (3.7% of a new player's turns,
+  by the preview bot). Whether that beckon gives away too much of the puzzle, or too little, is for playtests.
+  The deal rule is unchanged; changing it (for example, swapping a winning region in from the pile) is a rules
+  change: re-run the gates if it is tried.
 - **The shop is mandatory** (greedy without a shop holds 0%). The fixed first shop, preview numbers and the
   "new hire" highlight carry it; if playtesters skip buying, raise ◆4 start to ◆6.
-- **Strategist at 74%** of winning line-ups is the most common piece; it is "×3 for 4+ pins", which nearly every
+- **Strategist at 73%** of winning line-ups is the most common piece; it is "×3 for 4+ pins", which nearly every
   send meets. If it feels mandatory, price it ◆6 and re-run the gates.
 - **War spreads on a fixed beat** (every 3rd turn). If it reads as arbitrary, the tag on the target region and the
   "WAR · 2 TURNS" countdown are the fix; do not hide them.
 - **Bots are not people.** The sensible bot enumerates every send; human hold rates will be lower early and may be
-  higher for planners. The novice and preview bots bracket a new player (0% and 45%).
+  higher for planners. The novice and preview bots bracket a new player (0% and 57%; the preview bot reorders
+  when the readout says REORDER STAFF TO WIN, which a new player may not do).
 - **Tone and rating:** war is fills, hatching and ink only; no units, casualties or explosions (PEGI 7 / E10+).
 - **Carried over:** the BRINK name needs trademark clearance; the fictional region names still need a gazetteer pass.

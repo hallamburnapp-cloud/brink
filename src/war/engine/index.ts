@@ -45,14 +45,21 @@ export { buyProblem, sendProblem, swapProblem } from './run';
 // Views for the screens (memoised per state)
 export {
   actsOn,
+  bestSeatingNow,
   controlsView,
+  DEAL_LINE,
+  dealState,
+  deadDeal,
+  deadLabel,
   endView,
   goalView,
   mapView,
   menuView,
   preview,
+  pushMissLabel,
   readoutView,
   receipt,
+  reorderDeal,
   regionViews,
   seatViews,
   sendLabel,
@@ -75,6 +82,10 @@ export type {
 // The shop
 export { bestLastTurn, bestScore, dealFeatures, drawOffers, nextShopAfter, ownerAtSend, previewNumber, price, sellValue, shopDue } from './shop';
 export type { PreviewNumber } from './shop';
+
+// Seat order: what a deal allows under every seating, and the push's crisis draw
+export { bestSeating, orderKey, orderState, pushPool, pushWinnable, reduceFeatures, seatOrders } from './order';
+export type { DealState } from './order';
 
 // Rules underneath: the graph, legal groups, scoring, the ladder, ownership, the deal
 export { ADJ, IDS, distance, isJoined, isLane, pathBetween, westToEast } from './board';

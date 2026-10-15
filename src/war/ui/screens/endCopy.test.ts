@@ -54,6 +54,6 @@ describe('the end card copy', () => {
 
   it('keeps the WORLD UNITED and CEASEFIRE lines', () => {
     expect(endCopy({ ...base, ending: 'WORLD UNITED', turn: 15, peakWar: 6 }).lines).toEqual(['Turn 15 · war peaked at 6']);
-    expect(endCopy({ ...base, ending: 'CEASEFIRE', red: 1 }).lines).toEqual(['War held 1 region when it stopped.']);
+    expect(endCopy({ ...base, ending: 'CEASEFIRE', red: 1 }).lines).toEqual(['The final push missed three times.', 'War held 1 region when it stopped.']);
   });
 });

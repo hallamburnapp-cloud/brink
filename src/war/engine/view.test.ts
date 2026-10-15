@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { IDS } from './board';
-import { newGame, nextTurn, send, setOwners, swap } from './run';
+import { RULES } from './rules';
+import { clearPins, moveSeat, newGame, nextTurn, send, setOwners, swap } from './run';
+import { bestScore } from './shop';
 import { must, ownersFrom, pinAll, position, sendOptions, tapOrder } from './testkit';
 import type { GameState } from './types';
+import { decodeOwners } from './world';
 import {
   actsOn,
+  bestSeatingNow,
   controlsView,
+  dealState,
+  deadDeal,
   preview,
   shopView,
   endView,
@@ -15,6 +21,7 @@ import {
   readoutView,
   receipt,
   regionViews,
+  reorderDeal,
   seatViews,
   sendLabel,
 } from './view';
@@ -103,10 +110,10 @@ describe('the map', () => {
 describe('the readout, the SEND label and the controls', () => {
   it('says what the turn needs and what the pins will do', () => {
     expect(readoutView(t1)).toMatchObject({ targetText: '64', line: 'NEED 64', points: 0n, m10: 0n, regions: 0 });
-    expect(sendLabel(t1)).toEqual({ text: 'PIN A REGION', tone: 'off', enabled: false, regions: 0 });
+    expect(sendLabel(t1)).toEqual({ text: 'PIN A REGION', tone: 'off', enabled: false, regions: 0, dead: false, reorder: false });
     const shoal = pinAll(t1, ['SHL']);
     expect(readoutView(shoal)).toMatchObject({ line: 'NEED 64', pointsText: '7', multiplierText: '2.0', score: 14n });
-    expect(sendLabel(shoal)).toEqual({ text: 'MISS · SHORT BY 50', tone: 'miss', enabled: true, regions: 0 });
+    expect(sendLabel(shoal)).toEqual({ text: 'MISS · SHORT BY 50', tone: 'miss', enabled: true, regions: 0, dead: false, reorder: false });
     const two = pinAll(t1, ['SHL', 'LNK', 'PBB', 'MRM']);
     expect(readoutView(two)).toMatchObject({ line: 'NEXT REGION AT 1,024', pointsText: '33', multiplierText: '8.0' });
     expect(sendLabel(two)).toMatchObject({ text: 'WINS 2 REGIONS', tone: 'win' });
@@ -131,7 +138,7 @@ describe('the readout, the SEND label and the controls', () => {
   });
 
   it('labels SWAP and the coins', () => {
-    expect(controlsView(t1).swap).toEqual({ enabled: false, sub: 'from turn 2', reason: 'Swap opens next turn.' });
+    expect(controlsView(t1).swap).toEqual({ enabled: false, sub: 'from turn 2', reason: 'Swap opens next turn.', beckon: false });
     expect(controlsView(t2).swap).toMatchObject({ enabled: true, sub: '1 left' });
     expect(controlsView(must(swap(t2))).swap).toMatchObject({ enabled: false, sub: 'used' });
     // An empty pile: SWAP is refused and says so instead of '1 left'.
@@ -170,19 +177,26 @@ describe('the end card', () => {
     expect(endView(t1)).toBeNull();
   });
 
-  it('CEASEFIRE: two stars at 25-29, one at 21-24', () => {
+  it('CEASEFIRE: on the third miss of the push; two stars at 25-29, one at 21-24', () => {
     const map = ownersFrom(IDS.slice(0, 23), IDS.slice(23));
-    const push = position(t1, {
-      owner: map,
-      turn: 20,
-      deal: { crisis: IDS[23], lit: [], target: 1_000_000n, finalPush: true },
-    });
-    const s = must(send(pinAll(push, [IDS[23]])));
+    const push = (pushMisses: number) =>
+      position(t1, {
+        owner: map,
+        turn: 20,
+        pushMisses,
+        deal: { crisis: IDS[23], lit: [], target: 1_000_000n, finalPush: true },
+      });
+    // The first two misses change nothing and say how many are left.
+    const once = must(send(pinAll(push(0), [IDS[23]])));
+    expect([once.ending, endView(once)]).toEqual([null, null]);
+    expect(receipt(once)!.line).toBe('LAST TURN · MISS · 2 MISSES LEFT');
+    expect(receipt(must(send(pinAll(push(1), [IDS[23]]))))!.line).toBe('LAST TURN · MISS · 1 MISS LEFT');
+    const s = must(send(pinAll(push(2), [IDS[23]])));
     expect(endView(s)).toMatchObject({
       ending: 'CEASEFIRE',
       stars: 1,
       title: 'CEASEFIRE · 23 of 30 gold',
-      lines: ['War held 7 regions when it stopped.'],
+      lines: ['The final push missed three times.', 'War held 7 regions when it stopped.'],
     });
     expect(receipt(s)!.line).toBe('LAST TURN · MISS · CEASEFIRE');
   });
@@ -278,6 +292,189 @@ describe('every view, every phase', () => {
     expect(push.deal.finalPush).toBe(true);
     expect(['NWK', 'QLN']).toContain(push.deal.crisis);
     expect(goalView(push).finalPush).toBe(true);
-    expect(sendLabel(pinAll(push, [push.deal.crisis])).text).toBe('MISS · CEASEFIRE');
+    expect(goalView(push).push).toEqual({ misses: 0, left: 3, limit: 3 });
+    expect(sendLabel(pinAll(push, [push.deal.crisis])).text).toBe('MISS · 2 MISSES LEFT');
+  });
+});
+
+describe('the final push forgives (three misses)', () => {
+  const map = ownersFrom(IDS.slice(0, 26), IDS.slice(26));
+  const at = (pushMisses: number) =>
+    position(t1, { owner: map, turn: 20, pushMisses, deal: { crisis: IDS[26], lit: [], target: 1_000_000n, finalPush: true } });
+
+  it('counts the misses left on the Big Board, and only in the push', () => {
+    expect(goalView(t1).push).toBeNull();
+    expect([0, 1, 2].map((n) => goalView(at(n)).push)).toEqual([
+      { misses: 0, left: 3, limit: 3 },
+      { misses: 1, left: 2, limit: 3 },
+      { misses: 2, left: 1, limit: 3 },
+    ]);
+    // Between turns too (the shop after a push miss), and spent on the CEASEFIRE it ended in.
+    const after = must(send(pinAll(at(0), [IDS[26]])));
+    expect(goalView(after).push).toEqual({ misses: 1, left: 2, limit: 3 });
+    expect(goalView(must(send(pinAll(at(2), [IDS[26]])))).push).toEqual({ misses: 3, left: 0, limit: 3 });
+    // A win in the push keeps the count; a world won leaves no lamps.
+    const win = must(send(pinAll(position(at(1), { deal: { ...at(1).deal, target: 1n } }), [IDS[26]])));
+    expect([win.ending, goalView(win).push]).toEqual([null, { misses: 1, left: 2, limit: 3 }]);
+    expect(goalView(must(setOwners(at(1), 'G'.repeat(30)))).push).toBeNull();
+  });
+
+  it('labels a push miss with what it leaves: 2 MISSES LEFT, 1 MISS LEFT, then CEASEFIRE', () => {
+    expect([0, 1, 2].map((n) => sendLabel(pinAll(at(n), [IDS[26]])).text)).toEqual(['MISS · 2 MISSES LEFT', 'MISS · 1 MISS LEFT', 'MISS · CEASEFIRE']);
+    // A push miss hands war nothing: no red preview on the crisis, and no WAR ghost segment.
+    const pinned = pinAll(at(0), [IDS[26]]);
+    expect(regionViews(pinned)[IDS[26]].preview).toBeNull();
+    expect(goalView(pinned).after).toEqual({ gold: 26, red: 4 });
+  });
+});
+
+describe('dead deals: NO SEND CAN WIN', () => {
+  /** A position whose lit regions' best send falls short of the target by `by` (negative: beats it). */
+  function dealt(s: GameState, by: bigint, extra: Partial<GameState['deal']> = {}): GameState {
+    const d = { ...s.deal, ...extra };
+    const best = bestScore(d.lit, d.crisis, s.owner, s.seats.map((x) => x.id), s.oldHandM10);
+    return position(s, { deal: { ...d, pins: [], target: best + by } });
+  }
+
+  it('is true exactly when no legal send reaches the target', () => {
+    expect(deadDeal(dealt(t2, 1n))).toBe(true);
+    expect(deadDeal(dealt(t2, 0n))).toBe(false);
+    for (const seed of ['DD1', 'DD2', 'DD3']) {
+      let s = newGame(seed);
+      for (let turn = 0; turn < 12 && s.phase !== 'over'; turn++) {
+        if (s.phase === 'choose') {
+          expect(deadDeal(s), `${seed} turn ${s.turn}`).toBe(sendOptions(s)[0].score < s.deal.target);
+          s = must(send(pinAll(s, tapOrder(sendOptions(s)[0].pins))));
+        } else s = must(nextTurn(s));
+      }
+    }
+    // Only while a turn is being chosen.
+    expect(deadDeal(after1)).toBe(false);
+  });
+
+  it('says so before any pin: the readout line, the SEND lever (· SWAP while SWAP is usable) and SWAP beckons', () => {
+    const dead = dealt(t2, 1n);
+    expect(readoutView(dead)).toMatchObject({ line: 'NO SEND CAN WIN', deal: 'dead', dead: true, reorder: false });
+    expect(sendLabel(dead)).toEqual({ text: 'NO SEND CAN WIN · SWAP', tone: 'miss', enabled: false, regions: 0, dead: true, reorder: false });
+    expect(controlsView(dead).seatsBeckon).toBe(false);
+    expect(controlsView(dead).swap).toMatchObject({ enabled: true, beckon: true });
+    // Pinned, the lever and the readout say what the pins do (a miss), and SWAP still beckons.
+    const pinned = pinAll(dead, ['TRN']);
+    expect(sendLabel(pinned)).toMatchObject({ tone: 'miss', enabled: true, dead: true });
+    expect(sendLabel(pinned).text).toMatch(/^MISS · SHORT BY /);
+    expect(readoutView(pinned).line).toMatch(/^NEED /);
+    expect(controlsView(pinned).swap.beckon).toBe(true);
+    // A deal that can be won says nothing of the kind.
+    expect(sendLabel(dealt(t2, 0n))).toMatchObject({ text: 'PIN A REGION', dead: false });
+    expect(controlsView(dealt(t2, 0n)).swap.beckon).toBe(false);
+  });
+
+  it('once SWAP cannot help (used, locked, nothing to bring), says how the turn ends: SEND TO PASS, in the push USES A MISS', () => {
+    const used = dealt(must(swap(t2)), 1n);
+    expect(sendLabel(used).text).toBe('NO SEND CAN WIN · SEND TO PASS');
+    expect(controlsView(used).swap).toMatchObject({ enabled: false, beckon: false });
+    expect(sendLabel(dealt(t2, 1n, { pile: [] })).text).toBe('NO SEND CAN WIN · SEND TO PASS');
+    // FIRST-WORLD turn 1: SWAP is locked.
+    const locked = dealt(t1, 1n, { swapLocked: true, swapsLeft: 0 });
+    expect(sendLabel(locked).text).toBe('NO SEND CAN WIN · SEND TO PASS');
+    expect(readoutView(locked).line).toBe('NO SEND CAN WIN');
+    // In the final push the send that ends the turn spends a miss; with a swap left it is still SWAP.
+    expect(sendLabel(dealt(t2, 1n, { pile: [], finalPush: true })).text).toBe('NO SEND CAN WIN · USES A MISS');
+    expect(sendLabel(dealt(t2, 1n, { finalPush: true })).text).toBe('NO SEND CAN WIN · SWAP');
+    // The lever stays usable: one pin down and SEND can be pressed to move on.
+    const pinned = pinAll(used, [used.deal.crisis]);
+    expect(sendLabel(pinned)).toMatchObject({ enabled: true, tone: 'miss', dead: true });
+  });
+
+  it('asks again after a SWAP, of the new lit regions', () => {
+    const d = t2.deal;
+    const swapped = must(swap(t2));
+    const seats = t2.seats.map((x) => x.id);
+    const before = bestScore(d.lit, d.crisis, t2.owner, seats, t2.oldHandM10);
+    const after = bestScore(swapped.deal.lit, d.crisis, t2.owner, seats, t2.oldHandM10);
+    expect(before).not.toBe(after);
+    // A target between the two: dead as dealt, alive after the swap (or the other way round).
+    const between = (before < after ? before : after) + 1n;
+    const s = position(t2, { deal: { ...d, pins: [], target: between } });
+    expect(deadDeal(s)).toBe(before < after);
+    const s2 = must(swap(s));
+    expect(deadDeal(s2)).toBe(after < before);
+    expect(sendLabel(s2).text).toBe(after < before ? 'NO SEND CAN WIN · SEND TO PASS' : 'PIN A REGION');
+  });
+
+  it('FIRST-WORLD: the scripted turns can be won; later, a line-up that never hires meets a dead deal and is told', () => {
+    expect([deadDeal(t1), deadDeal(t2)]).toEqual([false, false]);
+    expect(sendLabel(t1).text).toBe('PIN A REGION');
+    let s = t1;
+    let found: GameState | null = null;
+    while (s.phase !== 'over' && !found) {
+      if (s.phase !== 'choose') s = must(nextTurn(s));
+      else if (deadDeal(s) && s.deal.swapsLeft > 0) found = s;
+      else s = must(send(pinAll(s, tapOrder(sendOptions(s)[0].pins))));
+    }
+    expect(found).not.toBeNull();
+    const dead = found!;
+    expect(dead.mode).toBe('first');
+    expect(dead.turn).toBeGreaterThan(2);
+    expect(sendLabel(dead).text).toBe('NO SEND CAN WIN · SWAP');
+    expect(readoutView(dead).line).toBe('NO SEND CAN WIN');
+    // SWAP, then the check runs again on what lit up.
+    const swapped = must(clearPins(must(swap(dead))));
+    expect(deadDeal(swapped)).toBe(sendOptions(swapped)[0].score < swapped.deal.target);
+    expect(sendLabel(swapped).text).toBe(deadDeal(swapped) ? 'NO SEND CAN WIN · SEND TO PASS' : 'PIN A REGION');
+    expect(RULES.swaps).toBe(1);
+  });
+});
+
+describe('REORDER STAFF TO WIN: a deal only another seating wins is not dead', () => {
+  // The critic's position (seed CRIT-preview-3, turn 10, a preview-number buyer that never reorders):
+  // as seated the best send scores 2,052 against 2,500, and the game said NO SEND CAN WIN. One drag of
+  // the Duty Officer to seat 1 makes Driftholm, Glassmoor, Gullcrest, Tern Isle, Wenmoor 27 x 108 = 2,916.
+  const crit = position(newGame('CRIT-preview-3'), {
+    owner: decodeOwners('G.R.GGR..GR...G.GRGRGGGG.RGG..')!,
+    seats: ['STRATEGIST', 'DUTY', 'SOVEREIGN'],
+    coins: 3,
+    turn: 10,
+    oldHandM10: 10,
+    deal: {
+      crisis: 'GLM',
+      lit: ['VSY', 'NWK', 'WMS', 'DRF', 'KLP', 'FRM', 'GUL', 'TRN', 'SHL', 'BRK'],
+      pile: ['LNK', 'WNM', 'KLM', 'PBB', 'LTL', 'RMH'],
+      target: 2500n,
+    },
+  });
+
+  it('says REORDER STAFF TO WIN, not NO SEND CAN WIN, and the seats beckon (not SWAP)', () => {
+    expect(sendOptions(crit)[0].score).toBe(2052n);
+    expect(dealState(crit)).toBe('reorder');
+    expect(deadDeal(crit)).toBe(false);
+    expect(reorderDeal(crit)).toBe(true);
+    expect(readoutView(crit)).toMatchObject({ line: 'REORDER STAFF TO WIN', deal: 'reorder', dead: false, reorder: true });
+    expect(sendLabel(crit)).toEqual({ text: 'PIN A REGION', tone: 'off', enabled: false, regions: 0, dead: false, reorder: true });
+    expect(controlsView(crit)).toMatchObject({ seatsBeckon: true, swap: { enabled: true, beckon: false } });
+    // Pinned, the readout says how far short as ever.
+    expect(readoutView(pinAll(crit, ['GLM'])).line).toMatch(/^NEED /);
+  });
+
+  it('names the seating that wins; one drag of the Duty Officer and the deal wins 1 region at 2,916', () => {
+    expect(bestSeatingNow(crit)).toEqual(['DUTY', 'STRATEGIST', 'SOVEREIGN']);
+    const dragged = must(moveSeat(crit, 1, 0));
+    expect(dealState(dragged)).toBe('live');
+    expect(readoutView(dragged)).toMatchObject({ line: 'NEED 2,500', deal: 'live', reorder: false });
+    expect(controlsView(dragged).seatsBeckon).toBe(false);
+    const pinned = pinAll(dragged, tapOrder(['DRF', 'GLM', 'GUL', 'TRN', 'WMS']));
+    expect(readoutView(pinned)).toMatchObject({ points: 27n, m10: 1080n, score: 2916n, regions: 1 });
+    expect(sendLabel(pinned)).toMatchObject({ text: 'WINS 1 REGION', tone: 'win', enabled: true });
+  });
+
+  it('is dead only when no seating at all reaches the target', () => {
+    const above = position(crit, { deal: { ...crit.deal, target: 2917n } });
+    expect(dealState(above)).toBe('dead');
+    expect(readoutView(above).line).toBe('NO SEND CAN WIN');
+    expect(sendLabel(above).text).toBe('NO SEND CAN WIN · SWAP');
+    expect(dealState(position(crit, { deal: { ...crit.deal, target: 2916n } }))).toBe('reorder');
+    expect(dealState(position(crit, { deal: { ...crit.deal, target: 2052n } }))).toBe('live');
+    // Outside a turn there is nothing to say.
+    expect(dealState(after1)).toBeNull();
   });
 });

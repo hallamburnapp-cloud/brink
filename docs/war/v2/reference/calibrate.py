@@ -52,6 +52,30 @@ def _job(args):
     r['spreads'] = sum(1 for t in r['log'] if t.get('spread'))
     r['bought'] = sum(t.get('bought', 0) for t in r['log'])
     r['wins_sizes'] = [t['regions'] for t in r['log'] if t['result'] == 'win']
+    # Dead deals (NO SEND CAN WIN) and the forgiving final push.
+    r['nturns'] = len(r['log'])
+    r['dead_dealt'] = sum(1 for t in r['log'] if t.get('dead_dealt'))
+    r['dead_send'] = sum(1 for t in r['log'] if t.get('dead'))
+    r['miss_dead'] = sum(1 for t in r['log'] if t['result'] == 'miss' and t.get('dead'))
+    r['last_dead'] = bool(r['log'] and r['log'][-1].get('dead'))
+    r['push_turns'] = sum(1 for t in r['log'] if t['final'])
+    r['push_misses'] = sum(1 for t in r['log'] if t['final'] and t['result'] == 'miss')
+    # REORDER STAFF TO WIN: deals no send wins as seated that a reorder wins, and the bot's reorders.
+    r['reorder_dealt'] = sum(1 for t in r['log'] if t.get('reorder_dealt'))
+    r['reordered'] = sum(1 for t in r['log'] if t.get('reordered'))
+    # The push's crisis draw (A2): turns drawn from the red regions some fresh deal can win.
+    r['push_any'] = sum(1 for t in r['log'] if t['final'] and t.get('push_draw') == 'any')
+    # A CEASEFIRE's three misses: dead as dealt, SWAP unusable, nothing affordable at any shop after the
+    # first push miss (even with a sale), and all three at once (no in-turn choice at all).
+    pm = [i for i, t in enumerate(r['log']) if t['final'] and t['result'] == 'miss']
+    if r['end'] == 'CEASEFIRE' and pm:
+        shops = [t for t in r['log'][pm[0]:] if 'shop_affordable_sale' in t]
+        dead = all(r['log'][i].get('dead_dealt') for i in pm)
+        noswap = all(not r['log'][i].get('swap_ok') for i in pm)
+        broke = all(not t['shop_affordable_sale'] for t in shops)
+        r['cf_why'] = (dead, noswap, broke, dead and noswap and broke)
+    else:
+        r['cf_why'] = None
     r['tail'] = 0
     for t in reversed(r['log']):
         if t['result'] != 'miss':
@@ -122,6 +146,22 @@ def summarize(rs):
         spreads_med=statistics.median(r['spreads'] for r in rs),
         bought_med=statistics.median(r['bought'] for r in rs),
         hopeless=sum(1 for r in lost if r['gold'] <= 8) / n,
+        dead_dealt=sum(r['dead_dealt'] for r in rs) / max(1, sum(r['nturns'] for r in rs)),
+        dead_send=sum(r['dead_send'] for r in rs) / max(1, sum(r['nturns'] for r in rs)),
+        miss_dead=sum(r['miss_dead'] for r in rs) / max(1, sum(r['misses'] for r in rs)),
+        cf_dead=sum(1 for r in cf if r['last_dead']) / len(cf) if cf else None,
+        push_turns=(lambda xs: (statistics.median(xs), q(xs, .9)) if xs else (None, None))(
+            [r['push_turns'] for r in rs if r['final_push']]),
+        push_wu=(lambda xs: sum(1 for r in xs if r['end'] == 'WORLD UNITED') / len(xs) if xs else None)(
+            [r for r in rs if r['final_push']]),
+        push_saved=(lambda xs: sum(1 for r in xs if r['push_misses'] and r['end'] == 'WORLD UNITED') / len(xs) if xs else None)(
+            [r for r in rs if r['final_push']]),
+        push_misses_med=(lambda xs: statistics.median(xs) if xs else None)([r['push_misses'] for r in rs if r['final_push']]),
+        reorder_dealt=sum(r['reorder_dealt'] for r in rs) / max(1, sum(r['nturns'] for r in rs)),
+        reordered=sum(r['reordered'] for r in rs) / max(1, sum(r['nturns'] for r in rs)),
+        push_any=sum(r['push_any'] for r in rs) / max(1, sum(r['push_turns'] for r in rs)),
+        cf_why=(lambda xs: tuple(sum(1 for x in xs if x[i]) / len(xs) for i in range(4)) if xs else None)(
+            [r['cf_why'] for r in cf if r['cf_why']]),
     )
     for key, fld in (('std', 'min_std'), ('first', 'min_first'), ('slow', 'min_slow'), ('fast', 'min_fast')):
         xs = [r[fld] for r in rs]
@@ -225,6 +265,19 @@ def report(S, curves, overrides, n, secs):
               s['lost_gold_med'], s['lost_grey_med'], pct(s['near_loss_gold18']), pct(s['near_loss'])))
         w('  final push reached in %s of games; CEASEFIRE gold held: %s; games of 25+ turns %s' % (
             pct(s['final_push']), ', '.join('%d: %d' % kv for kv in sorted(s['cf_gold'].items())) or '-', pct(s['long25'])))
+        w('  dead deals (NO SEND CAN WIN): %s of turns as dealt, %s at SEND (after any swap); misses on a dead deal %s of misses; '
+          'CEASEFIREs ending on a dead deal %s' % (
+              pct(s['dead_dealt']), pct(s['dead_send']), pct(s['miss_dead']), pct(s['cf_dead']) if s['cf_dead'] is not None else '-'))
+        w('  REORDER STAFF TO WIN (no send wins as seated, a reorder does): %s of turns as dealt; turns the bot reordered %s' % (
+            pct(s['reorder_dealt']), pct(s['reordered'])))
+        w('  the push (three misses allowed): turns per push median %s, p90 %s; misses per push (median) %s; pushes ending WORLD UNITED %s; '
+          'pushes that missed and still united %s; push crises drawn from all red (no fresh deal could win any) %s' % (
+              s['push_turns'][0], s['push_turns'][1], s['push_misses_med'],
+              pct(s['push_wu']) if s['push_wu'] is not None else '-', pct(s['push_saved']) if s['push_saved'] is not None else '-',
+              pct(s['push_any']) if s['push_turns'][0] is not None else '-'))
+        if s['cf_why']:
+            w('  CEASEFIREs whose three misses were all on deals dead as dealt %s; with SWAP unusable on all three %s; '
+              'with nothing affordable at any shop after the first miss %s; all three at once %s' % tuple(pct(x) for x in s['cf_why']))
         w('  sends that pin the crisis %s; war spreads on its own per game (median) %s; staff bought per game (median) %s; '
           'hopeless losses (WAR holding <=8 gold) %s of games' % (
               pct(s['on_crisis']), s['spreads_med'], s['bought_med'], pct(s['hopeless'])))

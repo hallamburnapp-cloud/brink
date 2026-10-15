@@ -200,10 +200,11 @@ describe('the reference results file', () => {
     expect(ref.games).toBe(5000);
     expect(ref.allPass).toBe(true);
     expect(ref.gates.map((g) => g.id)).toEqual(Array.from({ length: 17 }, (_, i) => `G${i + 1}`));
-    expect(ref.gates.find((g) => g.id === 'G15')?.text).toBe('OLDHAND 22.1%');
+    expect(ref.gates.find((g) => g.id === 'G15')?.text).toBe('OLDHAND 21.8%');
     expect(Object.keys(ref.outcomes).sort()).toEqual([...BOT_NAMES].sort());
-    expect(ref.outcomes.sensible).toMatchObject({ worldUnited: 0.483, held: 0.625, turns: { median: 15, p10: 12, p90: 19 } });
-    expect(ref.outcomes.sensible?.minutes.first).toEqual([13.5, 16.3]);
+    expect(ref.outcomes.sensible).toMatchObject({ held: 0.625, turns: { median: 15, p10: 12, p90: 21 } });
+    expect(ref.outcomes.sensible?.worldUnited).toBeCloseTo(0.497, 6);
+    expect(ref.outcomes.sensible?.minutes.first).toEqual([13.6, 18.0]);
     expect(ref.detail.sensible?.finalPush).toBeCloseTo(0.553, 6);
   });
 });

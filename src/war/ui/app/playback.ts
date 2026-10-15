@@ -91,6 +91,12 @@ export const ahead = signal<'turn' | 'shop' | 'end' | Ending | null>(null);
  */
 export const goal = signal<{ gold: number; red: number } | null>(null);
 
+/**
+ * The final push's misses on the Big Board's lamps while the outcome plays: a push miss puts one out
+ * on its beat (null: the shown game's).
+ */
+export const pushMisses = signal<number | null>(null);
+
 /** A count on the Big Board glows (the intro points at it; the director may on a change). */
 export const goalGlow = signal<'gold' | 'war' | null>(null);
 
@@ -119,6 +125,7 @@ export function resetPlayback(): void {
     showcase.value = null;
     ahead.value = null;
     goal.value = null;
+    pushMisses.value = null;
     goalGlow.value = null;
     coins.value = null;
     leverDown.value = false;

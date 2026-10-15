@@ -6,6 +6,16 @@
  */
 import { STAFF_DEF, STAFF_IDS } from '../content/staff';
 import {
+  bestScore,
+  bestSeating,
+  crisisPool,
+  dealFeatures,
+  dealState,
+  deadDeal,
+  goldCount,
+  pushPool,
+  readoutView,
+  reduceFeatures,
   decodeOwners,
   encodeOwners,
   groups,
@@ -17,10 +27,13 @@ import {
   nextMark,
   nextTurn,
   pinAll,
+  position,
   regionsWon,
   RULES,
   scorePins,
   send,
+  sendLabel,
+  tapOrder,
   target,
   warSpreadTarget,
   winOrder,
@@ -93,6 +106,7 @@ function checkSetup(fx: Fixtures): Section {
     OFFERS: RULES.offers,
     SEATS: RULES.seats,
     REROLL: RULES.reroll,
+    PUSH_MISSES: RULES.pushMisses,
   });
   return sec;
 }
@@ -177,6 +191,85 @@ function checkOwnership(fx: Fixtures): Section {
   return sec;
 }
 
+/**
+ * Dead deals: the best legal send as seated and under the best seating, and what the game says before
+ * any pin (dealState, the readout's line, the SEND label).
+ */
+function checkDead(fx: Fixtures): Section {
+  const sec = new Section('dead deals');
+  const base = newGame('FIXTURES-DEAD');
+  fx.dead.forEach((c, i) => {
+    sec.cases++;
+    const owner = owners(c.owner);
+    const label = `dead #${i}`;
+    sec.same(label, 'best', c.best, bestScore(c.lit, c.crisis, owner, c.seats, c.oldhandM10).toString());
+    const fs = reduceFeatures(dealFeatures(c.lit, c.crisis, owner));
+    const seating = bestSeating(fs, c.seats, goldCount(owner), c.oldhandM10);
+    sec.same(label, 'best under any seating', c.bestAnyOrder, seating.score.toString());
+    sec.same(label, 'best seating', c.seating, seating.seats);
+    const s = position(base, {
+      owner,
+      seats: c.seats,
+      oldHandM10: c.oldhandM10,
+      deal: { crisis: c.crisis, lit: c.lit, target: BigInt(c.target), finalPush: c.finalPush, pile: c.pile, swapsLeft: c.swap ? 1 : 0 },
+    });
+    sec.same(label, 'state', c.state, dealState(s));
+    sec.same(label, 'dead', c.dead, deadDeal(s));
+    sec.same(label, 'SEND label', c.label, sendLabel(s).text);
+    sec.same(label, 'readout line', c.line ?? 'NEED', c.line === null ? readoutView(s).line.split(' ')[0] : readoutView(s).line);
+  });
+  return sec;
+}
+
+/** The final push's crisis draw (A2): the red regions some fresh deal can win, else all of them. */
+function checkPushDraw(fx: Fixtures): Section {
+  const sec = new Section('push draw');
+  fx.pushDraw.forEach((c, i) => {
+    sec.cases++;
+    const owner = owners(c.owner);
+    const label = `push draw #${i}`;
+    const { pool, finalPush } = crisisPool(owner);
+    sec.same(label, 'red touching gold', c.red, finalPush ? pool : []);
+    const drawn = pushPool(owner, c.red, c.seats, c.oldhandM10, target(c.turn));
+    sec.same(label, 'pool', c.pool, drawn.pool);
+    sec.same(label, 'draw', c.draw, drawn.draw);
+  });
+  return sec;
+}
+
+/** The forgiving final push: one send each, played through the actions (pin, send). */
+function checkPush(fx: Fixtures): Section {
+  const sec = new Section('final push');
+  const base = newGame('FIXTURES-PUSH');
+  fx.push.forEach((c, i) => {
+    sec.cases++;
+    const label = `push #${i}`;
+    try {
+      const at = position(base, {
+        owner: owners(c.owner),
+        seats: c.seats,
+        oldHandM10: c.oldhandM10,
+        turn: c.turn,
+        pushMisses: c.pushMissesBefore,
+        deal: { crisis: c.crisis, lit: c.lit, target: BigInt(c.target), finalPush: true },
+      });
+      const pinned = pinAll(at, tapOrder(c.pins));
+      sec.same(label, 'SEND label', c.label, sendLabel(pinned).text);
+      const s = must(send(pinned));
+      const r = s.lastSend!;
+      sec.same(label, 'score', c.score, r.score.toString());
+      sec.same(label, 'result', c.result, r.result);
+      sec.same(label, 'won', c.won, r.won.map((w) => w.id));
+      sec.same(label, 'push misses after', c.pushMissesAfter, s.pushMisses);
+      sec.same(label, 'ending', c.ending, s.ending);
+      sec.same(label, 'map', c.ownerAfter, encodeOwners(s.owner));
+    } catch (e) {
+      sec.differences.push(`${label}: ${(e as Error).message}`);
+    }
+  });
+  return sec;
+}
+
 /** FIRST-WORLD turns 1-2 played through the actions (newGame, pin, send, nextTurn). */
 function checkFirstWorld(fx: Fixtures): Section {
   const sec = new Section('FIRST-WORLD game');
@@ -215,6 +308,9 @@ export function crosscheckFixtures(fx: Fixtures = loadFixtures()): CrosscheckRes
     checkLadder(fx),
     checkGroups(fx),
     checkOwnership(fx),
+    checkDead(fx),
+    checkPushDraw(fx),
+    checkPush(fx),
     checkFirstWorld(fx),
   ].map((s) => s.result());
   return {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buy, IDS, must, newGame, nextTurn, pinAll, send, sendOptions, setOwners, swap, swapProblem, type GameState } from '../../engine';
-import { adderRightOfMultiplier, bestNow, linesFor, spreadLine, turnOneStep, warStakes } from './teach';
+import { buy, clearPins, decodeOwners, IDS, must, newGame, nextTurn, pinAll, position, send, sendOptions, setOwners, swap, swapProblem, type GameState } from '../../engine';
+import { adderRightOfMultiplier, bestNow, hireLikely, linesFor, pushMissLine, spreadLine, turnOneStep, warStakes } from './teach';
 
 const first = () => newGame('FIRST-WORLD');
 const keys = (prev: GameState | null, s: GameState) => linesFor(prev, s).map((l) => l.key);
@@ -126,16 +126,84 @@ describe('the lines that keep a turn from surprising anyone', () => {
     expect(adderRightOfMultiplier(['STRATEGIST', 'QM'])).toBe(false);
   });
 
-  it('says at once when no send on the table can win, and beckons SWAP while one is left', () => {
+  it('explains a dead deal once: SWAP for new regions, and stronger staff at the next shop', () => {
     // Seven red around a lone gold capital: a fresh deal where nothing reaches the target.
     const dead = deadDeal();
     expect(bestNow(dead)).toBeLessThan(dead.deal.target);
     const lines = linesFor(prevOf(dead), dead);
-    expect(lines.find((l) => l.key === 'dead-swap')).toMatchObject({ beckon: 'swap' });
-    // Still nothing after the swap: said plainly, no swap left to beckon.
+    expect(lines.find((l) => l.key === 'dead')).toMatchObject({
+      text: 'Nothing here can win. SWAP for new regions, and hire stronger staff at the next shop.',
+      beckon: 'swap',
+      once: 'device',
+      full: true,
+    });
+    // Still nothing after the swap (asked again of the new lit regions): SWAP cannot help now.
     const swapped = must(swap(dead));
     expect(bestNow(swapped)).toBeLessThan(swapped.deal.target);
-    expect(linesFor(dead, swapped).find((l) => l.key === 'dead')?.text).toBe('No send can win this turn: war will take the crisis.');
+    expect(linesFor(dead, swapped).find((l) => l.key === 'dead-staff')).toMatchObject({
+      text: 'Nothing here can win. Hire stronger staff at the next shop.',
+      once: 'device',
+    });
+    // The same turn dealt again on a new map (the dev hook's setOwner) is a deal put on the table too.
+    const fresh = newGame('E2E-DEAD-3');
+    const redealt = must(setOwners(fresh, 'G..GR....R..R.G...RR..GR......'));
+    expect(bestNow(redealt)).toBeLessThan(redealt.deal.target);
+    // Turn 1: no shop follows, so no hire is suggested.
+    expect(linesFor(fresh, redealt).find((l) => l.key.startsWith('dead'))).toMatchObject({
+      key: 'dead-swap',
+      text: 'Nothing here can win. SWAP for new regions.',
+      beckon: 'swap',
+    });
+    // A deal that can be won earns neither.
+    const alive = { ...dead, deal: { ...dead.deal, target: 1n } };
+    expect(linesFor(prevOf(alive), alive).some((l) => l.key.startsWith('dead') || l.key === 'reorder')).toBe(false);
+  });
+
+  it('suggests a hire only when a shop follows and an offer is within reach; otherwise says how to move on', () => {
+    const dead = deadDeal();
+    expect([dead.turn, dead.coins, hireLikely(dead)]).toEqual([6, 4, true]);
+    const used = must(clearPins(must(swap(dead))));
+    expect(swapProblem(used)).not.toBeNull();
+    const deadLine = (prev: GameState, s: GameState) => linesFor(prev, s).find((l) => l.key.startsWith('dead'));
+    // No coins: the next shop cannot help, so the line says how to end the turn.
+    const broke = { ...used, coins: 0 };
+    expect(hireLikely(broke)).toBe(false);
+    expect(deadLine(dead, broke)).toMatchObject({ key: 'dead-pass', text: 'Nothing here can win. Pin one region and send to move on.', once: 'device' });
+    // No shop after this turn (turn 7): the same.
+    const odd = { ...used, turn: 7 };
+    expect(hireLikely(odd)).toBe(false);
+    expect(deadLine(dead, odd)?.key).toBe('dead-pass');
+    // A full table counts the best sale: 0 coins and a Deputy (sells for 3) still buy a Duty Officer (3).
+    const full = { ...broke, seats: (['DEPUTY', 'GOVERNOR', 'HARBOUR', 'SOVEREIGN', 'HERALD'] as const).map((id, i) => ({ uid: i + 1, id })) };
+    expect(hireLikely(full)).toBe(true);
+  });
+
+  it('says once that a reorder wins a deal no send wins as seated', () => {
+    const owner = decodeOwners('G.R.GGR..GR...G.GRGRGGGG.RGG..')!;
+    const crit = position(newGame('CRIT-preview-3'), {
+      owner,
+      seats: ['STRATEGIST', 'DUTY', 'SOVEREIGN'],
+      turn: 10,
+      deal: { crisis: 'GLM', lit: ['VSY', 'NWK', 'WMS', 'DRF', 'KLP', 'FRM', 'GUL', 'TRN', 'SHL', 'BRK'], pile: ['LNK'], target: 2500n },
+    });
+    const lines = linesFor(prevOf(crit), crit);
+    expect(lines.find((l) => l.key === 'reorder')).toMatchObject({ text: 'Drag your staff into a new order: this deal can win.', once: 'device', full: true });
+    expect(lines.some((l) => l.key.startsWith('dead'))).toBe(false);
+  });
+
+  it('teaches the forgiving push: three misses, counted down after each one', () => {
+    const map = IDS.map((id) => (['NWK', 'FRM', 'VSY'].includes(id) ? 'R' : 'G')).join('');
+    const push = must(setOwners(newGame('PUSH-COACH'), map));
+    expect(linesFor(prevOf(push), push).find((l) => l.key === 'push')).toMatchObject({
+      text: 'No grey left. Win back the red. Three misses: ceasefire.',
+      once: 'device',
+    });
+    const missOnce = must(send(pinAll({ ...push, deal: { ...push.deal, target: 10n ** 12n } }, [push.deal.crisis])));
+    const after = linesFor(push, missOnce);
+    expect(after.find((l) => l.key === 'push-miss')?.text).toBe('Missed. The red holds. Two misses left.');
+    // War took nothing: no 'War took it' line on a push miss.
+    expect(after.find((l) => l.key === 'miss')).toBeUndefined();
+    expect(pushMissLine(1).text).toBe('Missed. The red holds. Miss once more: ceasefire.');
   });
 
   it('teaches SWAP on a miss that cannot grow: five pins, or nothing lit left to add', () => {

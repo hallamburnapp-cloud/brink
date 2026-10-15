@@ -1,72 +1,84 @@
 $ python3 calibrate.py 5000 --write
 
 WIN THE WORLD: calibration (rules.py as committed)
-5000 games per bot, seeds W0-W4999. Elapsed 211 s.
-Tunables: {"HOME": "LNK", "START_WAR": 3, "WAR_MIN_DIST": 3, "START_COINS": 4, "COIN_PER_REGION": 1, "LOSE_AT": 10, "LIT": 10, "NEAR": 3, "MAXPINS": 5, "SWAPS": 1, "T0": 64, "TR": [3, 2], "LADDER": [4, 16], "LADDER_THEN": 2, "WAR_EVERY": 3, "SHOP_FIRST": 2, "SHOP_EVERY": 2, "OFFERS": 3, "SEATS": 5, "REROLL": 2}
+5000 games per bot, seeds W0-W4999. Elapsed 416 s.
+Tunables: {"HOME": "LNK", "START_WAR": 3, "WAR_MIN_DIST": 3, "START_COINS": 4, "COIN_PER_REGION": 1, "LOSE_AT": 10, "LIT": 10, "NEAR": 3, "MAXPINS": 5, "SWAPS": 1, "T0": 64, "TR": [3, 2], "LADDER": [4, 16], "LADDER_THEN": 2, "WAR_EVERY": 3, "SHOP_FIRST": 2, "SHOP_EVERY": 2, "OFFERS": 3, "SEATS": 5, "REROLL": 2, "PUSH_MISSES": 3}
 Targets: 64, 96, 140, 220, 320, 490, 730, 1,100, 1,600, 2,500, 3,700, 5,500, 8,300, 12,000, 19,000, 28,000, 42,000, 63,000, 95,000, 140,000, 210,000, 320,000, 480,000, 720,000, 1,100,000, 1,600,000, 2,400,000, 3,600,000, 5,500,000, 8,200,000
 
 GATES
   PASS G1  sensible holds the world (WORLD UNITED or CEASEFIRE) 55-70%                        62.5%
-  PASS G2  sensible WORLD UNITED, the whole map 30/30, at least 40%                           48.3%
+  PASS G2  sensible WORLD UNITED, the whole map 30/30, at least 40%                           49.7%
   PASS G3  greedy, never shops: holds under 25%                                               0.0%
   PASS G4  random: holds under 5%                                                             0.0%
   PASS G5  best send at least 2x the median send on 85%+ of turns (sensible, opening deal)    99.3%
   PASS G6  sensible median game 15-19 turns                                                   15.0
-  PASS G7  first-game minutes: median 13-16                                                   13.5
-  PASS G8  first-game minutes: p90 at most 18                                                 16.3
-  PASS G9  first-game minutes, games that hold: median 14-17                                  14.1
+  PASS G7  first-game minutes: median 13-16                                                   13.6
+  PASS G8  first-game minutes: p90 at most 18                                                 18.0
+  PASS G9  first-game minutes, games that hold: median 14-17                                  14.2
   PASS G10 war is a race: 25%+ of held games see war at 6 or more                             65.9%
   PASS G11 close losses (WAR while holding 18+ gold) 6-14% of games                           9.3%
   PASS G12 hopeless losses (WAR holding 8 or fewer gold) under 10% of games                   0.6%
   PASS G13 a weak human (novice) lasts 7+ turns at the median                                 8.0
-  PASS G14 following the shop preview number alone holds 30%+                                 44.7%
-  PASS G15 every staff in 8%+ of held line-ups (lowest)                                       OLDHAND 22.1%
-  PASS G16 no staff in more than 85% of held line-ups (highest)                               STRATEGIST 73.0%
+  PASS G14 following the shop preview number alone holds 30%+                                 56.5%
+  PASS G15 every staff in 8%+ of held line-ups (lowest)                                       OLDHAND 21.8%
+  PASS G16 no staff in more than 85% of held line-ups (highest)                               STRATEGIST 72.9%
   PASS G17 no game stalls (every bot)                                                         0.0
   => ALL GATES PASS
 
 OUTCOMES
   bot         UNITED   CEASEF     held      WAR  stall | turns med p10-90   held     WU   lost | std min med/p90   first med/p90     slow med/p90      fast med         
   random        0.0%     0.0%     0.0%   100.0%   0.0% |  6.0 ( 6- 8)        None   None    6.0 |   4.0 /   5.3       5.0 /   6.3       6.6 /   8.3       2.9
-  novice        0.0%     0.0%     0.0%   100.0%   0.0% |  8.0 ( 6- 9)        None   None    8.0 |   5.7 /   6.6       6.7 /   7.6       8.8 /   9.9       4.2
+  novice        0.0%     0.0%     0.0%   100.0%   0.0% |  8.0 ( 6- 9)        None   None    8.0 |   5.9 /   6.9       6.9 /   7.9       9.0 /  10.3       4.3
   greedy        0.0%     0.0%     0.0%   100.0%   0.0% |  9.0 ( 9- 9)        None   None    9.0 |   8.0 /   8.1       9.0 /   9.1      12.0 /  12.2       5.7
-  preview      26.6%    18.1%    44.7%    55.3%   0.0% | 15.0 (12-18)          16     15     14 |  12.2 /  14.8      13.3 /  15.8      17.3 /  20.8       8.8
-  sensible     48.3%    14.2%    62.5%    37.5%   0.0% | 15.0 (12-19)        16.0   15.0   15.0 |  12.5 /  15.2      13.5 /  16.3      17.7 /  21.3       9.1
-  breaker      29.5%    10.0%    39.5%    60.5%   0.0% | 13.0 ( 9-18)          16     15     10 |  10.7 /  14.6      11.7 /  15.6      15.3 /  20.6       7.7
+  preview      35.6%    20.9%    56.5%    43.5%   0.0% | 16.0 (12-22)        19.0   16.0   15.0 |  13.1 /  18.0      14.1 /  19.0      18.7 /  24.9       9.5
+  sensible     49.7%    12.8%    62.5%    37.5%   0.0% | 15.0 (12-21)          16     15     15 |  12.6 /  17.0      13.6 /  18.0      17.8 /  23.4       9.1
+  breaker      30.8%     8.7%    39.5%    60.5%   0.0% | 13.0 ( 9-20)        16.0     15   10.0 |  10.7 /  15.9      11.7 /  16.9      15.3 /  22.2       7.7
 
 SENSIBLE
-  minutes, games that hold: std 13.1 (p10 10.2, p90 15.8) | first game 14.1 (p90 16.8) | slow first-timer 18.8 (p90 22.2)
-  choice on the opening deal: best >= 2x median 99.3%, >= 3x 88.1%, median best/median 6.0x; best wins where the median misses 57.8%; best wins 1.16 more regions than the median; legal sends per deal (median) 73
-  best send per game: median 118,305.0, p90 878,681, max 14,488,371; games with a 1,000,000+ send 8.8%; sends at 10x the target or more 15.8%
-  regions per winning send: 1: 47.6%, 2: 45.5%, 3: 4.9%, 4: 1.2%, 5: 0.4%, 6: 0.1%, 7: 0.1%, 8: 0.0%; biggest single send per game (median) 2.0; games with a 5+ region send 7.1%
-  war: held games that saw war at 6+ 65.9%; held games that saw war at 8-9 8.0% of all games; misses per game (median) 1.0; misses in a row ending a loss: median 3.0, p90 4
-  losses: median gold held 15.0, median grey left 5.0; close losses (WAR holding 18+ gold) 9.3% of games; WAR with <=4 grey left (the slice measure) 16.5%
-  final push reached in 55.3% of games; CEASEFIRE gold held: 21: 92, 22: 135, 23: 132, 24: 90, 25: 65, 26: 61, 27: 53, 28: 43, 29: 39; games of 25+ turns 0.0%
-  sends that pin the crisis 90.0%; war spreads on its own per game (median) 4.0; staff bought per game (median) 6.0; hopeless losses (WAR holding <=8 gold) 0.6% of games
-  staff in final line-ups of held games: STRATEGIST 73.0%, HARBOUR 71.8%, SOVEREIGN 67.5%, GOVERNOR 55.6%, SURVEYOR 46.9%, HERALD 45.6%, QM 44.1%, DUTY 38.1%, DEPUTY 32.8%, OLDHAND 22.1%
+  minutes, games that hold: std 13.2 (p10 10.2, p90 17.7) | first game 14.2 (p90 18.7) | slow first-timer 18.9 (p90 24.5)
+  choice on the opening deal: best >= 2x median 99.3%, >= 3x 88.4%, median best/median 6.1x; best wins where the median misses 57.2%; best wins 1.14 more regions than the median; legal sends per deal (median) 74
+  best send per game: median 141,966.0, p90 906,500, max 14,488,371; games with a 1,000,000+ send 8.9%; sends at 10x the target or more 15.3%
+  regions per winning send: 1: 48.3%, 2: 45.0%, 3: 4.9%, 4: 1.2%, 5: 0.4%, 6: 0.1%, 7: 0.1%, 8: 0.0%; biggest single send per game (median) 2.0; games with a 5+ region send 7.1%
+  war: held games that saw war at 6+ 65.9%; held games that saw war at 8-9 8.1% of all games; misses per game (median) 2.0; misses in a row ending a loss: median 3, p90 4
+  losses: median gold held 15, median grey left 5; close losses (WAR holding 18+ gold) 9.3% of games; WAR with <=4 grey left (the slice measure) 16.5%
+  final push reached in 55.3% of games; CEASEFIRE gold held: 21: 63, 22: 84, 23: 85, 24: 45, 25: 80, 26: 68, 27: 62, 28: 83, 29: 70; games of 25+ turns 0.7%
+  dead deals (NO SEND CAN WIN): 13.0% of turns as dealt, 10.0% at SEND (after any swap); misses on a dead deal 100.0% of misses; CEASEFIREs ending on a dead deal 100.0%
+  REORDER STAFF TO WIN (no send wins as seated, a reorder does): 0.0% of turns as dealt; turns the bot reordered 0.0%
+  the push (three misses allowed): turns per push median 3.0, p90 7; misses per push (median) 0.0; pushes ending WORLD UNITED 76.8%; pushes that missed and still united 0.4%; push crises drawn from all red (no fresh deal could win any) 21.3%
+  CEASEFIREs whose three misses were all on deals dead as dealt 100.0%; with SWAP unusable on all three 26.4%; with nothing affordable at any shop after the first miss 16.7%; all three at once 6.6%
+  sends that pin the crisis 89.8%; war spreads on its own per game (median) 4.0; staff bought per game (median) 6.0; hopeless losses (WAR holding <=8 gold) 0.6% of games
+  staff in final line-ups of held games: STRATEGIST 72.9%, HARBOUR 71.4%, SOVEREIGN 67.9%, GOVERNOR 56.8%, HERALD 49.0%, SURVEYOR 47.7%, QM 41.6%, DUTY 34.9%, DEPUTY 33.5%, OLDHAND 21.8%
 
 PREVIEW
-  minutes, games that hold: std 13.2 (p10 10.2, p90 15.6) | first game 14.3 (p90 16.6) | slow first-timer 18.9 (p90 21.9)
-  choice on the opening deal: best >= 2x median 99.5%, >= 3x 91.2%, median best/median 6.1x; best wins where the median misses 58.4%; best wins 1.06 more regions than the median; legal sends per deal (median) 73
-  best send per game: median 13,339.0, p90 562,892, max 8,592,998; games with a 1,000,000+ send 4.9%; sends at 10x the target or more 11.6%
-  regions per winning send: 1: 52.7%, 2: 42.0%, 3: 3.7%, 4: 1.0%, 5: 0.4%, 6: 0.1%, 7: 0.0%; biggest single send per game (median) 2.0; games with a 5+ region send 5.1%
-  war: held games that saw war at 6+ 68.4%; held games that saw war at 8-9 10.0% of all games; misses per game (median) 3.0; misses in a row ending a loss: median 3, p90 4
-  losses: median gold held 15, median grey left 5; close losses (WAR holding 18+ gold) 14.6% of games; WAR with <=4 grey left (the slice measure) 26.7%
-  final push reached in 40.2% of games; CEASEFIRE gold held: 21: 172, 22: 196, 23: 140, 24: 101, 25: 94, 26: 75, 27: 36, 28: 45, 29: 47; games of 25+ turns 0.0%
-  sends that pin the crisis 91.2%; war spreads on its own per game (median) 4.0; staff bought per game (median) 5.0; hopeless losses (WAR holding <=8 gold) 0.7% of games
-  staff in final line-ups of held games: SOVEREIGN 83.7%, QM 76.3%, STRATEGIST 72.0%, GOVERNOR 66.3%, HARBOUR 64.1%, HERALD 60.8%, DUTY 34.2%, SURVEYOR 29.5%, DEPUTY 10.1%
+  minutes, games that hold: std 15.3 (p10 10.3, p90 18.7) | first game 16.4 (p90 19.8) | slow first-timer 21.4 (p90 25.9)
+  choice on the opening deal: best >= 2x median 99.5%, >= 3x 91.8%, median best/median 6.3x; best wins where the median misses 59.1%; best wins 1.03 more regions than the median; legal sends per deal (median) 74.0
+  best send per game: median 77,760.0, p90 685,843, max 8,592,998; games with a 1,000,000+ send 6.3%; sends at 10x the target or more 10.6%
+  regions per winning send: 1: 57.6%, 2: 37.7%, 3: 3.3%, 4: 0.9%, 5: 0.4%, 6: 0.1%, 7: 0.0%; biggest single send per game (median) 2.0; games with a 5+ region send 5.1%
+  war: held games that saw war at 6+ 72.1%; held games that saw war at 8-9 11.3% of all games; misses per game (median) 2.0; misses in a row ending a loss: median 3.0, p90 4
+  losses: median gold held 16.0, median grey left 4.0; close losses (WAR holding 18+ gold) 13.7% of games; WAR with <=4 grey left (the slice measure) 24.1%
+  final push reached in 51.9% of games; CEASEFIRE gold held: 21: 72, 22: 90, 23: 90, 24: 99, 25: 130, 26: 119, 27: 166, 28: 154, 29: 124; games of 25+ turns 0.6%
+  dead deals (NO SEND CAN WIN): 15.6% of turns as dealt, 12.0% at SEND (after any swap); misses on a dead deal 100.0% of misses; CEASEFIREs ending on a dead deal 100.0%
+  REORDER STAFF TO WIN (no send wins as seated, a reorder does): 3.7% of turns as dealt; turns the bot reordered 4.1%
+  the push (three misses allowed): turns per push median 4.0, p90 8; misses per push (median) 0.0; pushes ending WORLD UNITED 59.8%; pushes that missed and still united 0.5%; push crises drawn from all red (no fresh deal could win any) 28.7%
+  CEASEFIREs whose three misses were all on deals dead as dealt 100.0%; with SWAP unusable on all three 21.3%; with nothing affordable at any shop after the first miss 13.1%; all three at once 5.0%
+  sends that pin the crisis 89.8%; war spreads on its own per game (median) 4.0; staff bought per game (median) 5.0; hopeless losses (WAR holding <=8 gold) 0.6% of games
+  staff in final line-ups of held games: SOVEREIGN 82.6%, QM 73.8%, STRATEGIST 69.7%, HERALD 67.0%, GOVERNOR 66.9%, HARBOUR 63.3%, SURVEYOR 32.0%, DUTY 29.8%, DEPUTY 12.7%
   never in a held line-up: OLDHAND
 
 BREAKER
-  minutes, games that hold: std 13.1 (p10 9.6, p90 16.0) | first game 14.1 (p90 17.0) | slow first-timer 18.8 (p90 22.3)
-  choice on the opening deal: best >= 2x median 99.4%, >= 3x 87.3%, median best/median 5.6x; best wins where the median misses 55.4%; best wins 1.01 more regions than the median; legal sends per deal (median) 71
-  best send per game: median 9,984.0, p90 793,497, max 14,488,371; games with a 1,000,000+ send 8.7%; sends at 10x the target or more 11.4%
-  regions per winning send: 1: 54.6%, 2: 39.6%, 3: 3.6%, 4: 1.2%, 5: 0.6%, 6: 0.2%, 7: 0.1%, 8: 0.0%; biggest single send per game (median) 2.0; games with a 5+ region send 7.1%
-  war: held games that saw war at 6+ 68.1%; held games that saw war at 8-9 5.2% of all games; misses per game (median) 3.0; misses in a row ending a loss: median 4, p90 4
-  losses: median gold held 8, median grey left 12; close losses (WAR holding 18+ gold) 6.3% of games; WAR with <=4 grey left (the slice measure) 11.4%
-  final push reached in 33.7% of games; CEASEFIRE gold held: 21: 55, 22: 84, 23: 93, 24: 69, 25: 56, 26: 42, 27: 42, 28: 29, 29: 28; games of 25+ turns 0.0%
-  sends that pin the crisis 93.5%; war spreads on its own per game (median) 3.0; staff bought per game (median) 4.0; hopeless losses (WAR holding <=8 gold) 34.5% of games
-  staff in final line-ups of held games: SOVEREIGN 89.2%, HARBOUR 71.1%, HERALD 67.5%, STRATEGIST 59.2%, DUTY 45.2%, QM 41.0%, SURVEYOR 37.3%, GOVERNOR 32.1%, DEPUTY 29.1%, OLDHAND 23.0%
+  minutes, games that hold: std 13.4 (p10 9.6, p90 17.6) | first game 14.4 (p90 18.6) | slow first-timer 19.0 (p90 24.4)
+  choice on the opening deal: best >= 2x median 99.4%, >= 3x 87.5%, median best/median 5.6x; best wins where the median misses 55.1%; best wins 1.00 more regions than the median; legal sends per deal (median) 71
+  best send per game: median 9,984.0, p90 815,539, max 14,488,371; games with a 1,000,000+ send 8.8%; sends at 10x the target or more 11.1%
+  regions per winning send: 1: 55.1%, 2: 39.2%, 3: 3.5%, 4: 1.2%, 5: 0.5%, 6: 0.2%, 7: 0.1%, 8: 0.0%; biggest single send per game (median) 2.0; games with a 5+ region send 7.1%
+  war: held games that saw war at 6+ 68.1%; held games that saw war at 8-9 5.2% of all games; misses per game (median) 3.0; misses in a row ending a loss: median 4.0, p90 4
+  losses: median gold held 8.0, median grey left 12.0; close losses (WAR holding 18+ gold) 6.3% of games; WAR with <=4 grey left (the slice measure) 11.4%
+  final push reached in 33.7% of games; CEASEFIRE gold held: 21: 36, 22: 49, 23: 59, 24: 36, 25: 59, 26: 55, 27: 40, 28: 59, 29: 42; games of 25+ turns 0.3%
+  dead deals (NO SEND CAN WIN): 22.4% of turns as dealt, 18.7% at SEND (after any swap); misses on a dead deal 100.0% of misses; CEASEFIREs ending on a dead deal 100.0%
+  REORDER STAFF TO WIN (no send wins as seated, a reorder does): 0.0% of turns as dealt; turns the bot reordered 0.0%
+  the push (three misses allowed): turns per push median 3.0, p90 7; misses per push (median) 0.0; pushes ending WORLD UNITED 74.2%; pushes that missed and still united 0.5%; push crises drawn from all red (no fresh deal could win any) 22.5%
+  CEASEFIREs whose three misses were all on deals dead as dealt 100.0%; with SWAP unusable on all three 30.3%; with nothing affordable at any shop after the first miss 16.8%; all three at once 6.4%
+  sends that pin the crisis 93.4%; war spreads on its own per game (median) 3.0; staff bought per game (median) 4.0; hopeless losses (WAR holding <=8 gold) 34.5% of games
+  staff in final line-ups of held games: SOVEREIGN 89.1%, HERALD 72.1%, HARBOUR 70.3%, STRATEGIST 58.9%, DUTY 41.2%, QM 40.1%, SURVEYOR 37.6%, GOVERNOR 33.5%, DEPUTY 29.1%, OLDHAND 22.8%
 
 GREEDY
   minutes, games that hold: std 0.0 (p10 0.0, p90 0.0) | first game 0.0 (p90 0.0) | slow first-timer 0.0 (p90 0.0)
@@ -76,17 +88,23 @@ GREEDY
   war: held games that saw war at 6+ 0.0%; held games that saw war at 8-9 0.0% of all games; misses per game (median) 4.0; misses in a row ending a loss: median 4.0, p90 4
   losses: median gold held 7.0, median grey left 13.0; close losses (WAR holding 18+ gold) 0.0% of games; WAR with <=4 grey left (the slice measure) 0.0%
   final push reached in 0.0% of games; CEASEFIRE gold held: -; games of 25+ turns 0.0%
+  dead deals (NO SEND CAN WIN): 49.2% of turns as dealt, 44.9% at SEND (after any swap); misses on a dead deal 100.0% of misses; CEASEFIREs ending on a dead deal -
+  REORDER STAFF TO WIN (no send wins as seated, a reorder does): 0.0% of turns as dealt; turns the bot reordered 0.0%
+  the push (three misses allowed): turns per push median None, p90 None; misses per push (median) None; pushes ending WORLD UNITED -; pushes that missed and still united -; push crises drawn from all red (no fresh deal could win any) -
   sends that pin the crisis 98.4%; war spreads on its own per game (median) 3.0; staff bought per game (median) 0.0; hopeless losses (WAR holding <=8 gold) 100.0% of games
 
 NOVICE
   minutes, games that hold: std 0.0 (p10 0.0, p90 0.0) | first game 0.0 (p90 0.0) | slow first-timer 0.0 (p90 0.0)
-  choice on the opening deal: best >= 2x median 97.5%, >= 3x 73.2%, median best/median 3.9x; best wins where the median misses 60.6%; best wins 0.79 more regions than the median; legal sends per deal (median) 58
-  best send per game: median 581.0, p90 1,026, max 4,320; games with a 1,000,000+ send 0.0%; sends at 10x the target or more 0.0%
-  regions per winning send: 1: 92.7%, 2: 7.3%; biggest single send per game (median) 1.0; games with a 5+ region send 0.0%
+  choice on the opening deal: best >= 2x median 97.5%, >= 3x 73.0%, median best/median 3.9x; best wins where the median misses 60.4%; best wins 0.78 more regions than the median; legal sends per deal (median) 58
+  best send per game: median 594.0, p90 1,049, max 4,320; games with a 1,000,000+ send 0.0%; sends at 10x the target or more 0.0%
+  regions per winning send: 1: 92.8%, 2: 7.2%; biggest single send per game (median) 1.0; games with a 5+ region send 0.0%
   war: held games that saw war at 6+ 0.0%; held games that saw war at 8-9 0.0% of all games; misses per game (median) 5.0; misses in a row ending a loss: median 4.0, p90 5
-  losses: median gold held 4.0, median grey left 16.0; close losses (WAR holding 18+ gold) 0.0% of games; WAR with <=4 grey left (the slice measure) 0.0%
+  losses: median gold held 5.0, median grey left 15.0; close losses (WAR holding 18+ gold) 0.0% of games; WAR with <=4 grey left (the slice measure) 0.0%
   final push reached in 0.0% of games; CEASEFIRE gold held: -; games of 25+ turns 0.0%
-  sends that pin the crisis 47.6%; war spreads on its own per game (median) 2.0; staff bought per game (median) 2.0; hopeless losses (WAR holding <=8 gold) 98.0% of games
+  dead deals (NO SEND CAN WIN): 21.6% of turns as dealt, 18.1% at SEND (after any swap); misses on a dead deal 30.9% of misses; CEASEFIREs ending on a dead deal -
+  REORDER STAFF TO WIN (no send wins as seated, a reorder does): 0.6% of turns as dealt; turns the bot reordered 0.0%
+  the push (three misses allowed): turns per push median None, p90 None; misses per push (median) None; pushes ending WORLD UNITED -; pushes that missed and still united -; push crises drawn from all red (no fresh deal could win any) -
+  sends that pin the crisis 48.1%; war spreads on its own per game (median) 2.0; staff bought per game (median) 2.0; hopeless losses (WAR holding <=8 gold) 97.8% of games
 
 RANDOM
   minutes, games that hold: std 0.0 (p10 0.0, p90 0.0) | first game 0.0 (p90 0.0) | slow first-timer 0.0 (p90 0.0)
@@ -96,6 +114,9 @@ RANDOM
   war: held games that saw war at 6+ 0.0%; held games that saw war at 8-9 0.0% of all games; misses per game (median) 5.0; misses in a row ending a loss: median 4.0, p90 6
   losses: median gold held 2.0, median grey left 18.0; close losses (WAR holding 18+ gold) 0.0% of games; WAR with <=4 grey left (the slice measure) 0.0%
   final push reached in 0.0% of games; CEASEFIRE gold held: -; games of 25+ turns 0.0%
+  dead deals (NO SEND CAN WIN): 17.7% of turns as dealt, 17.7% at SEND (after any swap); misses on a dead deal 22.1% of misses; CEASEFIREs ending on a dead deal -
+  REORDER STAFF TO WIN (no send wins as seated, a reorder does): 0.1% of turns as dealt; turns the bot reordered 0.0%
+  the push (three misses allowed): turns per push median None, p90 None; misses per push (median) None; pushes ending WORLD UNITED -; pushes that missed and still united -; push crises drawn from all red (no fresh deal could win any) -
   sends that pin the crisis 29.4%; war spreads on its own per game (median) 2.0; staff bought per game (median) 1.0; hopeless losses (WAR holding <=8 gold) 99.9% of games
 
 SENSIBLE BY TURN (games still going): turn, target, games, median score, share of sends that win, median gold after, median red after
@@ -111,15 +132,17 @@ SENSIBLE BY TURN (games still going): turn, target, games, median score, share o
   10    2,500  4923      7,548  90.1%   17    6
   11    3,700  4851     12,210  87.7%   18    6
   12    5,500  4694     13,108  80.3% 19.0  7.0
-  13    8,300  4197     25,251  82.0%   21    6
-  14   12,000  3660     24,494  74.8% 22.0  6.0
-  15   19,000  3054     41,621  71.8% 23.0  6.0
-  16   28,000  2089     49,128  69.1%   24    6
-  17   42,000  1411     89,096  74.9%   25    5
-  18   63,000   937     89,856  68.3%   25    5
-  19   95,000   573    141,093  72.8%   27    3
-  20  140,000   344    157,609  62.2% 28.0  2.0
-  21  210,000   170    273,730  69.4% 29.0  1.0
+  13    8,300  4197     25,256  82.1%   21    6
+  14   12,000  3661     24,494  74.9%   22    6
+  15   19,000  3057     41,758  72.2%   23    6
+  16   28,000  2101     50,715  72.9%   24    6
+  17   42,000  1534     84,540  77.0% 25.0  5.0
+  18   63,000  1151     87,091  72.6%   25    5
+  19   95,000   911    125,798  69.3%   26    4
+  20  140,000   744    142,116  50.8% 26.0  4.0
+  21  210,000   606    147,840  38.8% 27.0  3.0
+  22  320,000   421    165,619  20.9%   27    3
+  23  480,000   232    246,234  15.9% 28.0  2.0
 GREEDY BY TURN
    1       64  5000        320 100.0%  3.0  3.0
    2       96  5000        330 100.0%  4.0  3.0

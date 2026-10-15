@@ -1,8 +1,9 @@
 /**
  * The end screens (SPEC section 9): a card that says how the world ended over the map, kept to the
  * upper map (or the lower, when the regions it points at are up there) so the final world stays in
- * view. WORLD UNITED ★★★ (30 of 30); CEASEFIRE ★★ or ★ (the push missed; the war stops where it
- * stands); WAR (war took 10; with 3 or fewer free regions left, those are picked out on the map).
+ * view. WORLD UNITED ★★★ (30 of 30); CEASEFIRE ★★ or ★ (the final push missed three times; the war
+ * stops where it stands); WAR (war took 10; with 3 or fewer free regions left, those are picked out
+ * on the map).
  * The console carries on: the best send in the readout band, HOME and NEW GAME where SWAP and SEND
  * were.
  */

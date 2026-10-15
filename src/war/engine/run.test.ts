@@ -295,6 +295,67 @@ describe('the end of the game', () => {
   });
 });
 
+describe('the final push forgives: three misses', () => {
+  // No grey left: war holds Northwake, Frostmere and Vessary; everything else is gold.
+  const red: RegionId[] = ['NWK', 'FRM', 'VSY'];
+  const map = ownersFrom(IDS.filter((r) => !red.includes(r)), red);
+
+  /** Play on with sends that score nothing worth having: the crisis alone against a huge target. */
+  function miss(s: GameState): GameState {
+    const at = position(s, { deal: { ...s.deal, target: 10n ** 12n } });
+    return must(send(pinAll(at, [s.deal.crisis])));
+  }
+
+  it('a push miss changes no region and spends one of three; the third is a CEASEFIRE', () => {
+    let s = must(setOwners(newGame('PUSH-3'), map));
+    expect(s.deal.finalPush).toBe(true);
+    expect(s.pushMisses).toBe(0);
+    for (let n = 1; n <= RULES.pushMisses; n++) {
+      if (s.phase !== 'choose') s = must(nextTurn(s));
+      expect(s.deal.finalPush).toBe(true);
+      const before = { ...s.owner };
+      s = miss(s);
+      expect(s.owner).toEqual(before);
+      expect(s.lastSend).toMatchObject({ result: 'miss', regions: 0, lost: null, spread: null, pushMisses: n });
+      expect(s.pushMisses).toBe(n);
+      expect(s.ending).toBe(n < RULES.pushMisses ? null : 'CEASEFIRE');
+      expect(s.phase).not.toBe(n < RULES.pushMisses ? 'over' : 'choose');
+    }
+    expect(s.phase).toBe('over');
+    expect(countOwner(s.owner, 'gold')).toBe(27);
+  });
+
+  it('counts misses across the whole push: a win in between does not reset them', () => {
+    let s = miss(must(setOwners(newGame('PUSH-WIN'), map)));
+    s = must(nextTurn(s));
+    const win = position(s, { deal: { ...s.deal, target: 1n } });
+    s = must(send(pinAll(win, [s.deal.crisis])));
+    expect(s.lastSend!.result).toBe('win');
+    expect(s.pushMisses).toBe(1);
+    expect(s.ending).toBeNull();
+    s = miss(must(nextTurn(s)));
+    expect([s.pushMisses, s.ending]).toEqual([2, null]);
+  });
+
+  it('opens the shop after a push miss on a shop turn, and war never spreads in the push', () => {
+    const s = must(setOwners(newGame('PUSH-SHOP'), map));
+    const t6 = position(s, { turn: 6, deal: { ...s.deal, target: 10n ** 12n } });
+    const after = must(send(pinAll(t6, [s.deal.crisis])));
+    expect(after.phase).toBe('shop');
+    expect(after.lastSend!.spread).toBeNull();
+    expect(after.pushMisses).toBe(1);
+  });
+
+  it('starts afresh when the dev hook puts grey back on the map', () => {
+    const s = miss(must(setOwners(newGame('PUSH-DEV'), map)));
+    expect(s.pushMisses).toBe(1);
+    const grey = must(setOwners(must(nextTurn(s)), { NWK: 'grey' }));
+    expect([grey.deal.finalPush, grey.pushMisses]).toEqual([false, 0]);
+    const again = must(setOwners(must(nextTurn(s)), { LNK: 'gold' }));
+    expect([again.deal.finalPush, again.pushMisses]).toEqual([true, 1]);
+  });
+});
+
 describe('setOwners (the dev hook)', () => {
   it('re-deals the current turn on the new map', () => {
     const s = must(setOwners(newGame('DEV'), { PBB: 'gold', TRN: 'gold' }));

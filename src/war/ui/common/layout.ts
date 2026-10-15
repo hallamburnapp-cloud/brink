@@ -16,6 +16,8 @@ export const R = {
   goldCount: [16, 50, 150, 26],
   menu: [179, 50, 32, 32],
   warCount: [224, 50, 150, 26],
+  /** The final push: three lamps beside WAR between 'PUSH' and 'MISSES LEFT' (lit: the misses left). */
+  pushLamps: [212, 48, 60, 34],
   goldBar: [16, 84, 209, 16],
   warBar: [245, 84, 129, 16],
   rail: [0, 107, 390, 64],

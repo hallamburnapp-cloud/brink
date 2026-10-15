@@ -2,6 +2,27 @@
 
 All notable changes to BRINK. Dates are UTC.
 
+## 0.6.0 — 2026-10-15 (Win the World)
+
+The war-room game rebuilt around one goal after the owner's verdict on 0.5.0 (D-105): turn all 30 regions of the map gold before war holds 10, in about 15 minutes.
+
+### The game
+- Each turn a crisis flares beside your gold with a target. Pin up to five lit regions that touch; pinning the crisis doubles the score. Score = the pins' numbers added up × how many you pinned, then your staff, left to right.
+- Beat the target and the crisis turns gold for good, then your pinned regions (D-106); beat it by more and win more. Miss and war takes it. Every third turn war spreads by itself, into the region with the red tag.
+- No grey left: crises flare on red regions you could win back; three misses end it in a CEASEFIRE (D-107). Three endings: WORLD UNITED, CEASEFIRE, WAR.
+- Ten staff in five seats and a shop every second turn; each card shows how much it would have added to your best send last turn. A save after every send: CONTINUE from the title.
+
+### Teaching
+- A three-screen explanation at the start, played on the real map; a coached first game (FIRST-WORLD); one-time lines when SWAP, the war tag, staff order or a dead deal first matter; the rules sheet in the menu.
+- GOLD n/30 and WAR n/10 with bars on the Big Board at all times; the SEND label says what will happen ('WINS 2 REGIONS', 'MISS · SHORT BY 620', 'NO SEND CAN WIN · SWAP'); a deal only another seat order can win says 'REORDER STAFF TO WIN'.
+
+### Engine and checks
+- A TypeScript port of the Python reference in docs/war/v2/reference/, matching all 1,904 fixture cases; six simulator bots and seventeen gates, all passing; unit and end-to-end tests for every rule and screen.
+- Reviewed twice by four critics (sense, finish, feel, robustness) on a phone-sized screen with real taps.
+
+### Cut
+- The eleven patterns and their levels, Influence and Momentum, four sweeps a crisis, the Hours, twists and clock, Orders, Playbooks, folders, interest and overwhelm, and ten of the twenty staff.
+
 ## 0.5.0 — 2026-10-14 (The war room, a playable slice)
 
 A new game on the same brand, chosen against the owner's three anchors (D-102): a world map that reacts, Balatro-style building, a war room. It is selected with `VITE_GAME=war`; the hotel build is unchanged.

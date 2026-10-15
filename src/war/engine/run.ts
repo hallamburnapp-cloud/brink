@@ -14,6 +14,7 @@ import { regionsWon, target } from './ladder';
 import { RULES } from './rules';
 import { scorePins } from './score';
 import { CROWN, CROWN_SEED, FIRST_WORLD, FIRST_WORLD_SEED } from './seeds';
+import { pushPool } from './order';
 import { drawOffers, openShop, shopDue } from './shop';
 import type { Ending, GameState, Owner, Result, SendRecord, WonRegion } from './types';
 import {
@@ -67,7 +68,7 @@ function streams(seed: string): GameState['rng'] {
 
 function blankState(seed: string, mode: GameState['mode'], owner: OwnerMap): GameState {
   return {
-    version: 2,
+    version: 3,
     seed,
     mode,
     rng: streams(seed),
@@ -93,6 +94,7 @@ function blankState(seed: string, mode: GameState['mode'], owner: OwnerMap): Gam
     shop: null,
     shopVisits: 0,
     ending: null,
+    pushMisses: 0,
     lastSend: null,
     log: [],
     best: null,
@@ -104,7 +106,11 @@ function blankState(seed: string, mode: GameState['mode'], owner: OwnerMap): Gam
 /** Start the next turn on a draft: target, crisis, deal (SPEC section 5, steps 1-2). */
 function beginTurn(s: GameState): void {
   s.turn += 1;
-  const { pool, finalPush } = crisisPool(s.owner);
+  const T = target(s.turn);
+  const drawn = crisisPool(s.owner);
+  const { finalPush } = drawn;
+  // The final push draws from the red regions some fresh deal can win, when there are any (A2).
+  const pool = finalPush ? pushPool(s.owner, drawn.pool, s.seats.map((x) => x.id), s.oldHandM10, T).pool : drawn.pool;
   if (!pool.length) throw new Error('no region for a crisis');
   const crisisRng = new Rng(s.rng.crisis);
   const pick = crisisRng.pick(pool);
@@ -123,7 +129,7 @@ function beginTurn(s: GameState): void {
   const locked = s.mode === 'first' && FIRST_WORLD.swapLockedTurns.includes(s.turn);
   s.deal = {
     crisis,
-    target: target(s.turn),
+    target: T,
     finalPush,
     lit: dealt.lit,
     pile: dealt.pile,
@@ -276,7 +282,10 @@ export function send(s: GameState): Result {
     d.coins += RULES.coinPerRegion * won.length;
     if (!d.brass.includes(crisis)) d.brass.push(crisis);
   } else if (finalPush) {
-    ending = 'CEASEFIRE';
+    // The push forgives: a miss changes no region (no grey is left for war, and gold is gold for
+    // good); the last of its misses ends the game as a CEASEFIRE.
+    d.pushMisses += 1;
+    if (d.pushMisses >= RULES.pushMisses) ending = 'CEASEFIRE';
   } else {
     lost = { id: crisis, from: warSource(d.owner, crisis) };
     d.owner[crisis] = 'red';
@@ -324,6 +333,7 @@ export function send(s: GameState): Result {
     grey: RULES.regions - gold - red,
     newHires: d.hiredSinceSend,
     ending,
+    pushMisses: d.pushMisses,
     trace: res.trace!,
   };
   d.lastSend = record;
@@ -480,5 +490,7 @@ export function setOwners(s: GameState, owners: string | Partial<Record<RegionId
   d.ending = null;
   d.turn -= 1;
   beginTurn(d);
+  // The push's misses count only in a push: a map with grey left starts it afresh.
+  if (!d.deal.finalPush) d.pushMisses = 0;
   return ok(d);
 }

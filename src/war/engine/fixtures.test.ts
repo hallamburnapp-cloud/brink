@@ -8,8 +8,11 @@ import { groups, legal, lift } from './groups';
 import { nextMark, regionsWon, target } from './ladder';
 import { RULES } from './rules';
 import { newGame, nextTurn, send } from './run';
-import { scorePins } from './score';
-import { must, pinAll } from './testkit';
+import { goldCount, scorePins } from './score';
+import { bestScore, dealFeatures } from './shop';
+import { must, pinAll, position, tapOrder } from './testkit';
+import { bestSeating, pushPool, reduceFeatures } from './order';
+import { dealState, deadDeal, readoutView, sendLabel } from './view';
 import { loadFixtures, toReference } from './testdata';
 import { decodeOwners, encodeOwners, warSpreadTarget, winOrder } from './world';
 
@@ -45,6 +48,7 @@ describe('reference fixtures', () => {
       OFFERS: RULES.offers,
       SEATS: RULES.seats,
       REROLL: RULES.reroll,
+      PUSH_MISSES: RULES.pushMisses,
     });
   });
 
@@ -103,6 +107,79 @@ describe('reference fixtures', () => {
   it(`lifts pins in tap order in all ${fx.lift.length} lift cases`, () => {
     expect(fx.lift).toHaveLength(100);
     for (const c of fx.lift) expect(lift(c.pinsInTapOrder, c.lift)).toEqual(c.left);
+  });
+
+  it(`says what each of the ${fx.dead.length} dead-deal cases allows, under every seating`, () => {
+    expect(fx.dead).toHaveLength(200);
+    const base = newGame('FIXTURES-DEAD');
+    const states = { live: 0, reorder: 0, dead: 0 };
+    for (const c of fx.dead) {
+      const owner = owners(c.owner);
+      expect(bestScore(c.lit, c.crisis, owner, c.seats, c.oldhandM10).toString(), c.owner).toBe(c.best);
+      const best = bestSeating(reduceFeatures(dealFeatures(c.lit, c.crisis, owner)), c.seats, goldCount(owner), c.oldhandM10);
+      expect(best.score.toString(), c.owner).toBe(c.bestAnyOrder);
+      expect(best.seats, c.owner).toEqual(c.seating);
+      const s = position(base, {
+        owner,
+        seats: c.seats,
+        oldHandM10: c.oldhandM10,
+        deal: { crisis: c.crisis, lit: c.lit, target: BigInt(c.target), finalPush: c.finalPush, pile: c.pile, swapsLeft: c.swap ? 1 : 0 },
+      });
+      expect(dealState(s), c.owner).toBe(c.state);
+      expect(deadDeal(s), c.owner).toBe(c.dead);
+      expect(sendLabel(s).text, c.owner).toBe(c.label);
+      if (c.line) expect(readoutView(s).line, c.owner).toBe(c.line);
+      states[c.state]++;
+    }
+    // Every state, and every label, is among the cases.
+    expect(states.live).toBeGreaterThan(30);
+    expect(states.reorder).toBeGreaterThan(5);
+    expect(states.dead).toBeGreaterThan(30);
+    expect(new Set(fx.dead.map((c) => c.label))).toEqual(
+      new Set(['PIN A REGION', 'NO SEND CAN WIN · SWAP', 'NO SEND CAN WIN · SEND TO PASS', 'NO SEND CAN WIN · USES A MISS']),
+    );
+  });
+
+  it(`draws the final push's crisis from the red regions a fresh deal can win, in all ${fx.pushDraw.length} cases`, () => {
+    expect(fx.pushDraw).toHaveLength(120);
+    let narrowed = 0;
+    for (const c of fx.pushDraw) {
+      const owner = owners(c.owner);
+      const drawn = pushPool(owner, c.red, c.seats, c.oldhandM10, target(c.turn));
+      expect(drawn.pool, c.owner).toEqual(c.pool);
+      expect(drawn.draw, c.owner).toBe(c.draw);
+      if (c.pool.length < c.red.length) narrowed++;
+    }
+    expect(narrowed).toBeGreaterThan(20);
+  });
+
+  it(`plays all ${fx.push.length} final-push sends: a miss changes no region, the 3rd is a CEASEFIRE`, () => {
+    expect(fx.push).toHaveLength(80);
+    const base = newGame('FIXTURES-PUSH');
+    const endings = new Set<string | null>();
+    for (const c of fx.push) {
+      const at = position(base, {
+        owner: owners(c.owner),
+        seats: c.seats,
+        oldHandM10: c.oldhandM10,
+        turn: c.turn,
+        pushMisses: c.pushMissesBefore,
+        deal: { crisis: c.crisis, lit: c.lit, target: BigInt(c.target), finalPush: true },
+      });
+      const pinned = pinAll(at, tapOrder(c.pins));
+      expect(sendLabel(pinned).text, c.owner).toBe(c.label);
+      const s = must(send(pinned));
+      expect(s.lastSend!.score.toString()).toBe(c.score);
+      expect(s.lastSend!.result).toBe(c.result);
+      expect(s.lastSend!.won.map((w) => w.id)).toEqual(c.won);
+      expect(s.pushMisses).toBe(c.pushMissesAfter);
+      expect(s.lastSend!.pushMisses).toBe(c.pushMissesAfter);
+      expect(s.ending).toBe(c.ending);
+      expect(encodeOwners(s.owner)).toBe(c.ownerAfter);
+      if (c.result === 'miss') expect(c.ownerAfter).toBe(c.owner);
+      endings.add(c.ending);
+    }
+    expect([...endings].sort()).toEqual(['CEASEFIRE', 'WORLD UNITED', null].sort());
   });
 
   it('plays the scripted first game, turns 1-2, with the coached sends', () => {

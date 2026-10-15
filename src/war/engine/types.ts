@@ -31,7 +31,10 @@ export interface Seat {
 export interface Deal {
   crisis: RegionId;
   target: bigint;
-  /** No grey region was left when the turn began: the crisis is on red, a miss is a CEASEFIRE. */
+  /**
+   * No grey region was left when the turn began: the crisis is on red. A miss changes no region and
+   * spends one of the push's misses; the last one (RULES.pushMisses) is a CEASEFIRE.
+   */
   finalPush: boolean;
   /** Lit regions in light-up order (the crisis is lit too but not listed). */
   lit: RegionId[];
@@ -174,6 +177,8 @@ export interface SendRecord {
   newHires: number[];
   /** Set when this send ended the game. */
   ending: Ending | null;
+  /** Misses made in the final push after this send (a push miss spends one; the last is a CEASEFIRE). */
+  pushMisses: number;
   trace: TraceEvent[];
 }
 
@@ -198,7 +203,7 @@ export interface BestSend {
 }
 
 export interface GameState {
-  version: 2;
+  version: 3;
   seed: string;
   mode: Mode;
   rng: { war: RngState; crisis: RngState; deal: RngState; shop: RngState };
@@ -218,6 +223,11 @@ export interface GameState {
   shop: Shop | null;
   shopVisits: number;
   ending: Ending | null;
+  /**
+   * Misses made in the final push (0 before it). The push forgives: RULES.pushMisses - pushMisses
+   * misses are left, and the last of them ends the game as a CEASEFIRE.
+   */
+  pushMisses: number;
   lastSend: SendRecord | null;
   log: TurnLog[];
   best: BestSend | null;

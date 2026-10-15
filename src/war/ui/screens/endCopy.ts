@@ -26,7 +26,11 @@ export function timesText(score: bigint, target: bigint): string {
 export function endCopy(e: EndView): EndCopy {
   const lines: string[] = [];
   if (e.ending === 'WORLD UNITED') lines.push(`Turn ${e.turn} · war peaked at ${e.peakWar}`);
-  else if (e.ending === 'CEASEFIRE') lines.push(`War held ${plural(e.red, 'region', 'regions')} when it stopped.`);
+  else if (e.ending === 'CEASEFIRE') {
+    // The push forgave two misses; its third stopped the war where it stood.
+    lines.push('The final push missed three times.');
+    lines.push(`War held ${plural(e.red, 'region', 'regions')} when it stopped.`);
+  }
   else {
     lines.push(`War took ${plural(e.red, 'region', 'regions')}. You held ${e.gold} of 30.`);
     if (e.nearMiss.length) lines.push(`Only ${plural(e.nearMiss.length, 'free region was', 'free regions were')} left to win.`);

@@ -1,9 +1,12 @@
 /**
  * The controls (SPEC 9: 0,739,390,68): SWAP with what is left of it, the coin chip, and the brass
  * SEND lever whose sub-label always says what will happen ('WINS 2 REGIONS' in gold, 'MISS · SHORT
- * BY 620' in red, 'PIN A REGION' with the lever unlit, 'NEXT CRISIS…' between turns). A refused tap
- * says why in a toast. The coach can make SEND or SWAP beckon; during the intro the console rests
- * dimmed until the lesson reaches it.
+ * BY 620' in red, in the final push 'MISS · 2 MISSES LEFT', 'PIN A REGION' with the lever unlit,
+ * 'NEXT CRISIS…' between turns). On a dead deal the unlit lever says, in red on two lines, 'NO SEND
+ * CAN WIN' and what to do: 'SWAP' (SWAP beckons) while it can bring new regions, else 'SEND TO PASS'
+ * ('USES A MISS' in the final push); one pin down and the lever can be pulled. A refused tap says
+ * why in a toast. The coach can make SEND or SWAP beckon; during the intro the console rests dimmed
+ * until the lesson reaches it.
  */
 import type { JSX } from 'preact';
 import { controlsView, formatInt, type GameState } from '../../engine';
@@ -32,7 +35,8 @@ export function Controls({ s }: { s: GameState }): JSX.Element {
   const sendOn = !between && c.send.enabled && (!step || step.send);
   const swapOn = !between && c.swap.enabled;
   const coins = P.coins.value ?? c.coins;
-  const beckon = coach.value?.beckon ?? null;
+  // SWAP beckons while the deal is dead and a swap can still bring new regions, as well as when the coach points at it.
+  const beckon = coach.value?.beckon ?? (c.swap.beckon ? 'swap' : null);
   const veil = (introView.value?.console ?? 'live') !== 'live';
   const sendText = ahead === 'shop' ? 'SHOP…' : ahead === 'turn' || s.phase === 'outcome' ? 'NEXT CRISIS…' : between ? '' : c.send.text;
   const onSend = () => {
@@ -42,6 +46,7 @@ export function Controls({ s }: { s: GameState }): JSX.Element {
     }
   };
   const sub = swapSub(s, c.swap.sub);
+  const deadSub = !between && c.send.dead && !s.deal.pins.length ? (c.send.text.split(' · ') as [string, string]) : null;
   return (
     <div class={`layer controls-layer${veil ? ' veil' : ''}`}>
       <div class="controls" />
@@ -67,7 +72,15 @@ export function Controls({ s }: { s: GameState }): JSX.Element {
         aria-label={`Send. ${sendText}`}
       >
         <span class="btn-title">SEND</span>
-        <span class={`send-sub ${between ? 'off' : c.send.tone}`}>{sendText}</span>
+        {deadSub ? (
+          // A dead deal before any pin: the news, then what to do about it, on two lines.
+          <span class={`send-sub ${c.send.tone} dead`}>
+            <span class="dead-news">{deadSub[0]}</span>
+            <span class="dead-act">{deadSub[1]}</span>
+          </span>
+        ) : (
+          <span class={`send-sub ${between ? 'off' : c.send.tone}`}>{sendText}</span>
+        )}
       </button>
     </div>
   );

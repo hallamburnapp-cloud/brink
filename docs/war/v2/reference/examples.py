@@ -193,7 +193,16 @@ def main():
     print('  crises can flare on: ' + ', '.join(R.NAME[x] for x in gpool))
     for k in (1, 2, 3):
         print('  a win of %d on Edda Vale takes: %s' % (k, ', '.join(R.NAME[x] for x in R.win_order('EDV', o5, k))))
-    print('  a miss: CEASEFIRE, 27 of 30')
+    g5 = R.Game('EXAMPLE-5')
+    g5.owner = dict(o5)
+    labels = []
+    for _ in range(R.P['PUSH_MISSES']):
+        g5.begin_turn()
+        g5.crisis, g5.lit = 'EDV', []
+        labels.append(g5.preview(['EDV'])['label'])
+        g5.send(['EDV'])
+    print('  a miss changes no region; the SEND label on each miss: %s; the %s miss: %s, %d of 30' % (
+        ', '.join(labels), 'third' if R.P['PUSH_MISSES'] == 3 else '%dth' % R.P['PUSH_MISSES'], g5.result, g5.count('gold')))
 
 
 if __name__ == '__main__':

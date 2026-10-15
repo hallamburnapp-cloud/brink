@@ -40,4 +40,9 @@ export const RULES = {
   oldHandStartM10: 10,
   oldHandStepM10: 2,
   regions: 30,
+  /**
+   * The final push forgives: a push miss changes no region, and the 3rd miss ends the game as a
+   * CEASEFIRE (reference rules.py PUSH_MISSES).
+   */
+  pushMisses: 3,
 } as const;

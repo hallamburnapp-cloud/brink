@@ -3,12 +3,13 @@
  * holds a staff's object on felt, its seat number and its chip (cyan for points, amber for
  * multiplier; live values for the Surveyor and the Old Hand; COPY → name for the Deputy). Tap for
  * the rule balloon; long-press (300 ms) and drag to change seats while the others slide aside. A
- * hire glows 'NEW' until its first send. In the shop's full-table flow each seat shows the number
+ * hire glows 'NEW' until its first send. When no send wins as seated but one does in another order
+ * (the readout says REORDER STAFF TO WIN), the staff that sit elsewhere in such an order beckon. In the shop's full-table flow each seat shows the number
  * it would make if replaced, and a tap hires into it.
  */
 import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { formatShort, nextShopAfter, preview, seatViews, shopView, type GameState, type SeatView } from '../../engine';
+import { bestSeatingNow, controlsView, formatShort, nextShopAfter, preview, seatViews, shopView, type GameState, type SeatView } from '../../engine';
 import { StaffIcon } from '../art';
 import { buyOffer, moveSeat } from '../app/actions';
 import { introSeat, introView } from '../app/intro';
@@ -36,6 +37,8 @@ export function StaffRail({ s }: { s: GameState }): JSX.Element {
   const slot = replacing.value;
   const offer = slot !== null ? shopView(s)?.offers[slot] : null;
   const ghost = useLeaving(introSeat.value, 300);
+  // REORDER STAFF TO WIN: the seats that sit elsewhere in a winning order beckon (not the order itself).
+  const best = s.phase === 'choose' && !drag && controlsView(s).seatsBeckon ? bestSeatingNow(s) : null;
   // No staff yet: the empty rail says what it is for and when it fills.
   // (The intro's scenes play other turns of the first game: it always speaks of the first shop.)
   const shopAfter = introView.value ? 2 : nextShopAfter(s.phase === 'choose' ? s.turn : s.turn + 1);
@@ -91,6 +94,7 @@ export function StaffRail({ s }: { s: GameState }): JSX.Element {
             dragging={dragging}
             sliding={!!drag && !dragging}
             ready={firing.has(v.seat)}
+            beckon={!!best && best[v.seat] !== v.id}
             open={open === v.seat}
             count={seats.length}
             onDrag={setDrag}
@@ -149,6 +153,8 @@ interface SeatProps {
   dragging: boolean;
   sliding: boolean;
   ready: boolean;
+  /** REORDER STAFF TO WIN: this staff sits elsewhere in a seating that wins the deal. */
+  beckon: boolean;
   open: boolean;
   count: number;
   onDrag: (d: Drag | null) => void;
@@ -156,7 +162,7 @@ interface SeatProps {
   replace: { slot: number; text: string; affordable: boolean; worse: boolean } | null;
 }
 
-function Seat({ v, number, left, dragging, sliding, ready, open, count, onDrag, replace }: SeatProps): JSX.Element {
+function Seat({ v, number, left, dragging, sliding, ready, beckon, open, count, onDrag, replace }: SeatProps): JSX.Element {
   const el = useRef<HTMLDivElement>(null);
   const press = useRef<{ x: number; y: number; timer: number; dragging: boolean; to: number; id: number } | null>(null);
   const hop = P.hops.value[v.seat] ?? 0;
@@ -255,6 +261,7 @@ function Seat({ v, number, left, dragging, sliding, ready, open, count, onDrag, 
     dragging ? 'dragging' : '',
     sliding ? 'sliding' : '',
     ready ? 'ready' : '',
+    beckon ? 'beckon' : '',
     lit ? 'firing' : '',
     open ? 'open' : '',
     v.isNew ? 'new' : '',
