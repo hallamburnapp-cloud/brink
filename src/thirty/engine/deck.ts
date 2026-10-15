@@ -1,22 +1,27 @@
 /**
- * Which card comes today (SPEC "Days", "The content"): arcs advance by their follow-ups; otherwise a
+ * Which card comes tomorrow (SPEC "Days", "The content"): arcs advance by their follow-ups; otherwise a
  * card whose day range and conditions fit, preferring the hottest regions (a CRISIS or WAR region gets
- * a card within two days), a map card about one day in five, domestic cards unless the Spin Doctor
- * is held or yesterday's choice was HOME. The deck never stalls: when nothing fits it relaxes, in a
- * fixed order, down to reusing single-day cards. Also the team offer after days 5, 10, 15, 20 and 25.
+ * a card within two days), a map card about one day in five when its places are worth tapping,
+ * domestic cards unless the Spin Doctor is held or yesterday's choice was HOME. The deck never
+ * stalls: when nothing fits it relaxes, in a fixed order, down to reusing single-day cards. The card
+ * is dealt at night, after pressure, so its news (its region found in trouble) is the last step of
+ * the night and the ending check sees it. Also the team offer after days 5, 10, 15, 20 and 25.
  */
 import { Rng } from '../../engine/rng.ts';
-import type { Card, CardId, Follow, PieceId, RegionId, ThirtyContent } from '../content/types.ts';
+import { REGION_SETS } from '../content/regions.ts';
+import type { Card, CardId, Follow, MapCard, MapTarget, PieceId, RegionId, ThirtyContent } from '../content/types.ts';
 import { isAlarmCard, riskyOdds } from './cards.ts';
-import { CRISIS, RULES, weekOf } from './rules.ts';
+import { previewAct } from './preview.ts';
+import { actOf } from './resolve.ts';
+import { CALM, CRISIS, RULES, WAR, weekOf } from './rules.ts';
 import type { DealtCard, GameState, QueuedFollow, TraceStep } from './types.ts';
-import { REGION_IDS, hottestFirst } from './world.ts';
+import { REGION_IDS, hottestFirst, isHome, regionName } from './world.ts';
 import { Working } from './working.ts';
 
 interface Relax {
   /** Allow cards already dealt this game. */
   used: boolean;
-  /** Ignore `when` (heat range, pieces). */
+  /** Ignore `when` (heat range, pieces, a map card's places). */
   when: boolean;
   /** Ignore the day range. */
   day: boolean;
@@ -37,6 +42,7 @@ function dayRange(card: Card, s: GameState): [number, number] {
   return card.day;
 }
 
+/** Whether the card may come on `s.day` with the map as `s.heats` reads. */
 export function fits(card: Card, s: GameState, used: ReadonlySet<CardId>, relax: Relax = STRICT): boolean {
   if (card.chained) return false;
   if (!relax.used && used.has(card.id)) return false;
@@ -56,32 +62,75 @@ export function fits(card: Card, s: GameState, used: ReadonlySet<CardId>, relax:
     }
     if (!w.pieces.every((p) => s.team.includes(p))) return false;
     if (w.without.some((p) => s.team.includes(p))) return false;
+    // A card about a region that is calm and that its own news cannot light (the Spin Doctor's home) would leave the player nothing to do.
+    if (card.region && s.heats[card.region] === CALM && s.team.includes('spin-doctor') && isHome(card.region)) return false;
+    // A map day needs places worth tapping.
+    if (card.map && !resolveTargets(card, s)) return false;
   }
   return true;
 }
 
-/** The weight a card draws with: by its region's heat; a map card by the heat of its targets. */
+/**
+ * The places a map card offers today, read off the live map. A target with `from` takes the hottest
+ * region of that set above CALM that is not already offered (fixed targets are reserved first), and
+ * `{region}` in its hint is filled in; then every label is written by the engine (hint.ts), the same
+ * way for every place, so the player compares like for like. Strict (the default): null unless at
+ * least RULES.mapTargetsLowering of the places lower DANGER, so a map day is never a day of no-ops.
+ * Lenient: the best effort for a deck that has run out of other cards (a template whose set is all
+ * calm falls back to its authored region).
+ */
+export function resolveTargets(card: MapCard, s: GameState, strict = true): MapTarget[] | null {
+  const taken = new Set<RegionId>(card.targets.filter((t) => !t.from).map((t) => t.region));
+  const chosen: MapTarget[] = [];
+  for (const t of card.targets) {
+    let region = t.region;
+    if (t.from) {
+      const pool = REGION_SETS[t.from].filter((r) => !taken.has(r) && s.heats[r] > CALM);
+      const [hot] = hottestFirst(s.heats, pool);
+      if (hot) region = hot;
+      else if (strict || taken.has(region)) continue;
+      taken.add(region);
+    }
+    chosen.push({ ...t, region, hint: t.hint.replace(/\{region\}/g, regionName(region)) });
+  }
+  if (chosen.length < 2) return null;
+  const live: MapCard = { ...card, targets: chosen };
+  const dealt: DealtCard = { id: card.id, region: card.region, roll: 0.5, alarmFalse: false, alarm: 'none', arrival: [], targets: chosen };
+  const view: GameState = { ...s, phase: 'choose', card: dealt };
+  let lowering = 0;
+  for (const t of chosen) {
+    const act = actOf(live, t.region);
+    if (!act) continue;
+    const p = previewAct(live, view, act);
+    t.hint = p.hint;
+    if (p.dangerAfter < p.dangerBefore) lowering++;
+  }
+  if (strict && lowering < RULES.mapTargetsLowering) return null;
+  return chosen;
+}
+
+/** The weight a card draws with: by its region's heat; a map card by the heat of its places. */
 function weightOf(card: Card, s: GameState): number {
   if (card.map) {
     let w = 1;
-    for (const t of card.targets) w += s.heats[t.region];
+    for (const t of resolveTargets(card, s, false) ?? card.targets) w += s.heats[t.region];
     return w;
   }
   return RULES.drawWeight[s.heats[card.region]];
 }
 
-/** Regions at CRISIS or WAR that have waited two days for a card (SPEC: within two days). */
+/** Regions at CRISIS that have waited two days for a card (SPEC: within two days), and regions at WAR that have waited one. */
 export function starvingRegions(s: GameState): RegionId[] {
   return REGION_IDS.filter((r) => {
     if (s.heats[r] < CRISIS) return false;
     const since = Math.max(s.deck.hotSince[r] ?? s.day, s.deck.lastCardDay[r] ?? 0);
-    return s.day - since >= RULES.hotCardWithin;
+    return s.day - since >= (s.heats[r] === WAR ? RULES.warCardWithin : RULES.hotCardWithin);
   });
 }
 
-function concerns(card: Card, regions: ReadonlySet<RegionId>): boolean {
+function concerns(card: Card, s: GameState, regions: ReadonlySet<RegionId>): boolean {
   if (card.region && regions.has(card.region)) return true;
-  return card.map && card.targets.some((t) => regions.has(t.region));
+  return card.map && (resolveTargets(card, s, false) ?? []).some((t) => regions.has(t.region));
 }
 
 function weightedPick(rng: Rng, cards: Card[], s: GameState): Card {
@@ -89,45 +138,46 @@ function weightedPick(rng: Rng, cards: Card[], s: GameState): Card {
 }
 
 /**
- * Choose today's card on a draft state (reads and advances rng.deal). Follow-ups first; then priority
- * cards unlocked by a held piece; then a card for a starving region; then the map roll; then the
- * weighted draw; then the relaxations.
+ * Choose the card for `day` on a draft state whose map reads as it will that morning (reads and
+ * advances rng.deal). Follow-ups first; then priority cards unlocked by a held piece; then a card for
+ * a starving region; then the map roll; then the weighted draw; then the relaxations.
  */
-export function selectCard(content: ThirtyContent, s: GameState): Card {
+export function selectCard(content: ThirtyContent, s: GameState, day = s.day): Card {
+  const at: GameState = day === s.day ? s : { ...s, day };
   const rng = new Rng(s.rng.deal);
   try {
-    const due = dueFollow(content, s);
+    const due = dueFollow(content, s, day);
     if (due) return due;
 
     const used = new Set(s.deck.used);
     const all = content.cardOrder.map((id) => content.cards[id]);
-    const candidates = all.filter((c) => fits(c, s, used));
+    const candidates = all.filter((c) => fits(c, at, used));
 
     const unlocked = candidates.filter((c) => c.when.pieces.length > 0);
-    if (unlocked.length) return weightedPick(rng, unlocked, s);
+    if (unlocked.length) return weightedPick(rng, unlocked, at);
 
     // Day 1 is about the starting crisis: the first decision is the obvious trouble (and the start reads 11).
-    const starving = new Set(s.day === 1 ? REGION_IDS.filter((r) => s.heats[r] >= CRISIS) : starvingRegions(s));
+    const starving = new Set(day === 1 ? REGION_IDS.filter((r) => at.heats[r] >= CRISIS) : starvingRegions(at));
     if (starving.size) {
-      const urgent = candidates.filter((c) => concerns(c, starving));
-      if (urgent.length) return weightedPick(rng, urgent, s);
+      const urgent = candidates.filter((c) => concerns(c, at, starving));
+      if (urgent.length) return weightedPick(rng, urgent, at);
     }
 
     const maps = candidates.filter((c) => c.map);
     const choices = candidates.filter((c) => !c.map);
-    if (maps.length && s.day > 1 && s.deck.lastMapDay !== s.day - 1 && (choices.length === 0 || rng.next() < RULES.mapDayChance)) {
-      return weightedPick(rng, maps, s);
+    if (maps.length && day > 1 && s.deck.lastMapDay !== day - 1 && (choices.length === 0 || rng.next() < RULES.mapDayChance)) {
+      return weightedPick(rng, maps, at);
     }
-    if (choices.length) return weightedPick(rng, choices, s);
+    if (choices.length) return weightedPick(rng, choices, at);
 
-    // Nothing unused fits today: relax, preferring the card dealt longest ago.
+    // Nothing unused fits: relax, preferring the card dealt longest ago.
     for (const relax of RELAXATIONS.slice(1)) {
-      const again = all.filter((c) => fits(c, s, used, relax));
+      const again = all.filter((c) => fits(c, at, used, relax));
       if (!again.length) continue;
       const order = new Map(s.deck.used.map((id, i) => [id, i]));
       const oldest = Math.min(...again.map((c) => order.get(c.id) ?? -1));
       const pool = again.filter((c) => (order.get(c.id) ?? -1) === oldest);
-      return weightedPick(rng, pool, s);
+      return weightedPick(rng, pool, at);
     }
     throw new Error('the pack has no card to deal');
   } finally {
@@ -135,11 +185,11 @@ export function selectCard(content: ThirtyContent, s: GameState): Card {
   }
 }
 
-/** The follow-up due today (soonest deadline first, then the hottest region), removed from the queue. */
-function dueFollow(content: ThirtyContent, s: GameState): Card | null {
+/** The follow-up due on `day` (soonest deadline first, then the hottest region), removed from the queue. */
+function dueFollow(content: ThirtyContent, s: GameState, day: number): Card | null {
   const used = new Set(s.deck.used);
   s.deck.queue = s.deck.queue.filter((q) => content.cards[q.card] && !used.has(q.card));
-  const due = s.deck.queue.filter((q) => q.from <= s.day);
+  const due = s.deck.queue.filter((q) => q.from <= day);
   if (!due.length) return null;
   const heat = (q: QueuedFollow) => {
     const r = content.cards[q.card].region;
@@ -177,11 +227,20 @@ export function queueFollows(content: ThirtyContent, s: GameState, follows: read
 }
 
 /**
- * Deal today's card on a draft: select it, roll its odds, decide a warning's truth, let the Hotline
- * calm a crisis card, and keep the deck's books. Reads rng.deal and rng.odds.
+ * Deal the card for `day` on a draft: select it, roll its odds, decide a warning's truth, let its
+ * news light its region, let the Hotline calm a crisis card, choose a map card's places, and keep
+ * the deck's books. Reads rng.deal and rng.odds. The news is a heat step on `w` (the night in
+ * progress, so the trace and the ending check see it); without a Working of the night (day 1, a test)
+ * it goes to the card's `arrival`. The Hotline's cooling is always in `arrival`: the chip takes credit
+ * as the card arrives.
  */
-export function dealCard(content: ThirtyContent, s: GameState): DealtCard {
-  const card = selectCard(content, s);
+export function dealCard(content: ThirtyContent, s: GameState, day = s.day, w?: Working): DealtCard {
+  const own = !w;
+  const night = w ?? new Working(s);
+  s.heats = night.heats;
+  s.penalty = night.penalty;
+  const card = selectCard(content, s, day);
+
   const odds = new Rng(s.rng.odds);
   const roll = odds.next();
   const alarm = isAlarmCard(card);
@@ -192,36 +251,38 @@ export function dealCard(content: ThirtyContent, s: GameState): DealtCard {
   }
   s.rng.odds = odds.snapshot();
 
-  const arrival: TraceStep[] = [];
   // News: the card finds its region in trouble (an arc's first card more so).
+  const newsAt = night.steps.length;
   const news = card.arc && !card.chained ? RULES.newsHeat : RULES.newsHeatPlain;
-  if (card.region && s.heats[card.region] < news) {
-    const w = new Working(s);
-    w.heat(card.region, news - s.heats[card.region], 'news');
-    s.heats = w.heats;
-    s.penalty = w.penalty;
-    arrival.push(...w.steps);
-  }
+  if (card.region && night.heats[card.region] < news) night.heat(card.region, news - night.heats[card.region], 'news');
+  s.heats = night.heats;
+  s.penalty = night.penalty;
+
+  const arrival: TraceStep[] = own ? night.steps.splice(newsAt) : [];
   const cautious = alarm && s.team.includes('cautious-intel');
   if (cautious) arrival.push({ kind: 'piece', piece: 'cautious-intel', note: alarmFalse ? 'A false alarm' : 'The warning is real' });
 
-  // The Hotline: once a week, a crisis card calms itself before you choose.
-  if (card.region && s.team.includes('hotline') && s.heats[card.region] >= CRISIS && s.hotlineWeek !== weekOf(s.day)) {
-    const w = new Working(s);
-    if (w.cool(card.region, RULES.hotlineCool, 'piece', { piece: 'hotline' })) {
-      s.heats = w.heats;
-      s.hotlineWeek = weekOf(s.day);
-      arrival.push(...w.steps);
+  // The Hotline: once a week, a crisis card calms itself before you choose (the crisis ends: CRISIS to TENSE).
+  if (card.region && s.team.includes('hotline') && s.heats[card.region] >= CRISIS && s.hotlineWeek !== weekOf(day)) {
+    const h = new Working({ ...s, day });
+    if (h.cool(card.region, RULES.hotlineCool, 'piece', { piece: 'hotline' })) {
+      night.heats = h.heats;
+      s.heats = h.heats;
+      s.hotlineWeek = weekOf(day);
+      arrival.push(...h.steps);
     }
   }
 
   s.deck.used.push(card.id);
-  if (card.region) s.deck.lastCardDay[card.region] = s.day;
+  if (card.region) s.deck.lastCardDay[card.region] = day;
+  const dealt: DealtCard = { id: card.id, region: card.region, roll, alarmFalse, alarm: alarm ? (cautious ? (alarmFalse ? 'false' : 'real') : 'unknown') : 'none', arrival };
   if (card.map) {
-    s.deck.lastMapDay = s.day;
-    for (const t of card.targets) s.deck.lastCardDay[t.region] = s.day;
+    s.deck.lastMapDay = day;
+    const targets = resolveTargets(card, { ...s, day }) ?? resolveTargets(card, { ...s, day }, false) ?? card.targets;
+    for (const t of targets) s.deck.lastCardDay[t.region] = day;
+    dealt.targets = targets;
   }
-  return { id: card.id, region: card.region, roll, alarmFalse, alarm: alarm ? (cautious ? (alarmFalse ? 'false' : 'real') : 'unknown') : 'none', arrival };
+  return dealt;
 }
 
 /** Pieces that may still be offered: not held, not excluded by (or excluding) a held piece. */

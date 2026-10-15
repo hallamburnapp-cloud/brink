@@ -64,14 +64,22 @@ must be in (0 CALM, 1 TENSE, 2 CRISIS, 3 WAR); `pieces` must all be held; `witho
   day: [2, 28]
   text: The fleet can be in one place by morning. Tap where it goes.
   targets:
-    - { region: SHL, hint: "Calms the strait" }
-    - { region: ORN, hint: "Warns Orrinth off · heats Dunmarrow", tag: FORCE, heats: DNM, mark: warned }
-    - { region: VSY, hint: "Guards home", mark: guarded }
+    - { region: SHL, from: sea, hint: "The fleet calms {region}" }
+    - { region: ORN, from: sea, hint: "The fleet warns {region} off", tag: FORCE, mark: warned }
+    - { region: VSY, hint: "The fleet guards home", mark: guarded }
 ```
 
-Two or three `targets`; each glows on the map with its `hint` as the label and acts on the tapped region by its
-`tag` (`CALM` unless said). A target takes the same keys as a choice, minus `text`. `region` is optional on a
-map card. The "where to draw the red line" card needs `when: { pieces: [red-lines] }` and `mark: red-line`.
+Two or three `targets`; each glows on the map and acts on the tapped region by its `tag` (`CALM` unless said). A
+target takes the same keys as a choice, minus `text`. A target with `from` is chosen when the card is dealt: the
+hottest region of that set not already offered, so the glowing places are where the trouble is; `region` is then
+the fallback (it must belong to the set) and `{region}` in the hint is filled in. The sets are `sea` (every port
+and Lantern Key), `home`, `abroad`, `any`, `allies` (Brindle Coast, Tern Isle, Gullrest) and `posts` (Tern Isle,
+Floe End, Kelpmouth, Vessary). A live target cannot name the neighbour a show of force heats (`heats`): the engine
+picks it. The engine writes every target's label itself, DANGER first (`Danger down · Shoal calms`, `Danger
+unchanged · Vessary guarded for a week`), so the places compare like for like; the authored `hint` records the
+intent. A map card is dealt only when at least two of its places would lower DANGER (there are no days of
+no-ops), so a card whose set is all calm waits. `region` is optional on a map card. The "where to draw the red
+line" card needs `when: { pieces: [red-lines] }` and `mark: red-line`.
 
 ### Domestic cards
 
@@ -88,9 +96,11 @@ is just two follow-ups: `left` to one card, `right` to another.
 ## Advisers and pieces
 
 `advisers.yaml`: `id`, `name` (fictional), `role`, `voice` (one line for the writer, never shown), optional
-`portrait` key. `pieces.yaml`: `id`, `name`, `chip` (one word, at most 12 characters), `icon`, `kind`
-(`adviser` | `policy`), `rule` (exactly as printed when the chip is tapped), `tags` (one or two of `CALM`,
-`FORCE`, `RISKY`, `HOME`, `any`, `arcs`, `map`), optional `excludes`. The twelve pieces are the spec's table.
+`portrait` key. `pieces.yaml`: `id`, `name`, `chip` (the short name on the team row, at most 12 characters:
+`Spin Doctor`, `Back-Channel`, `Launch`), `icon`, `kind` (`adviser` | `policy`), `rule` (exactly as printed when
+the chip is tapped, in plain English: "shows of force", "a crisis eases on its own", never "cards" or "force
+choices"), `tags` (one or two of `CALM`, `FORCE`, `RISKY`, `HOME`, `any`, `arcs`, `map`), optional `excludes`.
+The twelve pieces are the spec's table.
 
 ## The voice
 
@@ -109,18 +119,26 @@ is just two follow-ups: `left` to one card, `right` to another.
 ### Hints
 
 A hint says what will happen, in two parts joined by ` · `. First, what DANGER does; then the consequence in
-the world:
+the world. Four forms, and only these, so a non-gamer learns them once:
 
 ```
 Danger down · the strait calms
-Danger down here · heats Lintel          (a FORCE choice: names the neighbour)
-Holds 70% · if real, the Cap burns       (a RISKY choice: the odds, then the miss)
-Nothing changes abroad · a quiet day at home   (a HOME choice)
+Danger down here · heats Lintel                           (a FORCE choice: names the neighbour)
+Danger down if it works (70%) · if real, the Cap burns    (a RISKY choice: the odds, then the miss)
+Danger unchanged · a quiet day at home                   (a HOME choice)
 ```
+
+A risky hint states its odds as `(70%)` (the validator warns otherwise) and then what the miss does; the
+whole line fits 60 characters, so the miss is short: `if snubbed, Frostmere heats`, `if not, Orrinth heats too`.
+After the tap the same line reads `It worked · Danger down, Frostmere calms` or `It failed · Danger up, Frostmere heats`
+(the engine's words, DANGER first like every other line).
 
 The hint is what the player sees before committing. When pieces change the outcome (Old Ambassador and
 Back-Channel turning one Talks into a wave of calm), the game says so on the same line in words
-("Danger down · calms 5 regions"); the authored hint is the plain case.
+(`Danger down · calms Shoal and 3 more`); the authored hint is the plain case. When the map makes the
+printed line untrue, the engine writes it the same way: `Danger unchanged · nothing to calm in Shoal`,
+`Danger down here · Orrinth calms, heats Dunmarrow`. The engine never says "Nothing changes": no net change
+is always `Danger unchanged`.
 
 ## Validate
 
@@ -214,19 +232,21 @@ run 55–75. The validator is clean with `--strict`.
 
 - `Danger down · <what the world does>` for CALM; `Danger down here · heats <neighbour>` for FORCE, with `, guards <here>`
   or `, <here> is warned` / `warns <here> off` when the choice also carries a mark.
-- `Holds N% · if <the miss>, <region> heats` for RISKY; a `fail.crisis` is said as `<region> boils over` or `joins in`.
-- `Nothing changes abroad · <what happens at home or in the room>` for HOME, on every card including those set abroad,
+- `Danger down if it works (N%) · if <the miss>, <region> heats` for RISKY; a `fail.crisis` is said as `<region> boils
+  over` or `joins in`; a second region in the miss as `<region> heats too`.
+- `Danger unchanged · <what happens at home or in the room>` for HOME, on every card including those set abroad,
   so the four forms stay recognisable.
 - `relieve` is said as `<region> eases`; a `heats` on a CALM button as `<region> takes fright`.
 
 ### What the engine must know that the schema does not say
 
-1. **Which card is the false alarm.** alarm-02 is the one the Cautious Intel Director marks and the one Launch on
-   Warning's +20 applies to. There is no schema key; the engine can hold the id, or the schema can grow `alarm: true`.
-2. **Which risky choices are "talks"** for the Dove Foreign Minister ("risky talks become certain"). No key; the
-   simplest rule is a RISKY button on a `foreign` or `ambassador` card, or a map target whose hint starts "Talks".
+1. **Which card is the warning.** `alarm: true` on a choice card (alarm-02): the Cautious Intel Director marks it,
+   Launch on Warning's +20 applies to it, and its RISKY "wait" holds exactly when the alarm is false (the printed
+   odds are the chance it is false). The validator refuses a warning card without a RISKY option.
+2. **Which risky choices are "talks"** for the Dove Foreign Minister ("a risky talk always works"). No key; the
+   rule is a RISKY button or target on a `foreign` or `ambassador` card (the envoy's hard talks included).
 3. **`fail.follow`** on a RISKY button replaces `follow` on a miss (defector-01, summit-01).
-4. **`heats` on a CALM button or target** (ultimatum-02 right, pullback-map's Tern Isle) is a plain +1 step on the named
-   region, applied after the tag's own effect.
+4. **`heats` on a CALM button** (ultimatum-02 right) is a plain +1 step on the named region, applied after the tag's
+   own effect.
 5. **A `when.heat` of `[0, 1]`** marks a quiet-day card (schoolchildren's letters, a fish deal); `[1, 3]` a card that
    needs trouble already there. The first card of every region pair has no condition.

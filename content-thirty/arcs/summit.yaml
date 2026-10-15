@@ -7,8 +7,8 @@
   region: MRM
   day: [12, 26]
   text: Marram will host a summit if we ask first. Their president and I once shared a very long dinner. Ask, and the Federation must either come or look afraid.
-  left:  { text: Ask Marram to host,   tag: RISKY, odds: 65, hint: "Holds 65% · if snubbed, Marram heats", follow: summit-02, fail: { follow: summit-03 } }
-  right: { text: Wait for them to ask, tag: HOME,  hint: "Nothing changes abroad · a quiet day at home", follow: summit-03 }
+  left:  { text: Ask Marram to host,   tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if snubbed, Marram heats", follow: summit-02, fail: { follow: summit-03 } }
+  right: { text: Wait for them to ask, tag: HOME,  hint: "Danger unchanged · a quiet day at home", follow: summit-03 }
 
 - id: summit-02
   arc: summit
@@ -17,7 +17,7 @@
   day: [13, 28]
   text: "Wintermast will come to Marram. It wants the seating, the flags and the first speech, and it wants us to announce that we asked. The Federation likes to be seen agreeing to things slowly."
   left:  { text: Give them the first speech, tag: CALM,  hint: "Danger down · Marram fills with cameras", follow: summit-04 }
-  right: { text: Insist on equal footing,    tag: RISKY, odds: 70, hint: "Holds 70% · if they walk, Marram heats", follow: summit-04 }
+  right: { text: Insist on equal footing,    tag: RISKY, odds: 70, hint: "Danger down if it works (70%) · if they walk, Marram heats", follow: summit-04 }
 
 - id: summit-03
   arc: summit
@@ -25,8 +25,8 @@
   region: MRM
   day: [13, 28]
   text: "No summit yet. Marram is embarrassed, Wintermast is pleased, and three Farsouth papers say the Republic cannot get a meeting. I have a cousin in Marram's protocol office. Let me try the side door."
-  left:  { text: Try the side door,  tag: RISKY, odds: 65, hint: "Holds 65% · if not, Marram heats", follow: summit-04 }
-  right: { text: Let it go for now,  tag: HOME,  hint: "Nothing changes abroad · the papers move on" }
+  left:  { text: Try the side door,  tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if not, Marram heats", follow: summit-04 }
+  right: { text: Let it go for now,  tag: HOME,  hint: "Danger unchanged · the papers move on" }
 
 - id: summit-04
   arc: summit
@@ -35,4 +35,4 @@
   day: [14, 30]
   text: "The summit opens in Marram tomorrow. Wintermast has one proposal: both sides pull back from the Scatter, and the first to move looks weak. The Scatter, who were not asked, would rather we both left."
   left:  { text: Pull back first,         tag: CALM,  hint: "Danger down · Tern Isle eases", relieve: TRN }
-  right: { text: Wait for them to move,   tag: RISKY, odds: 55, hint: "Holds 55% · if they sit tight, Marram heats" }
+  right: { text: Wait for them to move,   tag: RISKY, odds: 55, hint: "Danger down if it works (55%) · if they wait, Marram heats" }

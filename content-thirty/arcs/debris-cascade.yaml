@@ -7,7 +7,7 @@
   day: [4, 22]
   text: The Federation shot down one of its own dead satellites over Kellmark. The debris is spreading. In a week it could hit ours. They call it housekeeping. I call it a rehearsal.
   left:  { text: Propose a joint clean-up, tag: CALM,  hint: "Danger down · slow, but shared", follow: debris-02 }
-  right: { text: Move our satellites now,  tag: RISKY, odds: 75, hint: "Holds 75% · if not, Kellmark heats", follow: debris-03 }
+  right: { text: Move our satellites now,  tag: RISKY, odds: 75, hint: "Danger down if it works (75%) · if not, Kellmark heats", follow: debris-03 }
 
 - id: debris-02
   arc: debris-cascade
@@ -16,7 +16,7 @@
   day: [5, 24]
   text: "Wintermast accepts a joint clean-up over Kellmark and sends a list of our satellites it would like moved first. Three of them watch Kellmark. The list is a demand with manners."
   left:  { text: Move the three,             tag: CALM,  hint: "Danger down · we see less of Kellmark", follow: debris-04 }
-  right: { text: Move everything but those,  tag: RISKY, odds: 65, hint: "Holds 65% · if they object, Kellmark heats", follow: debris-04 }
+  right: { text: Move everything but those,  tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if refused, Kellmark heats", follow: debris-04 }
 
 - id: debris-03
   arc: debris-cascade
@@ -34,4 +34,4 @@
   day: [6, 26]
   text: "The debris over Kellmark will fall for a year, a piece a night. Probably on nobody. Wintermast proposes a rule: no more shooting down satellites, by anyone. It would bind them too. Probably."
   left:  { text: Agree the rule,          tag: CALM,  hint: "Danger down · one less way to start it" }
-  right: { text: "Agree, with inspections", tag: RISKY, odds: 60, hint: "Holds 60% · if they balk, Kellmark heats" }
+  right: { text: "Agree, with inspections", tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · if they balk, Kellmark heats" }

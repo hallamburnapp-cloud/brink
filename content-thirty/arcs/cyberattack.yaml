@@ -7,7 +7,7 @@
   day: [5, 20]
   text: Someone is inside the early-warning network at Vessary. Screens flicker, then show nothing wrong. Probably a probe. Possibly a rehearsal. We cannot tell the real sky from theirs tonight.
   left:  { text: Take the network offline, tag: CALM,  hint: "Danger down · one blind night", follow: cyber-02 }
-  right: { text: Hunt them inside it,      tag: RISKY, odds: 55, hint: "Holds 55% · if not, Vessary heats", follow: cyber-03 }
+  right: { text: Hunt them inside it,      tag: RISKY, odds: 55, hint: "Danger down if it works (55%) · if not, Vessary heats", follow: cyber-03 }
 
 - id: cyber-02
   arc: cyberattack
@@ -15,7 +15,7 @@
   region: VSY
   day: [6, 22]
   text: "Vessary's radars have been dark a day. Blind, I have kept pilots in the air round the clock. They are tired, and the Federation is flying close to see how tired. Decide by nightfall."
-  left:  { text: Bring the network back up,  tag: RISKY, odds: 65, hint: "Holds 65% · if they're still in, Vessary heats", follow: cyber-04 }
+  left:  { text: Bring the network back up,  tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if still in, Vessary heats", follow: cyber-04 }
   right: { text: "Stay dark, fly the planes", tag: CALM,  hint: "Danger down · tired pilots, quiet skies", follow: cyber-04 }
 
 - id: cyber-03
@@ -25,7 +25,7 @@
   day: [6, 22]
   text: "We found them. The intruders in Vessary's network route through a shipping office in Kelpmouth and from there, probably, to Wintermast. Probably. We could watch them watch us, or shut the door."
   left:  { text: Watch them quietly,        tag: CALM,  hint: "Danger down · we learn their habits", follow: cyber-04 }
-  right: { text: Name the Kelpmouth office, tag: RISKY, odds: 60, hint: "Holds 60% · if not, Kelpmouth boils over", fail: { crisis: KLP }, follow: cyber-04 }
+  right: { text: Name the Kelpmouth office, tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · if not, Kelpmouth boils over", fail: { crisis: KLP }, follow: cyber-04 }
 
 - id: cyber-04
   arc: cyberattack
@@ -34,4 +34,4 @@
   day: [7, 24]
   text: "Wintermast denies everything about Vessary and proposes, in the same letter, a treaty against attacks of this kind. The letter is well written. The Intel Director says the people who wrote it wrote the attack."
   left:  { text: Sign the treaty,             tag: CALM, hint: "Danger down · a promise from the Cap, on paper" }
-  right: { text: Refuse until they admit it,  tag: HOME, hint: "Nothing changes abroad · Wintermast is unmoved" }
+  right: { text: Refuse until they admit it,  tag: HOME, hint: "Danger unchanged · Wintermast is unmoved" }

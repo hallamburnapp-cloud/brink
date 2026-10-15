@@ -22,17 +22,17 @@ export const ADVISERS = [
 /** The twelve pieces of the spec's table, as the pack has them. */
 export const PIECES = [
   { id: 'old-ambassador', name: 'Old Ambassador', chip: 'Ambassador', icon: 'handshake', kind: 'adviser', rule: 'Every calming choice cools one step more.', tags: ['CALM'] },
-  { id: 'back-channel', name: 'Back-Channel', chip: 'Channel', icon: 'phone', kind: 'policy', rule: 'Calming choices also cool one neighbour.', tags: ['CALM'] },
-  { id: 'peace-movement', name: 'Peace Movement', chip: 'Peace', icon: 'dove', kind: 'policy', rule: 'Calming choices cool two extra regions; force choices heat home.', tags: ['CALM', 'FORCE'] },
-  { id: 'hotline', name: 'Hotline', chip: 'Hotline', icon: 'bell', kind: 'policy', rule: 'Once a week, a crisis card calms itself before you choose.', tags: ['any'] },
-  { id: 'dove-foreign', name: 'Dove Foreign Minister', chip: 'Dove', icon: 'olive', kind: 'adviser', rule: 'Talks never fail: risky talks become certain.', tags: ['RISKY'] },
-  { id: 'hawk-general', name: 'Hawk General', chip: 'Hawk', icon: 'medal', kind: 'adviser', rule: 'Force choices cool two steps more, but always heat a neighbour.', tags: ['FORCE'] },
-  { id: 'loyal-admiral', name: 'Loyal Admiral', chip: 'Admiral', icon: 'anchor', kind: 'adviser', rule: 'Force choices at sea cool every neighbouring sea region too.', tags: ['FORCE'] },
+  { id: 'back-channel', name: 'Back-Channel', chip: 'Back-Channel', icon: 'phone', kind: 'policy', rule: 'Calming choices also cool one neighbour.', tags: ['CALM'] },
+  { id: 'peace-movement', name: 'Peace Movement', chip: 'Peace', icon: 'dove', kind: 'policy', rule: 'Calming choices cool two more regions; shows of force heat home.', tags: ['CALM', 'FORCE'] },
+  { id: 'hotline', name: 'Hotline', chip: 'Hotline', icon: 'bell', kind: 'policy', rule: 'Once a week, a crisis eases on its own before you choose.', tags: ['any'] },
+  { id: 'dove-foreign', name: 'Dove Foreign Minister', chip: 'Dove', icon: 'olive', kind: 'adviser', rule: 'Talks never fail: a risky talk always works.', tags: ['RISKY'] },
+  { id: 'hawk-general', name: 'Hawk General', chip: 'Hawk', icon: 'medal', kind: 'adviser', rule: 'Shows of force cool two steps more, but always heat a neighbour.', tags: ['FORCE'] },
+  { id: 'loyal-admiral', name: 'Loyal Admiral', chip: 'Admiral', icon: 'anchor', kind: 'adviser', rule: 'Shows of force at sea cool every neighbouring sea region too.', tags: ['FORCE'] },
   { id: 'cautious-intel', name: 'Cautious Intel Director', chip: 'Cautious', icon: 'eye', kind: 'adviser', rule: 'False alarms are marked before you choose.', tags: ['arcs'], excludes: ['paranoid-intel'] },
   { id: 'paranoid-intel', name: 'Paranoid Intel Director', chip: 'Paranoid', icon: 'radar', kind: 'adviser', rule: 'Warnings come a day earlier; one in four is false.', tags: ['arcs'], excludes: ['cautious-intel'] },
-  { id: 'spin-doctor', name: 'Spin Doctor', chip: 'Spin', icon: 'megaphone', kind: 'adviser', rule: 'No domestic cards. Home never heats.', tags: ['HOME'] },
+  { id: 'spin-doctor', name: 'Spin Doctor', chip: 'Spin Doctor', icon: 'megaphone', kind: 'adviser', rule: 'No trouble at home: home never heats.', tags: ['HOME'] },
   { id: 'red-lines', name: 'Red Lines', chip: 'Red Line', icon: 'flag', kind: 'policy', rule: 'Name one region: it calms twice as fast, but if it reaches war, DANGER +15.', tags: ['map'] },
-  { id: 'launch-on-warning', name: 'Launch on Warning', chip: 'Warning', icon: 'siren', kind: 'policy', rule: 'War never spreads from a region you have warned; a false alarm there is +20.', tags: ['arcs'] },
+  { id: 'launch-on-warning', name: 'Launch on Warning', chip: 'Launch', icon: 'siren', kind: 'policy', rule: 'War never spreads from a region you have warned; a false alarm there is DANGER +20.', tags: ['arcs'] },
 ];
 
 const choice = (text: string, tag: string, hint: string, extra: Record<string, unknown> = {}) => ({ text, tag, hint, ...extra });
@@ -57,16 +57,16 @@ export const FIXTURE_CARDS = {
       adviser: 'admiral',
       region: 'SHL',
       text: 'The Shoal strait again.',
-      left: choice('Run the strait', 'RISKY', 'Holds 70% · if not, Shoal heats', { odds: 70, fail: { crisis: 'LTL' } }),
-      right: choice('Hold the fleet back', 'HOME', 'Nothing changes abroad · a quiet day at home'),
+      left: choice('Run the strait', 'RISKY', 'Danger down if it works (70%) · if not, Shoal heats', { odds: 70, fail: { crisis: 'LTL' } }),
+      right: choice('Hold the fleet back', 'HOME', 'Danger unchanged · a quiet day at home'),
     },
     {
       id: 'shoal-talks',
       adviser: 'foreign',
       region: 'SHL',
       text: 'Talks over the Shoal strait.',
-      left: choice('Send the minister', 'RISKY', 'Holds 60% · if snubbed, Shoal heats', { odds: 60, relieve: 'LTL' }),
-      right: choice('Say nothing', 'HOME', 'Nothing changes abroad · a quiet day at home'),
+      left: choice('Send the minister', 'RISKY', 'Danger down if it works (60%) · if snubbed, Shoal heats', { odds: 60, relieve: 'LTL' }),
+      right: choice('Say nothing', 'HOME', 'Danger unchanged · a quiet day at home'),
     },
     {
       id: 'lintel-force',
@@ -103,7 +103,7 @@ export const FIXTURE_CARDS = {
       domestic: 'economy',
       text: 'Fuel is up in Edda Vale.',
       left: choice('Release the reserve', 'CALM', 'Danger down · Edda Vale settles'),
-      right: choice('Address the nation', 'RISKY', 'Holds 60% · if it falls flat, home heats', { odds: 60 }),
+      right: choice('Address the nation', 'RISKY', 'Danger down if it works (60%) · if it falls flat, home heats', { odds: 60 }),
     },
   ],
   map: [
@@ -131,6 +131,19 @@ export const FIXTURE_CARDS = {
         { region: 'SHL', hint: 'Red line at the Shoal', mark: 'red-line' },
       ],
     },
+    // Live places: the two hottest regions abroad, the hottest one risky talks (CONTENT.md "A map card").
+    {
+      id: 'envoy-map',
+      adviser: 'foreign',
+      map: true,
+      day: [2, 28],
+      text: 'One envoy, one flight. Tap where she goes.',
+      targets: [
+        { region: 'WMS', from: 'abroad', hint: 'Hard talks in {region} (60%)', tag: 'RISKY', odds: 60 },
+        { region: 'TLM', from: 'abroad', hint: 'Talks in {region}' },
+        { region: 'LNK', from: 'abroad', hint: 'Talks in {region}' },
+      ],
+    },
   ],
   arcs: {
     blockade: [
@@ -152,7 +165,7 @@ export const FIXTURE_CARDS = {
         day: [4, 15],
         text: 'Lintel has closed its harbour.',
         left: choice('Apologise and pay', 'CALM', 'Danger down · Lintel settles'),
-        right: choice('Hold the convoy route', 'RISKY', 'Holds 60% · if not, Kelpmouth joins in', { odds: 60, fail: { crisis: 'KLP' } }),
+        right: choice('Hold the convoy route', 'RISKY', 'Danger down if it works (60%) · if not, Kelpmouth joins in', { odds: 60, fail: { crisis: 'KLP' } }),
       },
       {
         id: 'strait-03',
@@ -161,7 +174,7 @@ export const FIXTURE_CARDS = {
         region: 'LNK',
         day: [4, 16],
         text: 'Lantern Key will host talks.',
-        left: choice('Send the Ambassador', 'RISKY', 'Holds 70% · the strait reopens', { odds: 70, relieve: 'SHL', fail: { heats: 'SHL' } }),
+        left: choice('Send the Ambassador', 'RISKY', 'Danger down if it works (70%) · the strait reopens', { odds: 70, relieve: 'SHL', fail: { heats: 'SHL' } }),
         right: choice('Keep the fleet nearby', 'FORCE', 'Danger down here · heats Pebbleby', { heats: 'PBB' }),
       },
     ],
@@ -169,11 +182,12 @@ export const FIXTURE_CARDS = {
       {
         id: 'alarm-02',
         arc: 'false-alarm',
+        alarm: true,
         adviser: 'intel',
         region: 'WMS',
         day: [1, 30],
         text: 'Early warning shows six launches over the Cap.',
-        left: choice('Wait for a second source', 'RISKY', 'Holds 70% · if real, the Cap burns', { odds: 70, fail: { crisis: 'FRM' }, follow: 'alarm-03' }),
+        left: choice('Wait for a second source', 'RISKY', 'Danger down if it works (70%) · if real, the Cap burns', { odds: 70, fail: { crisis: 'FRM' }, follow: 'alarm-03' }),
         right: choice('Raise the alert', 'FORCE', 'Danger down here · heats Frostmere', { heats: 'FRM', mark: 'warned', follow: 'alarm-03' }),
       },
       {
@@ -184,7 +198,7 @@ export const FIXTURE_CARDS = {
         day: [2, 30],
         text: 'It was a flock of birds over Frostmere.',
         left: choice('Tell them the truth', 'CALM', 'Danger down · Frostmere breathes out'),
-        right: choice('Admit nothing', 'RISKY', 'Holds 60% · if they know, Frostmere heats', { odds: 60 }),
+        right: choice('Admit nothing', 'RISKY', 'Danger down if it works (60%) · if known, Frostmere heats', { odds: 60 }),
       },
     ],
   },

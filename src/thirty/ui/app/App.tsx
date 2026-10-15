@@ -117,7 +117,10 @@ export function App(): JSX.Element {
         class={`frame${fit.mode === 'desk' ? ' desk' : ''}`}
         style={{ transform: place, width: `${FRAME_W}px`, height: `${FRAME_H}px` }}
         onPointerDownCapture={() => audio.unlock()}
-        onPointerDown={() => (chipOpen.value = null)}
+        onPointerDown={(e) => {
+          // A tap anywhere else puts the chips back; a tap on the team row is the row's own.
+          if (!(e.target instanceof Element && e.target.closest('.team'))) chipOpen.value = null;
+        }}
       >
         <div key={n} class={`table${n && !reduced.value ? ' nudged' : ''}`}>
           {inGame && (

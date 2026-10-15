@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { backStep, guardStep } from './back';
-import { fitFrame, FRAME_H, FRAME_W, R } from './layout';
+import { BREATH, fitFrame, FRAME_H, FRAME_W, R } from './layout';
 import { applySteps, heatSteps, rollOf, splitDay } from './steps';
 
 describe('the four rects', () => {
@@ -37,14 +37,16 @@ describe('fitting the frame', () => {
     expect(f.top + (FRAME_H - R.home[3]) * f.scale).toBeLessThanOrEqual(844 - insets.bottom + 1e-6);
   });
 
-  it('fits only the live area in a phone browser and on a desk', () => {
+  it('fits the live area, with a breath of the status band, in a phone browser and on a desk', () => {
     const live = FRAME_H - R.safeTop[3] - R.home[3];
-    const b = fitFrame(390, live, undefined, 'browser');
+    const b = fitFrame(390, live + BREATH, undefined, 'browser');
     expect(b.scale).toBeCloseTo(1);
-    expect(b.top).toBeCloseTo(-R.safeTop[3]);
+    expect(b.top).toBeCloseTo(-(R.safeTop[3] - BREATH));
+    // The DANGER label (3 px under the strip's top) is inside the window.
+    expect(b.top + R.strip[1] * b.scale).toBeGreaterThanOrEqual(BREATH - 1e-6);
     const d = fitFrame(1000, 900, undefined, 'desk');
     expect(d.scale).toBeLessThan(1000 / FRAME_W);
-    expect(d.scale * live).toBeLessThanOrEqual(900);
+    expect(d.scale * (live + BREATH)).toBeLessThanOrEqual(900);
   });
 });
 

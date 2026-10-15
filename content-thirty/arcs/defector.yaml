@@ -9,7 +9,7 @@
   day: [3, 18]
   text: A Federation colonel walked into our consulate in Kelpmouth this morning with a suitcase of papers. He wants asylum. The Federation wants him back by tonight, and says so loudly.
   left:  { text: Hand him back quietly, tag: CALM,  hint: "Danger down · we learn nothing", follow: defector-03 }
-  right: { text: Fly him home tonight,  tag: RISKY, odds: 60, hint: "Holds 60% · if caught, Kelpmouth heats", follow: defector-02, fail: { follow: defector-03 } }
+  right: { text: Fly him home tonight,  tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · if caught, Kelpmouth heats", follow: defector-02, fail: { follow: defector-03 } }
 
 - id: defector-02
   arc: defector
@@ -18,7 +18,7 @@
   day: [4, 20]
   text: "The colonel is in Edda Vale and talking. His papers show a Federation plan to take Tern Isle in a week of bad weather. Probably true. Possibly what they want us to believe."
   left:  { text: Guard Tern Isle quietly,   tag: CALM, hint: "Danger down · Tern Isle is guarded a week", mark: guarded, follow: defector-04 }
-  right: { text: Treat the papers as bait, tag: HOME, hint: "Nothing changes abroad · we wait and watch", follow: defector-04 }
+  right: { text: Treat the papers as bait, tag: HOME, hint: "Danger unchanged · we wait and watch", follow: defector-04 }
 
 - id: defector-03
   arc: defector
@@ -27,7 +27,7 @@
   day: [4, 20]
   text: "The colonel is back in Federation hands, and Wintermast has thanked us, which is worse. Half the Kelpmouth consulate have asked to come home. I knew his mother. She would have asked us to try."
   left:  { text: Say it was the law,     tag: CALM,  hint: "Danger down · Kelpmouth settles, slowly", follow: defector-04 }
-  right: { text: Ask quietly after him,  tag: RISKY, odds: 70, hint: "Holds 70% · if refused, Kelpmouth heats", follow: defector-04 }
+  right: { text: Ask quietly after him,  tag: RISKY, odds: 70, hint: "Danger down if it works (70%) · if refused, Kelpmouth heats", follow: defector-04 }
 
 - id: defector-04
   arc: defector
@@ -36,4 +36,4 @@
   day: [5, 22]
   text: "Tallowmere has watched the colonel affair closely. The Coalition would like to know whether we keep our word to friends or to the Federation. It is asking in public. The answer will be quoted."
   left:  { text: Promise Tallowmere openly, tag: CALM, hint: "Danger down · the Coalition leans our way" }
-  right: { text: Keep our counsel,          tag: HOME, hint: "Nothing changes abroad · Tallowmere waits" }
+  right: { text: Keep our counsel,          tag: HOME, hint: "Danger unchanged · Tallowmere waits" }

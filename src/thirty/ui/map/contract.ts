@@ -21,6 +21,8 @@ export interface MapView {
   heats: Record<RegionId, Heat>;
   /** Today's region, ringed; its name sits under the ring. */
   ring: RegionId | null;
+  /** News under the ring's name ('NOW TENSE', 'CALMED BY THE HOTLINE'), if the card brought any. */
+  ringNote?: string | null;
   /** The places the player may tap today (a map day), else empty. */
   targets: Target[];
   /** The capital that carries the small flag. */

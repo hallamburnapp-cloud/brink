@@ -53,7 +53,9 @@ describe('the engine\'s own line', () => {
         { region: 'ORN', from: 2, to: 1, why: 'piece', piece: 'peace-movement' },
       ],
     };
-    expect(hintLine(h)).toBe('Danger down · calms 4 regions');
+    expect(hintLine(h)).toBe('Danger down · cools Shoal and 3 more');
+    // Every region reaching CALM: "calms".
+    expect(composeHint({ ...h, changes: h.changes.map((c) => ({ ...c, to: 0 as const })) })).toBe('Danger down · calms Shoal and 3 more');
   });
 
   it('names a mark, so guarding a calm region does not read as nothing', () => {
@@ -88,15 +90,49 @@ describe('the engine\'s own line', () => {
 
   it('the odds, certain talks, a false alarm, a real one', () => {
     const risky: HintInput = { ...base, tag: 'RISKY', printedOdds: 70, odds: 77, changes: [{ region: 'SHL', from: 2, to: 0, why: 'choice' }], dangerAfter: 0 };
-    expect(hintLine(risky)).toBe('Holds 77% · Shoal calms');
+    expect(hintLine(risky)).toBe('Danger down if it works (77%) · Shoal calms');
+    // With the miss known, the acted region's own calming is implied by "Danger down"; the miss is spelled out.
+    expect(hintLine({ ...risky, missed: { danger: 12, changes: [{ region: 'SHL', from: 2, to: 3, why: 'choice' }] } })).toBe('Danger down if it works (77%) · if not, Shoal goes to war');
+    expect(
+      hintLine({
+        ...risky,
+        pieces: ['old-ambassador', 'back-channel'],
+        changes: [
+          { region: 'SHL', from: 2, to: 0, why: 'choice' },
+          { region: 'LTL', from: 1, to: 0, why: 'piece', piece: 'back-channel' },
+        ],
+        missed: { danger: 12, changes: [{ region: 'SHL', from: 2, to: 3, why: 'choice' }, { region: 'LTL', from: 0, to: 2, why: 'choice' }] },
+      }),
+    ).toBe('Danger down if it works (77%) · if not, Shoal goes to war');
+    // A miss that changes nothing (the region already at war) is said too.
+    expect(hintLine({ ...risky, heatBefore: 3, changes: [{ region: 'SHL', from: 3, to: 1, why: 'choice' }], dangerBefore: 12, dangerAfter: 2, missed: { danger: 12, changes: [] } })).toBe(
+      'Danger down if it works (77%) · if not, nothing changes',
+    );
+    // A risky option whose success changes nothing says so, and still says the miss.
+    expect(hintLine({ ...risky, heatBefore: 0, changes: [], dangerAfter: 5, missed: { danger: 7, changes: [{ region: 'SHL', from: 0, to: 1, why: 'choice' }] } })).toBe(
+      'Danger unchanged if it works (77%) · if not, Shoal heats',
+    );
     expect(hintLine({ ...risky, odds: 100, certainBy: 'dove-foreign', pieces: ['dove-foreign'] })).toBe('Danger down · talks cannot fail, Shoal calms');
     expect(hintLine({ ...risky, odds: 100, certainBy: 'false-alarm' })).toBe('Danger down · a false alarm, Shoal calms');
     expect(hintLine({ ...risky, odds: 0, certainBy: 'real-alarm', dangerAfter: 12, changes: [{ region: 'SHL', from: 2, to: 3, why: 'choice' }] })).toBe('Danger up · the alarm is real, heats Shoal');
   });
 
   it('nothing to do, a quiet day, a crossed red line', () => {
-    expect(hintLine({ ...base, heatBefore: 0, changes: [], dangerAfter: 5 })).toBe('Nothing changes · Shoal is already calm');
-    expect(composeHint({ ...base, tag: 'HOME', changes: [], dangerAfter: 5 })).toBe('Nothing changes · a quiet day at home');
+    expect(hintLine({ ...base, heatBefore: 0, changes: [], dangerAfter: 5 })).toBe('Danger unchanged · nothing to calm in Shoal');
+    expect(composeHint({ ...base, tag: 'HOME', changes: [], dangerAfter: 5 })).toBe('Danger unchanged · a quiet day at home');
+    // One phrase for no net change, even when the world moved: a cool and a heat that cancel.
+    expect(
+      composeHint({
+        ...base,
+        tag: 'FORCE',
+        pieces: ['peace-movement'],
+        dangerAfter: 5,
+        changes: [
+          { region: 'SHL', from: 1, to: 0, why: 'choice' },
+          { region: 'EDV', from: 0, to: 1, why: 'piece', piece: 'peace-movement' },
+        ],
+      }),
+    ).toBe('Danger unchanged · Shoal calms, heats Edda Vale');
     expect(
       hintLine({
         ...base,
@@ -112,8 +148,11 @@ describe('the engine\'s own line', () => {
     ).toBe('Danger up · Lintel calms, heats Kelpmouth, DANGER +15');
   });
 
-  it('fits sixty characters by dropping the last clauses', () => {
+  it('fits sixty characters by dropping the last clauses, keeping a risky miss for last', () => {
     expect(fit('Danger down · calms 4 regions')).toBe('Danger down · calms 4 regions');
+    expect(fit('Danger down if it works (65%) · calms Shoal and 2 more, if not, Shoal heats, Shoal guarded for a week')).toBe(
+      'Danger down if it works (65%) · if not, Shoal heats',
+    );
     expect(fit('Danger down here · Brindle Coast calms, heats Morrow Downs, DANGER +15')).toBe('Danger down here · Brindle Coast calms, heats Morrow Downs');
     expect(fit('x'.repeat(70))).toHaveLength(60);
   });
@@ -128,7 +167,7 @@ describe('preview', () => {
     expect(p.dangerBefore).toBe(29);
     expect(p.dangerAfter).toBe(2 + 0 + 2);
     expect(p.pieces).toEqual(['old-ambassador', 'back-channel', 'peace-movement']);
-    expect(p.hint).toBe('Danger down · calms 3 regions');
+    expect(p.hint).toBe('Danger down · cools Shoal and 2 more');
     expect(p.odds).toBeNull();
     expect(p.changesIfMissed).toBeNull();
   });
@@ -137,7 +176,7 @@ describe('preview', () => {
     const s = quiet(content, 'shoal-risky', { SHL: 2 });
     const p = preview(content, s, 'left')!;
     expect(p.odds).toBe(70);
-    expect(p.hint).toBe('Holds 70% · if not, Shoal heats');
+    expect(p.hint).toBe('Danger down if it works (70%) · if not, Shoal heats');
     expect(p.dangerAfter).toBe(0);
     expect(p.dangerIfMissed).toBe(12 + 5);
     expect(p.changesIfMissed).toEqual([
@@ -145,7 +184,7 @@ describe('preview', () => {
       { region: 'LTL', from: 0, to: 2, why: 'choice' },
     ]);
     const home = preview(content, s, 'right')!;
-    expect(home.hint).toBe('Nothing changes abroad · a quiet day at home');
+    expect(home.hint).toBe('Danger unchanged · a quiet day at home');
     expect(home.changes).toEqual([]);
   });
 
@@ -154,7 +193,9 @@ describe('preview', () => {
     const p = preview(content, s, 'ORN')!;
     expect(p.text).toBeNull();
     expect(p.tag).toBe('FORCE');
-    expect(p.hint).toBe('Warns Orrinth off · heats Dunmarrow');
+    // A place on a map day is always labelled by the engine, DANGER first, so the glowing places compare.
+    expect(p.hint).toBe('Danger down here · Orrinth calms, heats Dunmarrow');
+    expect(preview(content, s, 'SHL')!.hint).toBe('Danger unchanged · nothing to calm in Shoal');
     expect(preview(content, s, 'left')).toBeNull();
     expect(preview(content, s, 'EDV')).toBeNull();
   });

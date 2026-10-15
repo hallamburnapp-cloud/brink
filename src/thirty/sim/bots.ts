@@ -8,7 +8,8 @@
 import type { Rng } from '../../engine/rng.ts';
 import type { Heat, PieceId, PieceTag, RegionId, ThirtyContent } from '../content/types.ts';
 import { preview, todayOptions } from '../engine/preview.ts';
-import { CRISIS, RULES, TENSE, WAR, crisisPressureAt, tensePressureAt } from '../engine/rules.ts';
+import { CRISIS, RULES, TENSE, WAR, crisisPressureAt, tensePressureAt, warFromCrisisAt } from '../engine/rules.ts';
+import { REGION_IDS, neighboursOf } from '../engine/world.ts';
 import type { GameState, HeatChange, Preview } from '../engine/types.ts';
 
 export type BotName = 'random' | 'sensible';
@@ -51,18 +52,25 @@ function heatsAfter(heats: Readonly<Record<RegionId, Heat>>, changes: readonly H
 }
 
 /**
- * What tonight's pressure is expected to add to DANGER on this map: a WAR region spreads for sure, a
- * CRISIS region with the day's odds, a TENSE region boils with the day's odds (flares fall on every
- * map alike and are left out). The sensible bot sees red spread the way the player does.
+ * What tonight's pressure is expected to add to DANGER on this map, and what it threatens after: a WAR
+ * region spreads for sure tonight and every night until it is answered (counted at twice one night's
+ * spread), a CRISIS region spills with the day's odds and, beside another crisis, may tip it into war
+ * (+7, and red then spreads: counted at 10), a TENSE region boils with the day's odds (flares fall on
+ * every map alike and are left out). The sensible bot sees red the way a careful player does: the
+ * thing to put out first, and two orange regions touching the thing to break up.
  */
 export function expectedPressure(heats: Readonly<Record<RegionId, Heat>>, day: number): number {
   const crisis = crisisPressureAt(day);
   const tense = tensePressureAt(day);
+  const war = warFromCrisisAt(day);
   let total = 0;
-  for (const h of Object.values(heats)) {
-    if (h === WAR) total += RULES.warSpreads * 2.5;
-    else if (h === CRISIS) total += crisis * 2.5;
-    else if (h === TENSE) total += tense * 3;
+  for (const r of REGION_IDS) {
+    const h = heats[r];
+    if (h === WAR) total += RULES.warSpreads * 5;
+    else if (h === CRISIS) {
+      total += crisis * 2.5;
+      if (war > 0 && neighboursOf(r).some((n) => heats[n] === CRISIS)) total += war * 10;
+    } else if (h === TENSE) total += tense * 3;
   }
   return total;
 }

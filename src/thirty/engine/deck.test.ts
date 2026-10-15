@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { RULES } from './rules.ts';
 import { Rng } from '../../engine/rng.ts';
 import { availablePieces, dealCard, drawOffer, fits, hasRedLineCard, hottestRegion, queueFollows, selectCard, starvingRegions } from './deck.ts';
 import { draft, newGame } from './run.ts';
@@ -33,8 +34,12 @@ describe('fits: day range and conditions', () => {
   it('when.heat is the card region\'s heat range; when.pieces must be held', () => {
     expect(fits(content.cards['needs-tense'], base, used)).toBe(false);
     expect(fits(content.cards['needs-tense'], withHeats(base, { WMS: 1 }), used)).toBe(true);
-    expect(fits(content.cards['redline-map'], onDay(base, 5), used)).toBe(false);
-    expect(fits(content.cards['redline-map'], withTeam(onDay(base, 5), ['red-lines']), used)).toBe(true);
+    const hot = withHeats(onDay(base, 5), { TRN: 1, SHL: 2 });
+    expect(fits(content.cards['redline-map'], hot, used)).toBe(false);
+    expect(fits(content.cards['redline-map'], withTeam(hot, ['red-lines']), used)).toBe(true);
+    // A map card needs at least two places that would lower DANGER: on a calm map it waits.
+    expect(fits(content.cards['redline-map'], withTeam(onDay(base, 5), ['red-lines']), used)).toBe(false);
+    expect(fits(content.cards['redline-map'], withTeam(withHeats(onDay(base, 5), { SHL: 3 }), ['red-lines']), used)).toBe(false);
   });
 
   it('a used card does not come again unless the deck relaxes', () => {
@@ -81,20 +86,27 @@ describe('selectCard: what comes today', () => {
   });
 
   it('cards unlocked by a held piece come as soon as they fit', () => {
-    const s = withTeam(withHeats(onDay(newGame(content, 'q'), 7), { SHL: 3 }), ['red-lines']);
+    const s = withTeam(withHeats(onDay(newGame(content, 'q'), 7), { SHL: 3, TRN: 1 }), ['red-lines']);
     expect([...dealt(s)]).toEqual(['redline-map']);
   });
 
-  it('a CRISIS or WAR region that has waited two days gets its card', () => {
-    const s = withHeats(onDay(newGame(content, 'q'), 8), { ORN: 3, SHL: 1 });
+  it('a CRISIS or WAR region that has waited RULES.hotCardWithin / warCardWithin days gets its card', () => {
+    const s = withHeats(onDay(newGame(content, 'q'), 8), { ORN: 2, SHL: 1 });
     s.deck.hotSince.ORN = 6;
     expect(starvingRegions(s)).toEqual(['ORN']);
     s.deck.lastCardDay.ORN = 7;
     expect(starvingRegions(s)).toEqual([]);
     s.deck.lastCardDay.ORN = 6;
     expect(starvingRegions(s)).toEqual(['ORN']);
-    // Every deal is about Orrinth (its plain card, or the fleet map that offers it).
-    for (const id of dealt(s)) expect(['plain-orn', 'fleet-map']).toContain(id);
+    // Red is answered within RULES.warCardWithin days (two, like a crisis): yesterday's card holds it off, an older one does not.
+    expect(RULES.warCardWithin).toBe(2);
+    s.heats.ORN = 3;
+    s.deck.lastCardDay.ORN = 7;
+    expect(starvingRegions(s)).toEqual([]);
+    s.deck.lastCardDay.ORN = 6;
+    expect(starvingRegions(s)).toEqual(['ORN']);
+    // Every deal is about Orrinth (its plain card, or a map card whose places include it).
+    for (const id of dealt(s)) expect(['plain-orn', 'fleet-map', 'envoy-map']).toContain(id);
   });
 
   it('prefers the hottest regions', () => {
@@ -113,8 +125,9 @@ describe('selectCard: what comes today', () => {
     expect(wms / n).toBeLessThan(0.5);
   });
 
-  it('map cards come about one day in five, never on day 1 or two days running', () => {
-    const s = withHeats(onDay(newGame(content, 'q'), 3), {});
+  it('map cards come about one day in five when their places are worth tapping, never on day 1 or two days running', () => {
+    const warm = { SHL: 1, ORN: 1, WMS: 1, TLM: 1 } as const;
+    const s = withHeats(onDay(newGame(content, 'q'), 3), warm);
     let maps = 0;
     const n = 1000;
     for (let i = 0; i < n; i++) {
@@ -124,11 +137,13 @@ describe('selectCard: what comes today', () => {
     }
     expect(maps / n).toBeGreaterThan(0.14);
     expect(maps / n).toBeLessThan(0.26);
-    const dayOne = withHeats(newGame(content, 'q'), {});
+    const dayOne = withHeats(newGame(content, 'q'), warm);
     expect([...dealt(dayOne)].some((id) => content.cards[id].map)).toBe(false);
-    const after = withHeats(onDay(newGame(content, 'q'), 4), {});
+    const after = withHeats(onDay(newGame(content, 'q'), 4), warm);
     after.deck.lastMapDay = 3;
     expect([...dealt(after)].some((id) => content.cards[id].map)).toBe(false);
+    // On a calm map no map card fits: there is nothing worth tapping.
+    expect([...dealt(withHeats(onDay(newGame(content, 'q'), 4), {}))].some((id) => content.cards[id].map)).toBe(false);
   });
 
   it('never stalls: with every card used it deals the one used longest ago', () => {
@@ -192,24 +207,24 @@ describe('dealCard', () => {
     expect(card.arrival[0]).toEqual({ kind: 'piece', piece: 'cautious-intel', note: card.alarmFalse ? 'A false alarm' : 'The warning is real' });
   });
 
-  it('the Hotline calms a crisis card on arrival, once a week', () => {
+  it('the Hotline ends a crisis card\'s crisis on arrival (CRISIS to TENSE, so the card still has work), once a week', () => {
     const s = withTeam(withHeats(onDay(newGame(content, 'q'), 6), { SHL: 2 }), ['hotline']);
     s.deck.queue = [{ card: 'strait-01', from: 6, to: 6 }];
     const card = dealCard(content, s);
     expect(card.id).toBe('strait-01');
-    expect(s.heats.SHL).toBe(0);
+    expect(s.heats.SHL).toBe(1);
     expect(s.hotlineWeek).toBe(2);
-    expect(card.arrival).toEqual([{ kind: 'heat', region: 'SHL', from: 2, to: 0, why: 'piece', piece: 'hotline', danger: 0 }]);
+    expect(card.arrival).toEqual([{ kind: 'heat', region: 'SHL', from: 2, to: 1, why: 'piece', piece: 'hotline', danger: 2 }]);
     // Used this week: a second crisis card is not calmed.
     const again = withHeats(onDay(s, 8), { LTL: 2 });
     again.deck.queue = [{ card: 'strait-02', from: 8, to: 8 }];
     dealCard(content, again);
     expect(again.heats.LTL).toBe(2);
-    // Next week it works again (a WAR region falls to TENSE).
+    // Next week it works again (a WAR region falls to CRISIS).
     const next = withHeats(onDay(s, 11), { LTL: 3 });
     next.deck.queue = [{ card: 'strait-02', from: 11, to: 11 }];
     dealCard(content, next);
-    expect(next.heats.LTL).toBe(1);
+    expect(next.heats.LTL).toBe(2);
     // Not for a TENSE region (a plain card's news leaves it TENSE).
     const tense = withTeam(withHeats(onDay(newGame(content, 'q'), 6), { SHL: 1 }), ['hotline']);
     tense.deck.queue = [{ card: 'plain-shl', from: 6, to: 6 }];

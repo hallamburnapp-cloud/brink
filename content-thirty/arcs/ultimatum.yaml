@@ -25,7 +25,7 @@
   region: TRN
   day: [11, 28]
   text: "Two days are up. Tern Isle has two brigades and the Federation has four ships off its beach. Nobody has fired. Their captain and ours are talking by radio about the weather. I need an answer before dark."
-  left:  { text: Keep talking weather,  tag: RISKY, odds: 65, hint: "Holds 65% · if they land, Tern Isle and Morrow Downs heat", fail: { heats: MRD }, follow: ultimatum-04 }
+  left:  { text: Keep talking weather,  tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if not, Morrow Downs heats", fail: { heats: MRD }, follow: ultimatum-04 }
   right: { text: Fire a warning shot,   tag: FORCE, hint: "Danger down here · warns them off, heats Lantern Key", heats: LNK, mark: warned, follow: ultimatum-04 }
 
 - id: ultimatum-04
@@ -35,4 +35,4 @@
   day: [12, 30]
   text: "Lantern Key offers to put its own small flag on Tern Isle: beside ours, beside theirs, or alone. Their minister suggested it over tea. I have known her since she was six. It might work."
   left:  { text: Accept the Scatter flag, tag: CALM, hint: "Danger down · Tern Isle eases", relieve: TRN }
-  right: { text: "Decline, but kindly",    tag: HOME, hint: "Nothing changes abroad · she will ask again" }
+  right: { text: "Decline, but kindly",    tag: HOME, hint: "Danger unchanged · she will ask again" }

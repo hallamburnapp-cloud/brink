@@ -7,7 +7,7 @@
   day: [2, 14]
   text: Three of our satellites over Northwake went dark at three this morning. Could be weather. Could be a Federation jammer. We are blind over their main port for now.
   left:  { text: "Ask them, plainly",            tag: CALM,  hint: "Danger down · they may lie", follow: blackout-02 }
-  right: { text: Fly the reconnaissance planes, tag: RISKY, odds: 65, hint: "Holds 65% · if caught, Northwake heats", follow: blackout-03 }
+  right: { text: Fly the reconnaissance planes, tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if caught, Northwake heats", follow: blackout-03 }
 
 - id: blackout-02
   arc: satellite-blackout
@@ -16,7 +16,7 @@
   day: [3, 16]
   text: "Wintermast says our satellites failed on their own, and offers to sell us pictures of Northwake from theirs. It is an insult wrapped as a favour. In their pictures, the port is busier than last week."
   left:  { text: Buy the pictures,      tag: CALM,  hint: "Danger down · we see what they show us", follow: blackout-04 }
-  right: { text: Launch a replacement,  tag: RISKY, odds: 70, hint: "Holds 70% · if jammed too, Northwake heats", follow: blackout-04 }
+  right: { text: Launch a replacement,  tag: RISKY, odds: 70, hint: "Danger down if it works (70%) · if jammed, Northwake heats", follow: blackout-04 }
 
 - id: blackout-03
   arc: satellite-blackout
@@ -33,5 +33,5 @@
   region: NWK
   day: [4, 18]
   text: "The satellites are back. Northwake's troop ships have sailed, north, to an exercise. Probably. We lost four days of sight and I cannot tell you what moved in them."
-  left:  { text: Fund new satellites,          tag: HOME, hint: "Nothing changes abroad · the budget takes it" }
+  left:  { text: Fund new satellites,          tag: HOME, hint: "Danger unchanged · the budget takes it" }
   right: { text: Ask Wintermast where they went, tag: CALM, hint: "Danger down · they may even answer" }

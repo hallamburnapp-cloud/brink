@@ -4,18 +4,14 @@
  * may use the numbers; it never computes anything itself.
  */
 import type { Card, ThirtyContent } from '../content/types.ts';
-import { isAlarmCard, isTalks, optionsOf } from './cards.ts';
+import { isAlarmCard, isTalks, optionsOf, todayCard } from './cards.ts';
 import { hintLine, type HintInput } from './hint.ts';
 import { actOf, effectiveOdds, resolve, type Act } from './resolve.ts';
 import { dangerOf } from './rules.ts';
 import type { GameState, Preview, RegionId } from './types.ts';
 import { Working } from './working.ts';
 
-/** Today's card, or null when no card is on the table. */
-export function todayCard(content: ThirtyContent, state: GameState): Card | null {
-  if (!state.card) return null;
-  return content.cards[state.card.id] ?? null;
-}
+export { todayCard };
 
 /** The options the player has today ('left' and 'right', or the target regions), in card order. */
 export function todayOptions(content: ThirtyContent, state: GameState): Array<'left' | 'right' | RegionId> {
@@ -25,7 +21,7 @@ export function todayOptions(content: ThirtyContent, state: GameState): Array<'l
 
 export function preview(content: ThirtyContent, state: GameState, option: 'left' | 'right' | RegionId): Preview | null {
   if (state.phase !== 'choose' || !state.card) return null;
-  const card = content.cards[state.card.id];
+  const card = todayCard(content, state);
   if (!card) return null;
   const act = actOf(card, option);
   if (!act) return null;
@@ -66,6 +62,8 @@ export function previewAct(card: Card, state: GameState, act: Act): Preview {
     pieces: main.pieces,
     penalty: main.penalty,
     mark: act.mark ?? null,
+    missed: missed ? { danger: missed.danger, changes: missed.changes } : null,
+    map: card.map,
   });
 
   return {

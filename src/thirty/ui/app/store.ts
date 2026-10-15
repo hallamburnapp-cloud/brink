@@ -42,6 +42,8 @@ export const sweep = signal(false);
 export const chosen = signal<{ option: string; roll: string | null } | null>(null);
 /** Chips that changed today's outcome: they glow for a second. */
 export const glow = signal<PieceId[]>([]);
+/** The night's one line in the card ('The war in Highmarch spread to Edda Vale') and what DANGER did. */
+export const night = signal<{ text: string; delta: number } | null>(null);
 /** Bumps when a new card comes to the table, so it slides up. */
 export const cardKey = signal(0);
 /** The WAR ending's 2 px nudge. */

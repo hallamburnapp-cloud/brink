@@ -10,10 +10,13 @@ decisions do, and they stack. That building is the Balatro part, and it stays in
 on screen is DANGER.
 
 The game screen is exactly four things, top to bottom: the strip (DAY n OF 30 and the DANGER gauge), the map, the
-team row (hidden until you hold someone) and the card. Nothing else is ever drawn. A day plays in two beats so the
+team row (hidden until you hold someone) and the card. Nothing else is ever drawn. A day plays in three beats so the
 watcher can follow cause and effect: first what the button did (the map recolours, the needle slides, a `−7` floats
-that matches the hint just tapped), then, only when something happened, what the night did (war spreading, a crisis
-heating a neighbour, trouble flaring) with its own `+3`. `SPEC.md` is the design source; this file is the build.
+that matches the hint just tapped, the chips that fired glow); then, only when something happened, what the night did,
+in one plain sentence in the card under OVERNIGHT (`The war in Vessary spread to Edda Vale; trouble flared in
+Quillon.`) with its `DANGER +3` while the map recolours; then the next card, whose news recolours its region under the
+ring with a label (`SHOAL · NOW A CRISIS`) rather than a second floating number. `SPEC.md` is the design source;
+this file is the build.
 
 ## Files
 
@@ -66,10 +69,12 @@ npm run e2e:thirty                   # Playwright: builds with the hook, serves 
 
 `e2e/thirty.spec.ts` drives the game with real taps: the title, the two explanation screens, day 1 (and that the
 screen is exactly four things), a calming choice (the hint says Danger down, the region cools, the gauge falls,
-the delta floats), a heating choice, a map day by tapping a glowing place on the canvas, a risky choice (the odds on
-the hint line, the roll's result on it), the team offer and a pick (the chip, its rule), the save and CONTINUE, the
-menu (the button, Esc, the phone's back button), QUIT TO TITLE, the three endings with PLAY AGAIN / REPLAY THIS
-SEED / HOME, determinism (the same seed and choices hash the same twice in the browser and in Node), and a desktop
+the delta floats), a heating choice (and the OVERNIGHT line with the night's sentence and its `DANGER +N`), a map day
+by tapping a glowing place on the canvas (the places chosen from the live map, labelled DANGER first), a risky choice
+(the odds on the hint line, `It worked · …` / `It failed · …` on it), the team offer and a pick (the chip, its rule,
+tapping the rule closes it), the save and CONTINUE, the menu (the button, Esc, the phone's back button), QUIT TO
+TITLE, the three endings with PLAY AGAIN / SAME WORLD AGAIN / HOME (a WAR ending names a region that is red on the
+final map), determinism (the same seed and choices hash the same twice in the browser and in Node), and a desktop
 window. Every test fails on a console error, an uncaught exception or a request that leaves the page's origin.
 `THIRTY_E2E_DEV=1` runs the tests against the dev server; `THIRTY_E2E_PORT` moves the port.
 
@@ -84,7 +89,7 @@ python3 tools/thirty-page.py dist-thirty-page <out>   # <out>/thirty-days.html a
 `dist-thirty/index.html` can be served from any static host or sub-path (`BRINK_BASE` sets the base; the scripts
 use `./`). The page build is for an embedded artifact page: `thirty-days.html` is the head and body without the
 document skeleton (title `BRINK: Thirty Days`), `files.json` maps every asset the page loads to its file on disk.
-The build is about 520 KB (29 precached files, fonts included); its scripts and styles are 95 KB gzipped on the wire.
+The build is about 540 KB (29 precached files, fonts included); its scripts and styles are 95 KB gzipped on the wire.
 
 ## Balance
 
@@ -102,23 +107,25 @@ log of what was tried. See the "Known issues" below for where the gates stand on
 | `t-02-explain-1`, `t-03-explain-2` | The explanation over the live map: the two lines, the colour key; the team line with three empty places. |
 | `t-04-day1` | Day 1: the strip, the map with today's region ringed, the card with two buttons and their hints. |
 | `t-05-choice-hint` | The same day with two pieces held: the engine writes the hint (`Danger down · calms 2 regions`). |
-| `t-06-after-calm` | 700 ms after a calming tap: the region blue, the needle at 4, `−7` floating, the chips glowing. |
-| `t-07-after-heat` | After escorting the tankers: Lintel amber, `+2` floating (the choice's own change; the night's follows as a second beat). |
+| `t-06-after-calm` | 700 ms after a calming tap: the region blue, the needle lower, `−7` floating, the chips glowing. |
+| `t-07-after-heat` | The night beat after a choice: the OVERNIGHT line in the card says what happened and `DANGER +N`, the map recolouring under it. |
 | `t-08-map-day` | A map day: three glowing places with one-line labels; the card says what to tap. |
 | `t-09-team-offer` | After day 5: three people, each with its rule, and NO ONE THIS TIME. |
 | `t-10-team-row` | Three chips held; the hints count the regions a choice reaches. |
-| `t-11-risky` | A risky choice after its roll: `Held` on the hint line. |
+| `t-11-risky` | A risky choice after its roll: `It worked · Danger down, …` on the hint line of the pressed button. |
 | `t-12-stand-down`, `t-13-held`, `t-14-war` | The three endings: two lines of story, the final map, the three buttons. |
 | `t-15-menu` | RESUME, HOW TO PLAY, SOUND, QUIT TO TITLE. |
 | `t-16-desktop` | The frame letterboxed on the table in a desktop window. |
 
 ## Known issues
 
-- The balance gates G1 (random choices hold in under 10% of games) and G2 (the sensible bot holds in 55 to 70%)
-  sit on their thresholds and come out either side of them depending on the seed set; the other six pass on every
-  run. `ENGINE.md` "Tuning log" has the figures and what each lever did.
+- The balance gates G1 (random choices hold in under 10% of games), G2 (the sensible bot holds in 55 to 70%), G3
+  (stands down early in 15 to 30%) and G8 (the gauge passes 60 in half the sensible games) all pass on
+  `npm run sim:thirty` (seeds T) and on two of three independent 4,000-game sets, but each sits within about a point
+  of its line (G8 reads 49.7% on seeds T0–T3999). `ENGINE.md` "Results" and "Tuning log" item 13 have the figures and
+  what each lever did; the gates are coupled by things the spec fixes, so another seed set can tip one of them.
 - When pieces change what a button does, the engine's hint replaces the whole authored line (`Danger down · calms
-  2 regions`) rather than only its DANGER clause, so the authored flavour clause is lost on those days.
+  Shoal and 2 more`) rather than only its DANGER clause, so the authored flavour clause is lost on those days.
 - The team row drops the chips' icons when five are held, so the row fits 390 pt.
 - Audio, the phone's back button and real safe-area insets are covered by logic tests and the e2e, not heard or
   felt on a device here.

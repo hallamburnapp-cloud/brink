@@ -6,7 +6,8 @@
  */
 import type { Card, ChoiceTag, Consequence, Follow, MapTarget, RegionId } from '../content/types.ts';
 import { isAlarmCard, isTalks } from './cards.ts';
-import { CRISIS, RULES, TENSE, WAR } from './rules.ts';
+import { rollText } from './hint.ts';
+import { CRISIS, RULES } from './rules.ts';
 import type { DealtCard } from './types.ts';
 import { HOME_CAPITAL, forceTarget, hotNeighbours, hottestFirst, isSea, neighboursOf, regionName, REGION_IDS } from './world.ts';
 import type { Working } from './working.ts';
@@ -75,7 +76,7 @@ export function holds(w: Working, card: Card, dealt: DealtCard, act: Act): boole
   return dealt.roll * 100 < (act.odds ?? 0);
 }
 
-/** 'Missed by 4%': how far the roll fell past the odds, at least 1. */
+/** How far a missed roll fell past the odds, at least 1 (for the log; the player reads `It failed · ...`). */
 export function missedBy(roll: number, odds: number): number {
   return Math.max(1, Math.ceil(roll * 100 - odds));
 }
@@ -88,6 +89,9 @@ export function resolve(w: Working, card: Card, dealt: DealtCard, act: Act, forc
   const follows: Follow[] = [];
   const out: Resolution = { held: null, odds: null, certain: false, home: false, follows, forced: null };
   const alarm = isAlarmCard(card);
+  const dangerBefore = w.danger();
+  /** The roll step to caption once the choice is complete, and the index its own heat steps start at. */
+  let roll: { at: number; from: number } | null = null;
 
   const consequences = (c: Consequence | undefined, skipHeats: boolean) => {
     if (!c) return;
@@ -153,8 +157,10 @@ export function resolve(w: Working, card: Card, dealt: DealtCard, act: Act, forc
       const held = force ? force === 'held' : holds(w, card, dealt, act);
       out.held = held;
       if (!force) {
-        w.steps.push({ kind: 'roll', odds, roll: dealt.roll, held, text: held ? 'Held' : `Missed by ${missedBy(dealt.roll, odds)}%` });
+        const at = w.steps.length;
+        w.steps.push({ kind: 'roll', odds, roll: dealt.roll, held, text: '' });
         if (alarm) w.steps.push({ kind: 'alarm', false: dealt.alarmFalse });
+        roll = { at, from: w.steps.filter((x) => x.kind === 'heat').length };
       }
       if (held) {
         w.cool(acted, RULES.riskyCool, 'choice');
@@ -176,8 +182,10 @@ export function resolve(w: Working, card: Card, dealt: DealtCard, act: Act, forc
   if (alarm && dealt.alarmFalse && w.has('launch-on-warning') && w.warned.has(acted)) {
     w.addPenalty(RULES.falseAlarmPenalty, 'launch-on-warning', acted, `A false alarm over ${regionName(acted)}`);
   }
+  // The line after the tap says what the roll did, in the hint's own words, once everything it did is known.
+  if (roll) {
+    const step = w.steps[roll.at];
+    if (step.kind === 'roll') step.text = rollText(out.held === true, w.changes().slice(roll.from), acted, w.danger() - dangerBefore);
+  }
   return out;
 }
-
-/** Heat names for the hint and the trace. */
-export const HEAT_WORD: Readonly<Record<number, string>> = { 0: 'calm', [TENSE]: 'tense', [CRISIS]: 'in crisis', [WAR]: 'at war' };

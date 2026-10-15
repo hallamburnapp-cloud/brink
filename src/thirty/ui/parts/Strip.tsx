@@ -7,8 +7,10 @@ import type { JSX } from 'preact';
 import { openMenu } from '../app/actions';
 import { R, rectStyle } from '../app/layout';
 import { delta, needle, shown, sweep } from '../app/store';
-import { deltaText, gaugeColour, needleX, numberX } from './gauge';
+import { deltaText, deltaX, gaugeColour, needleX, numberPlace } from './gauge';
 import { Glyph } from './icons';
+
+const SHIFT = { start: '0', middle: '-50%', end: '-100%' } as const;
 
 export function Strip(): JSX.Element {
   const s = shown.value;
@@ -16,6 +18,8 @@ export function Strip(): JSX.Element {
   const d = needle.value;
   const colour = gaugeColour(d);
   const fl = delta.value;
+  const place = numberPlace(d);
+  const text = fl ? deltaText(fl.n) : '';
   return (
     <div class="strip abs" style={rectStyle(R.strip)}>
       <button class="menu-btn abs" style={rectStyle([R.menu[0], R.menu[1] - R.strip[1], R.menu[2], R.menu[3]])} onClick={openMenu} aria-label="Menu">
@@ -30,12 +34,12 @@ export function Strip(): JSX.Element {
           <div class="gauge-fill" style={{ width: `${needleX(d)}px` }} />
           <div class="gauge-needle" style={{ left: `${needleX(d)}px`, background: colour }} />
         </div>
-        <div class="gauge-number num" style={{ left: `${numberX(d)}px`, color: colour }}>
+        <div class="gauge-number num" style={{ left: `${place.x}px`, transform: `translateX(${SHIFT[place.anchor]})`, color: colour }}>
           {d}
         </div>
         {fl && (
-          <div key={fl.key} class={`gauge-delta num ${fl.n < 0 ? 'down' : 'up'}`} style={{ left: `${numberX(d) + (fl.n < 0 ? -34 : 30)}px` }} aria-live="polite">
-            {deltaText(fl.n)}
+          <div key={fl.key} class={`gauge-delta num ${fl.n < 0 ? 'down' : 'up'}`} style={{ left: `${deltaX(d, text)}px` }} aria-live="polite">
+            {text}
           </div>
         )}
       </div>

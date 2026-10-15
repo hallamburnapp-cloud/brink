@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ISLAND_R, MAP_H, MAP_W, REGION, REGIONS } from './data';
 import { FxState, schedule } from './fx';
 import { computeGeometry, hitTest, regionAt } from './geometry';
-import { LABEL_H, placeLabels, ringRadius } from './layers/marks';
+import { flagBox, LABEL_H, placeLabels, ringRadius } from './layers/marks';
 import { CALM, CRISIS, heatTone, luminance, TENSE, WAR } from './palette';
 
 describe('the map data, fitted to 390 x 400', () => {
@@ -44,11 +44,13 @@ describe('the geometry', () => {
 });
 
 describe('the four heats', () => {
-  it('are distinct, TENSE the brightest, WAR the only hatched one', () => {
+  it('are distinct, TENSE the brightest, CRISIS a clear step darker, WAR the only hatched one', () => {
     const l = [CALM, TENSE, CRISIS, WAR].map(luminance);
     expect(new Set(l.map((v) => v.toFixed(3))).size).toBe(4);
     expect(l[1]).toBeGreaterThan(l[2]);
     expect(l[2]).toBeGreaterThan(l[0]);
+    // Amber and the crisis colour must not read as one family: a luminance gap of 45 on the 0-255 scale.
+    expect((l[1] - l[2]) * 255).toBeGreaterThanOrEqual(45);
     expect(heatTone(3).hatch).not.toBeNull();
     expect(heatTone(0).hatch).toBeNull();
     expect(heatTone(1).hatch).toBeNull();
@@ -137,6 +139,32 @@ describe('the labels on the map', () => {
     // Iceward sits near the bottom edge: its label goes above the ring.
     const icw = labels.find((l) => l.id === 'ICW')!;
     expect(icw.y).toBeLessThan(REGION.ICW.y);
+    // Labels keep 8 px from the map's edges.
+    for (const l of labels) {
+      expect(l.x - l.w / 2).toBeGreaterThanOrEqual(8);
+      expect(l.x + l.w / 2).toBeLessThanOrEqual(MAP_W - 8);
+    }
+  });
+
+  it('put a target\'s label on the side away from the map\'s centre, and never over the flag', () => {
+    const flag = flagBox('EDV')!;
+    const labels = placeLabels(
+      [
+        { id: 'VSY', text: 'Danger unchanged · Vessary guarded for a week', target: true },
+        { id: 'MRD', text: 'Danger down · Morrow Downs calms', target: true },
+        { id: 'EDV', text: 'Danger down · Edda Vale calms', target: true },
+      ],
+      measure,
+      [flag],
+    );
+    for (const l of labels) {
+      const box = { x0: l.x - l.w / 2, y0: l.y - LABEL_H / 2, x1: l.x + l.w / 2, y1: l.y + LABEL_H / 2 };
+      const over = Math.min(box.x1, flag.x1) - Math.max(box.x0, flag.x0) > 0 && Math.min(box.y1, flag.y1) - Math.max(box.y0, flag.y0) > 0;
+      expect(over).toBe(false);
+    }
+    // Vessary is in the top half: its label goes above; Morrow Downs in the bottom half: below.
+    expect(labels.find((l) => l.id === 'VSY')!.y).toBeLessThan(REGION.VSY.y);
+    expect(labels.find((l) => l.id === 'MRD')!.y).toBeGreaterThan(REGION.MRD.y);
   });
 
   it('rings hug their region and stay on the map', () => {

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { loadThirtyContent } from '../src/thirty/content/load';
 import type { ThirtyContent } from '../src/thirty/content/types';
-import { choose, danger, newGame, pick, preview, tapRegion, todayCard, type DealtCard, type GameState } from '../src/thirty/engine';
+import { choose, danger, newGame, nightDelta, nightLine, pick, preview, regionName, tapRegion, todayCard, type DealtCard, type GameState } from '../src/thirty/engine';
 import type { ThirtyHook } from '../src/thirty/ui/app/devHook';
 
 /**
@@ -55,6 +55,8 @@ const { content } = loadThirtyContent();
 // ---------------------------------------------------------------- helpers
 
 const PREFS_KEY = 'brink.thirty.v1.prefs';
+/** The explanation's first line (src/thirty/ui/parts/CardArea.tsx LINES.one). */
+const LINE_ONE = 'The world is sliding towards war. You lead the Republic, the flag on the map. Each day, one decision.';
 
 /**
  * Load the title and wait for the hook. 'new' is a first launch (PLAY opens the explanation);
@@ -154,6 +156,49 @@ function seedWith(name: string, tag: string, direction: 'down' | 'up'): { seed: 
   throw new Error(`no seed with a ${tag} day 1 that moves DANGER ${direction}`);
 }
 
+/**
+ * The first seed (E2E-<name>-n) whose day 1, played on the left button, has a night that changed
+ * something: the OVERNIGHT line and its DANGER +N, as the engine words them.
+ */
+function seedWithNight(name: string): { seed: string; line: string; delta: number } {
+  for (let n = 0; n < 200; n++) {
+    const s = `E2E-${name}-${n}`;
+    const g = newGame(content, s);
+    if (todayCard(content, g)?.map) continue;
+    const r = choose(content, g, 'left');
+    if (!r.ok) continue;
+    const trace = r.state.log[0];
+    const line = nightLine(trace);
+    if (line && nightDelta(trace) > 0) return { seed: s, line, delta: nightDelta(trace) };
+  }
+  throw new Error('no seed whose first night changed anything');
+}
+
+/**
+ * A game played by the fixed policy until the engine deals a map card (within `days`), so the test
+ * sees the places the engine chose from the live map. Searches seeds E2E-<name>-n.
+ */
+function stateAtMapDay(name: string, days: number): GameState {
+  for (let n = 0; n < 200; n++) {
+    let s = newGame(content, `E2E-${name}-${n}`);
+    while (s.phase !== 'over' && s.day <= days) {
+      if (s.phase === 'offer') {
+        const r = pick(content, s, 0);
+        if (!r.ok) break;
+        s = r.state;
+        continue;
+      }
+      const card = todayCard(content, s);
+      if (!card) break;
+      if (card.map && s.card?.targets?.length) return s;
+      const r = card.map ? tapRegion(content, s, card.targets[0].region) : choose(content, s, 'left');
+      if (!r.ok) break;
+      s = r.state;
+    }
+  }
+  throw new Error(`no map day dealt within ${days} days on 200 seeds`);
+}
+
 /** FNV-1a over the state's JSON: the same function runs in Node and in the page. */
 function hashState(s: unknown): string {
   const text = JSON.stringify(s);
@@ -201,7 +246,7 @@ test('the title, the explanation and day 1 with real taps; the game screen is ex
   // PLAY: the explanation, over the live map.
   await page.getByRole('button', { name: 'PLAY', exact: true }).tap();
   await expect(page.locator('.offer-title')).toHaveText('HOW TO PLAY');
-  await expect(page.getByText('The world is sliding towards war. You lead the Republic. Each day, one decision.')).toBeVisible();
+  await expect(page.getByText(LINE_ONE)).toBeVisible();
   await expect(page.getByText('Keep DANGER below 100 for thirty days. Calm the whole map and the crisis ends early.')).toBeVisible();
   await expect(page.locator('.map canvas')).toBeVisible();
   await page.getByRole('button', { name: 'NEXT' }).tap();
@@ -297,6 +342,59 @@ test('a heating choice: the hint says Danger up, the neighbour heats and the gau
   expect(await gaugeValue(page)).toBe(danger(after));
 });
 
+test('the night has words: the OVERNIGHT line says what happened and what DANGER did, in the engine\'s own sentence', async ({ page }) => {
+  const want = seedWithNight('NIGHT');
+  await open(page);
+  await seed(page, want.seed);
+  await choice(page, 'left').tap();
+  // After the choice's own beat the buttons give way to the night's line, held long enough to read.
+  const night = page.locator('.night-line');
+  await expect(night).toBeVisible({ timeout: 6_000 });
+  await expect(night.locator('.night-label')).toHaveText('Overnight');
+  await expect(night.locator('.night-text')).toHaveText(want.line);
+  await expect(night.locator('.night-delta')).toHaveText(`DANGER +${want.delta}`);
+  await expect(page.locator('.card .choice')).toHaveCount(0);
+  await settle(page);
+  const after = await state(page);
+  expect(after.day).toBe(2);
+  expect(nightLine(after.log[0])).toBe(want.line);
+  await expect(page.locator('.night-line')).toHaveCount(0);
+  await expect(page.locator('.card .choice')).toHaveCount(2);
+});
+
+test('a map day dealt by the engine: the places come from the live map, labelled DANGER first, and the card repeats the label', async ({ page }) => {
+  const at = stateAtMapDay('LIVEMAP', 20);
+  await open(page);
+  await seed(page, at.seed);
+  await set(page, at);
+  const card = todayCard(content, at);
+  if (!card?.map) throw new Error('a map card is on the table');
+  const targets = at.card!.targets!;
+  expect(targets.length).toBeGreaterThanOrEqual(2);
+  await expect(page.locator('.card .choice')).toHaveCount(0);
+  const named = page.locator('.tap-line .hint');
+  let lowering = 0;
+  for (const t of targets) {
+    await expect(named).toContainText(regionName(t.region));
+    const p = preview(content, at, t.region)!;
+    // Every place is labelled by the engine, DANGER first, and the dealt label is that line.
+    expect(p.hint).toMatch(/^Danger (down|up|unchanged)/);
+    expect(t.hint).toBe(p.hint);
+    if (p.dangerAfter < p.dangerBefore) lowering++;
+  }
+  // The card was dealt only because at least two places lower DANGER: a real choice.
+  expect(lowering).toBeGreaterThanOrEqual(2);
+
+  const pickT = targets.find((t) => preview(content, at, t.region)!.dangerAfter < preview(content, at, t.region)!.dangerBefore)!;
+  await tapMap(page, pickT.region);
+  // The card repeats the tapped place's label while the day plays.
+  await expect(page.locator('.tap-line.picked .action')).toHaveText(regionName(pickT.region), { timeout: 5_000 });
+  await expect(page.locator('.tap-line.picked .hint')).toHaveText(pickT.hint);
+  await settle(page);
+  const after = await state(page);
+  expect(after.log[after.log.length - 1].choice).toEqual({ tapped: pickT.region });
+});
+
 test('a map day: the card says to tap, the glowing place is tapped on the map and the day plays', async ({ page }) => {
   await open(page);
   await seed(page, 'E2E-MAP');
@@ -339,13 +437,16 @@ test('a risky choice: the hint shows the odds, the roll\'s result shows on the h
   await expect(choice(page, 'left').locator('.hint')).toHaveText(p!.hint);
 
   await choice(page, 'left').tap();
-  // After the needle's sweep the result stands on the hint line for a second.
-  await expect(choice(page, 'left').locator('.hint')).toHaveText(/^Held$|^Missed by \d+%$/, { timeout: 5_000 });
+  // After the needle's sweep the result stands on the hint line for a second, DANGER first, in the engine's words.
+  const result = /^It (worked|failed) · Danger (down|up|unchanged)/;
+  await expect(choice(page, 'left').locator('.hint')).toHaveText(result, { timeout: 5_000 });
+  const shownResult = await choice(page, 'left').locator('.hint').textContent();
   await settle(page);
   const after = await state(page);
   const trace = after.log[after.log.length - 1];
   const roll = trace.steps.find((st) => st.kind === 'roll');
   expect(roll && roll.kind === 'roll' && roll.odds === p!.odds).toBeTruthy();
+  expect(roll && roll.kind === 'roll' && roll.text).toBe(shownResult);
   expect(after.day).toBe(10);
 });
 
@@ -377,10 +478,12 @@ test('the team offer: three people, one taken, the chip in the row and its rule 
   await expect(page.locator('.table > *')).toHaveCount(4);
   const chips = page.locator('.team .chip');
   await expect(chips).toHaveCount(1);
-  await expect(chips.nth(0)).toHaveText(content.pieces['old-ambassador'].chip);
+  // One chip: the whole name fits the row, so it is shown rather than the one-word chip name.
+  await expect(chips.nth(0)).toHaveText(content.pieces['old-ambassador'].name.toUpperCase());
   await chips.nth(0).tap();
   await expect(page.locator('.team.rule .rule-text')).toHaveText(content.pieces['old-ambassador'].rule);
   await page.locator('.team.rule').tap();
+  await expect(page.locator('.team.rule')).toHaveCount(0);
   await expect(chips).toHaveCount(1);
 
   // The hint line shows the piece at work before the choice, in words.
@@ -439,7 +542,7 @@ test('the menu: the ≡ button, Esc and the back button open it; QUIT TO TITLE a
   // HOW TO PLAY from the menu replays the explanation over the game, and BEGIN DAY 1 finds the game.
   await page.getByRole('button', { name: 'Menu' }).tap();
   await menu.getByRole('button', { name: 'HOW TO PLAY' }).tap();
-  await expect(page.getByText('The world is sliding towards war. You lead the Republic. Each day, one decision.')).toBeVisible();
+  await expect(page.getByText(LINE_ONE)).toBeVisible();
   await page.getByRole('button', { name: 'SKIP' }).tap();
   await expect(page.locator('.card .choice')).toHaveCount(2);
 
@@ -455,15 +558,26 @@ test('the menu: the ≡ button, Esc and the back button open it; QUIT TO TITLE a
   await expect(page.getByRole('button', { name: /^CONTINUE/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /^CONTINUE/ })).toContainText('Day 1 of 30');
   expect(await page.evaluate(() => window.__thirty!.state())).toBeNull();
+
+  // HOW TO PLAY from the title: the two screens end on DONE, which returns to the title; no game begins or resumes.
+  await page.getByRole('button', { name: 'HOW TO PLAY' }).tap();
+  await expect(page.locator('.offer-title')).toHaveText('HOW TO PLAY');
+  await expect(page.getByText(LINE_ONE)).toBeVisible();
+  await page.getByRole('button', { name: 'NEXT' }).tap();
+  await expect(page.getByRole('button', { name: 'BEGIN DAY 1' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'DONE' }).tap();
+  await expect(page.locator('.title-name')).toHaveText('BRINK');
+  await expect(page.getByRole('button', { name: /^CONTINUE/ })).toBeVisible();
+  expect(await page.evaluate(() => window.__thirty!.state())).toBeNull();
 });
 
 // ---------------------------------------------------------------- the endings
 
-test('the three endings: WAR, STAND-DOWN and HELD, with PLAY AGAIN, REPLAY THIS SEED and HOME', async ({ page }) => {
+test('the three endings: WAR, STAND-DOWN and HELD, with PLAY AGAIN, SAME WORLD AGAIN and HOME', async ({ page }) => {
   await open(page);
   const g = await seed(page, 'E2E-END');
   const endButtons = async () => {
-    for (const name of ['PLAY AGAIN', 'REPLAY THIS SEED', 'HOME']) await expect(page.getByRole('button', { name })).toBeVisible();
+    for (const name of ['PLAY AGAIN', 'SAME WORLD AGAIN', 'HOME']) await expect(page.getByRole('button', { name })).toBeVisible();
   };
 
   // WAR: seven regions at war and three in crisis read 99; the night's spread tips it.
@@ -480,27 +594,31 @@ test('the three endings: WAR, STAND-DOWN and HELD, with PLAY AGAIN, REPLAY THIS 
   await expect(page.locator('.end-title')).toHaveText('War.');
   await expect(page.locator('.card .end-line')).toHaveCount(2);
   await expect(page.locator('.card .end-line').nth(0)).toContainText('day 17');
+  // The story and the map agree: the region named is red on the final map.
+  if (s.ending?.kind !== 'WAR') throw new Error('a WAR ending');
+  expect(s.heats[s.ending.region]).toBe(3);
+  await expect(page.locator('.card .end-line').nth(0)).toContainText(regionName(s.ending.region));
   expect(await gaugeValue(page)).toBe(100);
   await endButtons();
-  await page.getByRole('button', { name: 'REPLAY THIS SEED' }).tap();
+  await page.getByRole('button', { name: 'SAME WORLD AGAIN' }).tap();
   await settle(page);
   s = await state(page);
   expect(s.seed).toBe('E2E-END');
   expect(s.day).toBe(1);
   expect(s.phase).toBe('choose');
 
-  // STAND-DOWN: one tense region left, calmed on day 8.
+  // STAND-DOWN: one tense region left, calmed on day 12 (a calm map counts from RULES.standDownFromDay, 10).
   const standHeats = calmMap(g);
   standHeats.NWK = 1;
-  await set(page, { phase: 'choose', offer: null, ending: null, day: 8, team: [], penalty: 0, heats: standHeats, card: dealt('northwake-02', 'NWK') });
+  await set(page, { phase: 'choose', offer: null, ending: null, day: 12, team: [], penalty: 0, heats: standHeats, card: dealt('northwake-02', 'NWK') });
   expect(await gaugeValue(page)).toBe(2);
   await expect(choice(page, 'right').locator('.hint')).toHaveText(/^Danger down/);
   await choice(page, 'right').tap();
   await settle(page);
   s = await state(page);
-  expect(s.ending).toEqual({ kind: 'STAND-DOWN', day: 8, danger: 0 });
+  expect(s.ending).toEqual({ kind: 'STAND-DOWN', day: 12, danger: 0 });
   await expect(page.locator('.end-title')).toHaveText('The world stands down.');
-  await expect(page.locator('.card .end-line').nth(0)).toContainText('day 8');
+  await expect(page.locator('.card .end-line').nth(0)).toContainText('day 12');
   expect(await gaugeValue(page)).toBe(0);
   await endButtons();
   await page.getByRole('button', { name: 'PLAY AGAIN' }).tap();

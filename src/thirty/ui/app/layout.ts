@@ -42,9 +42,9 @@ export function rectStyle(r: Rect): { left: string; top: string; width: string; 
 /**
  * How the frame meets the window. 'device': a phone that reports safe-area insets (an installed
  * app, a notch); the status band (0-47) and the home band (807-844) sit under the OS chrome.
- * 'browser': a phone browser with no insets (its own toolbars take the edges); only the live area
- * (47-807) is fitted, edge to edge. 'desk': a desktop window; the live area is fitted with a
- * margin of table around it.
+ * 'browser': a phone browser with no insets (its own toolbars take the edges); the live area
+ * (47-807) plus BREATH px of the status band is fitted, edge to edge. 'desk': a desktop window; the
+ * same is fitted with a margin of table around it.
  */
 export type FitMode = 'device' | 'browser' | 'desk';
 
@@ -56,6 +56,8 @@ export interface Insets {
 }
 
 const NO_INSETS: Insets = { top: 0, bottom: 0, left: 0, right: 0 };
+/** Frame px of the status band kept above the strip when no OS chrome covers it. */
+export const BREATH = 8;
 
 /**
  * Uniform scale that fits the frame in a window, plus the frame's top-left. In 'device' mode, if
@@ -67,9 +69,12 @@ export function fitFrame(winW: number, winH: number, insets: Insets = NO_INSETS,
   const bottomBand = R.home[3];
   const live = FRAME_H - topBand - bottomBand;
   if (mode !== 'device') {
+    // The live area plus a little of the status band, so the strip is not cramped against the edge.
+    const keep = Math.min(BREATH, topBand);
+    const shown = live + keep;
     const margin = mode === 'desk' ? 16 : 0;
-    const s = Math.max(0.1, Math.min((winW - 2 * margin) / FRAME_W, (winH - 2 * margin) / live));
-    return { scale: s, left: (winW - FRAME_W * s) / 2, top: (winH - live * s) / 2 - topBand * s };
+    const s = Math.max(0.1, Math.min((winW - 2 * margin) / FRAME_W, (winH - 2 * margin) / shown));
+    return { scale: s, left: (winW - FRAME_W * s) / 2, top: (winH - shown * s) / 2 - (topBand - keep) * s };
   }
   const availW = Math.max(1, winW - insets.left - insets.right);
   let scale = Math.min(availW / FRAME_W, winH / FRAME_H);

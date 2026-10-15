@@ -22,21 +22,23 @@ export type {
 } from './types.ts';
 
 // Actions.
-export { choose, danger, draft, endingAfter, newGame, pick, startingHeats, tapRegion } from './run.ts';
+export { choose, danger, draft, endingAfter, newGame, pick, startingHeats, tapRegion, warRegion } from './run.ts';
 // Before the choice.
 export { preview, previewAct, todayCard, todayOptions } from './preview.ts';
 export { actOf, effectiveOdds, holds, missedBy, resolve } from './resolve.ts';
 export type { Act, Resolution } from './resolve.ts';
-export { composeHint, fit, hintLine, isPlain } from './hint.ts';
+export { composeHint, fit, hintLine, isPlain, rollText, worldClauses } from './hint.ts';
 export type { HintInput } from './hint.ts';
+// Plain lines for the beats between a tap and the next card.
+export { listNames, nightDelta, nightLine, nightSteps } from './words.ts';
 // The deck and the team.
-export { availablePieces, dealCard, drawOffer, fits, hasRedLineCard, hottestRegion, queueFollows, selectCard, starvingRegions } from './deck.ts';
-export { KNOWN_ALARMS, isAlarmCard, isTalks, optionsOf, riskyOdds } from './cards.ts';
+export { availablePieces, dealCard, drawOffer, fits, hasRedLineCard, hottestRegion, queueFollows, resolveTargets, selectCard, starvingRegions } from './deck.ts';
+export { isAlarmCard, isTalks, optionsOf, riskyOdds } from './cards.ts';
 // The end of the day.
 export { pressure } from './pressure.ts';
 export { Working } from './working.ts';
 // Numbers and the map.
-export { CALM, CRISIS, HEATS, HEAT_NAME, RULES, TENSE, WAR, clampHeat, dangerOf, isOfferDay, mapDanger, weekOf } from './rules.ts';
+export { CALM, CRISIS, HEATS, HEAT_NAME, RULES, TENSE, WAR, clampHeat, crisisPressureAt, dangerOf, flareAt, isOfferDay, mapDanger, tensePressureAt, warFromCrisisAt, weekOf } from './rules.ts';
 export {
   HOME_BLOC,
   HOME_CAPITAL,

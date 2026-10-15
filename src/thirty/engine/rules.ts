@@ -14,8 +14,12 @@ export const RULES = {
   /** Spec: DANGER = 2 x TENSE + 5 x CRISIS + 12 x WAR, capped at 100. */
   dangerPer: [0, 2, 5, 12] as const,
   dangerCap: 100,
-  /** Spec: a STAND-DOWN needs DANGER 0 at the end of a day from this day on. */
-  standDownFromDay: 5,
+  /**
+   * Ruling: a STAND-DOWN needs DANGER 0 after the choice from this day on. The spec says "after day 5";
+   * the playtests found a day-6 win over a map that was never in danger read as a bug, so the crisis
+   * must have run ten days before it can be over (ENGINE.md "Tuning", item 9).
+   */
+  standDownFromDay: 10,
   /** Spec: a HELD under this is a clean hold. */
   cleanHoldUnder: 20,
   /** Spec: the team offer comes after these days. */
@@ -42,27 +46,56 @@ export const RULES = {
    * value (linear). The spec's one in three is the CRISIS odds at the start.
    */
   crisisPressureStart: 1 / 3,
-  crisisPressureEnd: 1 / 3,
-  /** Tunable: the chance a TENSE region boils over on its own at night, at the start and the end (0 = off). */
+  crisisPressureEnd: 0.45,
+  /**
+   * Tunable: the chance a TENSE region boils over on its own at night, at the start and the end (0 = off).
+   * This is the number that makes the month slide at all: with the boil confined to regions beside a
+   * crisis, random choices held in 40% of games at any rate (ENGINE.md "Tuning", item 13).
+   */
   tensePressureStart: 0,
-  tensePressureEnd: 0.07,
-  /** Tunable: flares. The expected number of CALM regions that turn TENSE each night, at the start and the end (0 = off). */
-  flareStart: 0.3,
-  flareEnd: 4,
+  tensePressureEnd: 0.05,
+  /**
+   * Tunable: flares. The expected number of CALM regions that turn TENSE each night, at the start and
+   * the end (0 = off). Kept low: the slide is meant to come from the red and orange the player can see
+   * (spread, the crisis-to-war push below), not from trouble starting at random. A region the choice
+   * cooled today never flares the same night (the day's work is not undone before morning).
+   */
+  flareStart: 1.2,
+  flareEnd: 3.6,
   /** Tunable: the shape of the flare ramp: 1 is linear, 2 keeps the middle of the month quieter and the end as hot. */
-  flareCurve: 1.25,
-  /** Tunable (piece reach): how many steps the Hotline calms a crisis card by on arrival (2: the crisis ends). */
-  hotlineCool: 2,
+  flareCurve: 2,
+  /**
+   * Tunable: from this day a CRISIS region that borders another CRISIS region may push it to WAR at
+   * night, with a chance rising from 0 on that day to `warFromCrisisEnd` on day 30. This is where red
+   * comes from when the player leaves two crises side by side; a lone crisis never turns red on its own.
+   */
+  warFromCrisisDay: 10,
+  warFromCrisisEnd: 0.12,
+  /**
+   * Tunable (piece reach): how many steps the Hotline calms a crisis card by on arrival. One: the crisis
+   * ends (CRISIS becomes TENSE) and the card still has something for the player to do.
+   */
+  hotlineCool: 1,
   /** Tunable (piece reach): how many steps the Loyal Admiral cools each neighbouring sea region by (2: as much as the force itself). */
   admiralCool: 2,
   /** Spec: each WAR region heats one CALM or TENSE neighbour every night. */
   warSpreads: 1,
-  /** Ruling: a CRISIS region's pressure may push a CRISIS neighbour to WAR (true) or only reach CALM/TENSE ones (false). */
-  crisisPressureReachesCrisis: false,
-  /** Tunable: the chance of a map card on a day when one fits (spec: about one in five). */
-  mapDayChance: 1 / 5,
-  /** Spec: a CRISIS or WAR region gets a card within this many days. */
+  /**
+   * Tunable: the chance of a map card on a day when one fits ("sometimes a tap on the map"). One in six: a
+   * map day is kind to careless play (two of its three places lower DANGER, so a random tap is usually
+   * right), and one in five left random choices holding in just over 10% of games (ENGINE.md item 13).
+   */
+  mapDayChance: 1 / 6,
+  /** Ruling: a map card is dealt only when at least this many of its places would lower DANGER (no days of no-ops). */
+  mapTargetsLowering: 2,
+  /** Spec: a CRISIS region gets a card within this many days. */
   hotCardWithin: 2,
+  /**
+   * Ruling: a WAR region gets its card within this many days, like a crisis (the spec's two), so red can be
+   * answered (it cools only through a choice). Next-day cards for red were a hand to the careless player,
+   * who has red in four games of five (ENGINE.md item 13).
+   */
+  warCardWithin: 2,
   /** Draw weight of a card by its region's heat (CALM, TENSE, CRISIS, WAR). Tunable. */
   drawWeight: [1, 2, 4, 6] as const,
   /** Spec pieces. */
@@ -111,6 +144,13 @@ export function flareAt(day: number): number {
 /** The chance a TENSE region boils over tonight. */
 export function tensePressureAt(day: number): number {
   return RULES.tensePressureStart + (RULES.tensePressureEnd - RULES.tensePressureStart) * slideAt(day);
+}
+
+/** The chance tonight that a CRISIS region pushes a CRISIS neighbour to WAR (0 before `warFromCrisisDay`). */
+export function warFromCrisisAt(day: number): number {
+  const span = RULES.days - RULES.warFromCrisisDay;
+  if (day < RULES.warFromCrisisDay || span <= 0) return 0;
+  return RULES.warFromCrisisEnd * Math.min(1, (day - RULES.warFromCrisisDay) / span);
 }
 
 /** DANGER read off a map, without any penalty. */

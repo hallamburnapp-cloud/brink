@@ -47,14 +47,16 @@ describe('the four tags (SPEC "Choices")', () => {
     expect(res.held).toBe(true);
     expect(res.odds).toBe(60);
     expect(changes(w)).toEqual(['SHL:2>0:choice', 'LTL:2>1:choice']);
-    expect(w.steps.find((s) => s.kind === 'roll')).toMatchObject({ odds: 60, held: true, text: 'Held' });
+    expect(w.steps.find((s) => s.kind === 'roll')).toMatchObject({ odds: 60, held: true, text: 'It worked · Danger down, cools Shoal and 1 more' });
   });
 
-  it('RISKY misses at the odds and above: heats by one, applies `fail`, says by how much', () => {
+  it('RISKY misses at the odds and above: heats by one, applies `fail`, says what happened in words', () => {
     const { w, res } = play(quiet(content, 'shoal-risky', { SHL: 1 }, 0.733), 'left');
     expect(res.held).toBe(false);
     expect(changes(w)).toEqual(['SHL:1>2:choice', 'LTL:0>2:choice']);
-    expect(w.steps.find((s) => s.kind === 'roll')).toMatchObject({ held: false, text: 'Missed by 4%' });
+    expect(w.steps.find((s) => s.kind === 'roll')).toMatchObject({ held: false, text: 'It failed · Danger up, Shoal heats and Lintel boils over' });
+    const held = play(quiet(content, 'shoal-risky', { SHL: 2 }, 0.1), 'left').w;
+    expect(held.steps.find((s) => s.kind === 'roll')).toMatchObject({ held: true, text: 'It worked · Danger down, Shoal calms' });
     expect(missedBy(0.7, 70)).toBe(1);
     expect(missedBy(0.999, 70)).toBe(30);
   });

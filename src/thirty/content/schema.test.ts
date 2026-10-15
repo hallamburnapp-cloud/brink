@@ -160,6 +160,14 @@ describe('validateThirty', () => {
     expect(warnings(issues).filter((w) => /arcs run 3 to 5/.test(w))).toHaveLength(2);
   });
 
+  it('compiles the warning flag and refuses a warning card that cannot be waited out', () => {
+    const { content } = compileThirty(raw({ 'arcs/false-alarm.yaml': [{ ...alarm, alarm: true }], 'arcs/blockade.yaml': [strait] }));
+    expect(content.cards['alarm-02'].alarm).toBe(true);
+    expect(content.cards['strait-01'].alarm).toBe(false);
+    const issues = compileOk({ 'arcs/false-alarm.yaml': [{ ...alarm, alarm: true, left: { text: 'Stand by', tag: 'CALM', hint: 'Danger down · we wait' } }] });
+    expect(errors(issues)).toEqual(['a warning card (alarm: true) is a choice card with a RISKY option (the wait)']);
+  });
+
   it('flags unknown regions, advisers and pieces', () => {
     const issues = compileOk({
       'arcs/blockade.yaml': [{ ...strait, region: 'XXX', adviser: 'nobody', when: { pieces: ['hotline'] }, left: { ...strait.left, heats: 'ZZZ' } }],

@@ -1,6 +1,7 @@
 /**
  * The land layer, baked whenever a region's settled heat changes: the sea under it, each plate in
- * its heat's colour (WAR hatched), the borders, the coast hairline, causeways and sea lanes.
+ * its heat's colour (WAR hatched), the borders, the coast hairline and the causeways. The sea
+ * lanes are not drawn: a watcher asks what the dotted lines are, and the spec draws nothing else.
  */
 import type { Heat, RegionId } from '../contract';
 import { MAP_H as H, MAP_W as W, MASSES, REGION } from '../data';
@@ -84,22 +85,6 @@ export function paintLand(g: Gfx, heats: Readonly<Record<RegionId, Heat>>, base:
     ctx.beginPath();
     ctx.moveTo(cw.p[0], cw.p[1]);
     ctx.lineTo(cw.q[0], cw.q[1]);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  // Sea lanes: faint dashes, centre to centre.
-  for (const lane of geo.lanes) {
-    const A = REGION[lane.a];
-    const B = REGION[lane.b];
-    ctx.save();
-    ctx.setLineDash([3, 5]);
-    ctx.lineCap = 'butt';
-    ctx.strokeStyle = css(HAIRLINE, 0.22);
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(A.x, A.y);
-    ctx.lineTo(B.x, B.y);
     ctx.stroke();
     ctx.restore();
   }

@@ -1,7 +1,7 @@
 /**
  * What is drawn over the land, every frame: the home flag on the capital, today's thin white ring
- * with the region's name under it, and on a map day the glowing places with their one-line labels.
- * Nothing else: no numbers, no pins, no threads, no tags.
+ * with the region's name under it (and the news the card brought, 'NOW TENSE'), and on a map day
+ * the glowing places with their one-line labels. Nothing else: no numbers, no pins, no threads.
  */
 import type { MapView, RegionId, Target } from '../contract';
 import { ISLAND_R, MAP_H as H, MAP_W as W, REGION, REGIONS } from '../data';
@@ -33,6 +33,8 @@ export const LABEL_FONT = `600 11px ${FONT_LABEL}`;
 const LABEL_TRACK = 0.4;
 export const LABEL_H = 17;
 const LABEL_PAD = 7;
+/** Labels keep this far from the map's edges. */
+const EDGE = 8;
 
 export interface Label {
   id: RegionId;
@@ -44,7 +46,7 @@ export interface Label {
   target: boolean;
 }
 
-interface Box {
+export interface Box {
   x0: number;
   y0: number;
   x1: number;
@@ -59,32 +61,48 @@ function box(l: { x: number; y: number; w: number }): Box {
   return { x0: l.x - l.w / 2 - 2, y0: l.y - LABEL_H / 2 - 2, x1: l.x + l.w / 2 + 2, y1: l.y + LABEL_H / 2 + 2 };
 }
 
+/** The flag's footprint on the capital, which no label may cover. */
+export function flagBox(id: RegionId): Box | null {
+  const def = REGION[id];
+  if (!def) return null;
+  return { x0: def.x - 4, y0: def.y - 12, x1: def.x + 12, y1: def.y + 9 };
+}
+
 /**
- * Where the labels sit: each under its region's ring (above it near the bottom edge), kept on the
- * map and clear of one another: a label that would cover an earlier one steps down (or up) a row.
- * `measure` gives a label's text width; pure otherwise, so the placement has a test.
+ * Where the labels sit. The ring's name goes under the ring (above it near the bottom edge); a
+ * target's label goes on the side of its region away from the map's centre, so the labels of
+ * neighbouring targets spread out instead of stacking over one another. Every label stays on the
+ * map, clear of the others and of the boxes to `avoid` (the flag): one that would cover something
+ * steps to the next row. `measure` gives a label's text width; pure otherwise, so there is a test.
  */
-export function placeLabels(items: Array<{ id: RegionId; text: string; target: boolean }>, measure: (s: string) => number): Label[] {
+export function placeLabels(items: Array<{ id: RegionId; text: string; target: boolean }>, measure: (s: string) => number, avoid: readonly Box[] = []): Label[] {
   const out: Label[] = [];
   for (const it of items) {
     const def = REGION[it.id];
     if (!def) continue;
-    const w = Math.min(W - 8, measure(it.text) + LABEL_PAD * 2);
+    const w = Math.min(W - 2 * EDGE, measure(it.text) + LABEL_PAD * 2);
     const r = ringRadius(it.id);
-    const x = Math.min(W - w / 2 - 3, Math.max(w / 2 + 3, def.x));
+    const x = Math.min(W - w / 2 - EDGE, Math.max(w / 2 + EDGE, def.x));
     const below = def.y + r + 4 + LABEL_H / 2;
     const above = def.y - r - 4 - LABEL_H / 2;
-    const rows = below + LABEL_H / 2 <= H - 3 ? [below, above, below + LABEL_H + 3, above - LABEL_H - 3] : [above, above - LABEL_H - 3];
+    const outward = it.target && def.y < H / 2;
+    const first = outward ? [above, below] : [below, above];
+    const rows = [first[0], first[1], first[0] + (first[0] === below ? 1 : -1) * (LABEL_H + 3), first[1] + (first[1] === below ? 1 : -1) * (LABEL_H + 3)];
     let placed: Label | null = null;
     for (const y of rows) {
-      if (y - LABEL_H / 2 < 2 || y + LABEL_H / 2 > H - 2) continue;
+      if (y - LABEL_H / 2 < EDGE || y + LABEL_H / 2 > H - EDGE) continue;
       const cand = { id: it.id, text: it.text, x, y, w, target: it.target };
-      if (!out.some((o) => overlaps(box(o), box(cand)))) {
+      const b = box(cand);
+      if (!out.some((o) => overlaps(box(o), b)) && !avoid.some((a) => overlaps(a, b))) {
         placed = cand;
         break;
       }
     }
-    out.push(placed ?? { id: it.id, text: it.text, x, y: rows[0], w, target: it.target });
+    if (!placed) {
+      const y = Math.min(H - EDGE - LABEL_H / 2, Math.max(EDGE + LABEL_H / 2, rows[0]));
+      placed = { id: it.id, text: it.text, x, y, w, target: it.target };
+    }
+    out.push(placed);
   }
   return out;
 }
@@ -104,42 +122,40 @@ function paintLabel(ctx: Ctx, l: Label, alpha: number, bright: number): void {
   ctx.restore();
 }
 
-/** The small flag on the home capital: a pole and a pennant, white, no colour of its own. */
+/** The small flag on the home capital: a short pole and a filled pennant, white, with a dark halo so it reads on any heat. */
 function paintFlag(g: Gfx, id: RegionId): void {
   const def = REGION[id];
   if (!def) return;
   const { ctx } = g;
-  const x = def.x - 1;
-  const y = def.y + 2;
+  const x = def.x - 2;
+  const y = def.y + 7;
+  const pennant = () => {
+    ctx.beginPath();
+    ctx.moveTo(x, y - 14);
+    ctx.lineTo(x + 11, y - 10.5);
+    ctx.lineTo(x, y - 7);
+    ctx.closePath();
+  };
   ctx.save();
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  // A dark halo so the mark reads on any heat.
-  ctx.strokeStyle = 'rgba(6,10,18,0.7)';
-  ctx.lineWidth = 3.4;
+  ctx.strokeStyle = 'rgba(6,10,18,0.75)';
+  ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.moveTo(x, y + 6);
-  ctx.lineTo(x, y - 8);
+  ctx.moveTo(x, y);
+  ctx.lineTo(x, y - 14);
   ctx.stroke();
-  ctx.fillStyle = 'rgba(6,10,18,0.7)';
-  ctx.beginPath();
-  ctx.moveTo(x - 1, y - 9);
-  ctx.lineTo(x + 9, y - 6);
-  ctx.lineTo(x - 1, y - 2.5);
-  ctx.closePath();
-  ctx.fill();
+  pennant();
+  ctx.lineWidth = 3;
+  ctx.stroke();
   ctx.strokeStyle = css(RING_WHITE);
-  ctx.lineWidth = 1.4;
+  ctx.lineWidth = 1.8;
   ctx.beginPath();
-  ctx.moveTo(x, y + 6);
-  ctx.lineTo(x, y - 8);
+  ctx.moveTo(x, y);
+  ctx.lineTo(x, y - 14);
   ctx.stroke();
+  pennant();
   ctx.fillStyle = css(RING_WHITE);
-  ctx.beginPath();
-  ctx.moveTo(x, y - 8);
-  ctx.lineTo(x + 8, y - 5.5);
-  ctx.lineTo(x, y - 3);
-  ctx.closePath();
   ctx.fill();
   ctx.restore();
 }
@@ -197,6 +213,20 @@ function paintTarget(g: Gfx, t: Target, now: number, reduced: boolean, pressed: 
   return breath;
 }
 
+/** A thin dark seam on every glowing plate's edge, so two neighbouring targets never fuse into one. */
+function paintSeams(g: Gfx, targets: readonly Target[]): void {
+  const { ctx } = g;
+  ctx.save();
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(6,10,18,0.7)';
+  ctx.lineWidth = 1;
+  for (const t of targets) {
+    const path = getPaths().region[t.id];
+    if (path) ctx.stroke(path);
+  }
+  ctx.restore();
+}
+
 export interface MarksTiming {
   now: number;
   reduced: boolean;
@@ -212,11 +242,16 @@ export function paintMarks(g: Gfx, view: MapView, t: MarksTiming): void {
   ctx.save();
   ctx.globalAlpha = a;
   for (const target of view.targets) brights.set(target.id, paintTarget(g, target, t.now, t.reduced, view.pressed === target.id));
+  if (view.targets.length > 1) paintSeams(g, view.targets);
   if (view.ring) paintRing(g, view.ring);
   ctx.restore();
   const items: Array<{ id: RegionId; text: string; target: boolean }> = [];
   for (const target of view.targets) items.push({ id: target.id, text: target.label, target: true });
-  if (view.ring && !view.targets.some((x) => x.id === view.ring)) items.push({ id: view.ring, text: REGION[view.ring]?.name.toUpperCase() ?? '', target: false });
-  const labels = placeLabels(items, (s) => textWidth(ctx, s, LABEL_FONT, LABEL_TRACK));
+  if (view.ring && !view.targets.some((x) => x.id === view.ring)) {
+    const name = REGION[view.ring]?.name.toUpperCase() ?? '';
+    items.push({ id: view.ring, text: view.ringNote ? `${name} · ${view.ringNote}` : name, target: false });
+  }
+  const flag = flagBox(view.home);
+  const labels = placeLabels(items, (s) => textWidth(ctx, s, LABEL_FONT, LABEL_TRACK), flag ? [flag] : []);
   for (const l of labels) paintLabel(ctx, l, a, brights.get(l.id) ?? 0);
 }

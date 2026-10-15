@@ -1,24 +1,29 @@
 /**
- * Small readings of a card the engine needs beyond the compiled types: the warning flag the
- * false-alarm arcs carry, and the odds a warning card's "wait" prints.
+ * Small readings of a card the engine needs beyond the compiled types: today's card with its dealt
+ * places, the warning flag, which risky options are talks, and the odds a card prints.
  */
-import type { Card } from '../content/types.ts';
+import type { Card, ThirtyContent } from '../content/types.ts';
+import type { GameState } from './types.ts';
 
 /**
- * A warning card: the early-warning screens show something that may not be real. Authored as
- * `alarm: true` on the card (an optional field the content schema is asked to carry; until it does,
- * KNOWN_ALARMS names the pack's warning). On a warning card the RISKY "wait" holds exactly when the
- * alarm is false.
+ * Today's card as the table shows it, or null when none is on it. A map card comes with the places
+ * chosen when it was dealt (`state.card.targets`), so the UI, the preview and the choice read one card.
  */
-export function isAlarmCard(card: Card): boolean {
-  return (card as Card & { alarm?: boolean }).alarm === true || KNOWN_ALARMS.has(card.id);
+export function todayCard(content: ThirtyContent, state: GameState): Card | null {
+  if (!state.card) return null;
+  const card = content.cards[state.card.id];
+  if (!card) return null;
+  if (card.map && state.card.targets) return { ...card, targets: state.card.targets };
+  return card;
 }
 
 /**
- * Until the schema carries `alarm: true`, the pack's one warning card by id (CONTENT.md "What the engine
- * must know": alarm-02 is the false alarm). Goes away when the field lands.
+ * A warning card (`alarm: true` in the content): the early-warning screens show something that may not be
+ * real. On a warning card the RISKY "wait" holds exactly when the alarm is false.
  */
-export const KNOWN_ALARMS: ReadonlySet<string> = new Set(['alarm-02']);
+export function isAlarmCard(card: Card): boolean {
+  return card.alarm;
+}
 
 /**
  * Ruling (CONTENT.md): a RISKY option is "talks", which the Dove Foreign Minister makes certain, when the

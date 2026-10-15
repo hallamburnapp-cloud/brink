@@ -26,8 +26,10 @@ export class Working {
   redLine: RegionId | null;
   readonly warned: Set<RegionId>;
   readonly guarded: Record<RegionId, number>;
-  /** The region whose heating (or penalty) took DANGER from below 100 to 100 (the WAR ending names it). */
+  /** The region whose heating (or penalty) took DANGER from below 100 to 100 (the WAR ending starts from it). */
   tipping: RegionId | null = null;
+  /** Regions a choice cooled today: trouble does not flare there the same night (the day's work stands until morning). */
+  readonly cooledToday = new Set<RegionId>();
   /** DANGER additions made today. */
   added = 0;
   private absorbed = new Set<RegionId>();
@@ -110,6 +112,7 @@ export class Working {
     }
     const to = Math.max(0, from - n) as Heat;
     this.heats[region] = to;
+    this.cooledToday.add(region);
     this.push({ region, from, to, why, ...(o.piece ? { piece: o.piece } : {}), ...(o.source ? { source: o.source } : {}) });
     return from - to;
   }

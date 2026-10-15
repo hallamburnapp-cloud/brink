@@ -10,6 +10,12 @@ export type RegionId = string;
 export type Bloc = 'CAP' | 'HMR' | 'SCT' | 'SND' | 'FRS';
 /** A region's heat: 0 CALM, 1 TENSE, 2 CRISIS, 3 WAR. */
 export type Heat = 0 | 1 | 2 | 3;
+/**
+ * A set of regions a map target may be chosen from on the live map (regions.ts REGION_SETS): the sea
+ * regions (the fleet), home, abroad, anywhere, our allies by treaty (the call), our postings abroad
+ * (the front that comes home).
+ */
+export type RegionSet = 'sea' | 'home' | 'abroad' | 'any' | 'allies' | 'posts';
 
 export type CardId = string;
 export type ArcId = string;
@@ -71,9 +77,15 @@ export interface Choice extends Consequence {
   fail?: Consequence;
 }
 
-/** A place the player may tap on a map day. */
+/**
+ * A place the player may tap on a map day. With `from`, the place is chosen when the card is dealt:
+ * the hottest region of that set not already offered (`region` is then the authored fallback), and
+ * `{region}` in the hint is filled in. The engine writes every target's label itself (hint.ts), so
+ * the glowing places compare like for like; the authored hint documents the intent.
+ */
 export interface MapTarget extends Consequence {
   region: RegionId;
+  from?: RegionSet;
   /** The one-line label on the glowing region. */
   hint: string;
   /** How the tap acts on the tapped region (CALM by default). */
@@ -107,6 +119,11 @@ interface CardBase {
   when: Condition;
   /** Set on the Chief of Staff's domestic cards; a HOME choice the day before holds one off. */
   domestic: DomesticTopic | null;
+  /**
+   * A warning card (`alarm: true`): its RISKY "wait" holds exactly when the alarm is false, the Cautious Intel
+   * Director marks it before the choice, and Launch on Warning's +20 applies to it.
+   */
+  alarm: boolean;
   /** True when some follow-up names this card: it is reached through its arc, never drawn on its own. */
   chained: boolean;
   /** The pack file it came from (for messages and tooling). */

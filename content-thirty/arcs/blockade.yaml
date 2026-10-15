@@ -17,7 +17,7 @@
   day: [4, 15]
   text: Lintel has closed its harbour to our escorts. The Federation calls it Lintel's own decision. Lintel is angry with both of us and says so on every channel.
   left:  { text: Apologise and pay the port, tag: CALM,  hint: "Danger down · Lintel settles", follow: { card: strait-04, in: [1, 3] } }
-  right: { text: Hold the convoy route,      tag: RISKY, odds: 60, hint: "Holds 60% · if not, Kelpmouth joins in", fail: { crisis: KLP }, follow: { card: strait-04, in: [1, 3] } }
+  right: { text: Hold the convoy route,      tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · if not, Kelpmouth joins in", fail: { crisis: KLP }, follow: { card: strait-04, in: [1, 3] } }
 
 - id: strait-03
   arc: blockade
@@ -25,7 +25,7 @@
   region: LNK
   day: [4, 16]
   text: Lantern Key will host talks on the Shoal strait. I knew their minister's mother. Give me a quiet room and three days.
-  left:  { text: Send the Ambassador,   tag: RISKY, odds: 70, hint: "Holds 70% · the Shoal reopens; if not, it heats", relieve: SHL, fail: { heats: SHL }, follow: { card: strait-04, in: [2, 4] } }
+  left:  { text: Send the Ambassador,   tag: RISKY, odds: 70, hint: "Danger down if it works (70%) · Shoal reopens, or heats", relieve: SHL, fail: { heats: SHL }, follow: { card: strait-04, in: [2, 4] } }
   right: { text: Keep the fleet nearby, tag: FORCE, hint: "Danger down here · heats Pebbleby", heats: PBB, follow: { card: strait-04, in: [2, 4] } }
 
 - id: strait-04
@@ -34,5 +34,5 @@
   region: SHL
   day: [5, 20]
   text: "The Federation ships have pulled back from the Shoal a mile, no further. Our tankers are through in single file, under their guns. The crews ask whether this is what open looks like."
-  left:  { text: Declare the strait open, tag: RISKY, odds: 65, hint: "Holds 65% · if not, the Shoal closes again" }
+  left:  { text: Declare the strait open, tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if not, the Shoal closes" }
   right: { text: Keep the convoys small,  tag: CALM,  hint: "Danger down · slow oil, quiet sea" }

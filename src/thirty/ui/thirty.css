@@ -81,9 +81,9 @@ body {
   font-family: var(--font-text);
   isolation: isolate;
 }
-/* A desktop window shows the live area only (no OS bands), with soft corners. */
+/* A desktop window shows the live area (and a breath of the status band above the strip), with soft corners. */
 .frame.desk {
-  clip-path: inset(47px 0 37px 0 round 14px);
+  clip-path: inset(39px 0 37px 0 round 14px);
 }
 .table {
   position: absolute;
@@ -281,9 +281,9 @@ body {
 .gauge-number {
   position: absolute;
   top: 30px;
-  transform: translateX(-50%);
   font: 700 18px/22px var(--font-num);
   letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 .gauge-delta {
   position: absolute;
@@ -382,20 +382,27 @@ body {
 .team.rule {
   width: 390px;
   gap: 10px;
+  justify-content: flex-start;
   color: var(--text);
+  text-align: left;
 }
 .rule-name {
   flex: none;
-  font: 700 11px/12px var(--font-text);
-  letter-spacing: 0.2em;
+  max-width: 96px;
+  font: 700 10px/11px var(--font-text);
+  letter-spacing: 0.16em;
   color: var(--text-2);
 }
 .rule-text {
-  font: 500 14px/16px var(--font-text);
+  flex: 1;
+  min-width: 0;
+  font: 500 13px/15px var(--font-text);
   letter-spacing: 0.01em;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 .team.slots {
   gap: 10px;
@@ -467,6 +474,9 @@ body {
   font-size: 15.5px;
   line-height: 18px;
 }
+.message.map-day {
+  flex: none;
+}
 .buttons {
   display: flex;
   flex-direction: column;
@@ -522,12 +532,18 @@ body {
 .choice.other {
   opacity: 0.4;
 }
+.buttons.map-day {
+  flex: 1;
+  min-height: 56px;
+  margin-top: 10px;
+}
 .buttons.map-day .tap-line {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 56px;
+  height: 100%;
+  min-height: 56px;
   border-radius: 10px;
   border: 1px dashed rgba(28, 34, 48, 0.3);
   text-align: center;
@@ -537,9 +553,60 @@ body {
   font: 600 15px/18px var(--font-text);
 }
 .tap-line .hint {
-  margin-top: 2px;
+  margin-top: 3px;
   font: 500 12px/14px var(--font-text);
   color: var(--card-ink-2);
+}
+.tap-line.picked {
+  border: 1px solid var(--card-ink);
+  background: var(--card-ink);
+  color: var(--card);
+}
+.tap-line.picked .action {
+  font-size: 16px;
+}
+.tap-line.picked .hint {
+  color: rgba(243, 239, 230, 0.72);
+}
+/* the night: one line in place of the buttons while the map recolours */
+.buttons.night {
+  flex: 1;
+  margin-top: 8px;
+}
+.night-line {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  height: 100%;
+  min-height: 118px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--card-ink);
+  color: var(--card);
+  animation: fade-in 200ms linear both;
+}
+.night-label {
+  font: 700 11px/12px var(--font-text);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(243, 239, 230, 0.6);
+}
+.night-text {
+  font: 500 16px/19px var(--font-text);
+  letter-spacing: 0.005em;
+  text-wrap: pretty;
+}
+.night-delta {
+  margin-top: 2px;
+  font: 700 12px/14px var(--font-num);
+  letter-spacing: 0.04em;
+}
+.night-delta.up {
+  color: #ff8d78;
+}
+.night-delta.down {
+  color: var(--cool);
 }
 /* the offer */
 .offer-title {
@@ -569,8 +636,9 @@ body {
   font-size: 11.5px;
   line-height: 13px;
 }
-.none {
-  height: 26px;
+.card .quiet-btn.none {
+  width: 100%;
+  height: 32px;
   font: 600 12px/14px var(--font-text);
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -615,6 +683,13 @@ body {
 .end-title.war {
   color: var(--war-ink);
 }
+.end-story {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: 6px;
+}
 .message.end-line {
   flex: none;
   margin-top: 6px;
@@ -647,7 +722,15 @@ body {
 }
 .title-veil {
   inset: 0;
-  background: linear-gradient(180deg, rgba(11, 18, 32, 0.2) 0%, rgba(11, 18, 32, 0) 30%, rgba(11, 18, 32, 0) 50%, var(--table) 62%);
+  background: linear-gradient(
+    180deg,
+    rgba(11, 18, 32, 0.35) 0%,
+    rgba(11, 18, 32, 0.6) 15%,
+    rgba(11, 18, 32, 0.6) 31%,
+    rgba(11, 18, 32, 0) 42%,
+    rgba(11, 18, 32, 0) 50%,
+    var(--table) 62%
+  );
   pointer-events: none;
 }
 .title-words {
@@ -770,6 +853,7 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .card.slide,
+  .night-line,
   .gauge-delta,
   .scrim,
   .sheet,

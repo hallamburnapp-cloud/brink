@@ -1,7 +1,7 @@
 # The False Alarm: Wintermast raises its readiness; the early-warning screens show launches that are not real;
 # then both sides have to decide what to do about having nearly fired.
 #   alarm-01 (WMS) -> alarm-02 (WMS, the alarm itself) -> alarm-03 (FRM) -> alarm-04 (WMS)
-# alarm-02 is the false alarm: the Cautious Intel Director marks it, Launch on Warning's +20 applies to it.
+# alarm-02 is the warning (alarm: true): the Cautious Intel Director marks it, Launch on Warning's +20 applies to it.
 - id: alarm-01
   arc: false-alarm
   adviser: intel
@@ -16,8 +16,9 @@
   adviser: intel
   region: WMS
   day: [8, 22]
+  alarm: true
   text: Early warning shows six launches over the Cap. Nothing else confirms it. We have four minutes.
-  left:  { text: Wait for a second source, tag: RISKY, odds: 70, hint: "Holds 70% · if real, the Cap burns", fail: { crisis: FRM }, follow: alarm-03 }
+  left:  { text: Wait for a second source, tag: RISKY, odds: 70, hint: "Danger down if it works (70%) · if real, the Cap burns", fail: { crisis: FRM }, follow: alarm-03 }
   right: { text: Raise the alert,          tag: FORCE, hint: "Danger down here · heats Frostmere", heats: FRM, mark: warned, follow: alarm-03 }
 
 - id: alarm-03
@@ -27,7 +28,7 @@
   day: [9, 24]
   text: "It was a flock of birds over Frostmere and a tired radar crew. Probably. The Federation knows we saw it. They are asking, through Lantern Key, whether we nearly fired. Our answer will be remembered."
   left:  { text: Tell them the truth,  tag: CALM,  hint: "Danger down · Frostmere breathes out", follow: alarm-04 }
-  right: { text: Admit nothing at all, tag: RISKY, odds: 60, hint: "Holds 60% · if they know, Frostmere heats", follow: alarm-04 }
+  right: { text: Admit nothing at all, tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · if known, Frostmere heats", follow: alarm-04 }
 
 - id: alarm-04
   arc: false-alarm
@@ -36,4 +37,4 @@
   day: [10, 26]
   text: "Wintermast proposes a shared early-warning line: their screens, ours, one telephone. The General calls it a gift to their spies. The Intel Director calls it a gift to ours. Someone has to answer today."
   left:  { text: Open the shared line, tag: CALM, hint: "Danger down · Wintermast and we see one sky" }
-  right: { text: "Decline, with thanks", tag: HOME, hint: "Nothing changes abroad · the General sleeps better" }
+  right: { text: "Decline, with thanks", tag: HOME, hint: "Danger unchanged · the General sleeps better" }

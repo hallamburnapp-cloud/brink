@@ -1,26 +1,38 @@
 /**
- * The day's outcome, calm and brief (SPEC "The screen"): a risky roll is a short needle sweep and
- * the result on the hint line for a second; then the regions recolour over 600 ms in trace order
- * while the needle slides and the delta floats for a second; then the next card slides up, and if
- * it brings news (its region heats on arrival) that plays as it arrives. No flying numbers, no
- * cascades, no shakes except a 2 px nudge on WAR. Reduced motion: instant changes, short pauses.
+ * The day's outcome, calm and brief (SPEC "The screen"), in beats a watcher can follow:
  *
- * The day plays in two beats so cause and effect stay legible: first what the choice did (the
- * delta matches the hint that was tapped), then, only if anything happened, what the night did
- * (war spreading, a crisis heating a neighbour, trouble flaring) with its own delta.
+ *  1. The choice. A risky roll is a short needle sweep and its result on the hint line for a
+ *     second. Then the regions the button changed recolour over 600 ms while the needle slides and
+ *     a -7 floats beside it for a second; the chips that fired glow. The float finishes before
+ *     anything else moves, so the number matches the hint that was tapped.
+ *  2. The night, only when it changed anything: one plain line in the card ('Overnight · the war
+ *     in Highmarch spread to Edda Vale') with its own +N, the map recolouring under it, held long
+ *     enough to read.
+ *  3. The next card (or the offer, or the ending) slides up. Once it is readable, the news it
+ *     brings recolours its region under the ring (no float: the ring's label says 'now tense').
+ *
+ * No flying numbers, no cascades, no shakes except a 2 px nudge on WAR. Reduced motion: instant
+ * changes, short pauses.
  */
 import type { HeatStep } from '../map';
-import { danger, type GameState, type Heat, type RegionId } from './engine';
+import { danger, nightDelta, nightLine, nightSteps, type GameState, type Heat, type RegionId } from './engine';
 import { getMap } from './mapRef';
 import { endingSound, lowTone, rollSweep, tickDay, tonesCrossed } from './sound';
 import { applySteps, heatSteps, rollOf, splitDay } from './steps';
-import { busy, cardKey, chosen, delta, glow, needle, nudge, reduced, shown, shownHeats, sweep } from './store';
+import { busy, cardKey, chosen, delta, glow, needle, night, nudge, reduced, shown, shownHeats, sweep } from './store';
+import { arrivalPieces } from './words';
 
 export const TIMES = {
   sweep: 500,
   rollRead: 1000,
   recolour: 600,
   float: 1000,
+  /** A breath after the choice's float, before the night begins. */
+  breath: 120,
+  /** How long the night's line stays, from its appearance (the recolouring runs inside it). */
+  nightHold: 1300,
+  /** The new card is on the table this long before its news recolours the map. */
+  read: 400,
   arrival: 450,
   reducedPause: 700,
 } as const;
@@ -36,6 +48,7 @@ let playToken = 0;
 export function cancelPlayback(): void {
   playToken++;
   needleToken++;
+  night.value = null;
   busy.value = false;
 }
 
@@ -94,6 +107,7 @@ export async function playDay(before: GameState, after: GameState, option: strin
   const r = reduced.value;
   chosen.value = { option, roll: null };
 
+  const { choice: choiceSteps, night: nightHeats } = splitDay(trace.steps);
   const roll = rollOf(trace);
   if (roll) {
     if (!r) {
@@ -109,23 +123,28 @@ export async function playDay(before: GameState, after: GameState, option: strin
   }
 
   // Beat one: the choice. The map recolours in trace order while the needle slides; the delta
-  // floats for a second and the chips that fired glow.
-  const { choice: choiceSteps, night: nightSteps } = splitDay(trace.steps);
+  // floats for a second and the chips that fired glow. It finishes before the night starts.
   const map = getMap();
   const afterChoice = applySteps(before.heats, choiceSteps);
   await beat(map, afterChoice, choiceSteps, trace.dangerBefore, trace.dangerAfterChoice, r);
   if (!live()) return;
   glowChips(trace.fired, TIMES.float);
-  await wait(r ? TIMES.reducedPause : TIMES.float - TIMES.recolour);
+  await wait(r ? TIMES.reducedPause : TIMES.float - TIMES.recolour + TIMES.breath);
   if (!live()) return;
 
-  // Beat two: the night, when it changed anything.
-  const afterTrace = applySteps(afterChoice, nightSteps);
-  if (nightSteps.length || trace.dangerAfter !== trace.dangerAfterChoice) {
-    await beat(map, afterTrace, nightSteps, trace.dangerAfterChoice, trace.dangerAfter, r);
+  // Beat two: the night, when it changed anything, with its line in the card.
+  const afterTrace = applySteps(afterChoice, nightHeats);
+  const line = nightLine(trace);
+  if (line || nightHeats.length || nightDelta(trace) !== 0) {
+    night.value = { text: line ?? 'A quiet night.', delta: nightDelta(trace) };
+    const started = performance.now();
+    await beat(map, afterTrace, nightHeats, trace.dangerAfterChoice, trace.dangerAfter, r);
     if (!live()) return;
-    await wait(r ? TIMES.reducedPause : TIMES.float - TIMES.recolour);
+    // A piece that acted at night takes credit as it would by day.
+    glowChips(arrivalPieces(nightSteps(trace)), TIMES.float);
+    await wait(r ? TIMES.reducedPause + 300 : TIMES.nightHold - (performance.now() - started));
     if (!live()) return;
+    night.value = null;
   }
 
   // The next card (or the offer, or the ending) comes to the table.
@@ -138,7 +157,7 @@ export async function playDay(before: GameState, after: GameState, option: strin
     if (after.ending.kind === 'WAR' && !r) nudge.value++;
   } else {
     tickDay();
-    await playNews(afterTrace, after);
+    await playNews(afterTrace, after, live);
     if (!live()) return;
   }
   shownHeats.value = null;
@@ -155,22 +174,28 @@ async function beat(map: ReturnType<typeof getMap>, heats: Record<RegionId, Heat
   await Promise.all([recolour, slide]);
 }
 
-/** After a team pick: the next card comes to the table with its news. */
+/** After a team pick: the next card comes to the table, and then its news. */
 export async function playArrival(before: GameState, after: GameState): Promise<void> {
   const mine = ++playToken;
+  const live = () => mine === playToken;
   busy.value = true;
   chosen.value = null;
+  night.value = null;
   shown.value = after;
   cardKey.value++;
   tickDay();
-  await playNews(before.heats, after);
-  if (mine !== playToken) return;
+  await playNews(before.heats, after, live);
+  if (!live()) return;
   shownHeats.value = null;
   busy.value = false;
 }
 
-/** The arriving card's own heat changes, from `heats` (what the map shows) to the engine's. */
-async function playNews(heats: Readonly<Record<RegionId, Heat>>, after: GameState): Promise<void> {
+/**
+ * The arriving card's own heat changes, from `heats` (what the map shows) to the engine's: once the
+ * card is readable, its region recolours under the ring and the needle slides. No float: the ring's
+ * label carries the news. The pieces that acted on arrival (the Hotline) glow.
+ */
+async function playNews(heats: Readonly<Record<RegionId, Heat>>, after: GameState, live: () => boolean): Promise<void> {
   const steps = heatSteps(after.card?.arrival ?? []);
   const r = reduced.value;
   const target = danger(after);
@@ -179,18 +204,22 @@ async function playNews(heats: Readonly<Record<RegionId, Heat>>, after: GameStat
     await slideNeedle(needle.value, target, 0);
     return;
   }
+  shownHeats.value = heats;
+  await wait(r ? TIMES.reducedPause : TIMES.read);
+  if (!live()) return;
   const map = getMap();
   const from = needle.value;
   const recolour = map ? map.recolour(steps, r ? 0 : TIMES.arrival) : Promise.resolve();
   shownHeats.value = applySteps(heats, steps);
   const slide = slideNeedle(from, target, r ? 0 : TIMES.arrival);
-  floatDelta(target - from, r ? TIMES.reducedPause : TIMES.float);
+  glowChips(arrivalPieces(after.card?.arrival ?? []), TIMES.float);
   if (tonesCrossed(from, target).length) lowTone();
   await Promise.all([recolour, slide]);
 }
 
 function settle(after: GameState): void {
   chosen.value = null;
+  night.value = null;
   shown.value = after;
   shownHeats.value = null;
   needle.value = danger(after);

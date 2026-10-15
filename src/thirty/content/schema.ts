@@ -4,6 +4,7 @@
  * pieces, follow-ups) live in validate.ts; this file owns the shape of one item.
  */
 import { z } from 'zod';
+import { REGION_SET_NAMES } from './regions.ts';
 import type {
   Adviser,
   Card,
@@ -91,6 +92,8 @@ export const choiceSchema = z
 export const targetSchema = z
   .strictObject({
     region: regionId,
+    /** The place is chosen from this set on the live map when the card is dealt; `region` is then the fallback. */
+    from: z.enum(REGION_SET_NAMES).optional(),
     hint: line.max(MAX_HINT_CHARS, { message: `the label fits one line: at most ${MAX_HINT_CHARS} characters` }),
     tag: tag.default('CALM'),
     odds: odds.optional(),
@@ -116,6 +119,8 @@ const cardFields = {
   text: line.refine((s) => wordCount(s) <= MAX_TEXT_WORDS, { message: `the message is ${MAX_TEXT_WORDS} words or fewer` }),
   when: conditionSchema.optional(),
   domestic: z.enum(['public', 'economy']).optional(),
+  /** A warning card: the early-warning screens show something that may not be real (the false-alarm arc). */
+  alarm: z.boolean().optional(),
 };
 
 export const choiceCardSchema = z.strictObject({
@@ -196,6 +201,7 @@ const compileChoice = (c: z.infer<typeof choiceSchema>): Choice => {
 
 const compileTarget = (t: z.infer<typeof targetSchema>): MapTarget => {
   const out: MapTarget = { region: t.region, hint: t.hint, tag: t.tag, ...compileConsequence(t) };
+  if (t.from) out.from = t.from;
   if (t.odds !== undefined) out.odds = t.odds;
   const fail = compileConsequence(t.fail);
   if (fail) out.fail = fail;
@@ -302,6 +308,7 @@ export function compileThirty(raw: RawThirty): { content: ThirtyContent; issues:
           text: d.text,
           when: compileCondition(d.when),
           domestic: d.domestic ?? null,
+          alarm: d.alarm ?? false,
           chained: false,
           file: f.file,
           map: true,
@@ -321,6 +328,7 @@ export function compileThirty(raw: RawThirty): { content: ThirtyContent; issues:
           text: d.text,
           when: compileCondition(d.when),
           domestic: d.domestic ?? null,
+          alarm: d.alarm ?? false,
           chained: false,
           file: f.file,
           map: false,

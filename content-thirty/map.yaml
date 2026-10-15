@@ -1,16 +1,19 @@
-# Map-tap cards: the card says what to do and the targets glow in place of the buttons. Two or three targets.
-# A target acts on the tapped region by its tag (CALM unless said); `mark` leaves a lasting mark there.
-# The six of the spec: where the fleet goes, where the envoy flies, which front comes home, where the
-# brigade stands, which ally hears from us, where the red line is drawn (Red Lines held).
+# Map-tap cards: the card says what to do and the places glow in place of the buttons. Two or three targets.
+# A target with `from` is chosen when the card is dealt: the hottest region of that set (sea, home, abroad,
+# any, allies, posts) not already offered, so the glowing places are where the trouble is; `region` is the
+# fallback and `{region}` in the hint is filled in. The engine writes every label the same way ("Danger
+# down · Shoal calms"), so the places compare; the hint here records the intent. A map card is dealt only
+# when at least two of its places would lower DANGER. The six of the spec: where the fleet goes, where the
+# envoy flies, which front comes home, where the brigade stands, which ally hears from us, the red line.
 - id: fleet-map
   adviser: admiral
   map: true
   day: [2, 28]
   text: The fleet can be in one place by morning. Tap where it goes.
   targets:
-    - { region: SHL, hint: "Calms the strait" }
-    - { region: ORN, hint: "Warns Orrinth off · heats Dunmarrow", tag: FORCE, heats: DNM, mark: warned }
-    - { region: VSY, hint: "Guards home", mark: guarded }
+    - { region: SHL, from: sea, hint: "The fleet calms {region}" }
+    - { region: ORN, from: sea, hint: "The fleet warns {region} off", tag: FORCE, mark: warned }
+    - { region: VSY, hint: "The fleet guards home", mark: guarded }
 
 - id: envoy-map
   adviser: foreign
@@ -18,9 +21,9 @@
   day: [3, 27]
   text: One envoy, one flight, a week of talks. Tap where she goes.
   targets:
-    - { region: WMS, hint: "Talks in Wintermast · holds 60%", tag: RISKY, odds: 60 }
-    - { region: TLM, hint: "Talks in Tallowmere" }
-    - { region: LNK, hint: "Talks in Lantern Key" }
+    - { region: WMS, from: abroad, hint: "Hard talks in {region} (60%)", tag: RISKY, odds: 60 }
+    - { region: TLM, from: abroad, hint: "Talks in {region}" }
+    - { region: LNK, from: abroad, hint: "Talks in {region}" }
 
 - id: pullback-map
   adviser: general
@@ -28,8 +31,8 @@
   day: [6, 28]
   text: We are stretched thin. One front comes home this week, whatever the others say. Tap which.
   targets:
-    - { region: TRN, hint: "Leave Tern Isle · Morrow Downs takes fright", heats: MRD }
-    - { region: FLE, hint: "Bring the trainers home from Floe End" }
+    - { region: TRN, from: posts, hint: "Our people leave {region}" }
+    - { region: FLE, from: posts, hint: "Our people leave {region}" }
     - { region: VSY, hint: "Stand Vessary down" }
 
 - id: brigade-map
@@ -38,9 +41,9 @@
   day: [4, 26]
   text: One brigade is ready to move tonight. Wherever it stands, nothing gets through for a week. Tap where.
   targets:
-    - { region: VSY, hint: "Guards Vessary · heats Northwake", tag: FORCE, heats: NWK, mark: guarded }
-    - { region: MRD, hint: "Guards Morrow Downs", mark: guarded }
-    - { region: EDV, hint: "Guards the capital", mark: guarded }
+    - { region: VSY, from: home, hint: "The brigade guards {region}", mark: guarded }
+    - { region: MRD, from: home, hint: "The brigade guards {region}", mark: guarded }
+    - { region: EDV, hint: "The brigade guards the capital", mark: guarded }
 
 - id: ally-map
   adviser: foreign
@@ -48,9 +51,9 @@
   day: [5, 27]
   text: Three friends are asking whether we are still friends. One call tonight, from you. Tap who hears it.
   targets:
-    - { region: BRN, hint: "Reassures Brindle Coast" }
-    - { region: TRN, hint: "Reassures Tern Isle" }
-    - { region: GUL, hint: "Reassures Gullrest" }
+    - { region: BRN, from: allies, hint: "Reassure {region}" }
+    - { region: TRN, from: allies, hint: "Reassure {region}" }
+    - { region: GUL, from: allies, hint: "Reassure {region}" }
 
 - id: redline-map
   adviser: foreign
@@ -59,6 +62,6 @@
   when: { pieces: [red-lines] }
   text: You said you would draw a red line. Tap where it is drawn. Cross it, and the whole world knows what we do.
   targets:
-    - { region: TRN, hint: "Red line at Tern Isle", mark: red-line }
-    - { region: SHL, hint: "Red line at the Shoal", mark: red-line }
-    - { region: VSY, hint: "Red line at Vessary", mark: red-line }
+    - { region: TRN, from: any, hint: "The red line is {region}", mark: red-line }
+    - { region: SHL, from: any, hint: "The red line is {region}", mark: red-line }
+    - { region: VSY, from: any, hint: "The red line is {region}", mark: red-line }

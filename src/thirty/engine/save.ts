@@ -61,14 +61,20 @@ function isGameState(content: ThirtyContent, x: unknown): x is GameState {
   const rng = x.rng;
   if (!isObject(rng) || !['world', 'deal', 'odds', 'pressure', 'offer'].every((k) => isRngState(rng[k]))) return false;
 
-  const card = x.card;
-  if (card !== null) {
+  const isDealt = (card: unknown): boolean => {
     if (!isObject(card) || typeof card.id !== 'string' || !(card.id in content.cards)) return false;
     if (card.region !== null && !isRegion(card.region)) return false;
     if (typeof card.roll !== 'number' || card.roll < 0 || card.roll >= 1) return false;
     if (typeof card.alarmFalse !== 'boolean' || !['none', 'unknown', 'false', 'real'].includes(card.alarm as string)) return false;
     if (!Array.isArray(card.arrival)) return false;
-  }
+    if (card.targets !== undefined) {
+      if (!Array.isArray(card.targets) || card.targets.length < 2) return false;
+      if (!card.targets.every((t) => isObject(t) && isRegion(t.region) && typeof t.hint === 'string' && typeof t.tag === 'string')) return false;
+    }
+    return true;
+  };
+  const card = x.card;
+  if (card !== null && !isDealt(card)) return false;
   if (x.offer !== null && !(Array.isArray(x.offer) && x.offer.every(isPiece))) return false;
   if ((x.phase === 'choose') !== (card !== null)) return false;
   if ((x.phase === 'offer') !== (x.offer !== null)) return false;
@@ -80,6 +86,8 @@ function isGameState(content: ThirtyContent, x: unknown): x is GameState {
   if (!isObject(deck.lastCardDay) || !Object.entries(deck.lastCardDay).every(([r, d]) => isRegion(r) && isInt(d, 1))) return false;
   if (!isObject(deck.hotSince) || !Object.entries(deck.hotSince).every(([r, d]) => isRegion(r) && isInt(d, 1))) return false;
   if (!isInt(deck.lastMapDay)) return false;
+  // Tomorrow's card, held through an offer; a save from before it existed carries none.
+  if (deck.next !== undefined && deck.next !== null && !isDealt(deck.next)) return false;
 
   if (!Array.isArray(x.log) || !x.log.every((t) => isObject(t) && isInt(t.day, 1) && Array.isArray(t.steps) && Array.isArray(t.fired))) return false;
   const ending = x.ending;

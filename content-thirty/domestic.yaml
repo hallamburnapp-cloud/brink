@@ -7,7 +7,7 @@
   day: [4, 30]
   text: Fuel is up a third in Edda Vale since the strait closed. The queues start before dawn. The papers want to know what you are doing about it. So do I.
   left:  { text: Release the fuel reserve,    tag: CALM,  hint: "Danger down · Edda Vale settles" }
-  right: { text: Address the nation tonight,  tag: RISKY, odds: 60, hint: "Holds 60% · if it falls flat, Edda Vale heats" }
+  right: { text: Address the nation tonight,  tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · if it flops, Edda Vale heats" }
 
 - id: home-press-01
   adviser: chief
@@ -16,7 +16,7 @@
   day: [3, 30]
   text: "Three papers in Edda Vale ran the same headline this morning: ARE WE AT WAR? We are not. Nobody reads page two. A quiet word with the editors is legal, barely, and they would hate it."
   left:  { text: Brief the editors,  tag: CALM, hint: "Danger down · Edda Vale reads calmer news" }
-  right: { text: Let them write,     tag: HOME, hint: "Nothing changes abroad · the headlines shout on" }
+  right: { text: Let them write,     tag: HOME, hint: "Danger unchanged · the headlines shout on" }
 
 - id: home-grain-01
   adviser: chief
@@ -25,7 +25,7 @@
   day: [5, 30]
   text: "Bread in Quillon is up a fifth: the grain ships go the long way round the Shoal now. Quillon's bakers are on the radio. The Treasury says the reserve could hold prices a month. The Treasury would rather not."
   left:  { text: Open the grain reserve,  tag: CALM, hint: "Danger down · Quillon's bread holds" }
-  right: { text: Let prices rise,         tag: HOME, hint: "Nothing changes abroad · Quillon grumbles" }
+  right: { text: Let prices rise,         tag: HOME, hint: "Danger unchanged · Quillon grumbles" }
 
 - id: home-reserve-01
   adviser: chief
@@ -33,7 +33,7 @@
   domestic: public
   day: [6, 30]
   text: "The reserve call-up papers are printed. Not sent. Someone leaked the printing, and Edda Vale's railway stations are full of young men saying goodbye to nobody yet. The Defence Ministry would like them sent."
-  left:  { text: Send the papers,          tag: RISKY, odds: 60, hint: "Holds 60% · if the city panics, Edda Vale heats" }
+  left:  { text: Send the papers,          tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · in a panic, Edda Vale heats" }
   right: { text: "Burn the papers, say so",  tag: CALM,  hint: "Danger down · the stations empty" }
 
 - id: home-strike-01
@@ -43,7 +43,7 @@
   day: [5, 30]
   text: "Rimeholt's dockers struck this morning. Not over pay: they want warships kept out of their harbour so the Federation does not count it a target. The ferry company backs them. The Admiral does not."
   left:  { text: Promise no warships,   tag: CALM,  hint: "Danger down · Rimeholt works, unguarded" }
-  right: { text: Send the police in,    tag: RISKY, odds: 55, hint: "Holds 55% · if it turns, Rimeholt heats" }
+  right: { text: Send the police in,    tag: RISKY, odds: 55, hint: "Danger down if it works (55%) · if it turns, Rimeholt heats" }
 
 - id: home-debate-01
   adviser: chief
@@ -51,7 +51,7 @@
   domestic: public
   day: [8, 30]
   text: "The opposition wants a televised debate on the crisis. Prime time, Edda Vale, you and their leader. He is good on television. You are good at this. Those are different things."
-  left:  { text: Take the debate,          tag: RISKY, odds: 60, hint: "Holds 60% · if he wins, Edda Vale heats" }
+  left:  { text: Take the debate,          tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · if he wins, Edda Vale heats" }
   right: { text: "Decline, address alone",  tag: CALM,  hint: "Danger down · Edda Vale hears one voice" }
 
 - id: home-bank-01
@@ -60,7 +60,7 @@
   domestic: economy
   day: [7, 30]
   text: "Money is leaving Edda Vale: a billion a day to banks in Marram and Lantern Key. The central bank wants to close the exits for a week. It would work. It would also say, loudly, that we are afraid."
-  left:  { text: Close the exits,        tag: RISKY, odds: 65, hint: "Holds 65% · if it spooks them, Edda Vale heats" }
+  left:  { text: Close the exits,        tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if spooked, Edda Vale heats" }
   right: { text: Keep the exits open,    tag: CALM,  hint: "Danger down · the money slows, perhaps" }
 
 - id: home-march-01
@@ -70,7 +70,7 @@
   day: [6, 30]
   text: "Fifty thousand marched in Edda Vale tonight. Half for peace, half for the fleet, and they met in the square. Nobody was hurt. The police chief says next week somebody will be."
   left:  { text: Meet both leaders tomorrow,  tag: CALM,  hint: "Danger down · the square empties" }
-  right: { text: Ban next week's march,       tag: RISKY, odds: 55, hint: "Holds 55% · if they march anyway, Edda Vale heats" }
+  right: { text: Ban next week's march,       tag: RISKY, odds: 55, hint: "Danger down if it works (55%) · if defied, Edda Vale heats" }
 
 - id: home-fish-01
   adviser: chief
@@ -79,7 +79,7 @@
   day: [4, 30]
   text: "Ashkettle's fish market has no fish: the boats will not go out past the patrols. The town lives on that market. The mayor is asking for a subsidy and a warship, in that order."
   left:  { text: Pay the subsidy,       tag: CALM, hint: "Danger down · Ashkettle is paid to wait" }
-  right: { text: Tell them to wait,     tag: HOME, hint: "Nothing changes abroad · the market stays empty" }
+  right: { text: Tell them to wait,     tag: HOME, hint: "Danger unchanged · the market stays empty" }
 
 - id: home-drill-01
   adviser: chief
@@ -88,7 +88,7 @@
   day: [9, 30]
   text: "Morrow Downs closed its schools today for a drill: what to do if the sirens go. The children were calm. The parents were not. The town wants to know whether the drill was a drill."
   left:  { text: Say plainly that it was,  tag: CALM, hint: "Danger down · Morrow Downs sleeps" }
-  right: { text: Say nothing official,     tag: HOME, hint: "Nothing changes abroad · the parents guess" }
+  right: { text: Say nothing official,     tag: HOME, hint: "Danger unchanged · the parents guess" }
 
 - id: home-shelter-01
   adviser: chief
@@ -97,7 +97,7 @@
   day: [10, 30]
   text: "Vessary wants money for shelters. Deep ones. The Treasury says shelters are what you build when you have given up on everything else. Vessary says they are what you build when you live across from Northwake."
   left:  { text: Fund the shelters,         tag: CALM, hint: "Danger down · Vessary digs, and feels safer" }
-  right: { text: Fund the talks instead,    tag: HOME, hint: "Nothing changes abroad · Vessary waits" }
+  right: { text: Fund the talks instead,    tag: HOME, hint: "Danger unchanged · Vessary waits" }
 
 - id: home-poll-01
   adviser: chief
@@ -105,7 +105,7 @@
   domestic: public
   day: [12, 30]
   text: "The polls are in. Edda Vale is split down the middle on you. Half think you are too soft, half too hard, and both halves are frightened. My advice is the same as always: one quiet day."
-  left:  { text: Take the quiet day,  tag: HOME, hint: "Nothing changes abroad · one quiet day at home" }
+  left:  { text: Take the quiet day,  tag: HOME, hint: "Danger unchanged · one quiet day at home" }
   right: { text: Walk the market,     tag: CALM, hint: "Danger down · Edda Vale sees you" }
 
 - id: home-leak-01
@@ -114,5 +114,5 @@
   domestic: public
   day: [8, 30]
   text: "Someone in the cabinet is leaking to the Edda Vale papers. Every meeting is on page one by morning. I know who. Sacking them makes a martyr. Keeping them makes a sieve."
-  left:  { text: Sack the leaker,          tag: RISKY, odds: 60, hint: "Holds 60% · if it blows up, Edda Vale heats" }
+  left:  { text: Sack the leaker,          tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · if it leaks, Edda Vale heats" }
   right: { text: Hold smaller meetings,    tag: CALM,  hint: "Danger down · the papers go quiet" }

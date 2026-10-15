@@ -4,7 +4,7 @@
  * action returns a new object (the one it was given is never changed).
  */
 import type { RngState } from '../../engine/rng.ts';
-import type { CardId, ChoiceTag, Heat, PieceId, RegionId } from '../content/types.ts';
+import type { CardId, ChoiceTag, Heat, MapTarget, PieceId, RegionId } from '../content/types.ts';
 
 export type { CardId, ChoiceTag, Heat, PieceId, RegionId };
 
@@ -20,7 +20,7 @@ export type EndingKind = 'WAR' | 'STAND-DOWN' | 'HELD';
 export type Ending =
   /** DANGER reached 100: `region` is the one whose heat tipped it, `day` the day it happened. */
   | { kind: 'WAR'; day: number; danger: 100; region: RegionId }
-  /** DANGER read 0 at the end of a day from day 5 on: the day is the score. */
+  /** DANGER read 0 after the choice from day 10 on (RULES.standDownFromDay): the day is the score. */
   | { kind: 'STAND-DOWN'; day: number; danger: 0 }
   /** The end of day 30 with DANGER below 100; `clean` when it ended under 20. */
   | { kind: 'HELD'; day: 30; danger: number; clean: boolean };
@@ -62,6 +62,8 @@ export interface DealtCard {
   alarm: AlarmState;
   /** What happened as the card arrived (the Hotline calming it, the Cautious director's mark): animate before the choice. */
   arrival: TraceStep[];
+  /** A map card's places to tap, chosen from the live map when the card was dealt (see deck.ts resolveTargets). */
+  targets?: MapTarget[];
 }
 
 /** A follow-up waiting its turn: due on a day in [from, to] (dealt late if something else had to come first). */
@@ -81,6 +83,8 @@ export interface Deck {
   hotSince: Record<RegionId, number>;
   /** The last day a map card was dealt (never two in a row). */
   lastMapDay: number;
+  /** Tomorrow's card, dealt at night and held through a team offer; `pick` puts it on the table. */
+  next: DealtCard | null;
 }
 
 /** One pick at a team offer. */
@@ -127,7 +131,7 @@ export interface GameState {
 export type HeatWhy =
   /** The tag's own effect or a consequence the button named (heats, crisis, relieve, a missed roll's +1). */
   | 'choice'
-  /** The card's own news: an arc's first card finds its region in trouble (in `card.arrival`). */
+  /** The card's own news: tomorrow's card finds its region in trouble (the last step of the night; in `card.arrival` on day 1). */
   | 'news'
   /** A piece reached it (`piece` says which). */
   | 'piece'
@@ -136,7 +140,9 @@ export type HeatWhy =
   /** A CRISIS region's one-in-three heated it at the end of the day (`source`), or a TENSE region boiled over on its own. */
   | 'pressure'
   /** Trouble flared in a calm region at the end of the day (the slide). */
-  | 'flare';
+  | 'flare'
+  /** DANGER filled: the fighting began here (the WAR ending's region is pushed to WAR so the map shows it). */
+  | 'war';
 
 export interface HeatChange {
   region: RegionId;

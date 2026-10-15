@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { Rng } from '../../engine/rng.ts';
 import { loadThirtyContent } from '../content/load.ts';
 import type { ThirtyContent } from '../content/types.ts';
-import { optionsOf } from './cards.ts';
+import { optionsOf, todayCard } from './cards.ts';
 import { preview } from './preview.ts';
 import { RULES, dangerOf, mapDanger } from './rules.ts';
 import { choose, danger, newGame, pick, startingHeats, tapRegion } from './run.ts';
@@ -25,7 +25,7 @@ function playRandom(c: ThirtyContent, seed: string, botSeed = 'bot'): GameState[
     let r;
     if (s.phase === 'offer') r = pick(c, s, rng.int(2) ? rng.int(s.offer!.length) : null);
     else {
-      const card = c.cards[s.card!.id];
+      const card = todayCard(c, s)!;
       const options = optionsOf(card);
       const o = rng.pick(options);
       r = card.map ? tapRegion(c, s, o) : choose(c, s, o as 'left' | 'right');
@@ -198,8 +198,14 @@ describe('the team offer', () => {
     const withCardPack = withHeats({ ...quiet(content, 'plain-shl'), day: 5 }, { SHL: 2, WMS: 3 });
     let m = choose(content, withCardPack, 'left').state;
     m = { ...m, offer: ['red-lines', 'hotline', 'spin-doctor'] };
-    const waited = pick(content, m, 0).state;
+    let waited = pick(content, m, 0).state;
     expect(waited.redLine).toBeNull();
+    // Day 6's card was dealt the night before the pick; the red-line card comes with the next deal that finds two places worth tapping.
+    for (let guard = 0; waited.card!.id !== 'redline-map' && guard < 3; guard++) {
+      waited = withHeats(waited, { SHL: 2, WMS: 3, TRN: 1 });
+      const card = todayCard(content, waited)!;
+      waited = (card.map ? tapRegion(content, waited, optionsOf(card)[0]) : choose(content, waited, 'left')).state;
+    }
     expect(waited.card!.id).toBe('redline-map');
     const drawn = tapRegion(content, waited, 'SHL').state;
     expect(drawn.redLine).toBe('SHL');
@@ -215,22 +221,31 @@ describe('endings (SPEC "Ends", checked after pressure)', () => {
     const n = choose(content, withCard(content, s, 'lintel-force'), 'right').state;
     expect(n.phase).toBe('over');
     expect(n.ending).toEqual({ kind: 'WAR', day: 9, danger: 100, region: 'ORN' });
+    // The map agrees with the words: Orrinth, in crisis when it tipped the gauge, is red at the end.
+    expect(n.heats.ORN).toBe(3);
+    expect(n.log[0].steps.filter((x) => x.kind === 'heat' && x.why === 'war')).toEqual([{ kind: 'heat', region: 'ORN', from: 2, to: 3, why: 'war', danger: 100 }]);
     expect(n.card).toBeNull();
+    expect(n.deck.next).toBeNull();
     expect(n.log[0].ending).toEqual(n.ending);
     expect(choose(content, n, 'left')).toMatchObject({ ok: false, reason: 'the game is over' });
   });
 
-  it('STAND-DOWN at DANGER 0 from the end of day 5, not before', () => {
+  it('STAND-DOWN at DANGER 0 after the choice from day 10 (RULES.standDownFromDay), not before', () => {
     const early = quiet(content, 'plain-shl', { SHL: 1 });
     const e = choose(content, early, 'left').state;
     expect(e.log[0].dangerAfterChoice).toBe(0);
     expect(e.ending).toBeNull();
     expect(e.phase).toBe('choose');
     expect(e.day).toBe(2);
-    const five = withHeats({ ...quiet(content, 'plain-shl'), day: 5 }, { SHL: 1 });
-    const f = choose(content, withCard(content, five, 'plain-shl'), 'left').state;
-    expect(f.ending).toEqual({ kind: 'STAND-DOWN', day: 5, danger: 0 });
+    const nine = withHeats({ ...quiet(content, 'plain-shl'), day: RULES.standDownFromDay - 1 }, { SHL: 1 });
+    expect(choose(content, withCard(content, nine, 'plain-shl'), 'left').state.ending).toBeNull();
+    const ten = withHeats({ ...quiet(content, 'plain-shl'), day: RULES.standDownFromDay }, { SHL: 1 });
+    const f = choose(content, withCard(content, ten, 'plain-shl'), 'left').state;
+    expect(f.ending).toEqual({ kind: 'STAND-DOWN', day: RULES.standDownFromDay, danger: 0 });
     expect(f.phase).toBe('over');
+    // The night is skipped: no card is dealt and nothing flares.
+    expect(f.card).toBeNull();
+    expect(f.log[0].steps.filter((x) => x.kind === 'heat' && x.why !== 'choice')).toEqual([]);
   });
 
   it('a penalty keeps the map from standing down', () => {
@@ -307,7 +322,7 @@ describe('the save', () => {
     // Continuing from the loaded state matches continuing from the original.
     const s = states.find((x) => x.phase === 'choose' && x.day > 2)!;
     const l = loadGame(content, saveGame(s))!;
-    const card = content.cards[s.card!.id];
+    const card = todayCard(content, s)!;
     const o = optionsOf(card)[0];
     const r1 = card.map ? tapRegion(content, s, o) : choose(content, s, o as 'left');
     const r2 = card.map ? tapRegion(content, l, o) : choose(content, l, o as 'left');

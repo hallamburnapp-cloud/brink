@@ -3,7 +3,7 @@
  * and pieces exist, follow-ups land on real cards of the same arc in reachable days, map cards
  * and domestic cards are well formed; warnings for thin coverage. Pure: takes content, returns issues.
  */
-import { HOME_BLOC, REGION_IDS, REGION_INFO, areNeighbours, isRegionId } from './regions.ts';
+import { HOME_BLOC, REGION_IDS, REGION_INFO, REGION_SETS, areNeighbours, isRegionId } from './regions.ts';
 import { DAYS, followsOf, wordCount } from './schema.ts';
 import type { Card, Consequence, ContentIssue, ThirtyContent } from './types.ts';
 
@@ -60,7 +60,16 @@ export function validateThirty(content: ThirtyContent): ContentIssue[] {
     }
 
     if (card.region && !card.map && !textNamesRegion(card.text, card.region)) warn(where, `the message does not name ${regionName(card.region)} (every card names its region)`);
+    // A warning card is resolved by waiting or not: it needs the RISKY "wait" whose odds are the chance the alarm is false.
+    if (card.alarm && (card.map || (card.left.tag !== 'RISKY' && card.right.tag !== 'RISKY'))) err(where, 'a warning card (alarm: true) is a choice card with a RISKY option (the wait)');
     if (wordCount(card.text) > 40) err(where, 'the message is over 40 words');
+
+    // CONTENT.md "Hints": a risky button says its odds as `(65%)`, so the line reads "Danger down if it works (65%) · ...".
+    const checkRiskyHint = (c: { tag: string; odds?: number; hint: string }, label: string) => {
+      if (c.tag === 'RISKY' && c.odds !== undefined && !c.hint.includes(`(${c.odds}%)`)) {
+        warn(where, `${label}: a risky hint states its odds, "Danger down if it works (${c.odds}%) · ..."`);
+      }
+    };
 
     const checkConsequence = (c: Consequence | undefined, actedOn: string | null, tag: string, label: string) => {
       if (!c) return;
@@ -97,17 +106,24 @@ export function validateThirty(content: ThirtyContent): ContentIssue[] {
       card.targets.forEach((t, i) => {
         const label = `target ${i + 1}`;
         if (!isRegionId(t.region)) err(where, `${label}: unknown region "${t.region}"`);
-        if (seen.has(t.region)) err(where, `${label}: ${regionName(t.region)} is offered twice`);
-        seen.add(t.region);
+        if (!t.from) {
+          if (seen.has(t.region)) err(where, `${label}: ${regionName(t.region)} is offered twice`);
+          seen.add(t.region);
+        } else {
+          if (!REGION_SETS[t.from].includes(t.region)) err(where, `${label}: the fallback ${regionName(t.region)} is not in the set "${t.from}"`);
+          if (t.heats) err(where, `${label}: a place chosen on the live map cannot name the neighbour it heats (the engine picks it)`);
+        }
         if (t.mark === 'red-line' && !card.when.pieces.includes('red-lines')) warn(where, `${label}: draws a red line, so the card should need the red-lines piece (when.pieces)`);
-        checkConsequence(t, t.region, t.tag, label);
-        checkConsequence(t.fail, t.region, t.tag, `${label} (fail)`);
+        checkRiskyHint(t, label);
+        checkConsequence(t, t.from ? null : t.region, t.tag, label);
+        checkConsequence(t.fail, t.from ? null : t.region, t.tag, `${label} (fail)`);
       });
     } else {
       for (const side of ['left', 'right'] as const) {
         const ch = card[side];
         const words = wordCount(ch.text);
         if (words < 3 || words > 5) warn(where, `${side}: the action "${ch.text}" is ${words} word${words === 1 ? '' : 's'}; aim for 3 to 5`);
+        checkRiskyHint(ch, side);
         checkConsequence(ch, card.region, ch.tag, side);
         checkConsequence(ch.fail, card.region, ch.tag, `${side} (fail)`);
       }

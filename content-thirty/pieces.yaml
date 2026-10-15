@@ -1,5 +1,6 @@
-# The twelve team pieces (SPEC "The team"): `rule` is printed exactly when the chip is tapped,
-# `tags` says what the piece amplifies, `chip` is the one-word name on the team row, `icon` the glyph key.
+# The twelve team pieces (SPEC "The team"): `rule` is printed exactly when the chip is tapped, in plain
+# English (no game terms: "shows of force", not "force choices"; never "cards"), `tags` says what the piece
+# amplifies, `chip` is the short name on the team row (at most 12 characters), `icon` the glyph key.
 - id: old-ambassador
   name: Old Ambassador
   chip: Ambassador
@@ -10,7 +11,7 @@
 
 - id: back-channel
   name: Back-Channel
-  chip: Channel
+  chip: Back-Channel
   icon: phone
   kind: policy
   rule: Calming choices also cool one neighbour.
@@ -21,7 +22,7 @@
   chip: Peace
   icon: dove
   kind: policy
-  rule: Calming choices cool two extra regions; force choices heat home.
+  rule: Calming choices cool two more regions; shows of force heat home.
   tags: [CALM, FORCE]
 
 - id: hotline
@@ -29,7 +30,7 @@
   chip: Hotline
   icon: bell
   kind: policy
-  rule: Once a week, a crisis card calms itself before you choose.
+  rule: Once a week, a crisis eases on its own before you choose.
   tags: [any]
 
 - id: dove-foreign
@@ -37,7 +38,7 @@
   chip: Dove
   icon: olive
   kind: adviser
-  rule: "Talks never fail: risky talks become certain."
+  rule: "Talks never fail: a risky talk always works."
   tags: [RISKY]
 
 - id: hawk-general
@@ -45,7 +46,7 @@
   chip: Hawk
   icon: medal
   kind: adviser
-  rule: Force choices cool two steps more, but always heat a neighbour.
+  rule: Shows of force cool two steps more, but always heat a neighbour.
   tags: [FORCE]
 
 - id: loyal-admiral
@@ -53,7 +54,7 @@
   chip: Admiral
   icon: anchor
   kind: adviser
-  rule: Force choices at sea cool every neighbouring sea region too.
+  rule: Shows of force at sea cool every neighbouring sea region too.
   tags: [FORCE]
 
 - id: cautious-intel
@@ -76,10 +77,10 @@
 
 - id: spin-doctor
   name: Spin Doctor
-  chip: Spin
+  chip: Spin Doctor
   icon: megaphone
   kind: adviser
-  rule: No domestic cards. Home never heats.
+  rule: "No trouble at home: home never heats."
   tags: [HOME]
 
 - id: red-lines
@@ -92,8 +93,8 @@
 
 - id: launch-on-warning
   name: Launch on Warning
-  chip: Warning
+  chip: Launch
   icon: siren
   kind: policy
-  rule: War never spreads from a region you have warned; a false alarm there is +20.
+  rule: War never spreads from a region you have warned; a false alarm there is DANGER +20.
   tags: [arcs]

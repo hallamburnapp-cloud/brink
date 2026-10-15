@@ -8,7 +8,7 @@ import { choose, content, danger, newGame, pick, tapRegion, type GameState, type
 import { cancelPlayback, playArrival, playDay } from './playback';
 import { tickDay } from './sound';
 import { clearSave, hasSave, readSave, writeSave } from './storage';
-import { busy, cardKey, chipOpen, chosen, delta, explain, explainFrom, glow, needle, prefs, run, saved, screen, setPrefs, sheet, shown, shownHeats } from './store';
+import { busy, cardKey, chipOpen, chosen, delta, explain, explainFrom, glow, needle, night, prefs, run, saved, screen, setPrefs, sheet, shown, shownHeats } from './store';
 
 /** A short readable seed, e.g. 'KX7-RM2'. */
 export function randomSeed(): string {
@@ -26,6 +26,7 @@ function show(s: GameState): void {
   needle.value = danger(s);
   delta.value = null;
   chosen.value = null;
+  night.value = null;
   glow.value = [];
   chipOpen.value = null;
 }
@@ -99,9 +100,20 @@ function finishExplain(): void {
     shown.value = run.value;
     return;
   }
-  // The day begins: the card slides up.
+  // The day begins (or goes on): the card slides up.
   cardKey.value++;
   tickDay();
+}
+
+/**
+ * What the explanation's last button says: BEGIN DAY 1 when a new game is about to start, BACK TO
+ * THE GAME when it was opened from the menu mid-game, DONE from the title (nothing starts).
+ */
+export function explainDoneLabel(): string {
+  if (explainFrom.value === 'title') return 'DONE';
+  const s = run.value;
+  if (s && s.day === 1 && s.log.length === 0 && s.phase === 'choose') return 'BEGIN DAY 1';
+  return 'BACK TO THE GAME';
 }
 
 function canAct(): GameState | null {

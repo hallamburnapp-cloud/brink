@@ -25,7 +25,7 @@
   day: [5, 22]
   text: "We left Floe End. Within a day Orrinth's unflagged men were in the town, and Marram is asking why its friend went home. Floe End's mayor sent one line: we understood."
   left:  { text: "Send aid, not soldiers", tag: CALM,  hint: "Danger down · Floe End remembers", follow: proxy-04 }
-  right: { text: Send the team back,       tag: RISKY, odds: 60, hint: "Holds 60% · if fired on, Floe End and Orrinth heat", fail: { heats: ORN }, follow: proxy-04 }
+  right: { text: Send the team back,       tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · if not, Orrinth heats too", fail: { heats: ORN }, follow: proxy-04 }
 
 - id: proxy-04
   arc: proxy-incident

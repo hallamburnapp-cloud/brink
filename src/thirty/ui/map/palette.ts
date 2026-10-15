@@ -2,7 +2,8 @@
  * Map colours (SPEC "The screen", 2). Colour means heat and nothing else: CALM is a muted blue-grey,
  * TENSE amber, CRISIS orange (it pulses slowly), WAR red with hatching. The four also differ in
  * texture and brightness so they read in greyscale and for colour-blind players: TENSE is the
- * brightest, then CRISIS, then CALM, and WAR is the only hatched one. palette.test.ts holds that.
+ * brightest, CRISIS a red-orange a clear step darker, then CALM, and WAR is the only hatched one.
+ * map.test.ts holds that, with a luminance gap between TENSE and CRISIS.
  */
 import type { Heat } from './contract';
 
@@ -49,7 +50,7 @@ export const HAIRLINE = hex('#9DB8D9');
 
 export const CALM = hex('#4B5E73');
 export const TENSE = hex('#D8A440');
-export const CRISIS = hex('#E2702F');
+export const CRISIS = hex('#DA5A2C');
 export const WAR = hex('#C1352A');
 export const WAR_HATCH = hex('#6E1A14');
 /** A cooling region's ripple crest, and the gauge's cool end. */

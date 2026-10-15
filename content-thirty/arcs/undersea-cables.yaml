@@ -16,7 +16,7 @@
   day: [3, 20]
   text: "The repair ship found the Gullrest cable cut clean, twice, a mile apart. Nobody's anchor does that. The phones are back. So is the survey ship, a mile off, watching us splice."
   left:  { text: "Shadow her, say nothing", tag: CALM,  hint: "Danger down · Gullrest stays connected", follow: cables-04 }
-  right: { text: Order her away,            tag: RISKY, odds: 65, hint: "Holds 65% · if she refuses, Gullrest heats", follow: cables-04 }
+  right: { text: Order her away,            tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if refused, Gullrest heats", follow: cables-04 }
 
 - id: cables-03
   arc: undersea-cables
@@ -25,7 +25,7 @@
   day: [3, 20]
   text: "We boarded the survey ship off Driftholm. Her hold is full of cable-cutting gear and nineteen very polite Federation sailors. Wintermast wants them back. Driftholm wants to know why we fought in its water."
   left:  { text: Send the crew home,        tag: CALM,  hint: "Danger down · Driftholm calms", follow: cables-04 }
-  right: { text: Hold them for questioning, tag: RISKY, odds: 60, hint: "Holds 60% · if not, Glassmoor boils over", fail: { crisis: GLM }, follow: cables-04 }
+  right: { text: Hold them for questioning, tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · if not, Glassmoor boils over", fail: { crisis: GLM }, follow: cables-04 }
 
 - id: cables-04
   arc: undersea-cables

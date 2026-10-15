@@ -16,7 +16,7 @@
   region: NWK
   when: { heat: [1, 3] }
   text: "Northwake has gone quiet on every channel we listen to. Probably a new code. Possibly orders already given. The gap between those two is where I earn my pay, and tonight I cannot close it."
-  left:  { text: Fly a listening plane,    tag: RISKY, odds: 70, hint: "Holds 70% · if chased off, Northwake heats" }
+  left:  { text: Fly a listening plane,    tag: RISKY, odds: 70, hint: "Danger down if it works (70%) · if chased, Northwake heats" }
   right: { text: Wait for them to talk,    tag: CALM,  hint: "Danger down · patience, and a long night" }
 
 - id: frostmere-01
@@ -31,8 +31,8 @@
   region: FRM
   when: { heat: [1, 3] }
   text: "Frostmere's governor has asked, through Lantern Key, for a visit from our Foreign Ministry. He is a Federation hard-liner. He may want to talk. He may want a photograph of us coming to him."
-  left:  { text: Send a deputy minister,  tag: RISKY, odds: 65, hint: "Holds 65% · if snubbed, Frostmere heats" }
-  right: { text: "Decline, but warmly",    tag: HOME,  hint: "Nothing changes abroad · the governor waits" }
+  left:  { text: Send a deputy minister,  tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if snubbed, Frostmere heats" }
+  right: { text: "Decline, but warmly",    tag: HOME,  hint: "Danger unchanged · the governor waits" }
 
 - id: wintermast-01
   adviser: foreign
@@ -46,7 +46,7 @@
   region: WMS
   text: "I was in Wintermast in the last bad year. The president's chief of staff was a young aide then, who liked chess and his mother's bread. He takes my calls. He does not take many others."
   left:  { text: Let the Ambassador call,  tag: CALM, hint: "Danger down · an old friend answers" }
-  right: { text: Keep it official,         tag: HOME, hint: "Nothing changes abroad · the letters go by post" }
+  right: { text: Keep it official,         tag: HOME, hint: "Danger unchanged · the letters go by post" }
 
 - id: wenmoor-01
   adviser: general
@@ -61,7 +61,7 @@
   when: { heat: [1, 3] }
   text: "The Wenmoor tanks have loaded live rounds. Probably for a firing day. Possibly not. The difference is forty-eight hours' notice, and I would rather not spend them guessing."
   left:  { text: Ask Wintermast directly,   tag: CALM,  hint: "Danger down · they may even answer" }
-  right: { text: Fly the border all night,  tag: RISKY, odds: 70, hint: "Holds 70% · if challenged, Wenmoor heats" }
+  right: { text: Fly the border all night,  tag: RISKY, odds: 70, hint: "Danger down if it works (70%) · if challenged, Wenmoor heats" }
 
 - id: glassmoor-01
   adviser: admiral
@@ -75,8 +75,8 @@
   region: GLM
   when: { heat: [0, 1] }
   text: "Glassmoor's shipyards want to sell us steel. Yes, Federation steel, now. Their mayor is a trader first. Wintermast would hate it, which is either a reason or a warning."
-  left:  { text: Buy the steel,          tag: RISKY, odds: 65, hint: "Holds 65% · if Wintermast stops it, Glassmoor heats" }
-  right: { text: "Decline, with thanks",  tag: HOME,  hint: "Nothing changes abroad · the mayor shrugs" }
+  left:  { text: Buy the steel,          tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if stopped, Glassmoor heats" }
+  right: { text: "Decline, with thanks",  tag: HOME,  hint: "Danger unchanged · the mayor shrugs" }
 
 - id: kellmark-01
   adviser: general
@@ -90,7 +90,7 @@
   region: KLM
   when: { heat: [1, 3] }
   text: "Kellmark's launch pad is lit all night. A second rocket, probably. Possibly a test of something that is not a rocket. Our satellite passes over Kellmark once a day. Once is not enough this week."
-  left:  { text: Move a satellite over it,  tag: RISKY, odds: 70, hint: "Holds 70% · if jammed, Kellmark heats" }
+  left:  { text: Move a satellite over it,  tag: RISKY, odds: 70, hint: "Danger down if it works (70%) · if jammed, Kellmark heats" }
   right: { text: Ask the Scatter to look,   tag: CALM,  hint: "Danger down · Lantern Key shares its view" }
 
 # ---- Highmarch: the Republic, us -----------------------------------------------------------
@@ -123,7 +123,7 @@
   when: { heat: [1, 3] }
   text: "Rimeholt's ferry to Gullrest has stopped: the crews will not sail past the Federation survey ship. Rimeholt lives on that ferry. Four hundred people are sleeping in the terminal tonight."
   left:  { text: Put a warship on it,     tag: FORCE, hint: "Danger down here · heats Gullrest", heats: GUL }
-  right: { text: Pay the crews to sail,   tag: RISKY, odds: 65, hint: "Holds 65% · if they still refuse, Rimeholt heats" }
+  right: { text: Pay the crews to sail,   tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if refused, Rimeholt heats" }
 
 - id: quillon-01
   adviser: chief
@@ -138,7 +138,7 @@
   when: { heat: [1, 3] }
   text: "Someone cut the rail line into Quillon last night, cleanly, at the bridge. No flags. Quillon is three days from empty shelves. My engineers can fix it by Friday if nobody shoots at them."
   left:  { text: "Fix it, guard it",            tag: CALM,  hint: "Danger down · Quillon's trains run, guarded", mark: guarded }
-  right: { text: Blame the Federation openly,  tag: RISKY, odds: 60, hint: "Holds 60% · if we are wrong, Quillon heats" }
+  right: { text: Blame the Federation openly,  tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · if wrong, Quillon heats" }
 
 - id: eddavale-01
   adviser: intel
@@ -167,13 +167,13 @@
   when: { heat: [1, 3] }
   text: "Ashkettle's dockers have refused to load a Federation grain ship. Her captain says he sails tonight with or without the grain. Brindle Coast is watching to see whether we honour contracts."
   left:  { text: Load the ship,            tag: CALM,  hint: "Danger down · Ashkettle keeps its word" }
-  right: { text: Let the dockers decide,   tag: RISKY, odds: 60, hint: "Holds 60% · if it turns ugly, Ashkettle heats" }
+  right: { text: Let the dockers decide,   tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · if ugly, Ashkettle heats" }
 
 - id: morrowdowns-01
   adviser: general
   region: MRD
   text: "The Tern Isle garrison rotates through Morrow Downs. The relief company is on the quay with its kit, and a Federation submarine is somewhere between here and there. I can sail them tonight or not this week."
-  left:  { text: Sail them tonight,   tag: RISKY, odds: 70, hint: "Holds 70% · if shadowed, Morrow Downs heats" }
+  left:  { text: Sail them tonight,   tag: RISKY, odds: 70, hint: "Danger down if it works (70%) · if seen, Morrow Downs heats" }
   right: { text: Hold them a week,    tag: CALM,  hint: "Danger down · Tern Isle waits for its relief" }
 
 - id: morrowdowns-02
@@ -182,7 +182,7 @@
   when: { heat: [1, 3] }
   text: "Morrow Downs has filled with families from Tern Isle who did not wait to be told. The schools are full, the hotels are full, the mayor is on television. He would like a minister beside him."
   left:  { text: Send a minister today,    tag: CALM, hint: "Danger down · Morrow Downs feels seen" }
-  right: { text: "Send money, not ministers", tag: HOME, hint: "Nothing changes abroad · the mayor talks alone" }
+  right: { text: "Send money, not ministers", tag: HOME, hint: "Danger unchanged · the mayor talks alone" }
 
 # ---- The Scatter: the island league ---------------------------------------------------------
 
@@ -191,7 +191,7 @@
   region: GUL
   text: "Gullrest's council has invited me to their harvest supper, which is their way of asking whether we still love them. They have had a hard month. Their mayor's mother taught me to gut a herring."
   left:  { text: Go to the supper,           tag: CALM, hint: "Danger down · Gullrest feels remembered" }
-  right: { text: Send regrets and a cheque,  tag: HOME, hint: "Nothing changes abroad · the herring go uneaten" }
+  right: { text: Send regrets and a cheque,  tag: HOME, hint: "Danger unchanged · the herring go uneaten" }
 
 - id: gullrest-02
   adviser: admiral
@@ -206,7 +206,7 @@
   region: DRF
   text: "Driftholm's fishermen have hauled a Federation torpedo up in their nets. A dud, probably. They are selling tickets to see it. Glassmoor wants it back and has sent a ship to collect."
   left:  { text: Hand it back quietly,  tag: CALM,  hint: "Danger down · Driftholm loses an attraction" }
-  right: { text: Take it apart first,   tag: RISKY, odds: 65, hint: "Holds 65% · if caught, Driftholm heats" }
+  right: { text: Take it apart first,   tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if caught, Driftholm heats" }
 
 - id: driftholm-02
   adviser: foreign
@@ -214,7 +214,7 @@
   when: { heat: [0, 1] }
   text: "Driftholm has asked the Federation for a trade deal of its own: fish for fuel. The Scatter's council in Lantern Key is furious. Driftholm says it is cold and poor and nobody else offered."
   left:  { text: Offer the fuel ourselves,   tag: CALM, hint: "Danger down · Driftholm warms to us" }
-  right: { text: Let Lantern Key handle it,  tag: HOME, hint: "Nothing changes abroad · the Scatter argues" }
+  right: { text: Let Lantern Key handle it,  tag: HOME, hint: "Danger unchanged · the Scatter argues" }
 
 - id: ternisle-01
   adviser: general
@@ -229,21 +229,21 @@
   when: { heat: [0, 1] }
   text: "Tern Isle's schoolchildren have written to you. Three hundred letters asking the soldiers to stay for the summer fair. The council did not stop them. Their teacher is the council leader's daughter, which tells you something."
   left:  { text: Promise the summer fair,  tag: CALM, hint: "Danger down · Tern Isle is guarded for the fair", mark: guarded }
-  right: { text: "Reply, promise nothing",  tag: HOME, hint: "Nothing changes abroad · the letters are answered" }
+  right: { text: "Reply, promise nothing",  tag: HOME, hint: "Danger unchanged · the letters are answered" }
 
 - id: lanternkey-01
   adviser: foreign
   region: LNK
   text: "Lantern Key proposes a Scatter neutrality pact: no foreign warships in Scatter harbours, theirs or ours. It would close the Shoal to the Federation. It would also close Tern Isle to us. They mean it kindly."
   left:  { text: Sign the pact,                tag: CALM,  hint: "Danger down · the Scatter breathes out" }
-  right: { text: Ask for Tern Isle excepted,   tag: RISKY, odds: 60, hint: "Holds 60% · if refused, Lantern Key heats" }
+  right: { text: Ask for Tern Isle excepted,   tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · if not, Lantern Key heats" }
 
 - id: lanternkey-02
   adviser: ambassador
   region: LNK
   text: "Lantern Key's minister has asked me to dinner with the Federation's envoy. Just the three of us and her very old dog. No agenda, she says. There is always an agenda. The dog's name is Admiral."
   left:  { text: Go to dinner,                tag: CALM,  hint: "Danger down · three people talk" }
-  right: { text: Send the Foreign Minister,   tag: RISKY, odds: 65, hint: "Holds 65% · if it stalls, Lantern Key heats" }
+  right: { text: Send the Foreign Minister,   tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if not, Lantern Key heats" }
 
 - id: pebbleby-01
   adviser: admiral
@@ -258,13 +258,13 @@
   when: { heat: [0, 1] }
   text: "Pebbleby wants to sell us its catch at a fixed price for the year. A good price. It is a way of saying: if we are yours, feed us. The Admiral says it is a base, not a market."
   left:  { text: Sign the fish deal,        tag: CALM, hint: "Danger down · Pebbleby is fed, and ours" }
-  right: { text: Buy at the market rate,    tag: HOME, hint: "Nothing changes abroad · Pebbleby sells to anyone" }
+  right: { text: Buy at the market rate,    tag: HOME, hint: "Danger unchanged · Pebbleby sells to anyone" }
 
 - id: shoal-01
   adviser: admiral
   region: SHL
   text: "The Shoal is clear this morning: no Federation ships, none of ours, just the strait doing what straits do. Our tankers could run it today. They could also run into whatever comes back tomorrow."
-  left:  { text: Run every tanker now,       tag: RISKY, odds: 70, hint: "Holds 70% · if they return, the Shoal heats" }
+  left:  { text: Run every tanker now,       tag: RISKY, odds: 70, hint: "Danger down if it works (70%) · if turned back, Shoal heats" }
   right: { text: "Run two, watch the rest",   tag: CALM,  hint: "Danger down · a slow, safe Shoal" }
 
 - id: shoal-02
@@ -290,14 +290,14 @@
   when: { heat: [1, 3] }
   text: "Our consulate in Kelpmouth is being watched from a van. The van belongs to the Coalition, probably, or to the Federation using Coalition plates. Our staff are nervous. I would be."
   left:  { text: Thin the consulate,         tag: CALM,  hint: "Danger down · fewer people to watch" }
-  right: { text: Photograph the watchers,    tag: RISKY, odds: 65, hint: "Holds 65% · if it goes wrong, Kelpmouth heats" }
+  right: { text: Photograph the watchers,    tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if caught, Kelpmouth heats" }
 
 - id: brackwater-01
   adviser: foreign
   region: BRK
   text: "Brackwater pumps the Coalition's oil and sells to anyone. Wintermast has offered to buy all of it for ten years at a price we cannot match. Brackwater's council meets tomorrow and would like to hear from us."
-  left:  { text: Make a counter-offer,  tag: RISKY, odds: 60, hint: "Holds 60% · if outbid, Brackwater heats" }
-  right: { text: Wish them well,        tag: HOME,  hint: "Nothing changes abroad · Brackwater sells north" }
+  left:  { text: Make a counter-offer,  tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · if outbid, Brackwater heats" }
+  right: { text: Wish them well,        tag: HOME,  hint: "Danger unchanged · Brackwater sells north" }
 
 - id: brackwater-02
   adviser: general
@@ -305,7 +305,7 @@
   when: { heat: [1, 3] }
   text: "A pipeline fire in Brackwater. An accident, says the Coalition. Sabotage, says the Federation, pointing at us. Our engineers could help put it out. Tallowmere has not asked. Brackwater has."
   left:  { text: Send the fire crews,  tag: CALM, hint: "Danger down · Brackwater sees us help" }
-  right: { text: Stay out of it,       tag: HOME, hint: "Nothing changes abroad · the marsh burns a while" }
+  right: { text: Stay out of it,       tag: HOME, hint: "Danger unchanged · the marsh burns a while" }
 
 - id: lintel-01
   adviser: admiral
@@ -320,7 +320,7 @@
   when: { heat: [1, 3] }
   text: "Lintel's mayor says she is tired of being the place where the Republic and the Federation glare at each other. She has asked both of us to send a port official, not a warship, for a month of talks."
   left:  { text: Send the port official,     tag: CALM,  hint: "Danger down · Lintel hosts a quiet month" }
-  right: { text: Send the Admiral himself,   tag: RISKY, odds: 65, hint: "Holds 65% · if it looks like a threat, Lintel heats" }
+  right: { text: Send the Admiral himself,   tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if it alarms, Lintel heats" }
 
 - id: tallowmere-01
   adviser: foreign
@@ -334,14 +334,14 @@
   region: TLM
   text: "Tallowmere's foreign minister and I shared a bad hotel and a worse crisis thirty years ago. It ended fine. She has sent a note: come for lunch, bring nothing. I think she wants to be talked out of something."
   left:  { text: Go for lunch,            tag: CALM, hint: "Danger down · an old friend listens" }
-  right: { text: Send a formal letter,    tag: HOME, hint: "Nothing changes abroad · lunch goes cold" }
+  right: { text: Send a formal letter,    tag: HOME, hint: "Danger unchanged · lunch goes cold" }
 
 - id: dunmarrow-01
   adviser: intel
   region: DNM
   text: "Dunmarrow is small, quiet, and has a new radar on its hill that points at the Shoal. Coalition-built, Federation-paid, probably. It will see every ship we send through the strait. It also sees theirs."
   left:  { text: Ask to share its picture,  tag: CALM,  hint: "Danger down · Dunmarrow watches for everyone" }
-  right: { text: Jam it when needed,        tag: RISKY, odds: 60, hint: "Holds 60% · if noticed, Dunmarrow heats" }
+  right: { text: Jam it when needed,        tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · if noticed, Dunmarrow heats" }
 
 - id: dunmarrow-02
   adviser: chief
@@ -349,7 +349,7 @@
   when: { heat: [0, 1] }
   text: "Dunmarrow's harvest failed and its council has written to every capital asking for grain. The Federation answered first, with a photographer. We could answer second, with more grain."
   left:  { text: Send the grain,                 tag: CALM, hint: "Danger down · Dunmarrow eats, and remembers" }
-  right: { text: Let the Coalition feed it,      tag: HOME, hint: "Nothing changes abroad · Tallowmere is reminded" }
+  right: { text: Let the Coalition feed it,      tag: HOME, hint: "Danger unchanged · Tallowmere is reminded" }
 
 - id: orrinth-01
   adviser: general
@@ -362,7 +362,7 @@
   adviser: foreign
   region: ORN
   text: "Orrinth's governor, the loud one, has asked for a meeting. In Orrinth. He says he wants to be reasonable. The Intel Director says he wants to be photographed being reasonable while we look nervous."
-  left:  { text: Meet him in Orrinth,           tag: RISKY, odds: 60, hint: "Holds 60% · if he grandstands, Orrinth heats" }
+  left:  { text: Meet him in Orrinth,           tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · if he struts, Orrinth heats" }
   right: { text: Offer Marram as neutral ground, tag: CALM,  hint: "Danger down · the meeting moves south" }
 
 # ---- Farsouth: the southern states -----------------------------------------------------------
@@ -372,7 +372,7 @@
   region: BRN
   text: "Brindle Coast is our oldest treaty friend and our quietest. Its president asks whether the treaty still means a fleet would come. She asks because the Federation's envoy asked her the same, smiling."
   left:  { text: "Say yes, in public",       tag: CALM,  hint: "Danger down · Brindle Coast is guarded a week", mark: guarded }
-  right: { text: Ask what she offers us,  tag: RISKY, odds: 60, hint: "Holds 60% · if offended, Brindle Coast heats" }
+  right: { text: Ask what she offers us,  tag: RISKY, odds: 60, hint: "Danger down if it works (60%) · if hurt, Brindle Coast heats" }
 
 - id: brindlecoast-02
   adviser: admiral
@@ -380,14 +380,14 @@
   when: { heat: [1, 3] }
   text: "Brindle Coast has mined its own harbour approaches. Their mines, their water, their right. They did not tell us, and our supply ship for Ashkettle is due through tonight with a captain who hates surprises."
   left:  { text: Reroute the supply ship,  tag: CALM,  hint: "Danger down · a long way round" }
-  right: { text: Ask for the mine chart,   tag: RISKY, odds: 70, hint: "Holds 70% · if refused, Brindle Coast heats" }
+  right: { text: Ask for the mine chart,   tag: RISKY, odds: 70, hint: "Danger down if it works (70%) · if not, Brindle Coast heats" }
 
 - id: marram-01
   adviser: foreign
   region: MRM
   text: "Marram has invited both our Foreign Ministry and the Federation's to its independence day. Same stand, same anthem, same lunch. Marram's president calls it hospitality. Her protocol office calls it a test."
   left:  { text: "Go, and be gracious",     tag: CALM, hint: "Danger down · Marram is pleased with itself" }
-  right: { text: Go if they stay away,     tag: HOME, hint: "Nothing changes abroad · Marram notes the empty chair" }
+  right: { text: Go if they stay away,     tag: HOME, hint: "Danger unchanged · Marram notes the empty chair" }
 
 - id: marram-02
   adviser: admiral
@@ -409,14 +409,14 @@
   when: { heat: [1, 3] }
   text: "The mayor of Floe End sat in my kitchen once, a student and scared. He is scared now. He asks for a visit, not soldiers. His mother sent me a scarf that winter. I still have it."
   left:  { text: Visit Floe End,            tag: CALM,  hint: "Danger down · Floe End is guarded a week", mark: guarded }
-  right: { text: Send a minister instead,   tag: RISKY, odds: 65, hint: "Holds 65% · if it looks thin, Floe End heats" }
+  right: { text: Send a minister instead,   tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if slighted, Floe End heats" }
 
 - id: iceward-01
   adviser: chief
   region: ICW
   text: "Iceward is the coldest, poorest corner of Farsouth and has asked us for fuel oil for the winter. Not much. The Federation offered a power station, in ten years. Iceward would like to be warm this year."
   left:  { text: Send the fuel oil,       tag: CALM, hint: "Danger down · Iceward is warm, and ours" }
-  right: { text: Refer them to Marram,    tag: HOME, hint: "Nothing changes abroad · Iceward waits for spring" }
+  right: { text: Refer them to Marram,    tag: HOME, hint: "Danger unchanged · Iceward waits for spring" }
 
 - id: iceward-02
   adviser: intel
@@ -424,14 +424,14 @@
   when: { heat: [1, 3] }
   text: "Something is being built in Iceward's hills under tarpaulins. Federation engineers, probably, on a Farsouth contract. A dam, says Marram. A dam does not need that much concrete that far from water. I think."
   left:  { text: Ask Marram to inspect it,  tag: CALM,  hint: "Danger down · Marram looks under the tarpaulin" }
-  right: { text: Overfly it ourselves,      tag: RISKY, odds: 65, hint: "Holds 65% · if seen, Iceward heats" }
+  right: { text: Overfly it ourselves,      tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if seen, Iceward heats" }
 
 - id: saltwhite-01
   adviser: foreign
   region: SLW
   text: Saltwhite's farmers have blocked the mountain road to Marram over grain prices. Nobody is shooting. The Farsouth papers say we are behind it. We are not.
   left:  { text: Buy the grain ourselves, tag: CALM, hint: "Danger down · Saltwhite settles" }
-  right: { text: Say nothing and wait,    tag: HOME, hint: "Nothing changes abroad · a quiet day at home" }
+  right: { text: Say nothing and wait,    tag: HOME, hint: "Danger unchanged · a quiet day at home" }
 
 - id: saltwhite-02
   adviser: ambassador
@@ -439,14 +439,14 @@
   when: { heat: [1, 3] }
   text: "The Saltwhite farmers' leader, the one who blocked the Marram road, has asked for a word. I taught his sister once. He wants a buyer for his grain who is not the Federation and not Marram. There are no others."
   left:  { text: Buy a season's grain,  tag: CALM, hint: "Danger down · Saltwhite sells to us" }
-  right: { text: "Decline, but kindly",  tag: HOME, hint: "Nothing changes abroad · the road stays blocked" }
+  right: { text: "Decline, but kindly",  tag: HOME, hint: "Danger unchanged · the road stays blocked" }
 
 - id: hearth-01
   adviser: chief
   region: HRT
   text: "Hearth has taken in the families leaving Floe End. Four thousand so far, in school halls. Hearth's mayor is asking every capital for tents and has heard back from one. It was not us."
   left:  { text: Send tents and doctors,     tag: CALM, hint: "Danger down · Hearth has roofs" }
-  right: { text: Send money through Marram,  tag: HOME, hint: "Nothing changes abroad · the cheque clears in a week" }
+  right: { text: Send money through Marram,  tag: HOME, hint: "Danger unchanged · the cheque clears in a week" }
 
 - id: hearth-02
   adviser: general
@@ -472,14 +472,14 @@
   day: [1, 5]
   text: "Lantern Key has offered a room, a table and a week for the two of us to talk. The Federation has not said no. It has not said yes. A first week is when habits are made."
   left:  { text: Accept the room,        tag: CALM, hint: "Danger down · Lantern Key sets a table" }
-  right: { text: Wait for their yes,     tag: HOME, hint: "Nothing changes abroad · the table stays empty" }
+  right: { text: Wait for their yes,     tag: HOME, hint: "Danger unchanged · the table stays empty" }
 
 - id: early-wintermast
   adviser: intel
   region: WMS
   day: [1, 5]
   text: "Wintermast is quiet. Too quiet, my deputy says, which is what deputies say. Probably they are as surprised by this week as we are. Probably. I would like money for more listening."
-  left:  { text: Fund the listening,        tag: HOME, hint: "Nothing changes abroad · we hear more next week" }
+  left:  { text: Fund the listening,        tag: HOME, hint: "Danger unchanged · we hear more next week" }
   right: { text: Ask Wintermast to talk,    tag: CALM, hint: "Danger down · a first call to the Cap" }
 
 - id: early-eddavale
@@ -488,7 +488,7 @@
   day: [1, 4]
   text: "Edda Vale is calm. The papers are not. Three front pages ask whether you are up to this, which is their job. A quiet speech from the steps would settle the city before anything else settles."
   left:  { text: Speak from the steps,  tag: CALM, hint: "Danger down · Edda Vale breathes" }
-  right: { text: "Work, do not speak",   tag: HOME, hint: "Nothing changes abroad · the papers write anyway" }
+  right: { text: "Work, do not speak",   tag: HOME, hint: "Danger unchanged · the papers write anyway" }
 
 # ---- The last days (24–30): everyone is tired ------------------------------------------------------
 
@@ -498,7 +498,7 @@
   day: [24, 30]
   text: "Wintermast's parliament votes on war powers in three days. If the world looks calm, the vote fails. If it looks like we are winning, it passes. The president wants a reason to lose it."
   left:  { text: Offer a joint statement,     tag: CALM, hint: "Danger down · Wintermast has its reason" }
-  right: { text: "Say nothing, give nothing",  tag: HOME, hint: "Nothing changes abroad · the vote is theirs" }
+  right: { text: "Say nothing, give nothing",  tag: HOME, hint: "Danger unchanged · the vote is theirs" }
 
 - id: late-vessary
   adviser: general
@@ -513,7 +513,7 @@
   region: SHL
   day: [25, 30]
   text: "The last tanker convoy of the month is at the Shoal. Both fleets are watching it like cats. If it passes, the month passes. If it does not, the Shoal will remember."
-  left:  { text: Send it through alone,     tag: RISKY, odds: 65, hint: "Holds 65% · if stopped, the Shoal heats" }
+  left:  { text: Send it through alone,     tag: RISKY, odds: 65, hint: "Danger down if it works (65%) · if stopped, the Shoal heats" }
   right: { text: Send it with everything,   tag: FORCE, hint: "Danger down here · heats Lintel", heats: LTL }
 
 - id: late-lanternkey
@@ -522,4 +522,4 @@
   day: [26, 30]
   text: "Lantern Key's minister has a bottle she has kept for the end of a crisis. She has asked whether to open it this week. She asked the Federation's envoy too. I would like to say yes to her."
   left:  { text: Tell her to open it,  tag: CALM, hint: "Danger down · a bottle opens in Lantern Key" }
-  right: { text: Tell her to wait,     tag: HOME, hint: "Nothing changes abroad · the bottle keeps" }
+  right: { text: Tell her to wait,     tag: HOME, hint: "Danger unchanged · the bottle keeps" }
