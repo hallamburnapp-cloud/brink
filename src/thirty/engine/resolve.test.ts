@@ -157,19 +157,36 @@ describe('the pieces (SPEC "The team")', () => {
     expect(ships.res.odds).toBe(70);
   });
 
-  it('Hawk General: force cools two steps more and still heats the neighbour', () => {
-    const { w } = play(held(quiet(content, 'plain-shl', { SHL: 3 }), ['hawk-general']), 'right');
-    expect(changes(w)).toEqual(['SHL:3>1:choice', 'SHL:1>0:piece:hawk-general', 'PBB:0>1:choice']);
+  it('Hawk General: a show of force also cools every neighbour one step, and still heats one of them', () => {
+    // SHL's neighbours west to east: PBB, LNK, LTL. The wave cools the hot ones; the force then heats the coolest (Pebbleby, calm).
+    const { w } = play(held(quiet(content, 'plain-shl', { SHL: 3, LNK: 2, LTL: 1 }), ['hawk-general']), 'right');
+    expect(changes(w)).toEqual(['SHL:3>1:choice', 'LNK:2>1:piece:hawk-general', 'LTL:1>0:piece:hawk-general', 'PBB:0>1:choice']);
+    expect([...w.fired]).toEqual(['hawk-general']);
+    // Every neighbour hot: the wave cools them all, and the one the force heats ends where it began.
+    const all = play(held(quiet(content, 'plain-shl', { SHL: 2, LNK: 1, LTL: 1, PBB: 1 }), ['hawk-general']), 'right');
+    expect(changes(all.w)).toEqual(['SHL:2>0:choice', 'PBB:1>0:piece:hawk-general', 'LNK:1>0:piece:hawk-general', 'LTL:1>0:piece:hawk-general', 'PBB:0>1:choice']);
+    expect(all.w.danger()).toBe(2);
+    // Calm neighbours all round: nothing for the wave to do, the chip stays dark.
+    const quietMap = play(held(quiet(content, 'plain-shl', { SHL: 2 }), ['hawk-general']), 'right');
+    expect(quietMap.w.fired.has('hawk-general')).toBe(false);
   });
 
-  it('Loyal Admiral: force at sea cools every neighbouring sea region too; not on land', () => {
-    // SHL is at sea; PBB, LNK and LTL (west to east) are its neighbours, all at sea. The force heats the
-    // coolest, westmost neighbour (Pebbleby), then the Admiral cools every sea neighbour by two.
+  it('Loyal Admiral: a show of force at sea cools every neighbouring region two steps; not on land', () => {
+    // SHL is at sea; PBB, LNK and LTL (west to east) are its neighbours. The Admiral's wave comes first, then
+    // the force heats the coolest neighbour (Pebbleby, now calm).
     const sea = play(held(quiet(content, 'plain-shl', { SHL: 2, LNK: 1, PBB: 1, LTL: 3 }), ['loyal-admiral']), 'right');
-    expect(changes(sea.w)).toEqual(['SHL:2>0:choice', 'PBB:1>2:choice', 'PBB:2>0:piece:loyal-admiral', 'LNK:1>0:piece:loyal-admiral', 'LTL:3>1:piece:loyal-admiral']);
+    expect(changes(sea.w)).toEqual(['SHL:2>0:choice', 'PBB:1>0:piece:loyal-admiral', 'LNK:1>0:piece:loyal-admiral', 'LTL:3>1:piece:loyal-admiral', 'PBB:0>1:choice']);
     // Edda Vale is inland: nothing extra.
     const land = play(held(quiet(content, 'plain-edv', { EDV: 2, VSY: 2 }), ['loyal-admiral']), 'right');
     expect(land.w.fired.has('loyal-admiral')).toBe(false);
+    // Vessary is a port whose neighbours include inland Edda Vale: the wave reaches it too.
+    const port = play(held(quiet(content, 'plain-vsy', { VSY: 2, EDV: 2, NWK: 2 }), ['loyal-admiral']), 'right');
+    expect(port.w.heats.EDV).toBe(0);
+    expect(port.w.fired.has('loyal-admiral')).toBe(true);
+    // Hawk and Admiral stack: three steps on every neighbour of a sea region.
+    const both = play(held(quiet(content, 'plain-shl', { SHL: 2, LTL: 3, LNK: 3 }), ['loyal-admiral', 'hawk-general']), 'right');
+    expect(both.w.heats.LTL).toBe(0);
+    expect(both.w.heats.LNK).toBe(0);
   });
 
   it('Spin Doctor: home never heats, from a show of force, a consequence or Peace Movement', () => {
@@ -225,10 +242,21 @@ describe('the pieces (SPEC "The team")', () => {
     expect(play(knownFalse, 'left').res.held).toBe(true);
   });
 
-  it('Paranoid Intel Director: one in four warnings is false on top of the printed odds', () => {
-    const s = withCard(content, withTeam(quiet(content, 'alarm-02', { WMS: 2 }), ['paranoid-intel']), 'alarm-02');
-    const a = actOf(content.cards['alarm-02'], 'left')!;
-    expect(effectiveOdds(new Working(s), content.cards['alarm-02'], s.card!, a)).toBe(Math.round(100 * (0.25 + 0.75 * 0.7)));
+  it('Cautious Intel Director: every risky choice is ten points more likely to work (capped at 95), and the roll uses those odds', () => {
+    const s = held(quiet(content, 'shoal-risky', { SHL: 2 }, 0.75), ['cautious-intel']);
+    const a = actOf(content.cards['shoal-risky'], 'left')!;
+    expect(effectiveOdds(new Working(s), content.cards['shoal-risky'], s.card!, a)).toBe(80);
+    // A roll of 0.75 misses the printed 70% and holds the Cautious 80%.
+    const { res, w } = play(s, 'left');
+    expect(res.held).toBe(true);
+    expect(res.odds).toBe(80);
+    expect(w.fired.has('cautious-intel')).toBe(true);
+    expect(play(quiet(content, 'shoal-risky', { SHL: 2 }, 0.75), 'left').res.held).toBe(false);
+    // Odds stop at 95; a warning card keeps its own odds (the director marks it instead).
+    const high = { ...content.cards['shoal-risky'], left: { ...(content.cards['shoal-risky'] as { left: { odds: number } }).left, odds: 90 } };
+    expect(effectiveOdds(new Working(s), high as typeof content.cards['shoal-risky'], s.card!, actOf(high as typeof content.cards['shoal-risky'], 'left')!)).toBe(95);
+    const alarm = withCard(content, withTeam(quiet(content, 'alarm-02', { WMS: 2 }), ['cautious-intel']), 'alarm-02');
+    expect(effectiveOdds(new Working(alarm), content.cards['alarm-02'], alarm.card!, actOf(content.cards['alarm-02'], 'left')!)).toBe(70);
   });
 });
 

@@ -100,7 +100,10 @@ is just two follow-ups: `left` to one card, `right` to another.
 `Spin Doctor`, `Back-Channel`, `Launch`), `icon`, `kind` (`adviser` | `policy`), `rule` (exactly as printed when
 the chip is tapped, in plain English: "shows of force", "a crisis eases on its own", never "cards" or "force
 choices"), `tags` (one or two of `CALM`, `FORCE`, `RISKY`, `HOME`, `any`, `arcs`, `map`), optional `excludes`.
-The twelve pieces are the spec's table.
+The twelve pieces are the spec's table (SPEC "The team"; five were rewritten after the fifth build's playtests
+so that each acts in a way the watcher sees: the Hawk General's and the Loyal Admiral's waves over the
+neighbours, the Cautious director's ten points on every risky choice, the Paranoid director bringing a crisis
+its card by the next morning, Launch on Warning warning every region a show of force touches).
 
 ## The voice
 
@@ -139,6 +142,19 @@ Back-Channel turning one Talks into a wave of calm), the game says so on the sam
 printed line untrue, the engine writes it the same way: `Danger unchanged · nothing to calm in Shoal`,
 `Danger down here · Orrinth calms, heats Dunmarrow`. The engine never says "Nothing changes": no net change
 is always `Danger unchanged`.
+
+The first words are a promise the engine holds the authored line to. `Danger down` is shown only when DANGER
+will fall; `Danger down here` only when it falls and a named neighbour really heats (a show of force on a tense
+region whose neighbour is calm cools 2 and heats 2: the engine writes `Danger unchanged · Quillon calms, heats
+Vessary`; into a crisis, `Danger up · Kelpmouth calms, Kellmark goes to war`); a risky line only at its printed
+odds and with a miss that costs something (a neighbour already at war cannot heat: `if not, nothing changes`).
+So write the plain case and trust the engine with the rest: 60% of the pack's `Danger down here` buttons were
+untrue on the day before this rule (the sum was 0 or positive), and none are now.
+
+When a line must be shortened (60 characters on the card, 46 on a map label) the clause the first words already
+say goes first: the acted region's own `X calms` on a `Danger down` line (the `here` says it), the mark, a penalty;
+`heats A and B` becomes `heats A and 1 more`, then `heats 2 places`; a `here` line always keeps what heats, and a
+`Danger unchanged` line is never left with only a calming clause (`Danger unchanged · calms here, heats Ashkettle`).
 
 ## Validate
 
@@ -242,7 +258,8 @@ run 55–75. The validator is clean with `--strict`.
 
 1. **Which card is the warning.** `alarm: true` on a choice card (alarm-02): the Cautious Intel Director marks it,
    Launch on Warning's +20 applies to it, and its RISKY "wait" holds exactly when the alarm is false (the printed
-   odds are the chance it is false). The validator refuses a warning card without a RISKY option.
+   odds are the chance it is false). The validator refuses a warning card without a RISKY option. The Cautious
+   director's ten points apply to every other risky button and target, never to a warning (its odds are the truth).
 2. **Which risky choices are "talks"** for the Dove Foreign Minister ("a risky talk always works"). No key; the
    rule is a RISKY button or target on a `foreign` or `ambassador` card (the envoy's hard talks included).
 3. **`fail.follow`** on a RISKY button replaces `follow` on a miss (defector-01, summit-01).

@@ -46,7 +46,7 @@
   chip: Hawk
   icon: medal
   kind: adviser
-  rule: Shows of force cool two steps more, but always heat a neighbour.
+  rule: A show of force also cools every neighbouring region one step, and still heats one of them.
   tags: [FORCE]
 
 - id: loyal-admiral
@@ -54,7 +54,7 @@
   chip: Admiral
   icon: anchor
   kind: adviser
-  rule: Shows of force at sea cool every neighbouring sea region too.
+  rule: A show of force at sea also cools every neighbouring region two steps.
   tags: [FORCE]
 
 - id: cautious-intel
@@ -62,8 +62,8 @@
   chip: Cautious
   icon: eye
   kind: adviser
-  rule: False alarms are marked before you choose.
-  tags: [arcs]
+  rule: False alarms are marked before you choose; every risky choice is 10 points more likely to work.
+  tags: [arcs, RISKY]
   excludes: [paranoid-intel]
 
 - id: paranoid-intel
@@ -71,8 +71,8 @@
   chip: Paranoid
   icon: radar
   kind: adviser
-  rule: Warnings come a day earlier; one in four is false.
-  tags: [arcs]
+  rule: "Trouble is spotted early: a place in crisis gets its card by the next morning."
+  tags: [any]
   excludes: [cautious-intel]
 
 - id: spin-doctor
@@ -96,5 +96,5 @@
   chip: Launch
   icon: siren
   kind: policy
-  rule: War never spreads from a region you have warned; a false alarm there is DANGER +20.
-  tags: [arcs]
+  rule: Every show of force warns its region; a warned region never heats at night. A false alarm there is DANGER +20.
+  tags: [arcs, FORCE]

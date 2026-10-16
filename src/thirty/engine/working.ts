@@ -26,6 +26,8 @@ export class Working {
   redLine: RegionId | null;
   readonly warned: Set<RegionId>;
   readonly guarded: Record<RegionId, number>;
+  /** The day each region reached CRISIS or WAR (the deck's book), for the crisis that stands too long. */
+  readonly hotSince: Readonly<Record<RegionId, number>>;
   /** The region whose heating (or penalty) took DANGER from below 100 to 100 (the WAR ending starts from it). */
   tipping: RegionId | null = null;
   /** Regions a choice cooled today: trouble does not flare there the same night (the day's work stands until morning). */
@@ -42,6 +44,7 @@ export class Working {
     this.redLine = s.redLine;
     this.warned = new Set(s.warned);
     this.guarded = { ...s.guarded };
+    this.hotSince = s.deck.hotSince;
   }
 
   has(piece: PieceId): boolean {
@@ -66,24 +69,30 @@ export class Working {
     this.steps.push({ kind: 'danger', at, danger: this.danger() });
   }
 
-  /** True when nothing may heat this region today: the Spin Doctor's home, or a guarded region under pressure. */
+  /**
+   * True when nothing may heat this region today: the Spin Doctor's home; under pressure, a guarded
+   * region, or a warned region while Launch on Warning is held (a warned region never heats at night).
+   */
   protectedFrom(region: RegionId, pressure: boolean): PieceId | 'guarded' | null {
     if (this.has('spin-doctor') && isHome(region)) return 'spin-doctor';
     if (pressure && (this.guarded[region] ?? 0) >= this.day) return 'guarded';
+    if (pressure && this.has('launch-on-warning') && this.warned.has(region)) return 'launch-on-warning';
     return null;
   }
 
   /**
    * Heat a region by `steps` (clamped at WAR). Returns the steps actually applied. A protected region
-   * absorbs it: the Spin Doctor is noted once per region per day; a guard is silent.
+   * absorbs it: a piece is noted once per region per day (the chip glows, the night line says so); a
+   * guard is silent.
    */
   heat(region: RegionId, steps: number, why: HeatWhy, o: HeatOptions = {}): number {
     if (steps <= 0) return 0;
     const shield = this.protectedFrom(region, !!o.pressure);
     if (shield) {
-      if (shield === 'spin-doctor' && !this.absorbed.has(region)) {
+      if (shield !== 'guarded' && !this.absorbed.has(region)) {
         this.absorbed.add(region);
-        this.note('spin-doctor', `${regionName(region)} does not heat`);
+        if (shield === 'spin-doctor') this.note('spin-doctor', `${regionName(region)} does not heat`);
+        else this.note(shield, `The warning held: ${regionName(region)} did not heat`);
       }
       return 0;
     }

@@ -7,6 +7,7 @@ export {
   choose,
   danger,
   dangerOf,
+  fit,
   HOME_CAPITAL,
   HOME_REGIONS,
   isOfferDay,

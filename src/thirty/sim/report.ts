@@ -44,11 +44,32 @@ export function outcomesTable(stats: Partial<Record<BotName, BotStats>>, fmt: Fo
 }
 
 export function piecesTable(content: ThirtyContent, s: BotStats, fmt: Format): string {
-  const rows: string[][] = [['piece', 'taken', 'offered', 'taken when offered']];
+  const rows: string[][] = [['piece', 'taken', 'offered', 'taken when offered', 'acted (days held)']];
   for (const p of content.pieceOrder) {
     const taken = s.taken[p] ?? 0;
     const offered = s.offered[p] ?? 0;
-    rows.push([p, pct(share(taken, s.games)), pct(share(offered, s.games)), pct(share(taken, offered))]);
+    const a = s.feel.acted[p] ?? { held: 0, fired: 0 };
+    rows.push([p, pct(share(taken, s.games)), pct(share(offered, s.games)), pct(share(taken, offered)), `${pct(share(a.fired, a.held))} of ${a.held}`]);
+  }
+  return table(rows, fmt);
+}
+
+/** What the playtests measured over the shoulder, per bot. */
+export function feelTable(stats: Partial<Record<BotName, BotStats>>, fmt: Format): string {
+  const rows: string[][] = [['bot', 'red seen', 'first red (median day)', 'war by push', 'night ≥ day', 'late spread : flare', 'HELD amber (median)', 'stand-down day / peak']];
+  for (const s of Object.values(stats)) {
+    if (!s) continue;
+    const f = s.feel;
+    rows.push([
+      s.bot,
+      pct(share(f.redSeen, s.games)),
+      Number.isNaN(f.medianFirstRedDay) ? '-' : String(f.medianFirstRedDay),
+      pct(share(f.warByPush, s.war)),
+      pct(share(f.nightWins, f.dropDays)),
+      `${f.lateSpread} : ${f.lateFlare}`,
+      Number.isNaN(f.medianHeldTense) ? '-' : String(f.medianHeldTense),
+      Number.isNaN(f.medianStandDownDay) ? '-' : `${f.medianStandDownDay} / ${f.medianStandDownPeak}`,
+    ]);
   }
   return table(rows, fmt);
 }

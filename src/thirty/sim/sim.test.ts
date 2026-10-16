@@ -4,7 +4,7 @@ import { Rng } from '../../engine/rng.ts';
 import { loadThirtyContent } from '../content/load.ts';
 import { newGame } from '../engine/run.ts';
 import { fixture, quiet } from '../engine/testkit.ts';
-import { expectedDanger, partners, randomBot, sensibleBot, stackScore } from './bots.ts';
+import { expectedDanger, hawkBot, partners, randomBot, sensibleBot, stackScore } from './bots.ts';
 import { evaluateGates, summarise } from './gates.ts';
 import { playGame } from './play.ts';
 import { gatesTable, outcomesTable } from './report.ts';
@@ -40,9 +40,9 @@ describe('the bots', () => {
     expect(new Set(picks).size).toBe(3);
     const count = (i: number) => picks.filter((p) => p === i).length;
     expect(count(1)).toBeGreaterThan(count(2));
-    expect(partners(small, 'peace-movement')).toBe(4);
+    expect(partners(small, 'peace-movement')).toBe(5);
     expect(partners(small, 'old-ambassador')).toBe(2);
-    expect(partners(small, 'cautious-intel')).toBe(1);
+    expect(partners(small, 'cautious-intel')).toBe(2);
     expect(partners(small, 'hotline')).toBe(0);
   });
 
@@ -59,6 +59,8 @@ describe('a game', () => {
     const a = playGame(pack, sensibleBot, 'g1');
     const b = playGame(pack, sensibleBot, 'g1');
     expect(a).toEqual(b);
+    const h = playGame(pack, hawkBot, 'g1');
+    expect(['WAR', 'STAND-DOWN', 'HELD']).toContain(h.ending);
     expect(['WAR', 'STAND-DOWN', 'HELD']).toContain(a.ending);
     expect(a.curve.length).toBe(a.day);
     expect(a.peak).toBeGreaterThanOrEqual(Math.max(...a.curve));
@@ -100,8 +102,11 @@ describe('a small batch on the shipped pack', () => {
     expect(s.war).toBeLessThan(r.war);
   });
 
-  it('the gates can be judged on one bot alone', () => {
+  it('the gates can be judged on one bot alone, and G9 needs the hawk', () => {
     const only = evaluateGates(pack, { random: summarise(pack, 'random', res.games.random!) });
     expect(only.map((g) => g.id)).toEqual(['G1', 'G7']);
+    const hawk = simulate(pack, { games: 40, bots: ['hawk'], prefix: 'V' });
+    expect(hawk.gates.map((g) => g.id)).toEqual(['G7', 'G9']);
+    expect(hawk.stats.hawk!.feel.acted['hawk-general'].held).toBeGreaterThan(0);
   });
 });

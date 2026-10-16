@@ -8,13 +8,19 @@ import { effect } from '@preact/signals';
 import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { tapTarget } from '../app/actions';
-import { content, HOME_CAPITAL, preview, todayCard, type Card, type GameState, type Heat, type MapTarget, type RegionId } from '../app/engine';
+import { content, fit, HOME_CAPITAL, preview, regionName, todayCard, type Card, type GameState, type Heat, type MapTarget, type RegionId } from '../app/engine';
 import { R, rectStyle } from '../app/layout';
 import { setMap } from '../app/mapRef';
-import { busy, chosen, explain, reduced, shown, shownHeats } from '../app/store';
+import { busy, chosen, explain, night, reduced, shown, shownHeats } from '../app/store';
 import { newsLabel } from '../app/words';
-import { mapLabel } from './mapLabel';
 import { createMap, MAP_H, MAP_W, type MapController, type MapView } from '../map';
+
+/**
+ * The longest label the map carries beside a glowing place (the week-long guard fits). The engine's
+ * own fitting (hint.ts `fit`) shortens a longer line: the DANGER words always stay, the place's own
+ * calming goes first (the label sits on it), a `here` label keeps what heats.
+ */
+export const MAP_LABEL_MAX = 46;
 
 /** A map day's places to tap: the ones the engine chose from the live map when it dealt the card, else the card's own. */
 export function targetsOf(s: GameState, card: Card | null): MapTarget[] {
@@ -31,16 +37,20 @@ function ringNoteFor(s: GameState): string | null {
 
 /**
  * What the map draws for a state (pure, so it has a test). `heats` is what the playback is showing
- * (null once settled); `acting` while a choice's outcome plays, when the ring's news no longer holds.
+ * (null once settled); `chosen` is the option pressed while a choice's outcome plays (the ring's
+ * news no longer holds, and on a map day only the tapped place keeps its label; the card repeats
+ * it); `night` while the night's line is on the card, when the glowing places are gone (the day is
+ * decided and the map is busy recolouring).
  */
-export function viewFor(s: GameState | null, heats: Record<RegionId, Heat> | null, explaining: boolean, pressed: RegionId | null, acting = false): MapView {
+export function viewFor(s: GameState | null, heats: Record<RegionId, Heat> | null, explaining: boolean, pressed: RegionId | null, chosen: string | null = null, night = false): MapView {
   const view: MapView = { heats: heats ?? s?.heats ?? {}, ring: null, ringNote: null, targets: [], home: HOME_CAPITAL, pressed };
   if (!s || explaining || s.phase !== 'choose' || !s.card) return view;
   const card = todayCard(content, s);
   view.ring = s.card.region;
-  if (heats === null && !acting) view.ringNote = ringNoteFor(s);
-  if (card?.map) {
-    view.targets = targetsOf(s, card).map((t) => ({ id: t.region, label: mapLabel(preview(content, s, t.region)?.hint ?? t.hint) }));
+  if (heats === null && chosen === null) view.ringNote = ringNoteFor(s);
+  if (card?.map && !night) {
+    const targets = targetsOf(s, card).filter((t) => chosen === null || t.region === chosen);
+    view.targets = targets.map((t) => ({ id: t.region, label: fit(preview(content, s, t.region)?.hint ?? t.hint, MAP_LABEL_MAX, regionName(t.region)) }));
   }
   return view;
 }
@@ -60,7 +70,7 @@ export function MapPane(): JSX.Element {
     const m = createMap(canvas.current!, { reducedMotion: reduced.value });
     map.current = m;
     setMap(m);
-    const stop = effect(() => m.update(viewFor(shown.value, shownHeats.value, explain.value !== null, pressedRef.current, chosen.value !== null)));
+    const stop = effect(() => m.update(viewFor(shown.value, shownHeats.value, explain.value !== null, pressedRef.current, chosen.value?.option ?? null, night.value !== null)));
     const stopMotion = effect(() => m.setReducedMotion(reduced.value));
     return () => {
       stop();
@@ -73,7 +83,7 @@ export function MapPane(): JSX.Element {
 
   // The pressed target brightens: redraw the view with it.
   useEffect(() => {
-    map.current?.update(viewFor(shown.value, shownHeats.value, explain.value !== null, pressed, chosen.value !== null));
+    map.current?.update(viewFor(shown.value, shownHeats.value, explain.value !== null, pressed, chosen.value?.option ?? null, night.value !== null));
   }, [pressed]);
 
   const at = (e: PointerEvent): { x: number; y: number } => {

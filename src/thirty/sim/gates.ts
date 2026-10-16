@@ -4,7 +4,8 @@
  * - Sensible: holds in 55 to 70%, stand-down early in 15 to 30%, war in the rest.
  * - Every piece is taken by the sensible bot in at least 10% of games; none in more than 70%.
  * - A game runs 20 to 30 days at the median; no game stalls.
- * - The median sensible game sees the gauge above 60 at least once.
+ * - The median sensible game feels close: the gauge above 60 at least once, or red on the map (item 15).
+ * - Beyond the spec, G9: a hawk who builds on force holds in 40–65% (there is more than one way to play).
  */
 import type { PieceId, ThirtyContent } from '../content/types.ts';
 import type { BotName } from './bots.ts';
@@ -33,6 +34,30 @@ export interface BotStats {
   curve: number[];
   /** Hold rate by final team size. */
   heldByTeamSize: Record<number, { games: number; held: number }>;
+  /** What the playtests measured over the shoulder (ENGINE.md "Tuning", item 15). */
+  feel: Feel;
+}
+
+export interface Feel {
+  /** Games in which a region went red before the ending's own push. */
+  redSeen: number;
+  /** The median first day of red over those games (NaN when none). */
+  medianFirstRedDay: number;
+  /** WAR endings decided by the engine pushing a crisis red on the final night. */
+  warByPush: number;
+  /** Nights that gave back at least what the choice removed, over days the choice lowered DANGER. */
+  nightWins: number;
+  dropDays: number;
+  /** Night steps in the last ten days: red spreading against trouble flaring at random. */
+  lateSpread: number;
+  lateFlare: number;
+  /** TENSE regions on the final map of a HELD game, at the median. */
+  medianHeldTense: number;
+  /** STAND-DOWN games: the median day and the median peak before it. */
+  medianStandDownDay: number;
+  medianStandDownPeak: number;
+  /** Per piece: the share of days held on which it changed the outcome. */
+  acted: Record<PieceId, { held: number; fired: number }>;
 }
 
 export function summarise(content: ThirtyContent, bot: BotName, games: readonly GameRecord[]): BotStats {
@@ -52,7 +77,29 @@ export function summarise(content: ThirtyContent, bot: BotName, games: readonly 
     row.games++;
     if (g.ending === 'HELD') row.held++;
   }
+  const acted: Feel['acted'] = Object.fromEntries(content.pieceOrder.map((p) => [p, { held: 0, fired: 0 }]));
+  for (const g of games) {
+    for (const [p, n] of Object.entries(g.heldDays)) if (acted[p]) acted[p].held += n;
+    for (const [p, n] of Object.entries(g.firedDays)) if (acted[p]) acted[p].fired += n;
+  }
+  const red = games.filter((g) => g.firstRedDay !== null);
+  const held = games.filter((g) => g.ending === 'HELD');
+  const stood = games.filter((g) => g.ending === 'STAND-DOWN');
+  const feel: Feel = {
+    redSeen: red.length,
+    medianFirstRedDay: median(red.map((g) => g.firstRedDay!)),
+    warByPush: games.filter((g) => g.endedByPush).length,
+    nightWins: games.reduce((a, g) => a + g.nightWins, 0),
+    dropDays: games.reduce((a, g) => a + g.dropDays, 0),
+    lateSpread: games.reduce((a, g) => a + g.lateSpread, 0),
+    lateFlare: games.reduce((a, g) => a + g.lateFlare, 0),
+    medianHeldTense: median(held.map((g) => g.finalTense)),
+    medianStandDownDay: median(stood.map((g) => g.day)),
+    medianStandDownPeak: median(stood.map((g) => g.peak)),
+    acted,
+  };
   return {
+    feel,
     bot,
     games: games.length,
     held: games.filter((g) => g.ending === 'HELD').length,
@@ -91,6 +138,8 @@ export const GATES = {
   pieceTakeMax: 0.7,
   medianDays: [20, 30] as const,
   closeCallMin: 0.5,
+  /** G9 (beyond the spec; ENGINE.md item 15): a hawk who builds on force holds in this range, so there is more than one way to play. */
+  hawkHold: [0.4, 0.65] as const,
 } as const;
 
 /** Judge the gates on the batch; a gate whose bot was not played is left out. */
@@ -126,9 +175,19 @@ export function evaluateGates(content: ThirtyContent, stats: Partial<Record<BotN
       pass: s.medianDay >= GATES.medianDays[0] && s.medianDay <= GATES.medianDays[1],
     });
     const close = share(s.closeCalls, s.games);
-    out.push({ id: 'G8', text: 'The median sensible game sees the gauge above 60', value: `${pct(close)} of games (median peak ${s.medianPeak})`, pass: close >= GATES.closeCallMin });
+    out.push({
+      id: 'G8',
+      text: 'The median sensible game feels close: red on the map, or the gauge above 60',
+      value: `${pct(close)} of games (red in ${pct(share(s.feel.redSeen, s.games))}, median peak ${s.medianPeak})`,
+      pass: close >= GATES.closeCallMin,
+    });
+  }
+  const h = stats.hawk;
+  if (h) {
+    const hold = share(h.held, h.games);
+    out.push({ id: 'G9', text: 'A hawk (force pieces, prefers shows of force) holds in 40–65%', value: pct(hold), pass: hold >= GATES.hawkHold[0] && hold <= GATES.hawkHold[1] });
   }
   const stalls = Object.values(stats).reduce((a, b) => a + (b?.stalls ?? 0), 0);
-  if (r || s) out.push({ id: 'G7', text: 'No game stalls', value: `${stalls}`, pass: stalls === 0 });
+  if (r || s || h) out.push({ id: 'G7', text: 'No game stalls', value: `${stalls}`, pass: stalls === 0 });
   return out.sort((a, b) => a.id.localeCompare(b.id));
 }

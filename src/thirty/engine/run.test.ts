@@ -6,6 +6,7 @@ import type { ThirtyContent } from '../content/types.ts';
 import { optionsOf, todayCard } from './cards.ts';
 import { preview } from './preview.ts';
 import { RULES, dangerOf, mapDanger } from './rules.ts';
+import { resolveTargets } from './deck.ts';
 import { choose, danger, newGame, pick, startingHeats, tapRegion } from './run.ts';
 import { loadGame, saveGame } from './save.ts';
 import { fixture, quiet, withCard, withHeats, withTeam } from './testkit.ts';
@@ -186,6 +187,27 @@ describe('the team offer', () => {
     expect(none.picks[0].taken).toBeNull();
   });
 
+  it('a map card waiting through the offer is labelled again with the new piece', () => {
+    // Day 5 ends with a map card dealt for day 6; the Old Ambassador is taken, so the places' labels must say what it does.
+    let s = withHeats({ ...quiet(content, 'plain-shl'), day: 5 }, { SHL: 2, ORN: 2, WMS: 2, TLM: 2, LNK: 2 });
+    s.deck.queue = [];
+    let n = choose(content, s, 'left').state;
+    expect(n.phase).toBe('offer');
+    const live = content.cards['envoy-map'];
+    if (!live.map) throw new Error('a map card');
+    const next = { ...n.deck.next!, id: 'envoy-map', region: null, targets: resolveTargets(live, { ...n, day: 6 }, false)! };
+    n = { ...n, deck: { ...n.deck, next }, offer: ['old-ambassador', 'hotline', 'spin-doctor'] };
+    // Labels as they stand without the piece.
+    const before = pick(content, { ...n, offer: ['hotline', 'spin-doctor', 'red-lines'] }, null).state;
+    const after = pick(content, n, 0).state;
+    expect(after.team).toEqual(['old-ambassador']);
+    expect(after.card!.id).toBe('envoy-map');
+    for (const t of after.card!.targets!) expect(t.hint).toBe(preview(content, after, t.region)!.hint);
+    const plain = before.card!.targets!.find((t) => t.tag !== 'RISKY')!;
+    const boosted = after.card!.targets!.find((t) => t.region === plain.region)!;
+    expect(boosted.hint).not.toBe(plain.hint);
+  });
+
   it('Red Lines names the hottest region at the pick when the pack has no red-line card', () => {
     const noCard = { ...content, cardOrder: content.cardOrder.filter((id) => id !== 'redline-map'), cards: { ...content.cards } };
     delete noCard.cards['redline-map'];
@@ -230,16 +252,22 @@ describe('endings (SPEC "Ends", checked after pressure)', () => {
     expect(choose(content, n, 'left')).toMatchObject({ ok: false, reason: 'the game is over' });
   });
 
-  it('STAND-DOWN at DANGER 0 after the choice from day 10 (RULES.standDownFromDay), not before', () => {
-    const early = quiet(content, 'plain-shl', { SHL: 1 });
+  it('STAND-DOWN at DANGER 0 after the choice from day 10 (RULES.standDownFromDay), once the gauge has reached RULES.standDownPeak', () => {
+    const early = { ...quiet(content, 'plain-shl', { SHL: 1 }), peak: RULES.standDownPeak };
     const e = choose(content, early, 'left').state;
     expect(e.log[0].dangerAfterChoice).toBe(0);
     expect(e.ending).toBeNull();
     expect(e.phase).toBe('choose');
     expect(e.day).toBe(2);
-    const nine = withHeats({ ...quiet(content, 'plain-shl'), day: RULES.standDownFromDay - 1 }, { SHL: 1 });
+    const nine = withHeats({ ...quiet(content, 'plain-shl'), day: RULES.standDownFromDay - 1, peak: RULES.standDownPeak }, { SHL: 1 });
     expect(choose(content, withCard(content, nine, 'plain-shl'), 'left').state.ending).toBeNull();
-    const ten = withHeats({ ...quiet(content, 'plain-shl'), day: RULES.standDownFromDay }, { SHL: 1 });
+    // A calm map before the month has had a crisis is a quiet morning, not an ending (day 11: day 10 would bring the offer first).
+    const quietMonth = withHeats({ ...quiet(content, 'plain-shl'), day: RULES.standDownFromDay + 1, peak: RULES.standDownPeak - 1 }, { SHL: 1 });
+    const q = choose(content, withCard(content, quietMonth, 'plain-shl'), 'left').state;
+    expect(q.log[0].dangerAfterChoice).toBe(0);
+    expect(q.ending).toBeNull();
+    expect(q.day).toBe(RULES.standDownFromDay + 2);
+    const ten = withHeats({ ...quiet(content, 'plain-shl'), day: RULES.standDownFromDay, peak: RULES.standDownPeak }, { SHL: 1 });
     const f = choose(content, withCard(content, ten, 'plain-shl'), 'left').state;
     expect(f.ending).toEqual({ kind: 'STAND-DOWN', day: RULES.standDownFromDay, danger: 0 });
     expect(f.phase).toBe('over');
@@ -266,7 +294,7 @@ describe('endings (SPEC "Ends", checked after pressure)', () => {
   });
 
   it('day 30 ends the game even on an offer-free day; no offer follows an ending', () => {
-    const s = withHeats({ ...quiet(content, 'plain-shl'), day: 25 }, { SHL: 1 });
+    const s = withHeats({ ...quiet(content, 'plain-shl'), day: 25, peak: RULES.standDownPeak }, { SHL: 1 });
     const n = choose(content, withCard(content, s, 'plain-shl'), 'left').state;
     // DANGER 0 after day 5: STAND-DOWN wins over the offer.
     expect(n.ending?.kind).toBe('STAND-DOWN');

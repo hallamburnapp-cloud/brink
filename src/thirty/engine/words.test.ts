@@ -55,6 +55,14 @@ describe('the night, in words', () => {
     expect(nightLine(night(heat('SHL', 2, 3, 'spread', { source: 'LTL' }), pen))).toBe('The war in Lintel spread to Shoal; Shoal was the red line: DANGER +15.');
   });
 
+  it('says when a warned region turned the night away', () => {
+    const held: TraceStep = { kind: 'piece', piece: 'launch-on-warning', note: 'The warning held: Orrinth did not heat' };
+    expect(nightLine(night(held))).toBe('The warning held: Orrinth did not heat.');
+    expect(nightLine(night(heat('QLN', 0, 1, 'flare'), held))).toBe('Trouble flared in Quillon; the warning held: Orrinth did not heat.');
+    // Other pieces' notes are not the night's story.
+    expect(nightLine(night({ kind: 'piece', piece: 'spin-doctor', note: 'Edda Vale does not heat' }))).toBeNull();
+  });
+
   it('reads what DANGER did overnight off the trace', () => {
     expect(nightDelta({ dangerAfterChoice: 12, dangerAfter: 19 })).toBe(7);
     expect(nightDelta({ dangerAfterChoice: 12, dangerAfter: 12 })).toBe(0);

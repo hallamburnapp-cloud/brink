@@ -607,10 +607,10 @@ test('the three endings: WAR, STAND-DOWN and HELD, with PLAY AGAIN, SAME WORLD A
   expect(s.day).toBe(1);
   expect(s.phase).toBe('choose');
 
-  // STAND-DOWN: one tense region left, calmed on day 12 (a calm map counts from RULES.standDownFromDay, 10).
+  // STAND-DOWN: one tense region left, calmed on day 12 (a calm map counts from RULES.standDownFromDay, 10, once the gauge has been at RULES.standDownPeak, 30).
   const standHeats = calmMap(g);
   standHeats.NWK = 1;
-  await set(page, { phase: 'choose', offer: null, ending: null, day: 12, team: [], penalty: 0, heats: standHeats, card: dealt('northwake-02', 'NWK') });
+  await set(page, { phase: 'choose', offer: null, ending: null, day: 12, team: [], penalty: 0, peak: 40, heats: standHeats, card: dealt('northwake-02', 'NWK') });
   expect(await gaugeValue(page)).toBe(2);
   await expect(choice(page, 'right').locator('.hint')).toHaveText(/^Danger down/);
   await choice(page, 'right').tap();

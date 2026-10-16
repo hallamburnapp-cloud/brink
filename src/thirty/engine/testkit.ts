@@ -26,13 +26,13 @@ export const PIECES = [
   { id: 'peace-movement', name: 'Peace Movement', chip: 'Peace', icon: 'dove', kind: 'policy', rule: 'Calming choices cool two more regions; shows of force heat home.', tags: ['CALM', 'FORCE'] },
   { id: 'hotline', name: 'Hotline', chip: 'Hotline', icon: 'bell', kind: 'policy', rule: 'Once a week, a crisis eases on its own before you choose.', tags: ['any'] },
   { id: 'dove-foreign', name: 'Dove Foreign Minister', chip: 'Dove', icon: 'olive', kind: 'adviser', rule: 'Talks never fail: a risky talk always works.', tags: ['RISKY'] },
-  { id: 'hawk-general', name: 'Hawk General', chip: 'Hawk', icon: 'medal', kind: 'adviser', rule: 'Shows of force cool two steps more, but always heat a neighbour.', tags: ['FORCE'] },
-  { id: 'loyal-admiral', name: 'Loyal Admiral', chip: 'Admiral', icon: 'anchor', kind: 'adviser', rule: 'Shows of force at sea cool every neighbouring sea region too.', tags: ['FORCE'] },
-  { id: 'cautious-intel', name: 'Cautious Intel Director', chip: 'Cautious', icon: 'eye', kind: 'adviser', rule: 'False alarms are marked before you choose.', tags: ['arcs'], excludes: ['paranoid-intel'] },
-  { id: 'paranoid-intel', name: 'Paranoid Intel Director', chip: 'Paranoid', icon: 'radar', kind: 'adviser', rule: 'Warnings come a day earlier; one in four is false.', tags: ['arcs'], excludes: ['cautious-intel'] },
+  { id: 'hawk-general', name: 'Hawk General', chip: 'Hawk', icon: 'medal', kind: 'adviser', rule: 'A show of force also cools every neighbouring region one step, and still heats one of them.', tags: ['FORCE'] },
+  { id: 'loyal-admiral', name: 'Loyal Admiral', chip: 'Admiral', icon: 'anchor', kind: 'adviser', rule: 'A show of force at sea also cools every neighbouring region two steps.', tags: ['FORCE'] },
+  { id: 'cautious-intel', name: 'Cautious Intel Director', chip: 'Cautious', icon: 'eye', kind: 'adviser', rule: 'False alarms are marked before you choose; every risky choice is 10 points more likely to work.', tags: ['arcs', 'RISKY'], excludes: ['paranoid-intel'] },
+  { id: 'paranoid-intel', name: 'Paranoid Intel Director', chip: 'Paranoid', icon: 'radar', kind: 'adviser', rule: 'Trouble is spotted early: a place in crisis gets its card by the next morning.', tags: ['any'], excludes: ['cautious-intel'] },
   { id: 'spin-doctor', name: 'Spin Doctor', chip: 'Spin Doctor', icon: 'megaphone', kind: 'adviser', rule: 'No trouble at home: home never heats.', tags: ['HOME'] },
   { id: 'red-lines', name: 'Red Lines', chip: 'Red Line', icon: 'flag', kind: 'policy', rule: 'Name one region: it calms twice as fast, but if it reaches war, DANGER +15.', tags: ['map'] },
-  { id: 'launch-on-warning', name: 'Launch on Warning', chip: 'Launch', icon: 'siren', kind: 'policy', rule: 'War never spreads from a region you have warned; a false alarm there is DANGER +20.', tags: ['arcs'] },
+  { id: 'launch-on-warning', name: 'Launch on Warning', chip: 'Launch', icon: 'siren', kind: 'policy', rule: 'Every show of force warns its region; a warned region never heats at night. A false alarm there is DANGER +20.', tags: ['arcs', 'FORCE'] },
 ];
 
 const choice = (text: string, tag: string, hint: string, extra: Record<string, unknown> = {}) => ({ text, tag, hint, ...extra });

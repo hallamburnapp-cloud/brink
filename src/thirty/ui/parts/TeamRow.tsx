@@ -3,7 +3,8 @@
  * and a name: the whole name while the names fit the row, else the pack's one word). Hidden until
  * one is held. Tap a chip: its rule, in place of the chips; tap the rule to put the chips back. A
  * chip that changed today's outcome glows for a second after the choice. During the explanation's
- * second screen it shows three empty slots.
+ * second screen it shows the chips held and an empty slot for each of the first three places still
+ * open (three empty slots on a first launch; mid-game the team does not vanish).
  */
 import type { JSX } from 'preact';
 import { useEffect } from 'preact/hooks';
@@ -24,16 +25,25 @@ export function TeamRow(): JSX.Element | null {
     return () => clearTimeout(t);
   }, [open]);
 
+  const team = s?.team ?? [];
   if (explain.value === 2) {
+    const held = team.map((id) => content.pieces[id]).filter((p): p is NonNullable<typeof p> => !!p);
+    const empty = Math.max(0, 3 - held.length);
+    const names = chipLabels(held);
     return (
-      <div class="team abs slots" style={rectStyle(R.team)} aria-label="Three empty team places">
-        {[0, 1, 2].map((i) => (
-          <span key={i} class="slot" />
+      <div class={`team abs slots n${Math.max(held.length, 3)}`} style={rectStyle(R.team)} aria-label={held.length ? `Your team: ${held.map((p) => p.name).join(', ')}, ${empty} empty ${empty === 1 ? 'place' : 'places'}` : 'Three empty team places'}>
+        {held.map((p, i) => (
+          <span key={p.id} class="chip" role="listitem">
+            {held.length < 5 && <Glyph name={p.icon} size={13} />}
+            <span>{names[i]}</span>
+          </span>
+        ))}
+        {Array.from({ length: empty }, (_, i) => (
+          <span key={`slot${i}`} class="slot" />
         ))}
       </div>
     );
   }
-  const team = s?.team ?? [];
   if (!team.length) return null;
   const piece = open ? content.pieces[open] : null;
   if (piece) {

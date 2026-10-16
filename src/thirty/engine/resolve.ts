@@ -54,9 +54,8 @@ export interface Resolution {
 
 /**
  * The chance a RISKY option holds, after pieces: the Dove makes talks (a Foreign Minister's or the Old
- * Ambassador's card) certain; a false alarm marked
- * by the Cautious director is known to hold (a real one to fail); the Paranoid director's warnings
- * are false one in four on top of the printed odds.
+ * Ambassador's card) certain; a false alarm marked by the Cautious director is known to hold (a real
+ * one to fail); on every other risk the Cautious director adds RULES.cautiousOdds to the printed odds.
  */
 export function effectiveOdds(w: Working, card: Card, dealt: DealtCard, act: Act): number | null {
   if (act.tag !== 'RISKY' || act.odds === undefined) return null;
@@ -64,16 +63,17 @@ export function effectiveOdds(w: Working, card: Card, dealt: DealtCard, act: Act
   if (isAlarmCard(card)) {
     if (dealt.alarm === 'false') return 100;
     if (dealt.alarm === 'real') return 0;
-    if (w.has('paranoid-intel')) return Math.round(100 * (RULES.paranoidFalse + (1 - RULES.paranoidFalse) * (act.odds / 100)));
+    return act.odds;
   }
+  if (w.has('cautious-intel')) return Math.min(RULES.oddsCap, act.odds + RULES.cautiousOdds);
   return act.odds;
 }
 
-/** Whether the RISKY option holds today, from the roll made when the card was dealt. */
+/** Whether the RISKY option holds today, from the roll made when the card was dealt, at the odds after pieces. */
 export function holds(w: Working, card: Card, dealt: DealtCard, act: Act): boolean {
   if (w.has('dove-foreign') && isTalks(card)) return true;
   if (isAlarmCard(card)) return dealt.alarmFalse;
-  return dealt.roll * 100 < (act.odds ?? 0);
+  return dealt.roll * 100 < (effectiveOdds(w, card, dealt, act) ?? 0);
 }
 
 /** How far a missed roll fell past the odds, at least 1 (for the log; the player reads `It failed · ...`). */
@@ -136,16 +136,25 @@ export function resolve(w: Working, card: Card, dealt: DealtCard, act: Act, forc
     }
     case 'FORCE': {
       w.cool(acted, RULES.forceCool, 'choice');
-      if (w.has('hawk-general')) w.cool(acted, RULES.hawkExtra, 'piece', { piece: 'hawk-general' });
+      // The force pieces are waves over the neighbours (ENGINE.md "Rulings"): the Admiral's at sea, the Hawk's anywhere.
+      if (w.has('loyal-admiral') && isSea(acted)) {
+        for (const n of neighboursOf(acted)) w.cool(n, RULES.admiralCool, 'piece', { piece: 'loyal-admiral' });
+      }
+      if (w.has('hawk-general')) {
+        for (const n of neighboursOf(acted)) w.cool(n, RULES.hawkNeighbourCool, 'piece', { piece: 'hawk-general' });
+      }
+      // The cost stays: a show of force always heats a neighbour, the card's or the coolest, after the waves.
       const target = act.heats ?? forceTarget(w.heats, acted, (r) => !w.protectedFrom(r, false));
       if (target) {
         w.heat(target, RULES.forceHeat, 'choice');
         out.forced = target;
       }
-      if (w.has('loyal-admiral') && isSea(acted)) {
-        for (const n of neighboursOf(acted)) if (isSea(n)) w.cool(n, RULES.admiralCool, 'piece', { piece: 'loyal-admiral' });
-      }
       if (w.has('peace-movement')) w.heat(HOME_CAPITAL, 1, 'piece', { piece: 'peace-movement' });
+      // Launch on Warning: the show of force warns its region (so that tonight it does not heat and war does not spread from it).
+      if (w.has('launch-on-warning') && !w.warned.has(acted)) {
+        w.mark('warned', acted);
+        w.fire('launch-on-warning');
+      }
       consequences(act, true);
       break;
     }
@@ -154,6 +163,7 @@ export function resolve(w: Working, card: Card, dealt: DealtCard, act: Act, forc
       out.odds = odds;
       out.certain = odds === 100;
       if (w.has('dove-foreign') && isTalks(card)) w.note('dove-foreign', 'Talks cannot fail');
+      else if (w.has('cautious-intel') && !alarm && odds !== act.odds) w.fire('cautious-intel');
       const held = force ? force === 'held' : holds(w, card, dealt, act);
       out.held = held;
       if (!force) {

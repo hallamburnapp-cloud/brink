@@ -6,7 +6,7 @@
 import { Rng } from '../../engine/rng.ts';
 import type { Card, Heat, ThirtyContent } from '../content/types.ts';
 import { todayCard } from './cards.ts';
-import { dealCard, drawOffer, fits, hasRedLineCard, hottestRegion, queueFollows } from './deck.ts';
+import { dealCard, drawOffer, fits, hasRedLineCard, hottestRegion, queueFollows, resolveTargets } from './deck.ts';
 import { pressure } from './pressure.ts';
 import { actOf, resolve, type Act } from './resolve.ts';
 import { CALM, CRISIS, RULES, TENSE, WAR, dangerOf, isOfferDay } from './rules.ts';
@@ -140,9 +140,9 @@ function commit(s: GameState, w: Working): void {
 }
 
 /**
- * A day: the choice; a calm map is a STAND-DOWN (from RULES.standDownFromDay, the night skipped);
- * otherwise pressure, then tomorrow's card dealt so its news is the last step of the night; then the
- * ending check; then the team offer or the next morning.
+ * A day: the choice; a calm map is a STAND-DOWN (from RULES.standDownFromDay, once the gauge has been
+ * at RULES.standDownPeak; the night skipped); otherwise pressure, then tomorrow's card dealt so its
+ * news is the last step of the night; then the ending check; then the team offer or the next morning.
  */
 function playDay(content: ThirtyContent, s0: GameState, card: Card, act: Act): Result {
   const s = draft(s0);
@@ -157,7 +157,7 @@ function playDay(content: ThirtyContent, s0: GameState, card: Card, act: Act): R
   w.checkpoint('choice');
   const dangerAfterChoice = w.danger();
 
-  const standDown = dangerAfterChoice === 0 && s.day >= RULES.standDownFromDay;
+  const standDown = dangerAfterChoice === 0 && s.day >= RULES.standDownFromDay && s.peak >= RULES.standDownPeak;
   let next: DealtCard | null = null;
   if (!standDown) {
     const pr = new Rng(s.rng.pressure);
@@ -215,7 +215,7 @@ function playDay(content: ThirtyContent, s0: GameState, card: Card, act: Act): R
  */
 export function endingAfter(s: GameState, danger: number, tipping: RegionId | null): Ending | null {
   if (danger >= RULES.dangerCap) return { kind: 'WAR', day: s.day, danger: 100, region: tipping ?? hottestRegion(s) };
-  if (danger === 0 && s.day >= RULES.standDownFromDay) return { kind: 'STAND-DOWN', day: s.day, danger: 0 };
+  if (danger === 0 && s.day >= RULES.standDownFromDay && s.peak >= RULES.standDownPeak) return { kind: 'STAND-DOWN', day: s.day, danger: 0 };
   if (s.day >= RULES.days) return { kind: 'HELD', day: 30, danger, clean: danger < RULES.cleanHoldUnder };
   return null;
 }
@@ -268,6 +268,10 @@ export function pick(content: ThirtyContent, state: GameState, index: number | n
     if (next && pending && !fits(pending, { ...s, day: s.day + 1 }, new Set(s.deck.used.filter((id) => id !== next!.id)))) {
       s.deck.used = s.deck.used.filter((id) => id !== next!.id);
       next = dealCard(content, s, s.day + 1);
+    } else if (next && pending?.map) {
+      // A waiting map card's places were labelled without the new piece: read them off the map again, with it.
+      const at = { ...s, day: s.day + 1 };
+      next.targets = resolveTargets(pending, at) ?? resolveTargets(pending, at, false) ?? pending.targets;
     }
   }
   s.picks.push({ day: s.day, offer, taken });

@@ -36,18 +36,13 @@ const RELAXATIONS: readonly Relax[] = [
   { used: true, when: true, day: true },
 ];
 
-/** The day range a card may be drawn on; the Paranoid director brings warnings a day earlier. */
-function dayRange(card: Card, s: GameState): [number, number] {
-  if (isAlarmCard(card) && s.team.includes('paranoid-intel')) return [Math.max(1, card.day[0] - 1), card.day[1]];
-  return card.day;
-}
 
 /** Whether the card may come on `s.day` with the map as `s.heats` reads. */
 export function fits(card: Card, s: GameState, used: ReadonlySet<CardId>, relax: Relax = STRICT): boolean {
   if (card.chained) return false;
   if (!relax.used && used.has(card.id)) return false;
   if (!relax.day) {
-    const [a, b] = dayRange(card, s);
+    const [a, b] = card.day;
     if (s.day < a || s.day > b) return false;
   }
   if (card.domestic) {
@@ -119,12 +114,17 @@ function weightOf(card: Card, s: GameState): number {
   return RULES.drawWeight[s.heats[card.region]];
 }
 
-/** Regions at CRISIS that have waited two days for a card (SPEC: within two days), and regions at WAR that have waited one. */
-export function starvingRegions(s: GameState): RegionId[] {
+/**
+ * Regions at CRISIS or WAR that have waited their time for a card (SPEC: a crisis within two days;
+ * RULES.hotCardWithin, RULES.warCardWithin). With the Paranoid Intel Director held, by the next
+ * morning (RULES.paranoidCardWithin); `paranoid` false asks what the plain rule would say.
+ */
+export function starvingRegions(s: GameState, paranoid = s.team.includes('paranoid-intel')): RegionId[] {
   return REGION_IDS.filter((r) => {
     if (s.heats[r] < CRISIS) return false;
     const since = Math.max(s.deck.hotSince[r] ?? s.day, s.deck.lastCardDay[r] ?? 0);
-    return s.day - since >= (s.heats[r] === WAR ? RULES.warCardWithin : RULES.hotCardWithin);
+    const within = s.heats[r] === WAR ? RULES.warCardWithin : RULES.hotCardWithin;
+    return s.day - since >= (paranoid ? Math.min(within, RULES.paranoidCardWithin) : within);
   });
 }
 
@@ -137,38 +137,57 @@ function weightedPick(rng: Rng, cards: Card[], s: GameState): Card {
   return cards[Math.max(0, rng.weightedIndex(cards.map((c) => weightOf(c, s))))];
 }
 
+/** Why a card was chosen; `early` when the Paranoid Intel Director brought a crisis card a day before the plain rule would. */
+export interface Selection {
+  card: Card;
+  early: boolean;
+}
+
 /**
  * Choose the card for `day` on a draft state whose map reads as it will that morning (reads and
  * advances rng.deal). Follow-ups first; then priority cards unlocked by a held piece; then a card for
- * a starving region; then the map roll; then the weighted draw; then the relaxations.
+ * a starving region; then the map roll; then the weighted draw; then the relaxations. `avoid` names
+ * regions the day's choice cooled: a card about one of them waits a day when it can, so the morning's
+ * news does not undo the day's work (a follow-up at its deadline still comes).
  */
-export function selectCard(content: ThirtyContent, s: GameState, day = s.day): Card {
+export function selectCard(content: ThirtyContent, s: GameState, day = s.day, avoid: ReadonlySet<RegionId> = new Set()): Card {
+  return selectCardWhy(content, s, day, avoid).card;
+}
+
+export function selectCardWhy(content: ThirtyContent, s: GameState, day = s.day, avoid: ReadonlySet<RegionId> = new Set()): Selection {
   const at: GameState = day === s.day ? s : { ...s, day };
   const rng = new Rng(s.rng.deal);
+  const pick = (card: Card, early = false): Selection => ({ card, early });
   try {
-    const due = dueFollow(content, s, day);
-    if (due) return due;
+    const due = dueFollow(content, s, day, avoid);
+    if (due) return pick(due);
 
     const used = new Set(s.deck.used);
     const all = content.cardOrder.map((id) => content.cards[id]);
-    const candidates = all.filter((c) => fits(c, at, used));
+    const fitting = all.filter((c) => fits(c, at, used));
+    const rested = fitting.filter((c) => !c.region || !avoid.has(c.region));
+    const candidates = rested.length ? rested : fitting;
 
     const unlocked = candidates.filter((c) => c.when.pieces.length > 0);
-    if (unlocked.length) return weightedPick(rng, unlocked, at);
+    if (unlocked.length) return pick(weightedPick(rng, unlocked, at));
 
     // Day 1 is about the starting crisis: the first decision is the obvious trouble (and the start reads 11).
     const starving = new Set(day === 1 ? REGION_IDS.filter((r) => at.heats[r] >= CRISIS) : starvingRegions(at));
     if (starving.size) {
       const urgent = candidates.filter((c) => concerns(c, at, starving));
-      if (urgent.length) return weightedPick(rng, urgent, at);
+      if (urgent.length) {
+        const card = weightedPick(rng, urgent, at);
+        const plain = new Set(day === 1 ? [...starving] : starvingRegions(at, false));
+        return pick(card, !concerns(card, at, plain));
+      }
     }
 
     const maps = candidates.filter((c) => c.map);
     const choices = candidates.filter((c) => !c.map);
     if (maps.length && day > 1 && s.deck.lastMapDay !== day - 1 && (choices.length === 0 || rng.next() < RULES.mapDayChance)) {
-      return weightedPick(rng, maps, at);
+      return pick(weightedPick(rng, maps, at));
     }
-    if (choices.length) return weightedPick(rng, choices, at);
+    if (choices.length) return pick(weightedPick(rng, choices, at));
 
     // Nothing unused fits: relax, preferring the card dealt longest ago.
     for (const relax of RELAXATIONS.slice(1)) {
@@ -177,7 +196,7 @@ export function selectCard(content: ThirtyContent, s: GameState, day = s.day): C
       const order = new Map(s.deck.used.map((id, i) => [id, i]));
       const oldest = Math.min(...again.map((c) => order.get(c.id) ?? -1));
       const pool = again.filter((c) => (order.get(c.id) ?? -1) === oldest);
-      return weightedPick(rng, pool, at);
+      return pick(weightedPick(rng, pool, at));
     }
     throw new Error('the pack has no card to deal');
   } finally {
@@ -185,11 +204,14 @@ export function selectCard(content: ThirtyContent, s: GameState, day = s.day): C
   }
 }
 
-/** The follow-up due on `day` (soonest deadline first, then the hottest region), removed from the queue. */
-function dueFollow(content: ThirtyContent, s: GameState, day: number): Card | null {
+/**
+ * The follow-up due on `day` (soonest deadline first, then the hottest region), removed from the queue.
+ * One about a region in `avoid` waits while its window allows.
+ */
+function dueFollow(content: ThirtyContent, s: GameState, day: number, avoid: ReadonlySet<RegionId>): Card | null {
   const used = new Set(s.deck.used);
   s.deck.queue = s.deck.queue.filter((q) => content.cards[q.card] && !used.has(q.card));
-  const due = s.deck.queue.filter((q) => q.from <= day);
+  const due = s.deck.queue.filter((q) => q.from <= day && !(q.to > day && content.cards[q.card].region && avoid.has(content.cards[q.card].region!)));
   if (!due.length) return null;
   const heat = (q: QueuedFollow) => {
     const r = content.cards[q.card].region;
@@ -202,8 +224,8 @@ function dueFollow(content: ThirtyContent, s: GameState, day: number): Card | nu
 }
 
 /**
- * Queue an arc's follow-ups from today: due in [day + in0, day + in1]; the Paranoid director's warnings a
- * day earlier (never before tomorrow). A follow-up that could only come after day 30 is dropped.
+ * Queue an arc's follow-ups from today: due in [day + in0, day + in1], never before tomorrow. A
+ * follow-up that could only come after day 30 is dropped.
  */
 export function queueFollows(content: ThirtyContent, s: GameState, follows: readonly Follow[]): QueuedFollow[] {
   const out: QueuedFollow[] = [];
@@ -212,10 +234,6 @@ export function queueFollows(content: ThirtyContent, s: GameState, follows: read
     if (!target) continue;
     let from = s.day + f.in[0];
     let to = s.day + f.in[1];
-    if (s.team.includes('paranoid-intel') && isAlarmCard(target)) {
-      from -= 1;
-      to -= 1;
-    }
     from = Math.max(s.day + 1, from);
     to = Math.max(from, to);
     if (from > RULES.days) continue;
@@ -239,16 +257,13 @@ export function dealCard(content: ThirtyContent, s: GameState, day = s.day, w?: 
   const night = w ?? new Working(s);
   s.heats = night.heats;
   s.penalty = night.penalty;
-  const card = selectCard(content, s, day);
+  const { card, early } = selectCardWhy(content, s, day, night.cooledToday);
 
   const odds = new Rng(s.rng.odds);
   const roll = odds.next();
   const alarm = isAlarmCard(card);
-  let alarmFalse = false;
-  if (alarm) {
-    const paranoid = s.team.includes('paranoid-intel') && odds.next() < RULES.paranoidFalse;
-    alarmFalse = paranoid || roll * 100 < (riskyOdds(card) ?? RULES.paranoidFalse * 100);
-  }
+  // A warning is false exactly when the wait would hold at the printed odds (CONTENT.md: the odds are the chance it is false).
+  const alarmFalse = alarm && roll * 100 < (riskyOdds(card) ?? 25);
   s.rng.odds = odds.snapshot();
 
   // News: the card finds its region in trouble (an arc's first card more so).
@@ -261,6 +276,7 @@ export function dealCard(content: ThirtyContent, s: GameState, day = s.day, w?: 
   const arrival: TraceStep[] = own ? night.steps.splice(newsAt) : [];
   const cautious = alarm && s.team.includes('cautious-intel');
   if (cautious) arrival.push({ kind: 'piece', piece: 'cautious-intel', note: alarmFalse ? 'A false alarm' : 'The warning is real' });
+  if (early) arrival.push({ kind: 'piece', piece: 'paranoid-intel', note: `${regionName(card.region!)} spotted early` });
 
   // The Hotline: once a week, a crisis card calms itself before you choose (the crisis ends: CRISIS to TENSE).
   if (card.region && s.team.includes('hotline') && s.heats[card.region] >= CRISIS && s.hotlineWeek !== weekOf(day)) {

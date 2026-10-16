@@ -68,8 +68,10 @@ the choice changes heats (today's region and sometimes its neighbours); the map 
 the next day begins. No timers.
 
 **Pressure.** At the end of every day, each WAR region heats one CALM or TENSE neighbour by one step (the red
-spreads, Plague-Inc style); each CRISIS region has a 1 in 3 chance to heat one neighbour. This is what the
-player is fighting. A region at WAR cools only through a choice that targets it or a piece that reaches it.
+spreads, Plague-Inc style); each CRISIS region has a 1 in 3 chance to heat one neighbour; and, from day 6, a
+crisis left standing a night may turn red on its own, as may one that borders another crisis. This is what the
+player is fighting: orange that is not answered becomes red, and red spreads. A region at WAR cools only
+through a choice that targets it or a piece that reaches it. (ENGINE.md "Rulings" has the numbers.)
 
 **Choices.** Every choice carries effects on heats, by tag:
 - `CALM` choices cool today's region by 1 (talks, concessions, pulling back).
@@ -91,22 +93,32 @@ Pieces are the Balatro part: they multiply what a choice does, and they stack.
 | Peace Movement | Calming choices cool two extra regions; force choices heat home. | CALM / FORCE |
 | Hotline | Once a week, a crisis card calms itself before you choose. | any |
 | Dove Foreign Minister | Talks never fail: risky talks become certain. | RISKY |
-| Hawk General | Force choices cool two steps more, but always heat a neighbour. | FORCE |
-| Loyal Admiral | Force choices at sea cool every neighbouring sea region too. | FORCE |
-| Cautious Intel Director | False alarms are marked before you choose. | arcs |
-| Paranoid Intel Director | Warnings come a day earlier; one in four is false. | arcs |
+| Hawk General | A show of force also cools every neighbouring region one step, and still heats one of them. | FORCE |
+| Loyal Admiral | A show of force at sea also cools every neighbouring region two steps. | FORCE |
+| Cautious Intel Director | False alarms are marked before you choose; every risky choice is 10 points more likely to work. | arcs, RISKY |
+| Paranoid Intel Director | Trouble is spotted early: a place in crisis gets its card by the next morning. | any |
 | Spin Doctor | No domestic cards. Home never heats. | HOME |
 | Red Lines | Name one region: it calms twice as fast, but if it reaches war, danger +15. | map |
-| Launch on Warning | War never spreads from a region you have warned; a false alarm there is +20. | arcs |
+| Launch on Warning | Every show of force warns its region; a warned region never heats at night. A false alarm there is +20. | arcs, FORCE |
+
+(The five force and intelligence pieces were rewritten after the fifth build's playtests: as first written the
+Hawk General acted in 1% of the games it was held, the two directors and Launch on Warning hung on the one warning
+card in the pack, and a force build lost 92% of games. Now a hawk who builds on force holds about as often as
+the spec asks of a dove; see ENGINE.md "Tuning", item 15.)
 
 Stacking is the point. Old Ambassador + Back-Channel + Peace Movement turns one Talks choice into a wave of
-calm across four or five regions; the map goes blue in a ripple and the gauge drops by 20 or 30 in one go.
-The hint line shows this before the choice (`Danger down · calms 5 regions`), so the player sees their build
-work before they commit, in words.
+calm across four regions; the map goes blue in a ripple and the gauge drops by 8 to 12 in one go on a map of
+tense regions, by 20 or more when the wave reaches crises and wars. Hawk General + Loyal Admiral turns one
+show of force at sea into a wave of its own over every neighbour. The hint line shows this before the choice
+(`Danger down · calms Shoal and 3 more`), so the player sees their build work before they commit, in words.
 
 **Ends** (checked after each day's pressure):
-- `DANGER >= 100`: **WAR**. The ending names the region that tipped it and the day.
-- `DANGER == 0` after day 5: **STAND-DOWN**. The crisis is over early; the day is the score.
+- `DANGER >= 100`: **WAR**. The ending names where the fighting began (the first region to go red, and the
+  day), the region that was the last straw, and says so when too many crises at once decided it.
+- `DANGER == 0` after the choice, from day 10, once the gauge has been at 30 or more on some day:
+  **STAND-DOWN**. The crisis is over early; the day is the score. (The spec's first reading, "after day 5",
+  gave a day-6 win over a map that was never in danger; a calm map before there has been a crisis is a quiet
+  morning, and the month goes on.)
 - End of day 30 with `DANGER < 100`: **HELD**. Graded by the final danger: under 20 is a clean hold.
 Every ending: two lines of story, the final map, PLAY AGAIN (new seed), REPLAY THIS SEED, HOME.
 
@@ -166,7 +178,12 @@ targets: [{ region: SHL, hint: "Calms the strait" }, { region: ORN, hint: "Warns
   stand-down early in 15 to 30%, war in the rest.
 - Every piece is taken by the sensible bot in at least 10% of games; none in more than 70%.
 - A game runs 20 to 30 days at the median; no game stalls.
-- The median sensible game sees the gauge above 60 at least once (it must feel close).
+- The median sensible game feels close: red on the map (a region at war) before the end, or the gauge above
+  60 at least once. (The first reading was the gauge alone; the fifth build met it only through the late amber
+  wash the owner's partner saw as "whatever he presses it climbs". Red that spreads each night is the threat a
+  watcher can see; see ENGINE.md "Tuning", item 15. Owner's call whether the gauge alone should come back.)
+- A hawk (takes the force pieces, prefers shows of force when they are nearly as good) holds in 40 to 65%:
+  there is more than one way to play.
 
 ## What is reused, what is new
 

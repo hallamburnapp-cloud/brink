@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { RULES } from './rules.ts';
 import { Rng } from '../../engine/rng.ts';
-import { availablePieces, dealCard, drawOffer, fits, hasRedLineCard, hottestRegion, queueFollows, selectCard, starvingRegions } from './deck.ts';
+import { availablePieces, dealCard, drawOffer, fits, hasRedLineCard, hottestRegion, queueFollows, selectCard, selectCardWhy, starvingRegions } from './deck.ts';
 import { draft, newGame } from './run.ts';
 import { fixture, onDay, quiet, withCard, withHeats, withTeam } from './testkit.ts';
 import type { GameState } from './types.ts';
@@ -125,7 +125,7 @@ describe('selectCard: what comes today', () => {
     expect(wms / n).toBeLessThan(0.5);
   });
 
-  it('map cards come about one day in five when their places are worth tapping, never on day 1 or two days running', () => {
+  it('map cards come at RULES.mapDayChance when their places are worth tapping, never on day 1 or two days running', () => {
     const warm = { SHL: 1, ORN: 1, WMS: 1, TLM: 1 } as const;
     const s = withHeats(onDay(newGame(content, 'q'), 3), warm);
     let maps = 0;
@@ -135,8 +135,8 @@ describe('selectCard: what comes today', () => {
       d.rng.deal = new Rng(`m-${i}`).snapshot();
       if (selectCard(content, d).map) maps++;
     }
-    expect(maps / n).toBeGreaterThan(0.14);
-    expect(maps / n).toBeLessThan(0.26);
+    expect(maps / n).toBeGreaterThan(RULES.mapDayChance - 0.04);
+    expect(maps / n).toBeLessThan(RULES.mapDayChance + 0.05);
     const dayOne = withHeats(newGame(content, 'q'), warm);
     expect([...dealt(dayOne)].some((id) => content.cards[id].map)).toBe(false);
     const after = withHeats(onDay(newGame(content, 'q'), 4), warm);
@@ -170,17 +170,39 @@ describe('queueFollows', () => {
     expect(s.deck.queue).toEqual(q);
   });
 
-  it('the Paranoid director brings warning cards a day earlier', () => {
-    const s = withTeam(onDay(newGame(content, 'q'), 10), ['paranoid-intel']);
-    s.deck.queue = [];
-    expect(queueFollows(content, s, [{ card: 'alarm-02', in: [2, 3] }])).toEqual([{ card: 'alarm-02', from: 11, to: 12 }]);
-    expect(queueFollows(content, s, [{ card: 'alarm-02', in: [1, 1] }])).toEqual([{ card: 'alarm-02', from: 11, to: 11 }]);
-    expect(queueFollows(content, s, [{ card: 'strait-02', in: [2, 3] }])).toEqual([{ card: 'strait-02', from: 12, to: 13 }]);
-    const early = withTeam(onDay(withHeats(newGame(content, 'q'), {}), 1), ['paranoid-intel']);
-    // alarm-02 runs days 1–30 already; a card from day 8 would come on day 7.
-    const alarm = { ...content.cards['alarm-02'], day: [8, 22] as [number, number] };
-    expect(fits(alarm, onDay(early, 7), new Set())).toBe(true);
-    expect(fits(alarm, onDay(withTeam(early, []), 7), new Set())).toBe(false);
+  it('the Paranoid director brings a crisis its card by the next morning, and the card says so', () => {
+    // Orrinth went into crisis on day 8: the plain rule waits two days, the Paranoid director one.
+    const s = withTeam(withHeats(onDay(newGame(content, 'q'), 9), { ORN: 2 }), ['paranoid-intel']);
+    s.deck.hotSince = { ORN: 8 };
+    expect(starvingRegions(s)).toEqual(['ORN']);
+    expect(starvingRegions(s, false)).toEqual([]);
+    const picked = selectCardWhy(content, s);
+    expect(picked.card.region).toBe('ORN');
+    expect(picked.early).toBe(true);
+    const dealt = dealCard(content, { ...withTeam(withHeats(onDay(newGame(content, 'q'), 9), { ORN: 2 }), ['paranoid-intel']), deck: { ...s.deck, used: [] } });
+    expect(dealt.region).toBe('ORN');
+    expect(dealt.arrival).toContainEqual({ kind: 'piece', piece: 'paranoid-intel', note: 'Orrinth spotted early' });
+    // Without the piece the region waits, and a card the plain rule would deal anyway is not "early".
+    const plain = withHeats(onDay(newGame(content, 'q'), 9), { ORN: 2 });
+    plain.deck.hotSince = { ORN: 8 };
+    expect(selectCardWhy(content, plain).early).toBe(false);
+    const overdue = withTeam(withHeats(onDay(newGame(content, 'q'), 10), { ORN: 2 }), ['paranoid-intel']);
+    overdue.deck.hotSince = { ORN: 8 };
+    expect(selectCardWhy(content, overdue).early).toBe(false);
+  });
+
+  it('a card about a region the choice cooled today waits a day when it can', () => {
+    // Shoal was cooled today: the follow-up about it (window to tomorrow) waits; at its deadline it comes.
+    const s = withHeats(onDay(newGame(content, 'q'), 10), { SHL: 1 });
+    s.deck.queue = [{ card: 'strait-03', from: 10, to: 11 }];
+    expect(selectCard(content, s, 10, new Set(['LNK'])).id).not.toBe('strait-03');
+    expect(s.deck.queue.map((q) => q.card)).toContain('strait-03');
+    const deadline = withHeats(onDay(newGame(content, 'q'), 11), { SHL: 1 });
+    deadline.deck.queue = [{ card: 'strait-03', from: 10, to: 11 }];
+    expect(selectCard(content, deadline, 11, new Set(['LNK'])).id).toBe('strait-03');
+    // A single-day draw about a cooled region is passed over while another card fits.
+    const cooled = withHeats(onDay(newGame(content, 'q'), 10), { SHL: 1, WMS: 1 });
+    for (let i = 0; i < 20; i++) expect(selectCard(content, { ...cooled, rng: { ...cooled.rng, deal: new Rng(`d${i}`).snapshot() } }, 10, new Set(['SHL'])).region).not.toBe('SHL');
   });
 });
 

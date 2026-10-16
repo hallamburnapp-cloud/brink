@@ -29,7 +29,7 @@ this file is the build.
 | `content-thirty/` | The pack: 127 cards in YAML (ten arcs, a card for every region, domestic cards, six map days), six advisers, twelve pieces. |
 | `src/thirty/content/` | The strict schema (zod), the compiler, the validator, the Node loader; `virtual:thirty-content` in the browser. |
 | `src/thirty/engine/` | Pure TypeScript rules, content passed in: `newGame`, `choose`, `tapRegion`, `pick`, `preview`, the save. |
-| `src/thirty/sim/` | The simulator: a random bot and a sensible bot against the spec's balance gates. |
+| `src/thirty/sim/` | The simulator: a random bot, a sensible bot and a hawk against the spec's balance gates and G9, with the over-the-shoulder measures the playtests used. |
 | `src/thirty/ui/` | The Preact screens: the four things, the title, the explanation, the menu, the endings, the playback. `ui/app/engine.ts` is the one seam to the engine and the content. |
 | `src/thirty/main.tsx`, `src/thirty/meta.ts` | The entry point and the page-head text. `src/main.tsx` boots it when `VITE_GAME=thirty`. |
 | `tools/vite-plugin-thirty.ts` | Compiles the pack into the bundle, hot reloads it in dev, refuses a production build with content errors. |
@@ -63,7 +63,7 @@ npm run typecheck                    # tsc for the whole project
 npm run test:thirty                  # vitest: content, engine, sim, UI logic
 npm test                             # the whole suite, all three games
 npm run content:validate:thirty      # the pack: ids, regions, tags, odds, follow-ups, day ranges, hints; add -- --strict to fail on warnings
-npm run sim:thirty                   # 2,000 games per bot against the spec's gates; exits 1 if a gate fails
+npm run sim:thirty                   # 2,000 games per bot (random, sensible, hawk) against the nine gates; exits 1 if a gate fails
 npm run e2e:thirty                   # Playwright: builds with the hook, serves on port 4580, Chromium
 ```
 
@@ -93,11 +93,13 @@ The build is about 540 KB (29 precached files, fonts included); its scripts and 
 
 ## Balance
 
-`npm run sim:thirty` plays 2,000 games per bot and prints the eight gates from SPEC "Balance gates", the outcomes,
-the piece take rates and the DANGER curve. The world only slides because of rulings beyond the spec's pressure
-paragraph (a card lights its region on arrival; calm regions flare at night, more as the month goes on; a tense
-region can boil over on its own); every one is a number in `src/thirty/engine/rules.ts` and `ENGINE.md` keeps the
-log of what was tried. See the "Known issues" below for where the gates stand on the shipped numbers.
+`npm run sim:thirty` plays 2,000 games per bot and prints the nine gates from SPEC "Balance gates", the outcomes,
+the over-the-shoulder measures (when red first appears, how many wars the engine's push decided, how often the
+night gave back the day's drop, late spread against flare, amber on a HELD map), the piece take rates with how
+often each acted while held, and the DANGER curve. The slide comes from orange left standing: a crisis that stands
+a night may turn red, two crises side by side may tip each other, red spreads a neighbour a night; flares fade
+through the month so a calm map has quiet nights. Every number is in `src/thirty/engine/rules.ts` and `ENGINE.md`
+keeps the log of what was tried (item 15 is this build). See the "Known issues" below for where the gates stand.
 
 ## Screens (the built app, 390 x 844 at 3x; t-16 is a 1440 x 900 window)
 
@@ -109,7 +111,7 @@ log of what was tried. See the "Known issues" below for where the gates stand on
 | `t-05-choice-hint` | The same day with two pieces held: the engine writes the hint (`Danger down · calms 2 regions`). |
 | `t-06-after-calm` | 700 ms after a calming tap: the region blue, the needle lower, `−7` floating, the chips glowing. |
 | `t-07-after-heat` | The night beat after a choice: the OVERNIGHT line in the card says what happened and `DANGER +N`, the map recolouring under it. |
-| `t-08-map-day` | A map day: three glowing places with one-line labels; the card says what to tap. |
+| `t-08-map-day` | A map day: three glowing places with one-line labels (DANGER first; a label that had to move away from its place has a leader to it); the card says what to tap. |
 | `t-09-team-offer` | After day 5: three people, each with its rule, and NO ONE THIS TIME. |
 | `t-10-team-row` | Three chips held; the hints count the regions a choice reaches. |
 | `t-11-risky` | A risky choice after its roll: `It worked · Danger down, …` on the hint line of the pressed button. |
@@ -119,13 +121,19 @@ log of what was tried. See the "Known issues" below for where the gates stand on
 
 ## Known issues
 
-- The balance gates G1 (random choices hold in under 10% of games), G2 (the sensible bot holds in 55 to 70%), G3
-  (stands down early in 15 to 30%) and G8 (the gauge passes 60 in half the sensible games) all pass on
-  `npm run sim:thirty` (seeds T) and on two of three independent 4,000-game sets, but each sits within about a point
-  of its line (G8 reads 49.7% on seeds T0–T3999). `ENGINE.md` "Results" and "Tuning log" item 13 have the figures and
-  what each lever did; the gates are coupled by things the spec fixes, so another seed set can tip one of them.
+- The nine gates pass on `npm run sim:thirty` (seeds T) and on seeds U at 2,000 games per bot; on seeds V, G1 reads
+  10.9% (random holds; the line is 10%) with the other eight passing. G1, G3 (15.5%) and G9 (41%) sit within a point
+  or two of their lines; the gates are coupled (every lever that drowns careless play drowns careful play), so
+  another seed set can tip one. `ENGINE.md` "Results" and "Tuning log" item 15 have the figures.
+- Two gates were reworded in this build and are the owner's call to keep: G8 counts red on the map as "close"
+  (the gauge alone passed only through the late amber wash the playtests disliked; the median sensible peak is now
+  37, and 72% of sensible games see a region go red), and G9 (a hawk holds 40–65%) is new. SPEC "Balance gates".
 - When pieces change what a button does, the engine's hint replaces the whole authored line (`Danger down · calms
-  Shoal and 2 more`) rather than only its DANGER clause, so the authored flavour clause is lost on those days.
+  Shoal and 2 more`) rather than only its DANGER clause, so the authored flavour clause is lost on those days; the
+  same happens when the authored first words would not be true today (a show of force on a tense region).
+- The buttons still offer a real dilemma on a minority of days (both lower DANGER on about 45%, one lowers and one
+  does nothing on 40%); the writing pass the playtests asked for (a cost on more calming buttons, a now-against-later
+  shape for shows of force) is not in this build.
 - The team row drops the chips' icons when five are held, so the row fits 390 pt.
 - Audio, the phone's back button and real safe-area insets are covered by logic tests and the e2e, not heard or
   felt on a device here.

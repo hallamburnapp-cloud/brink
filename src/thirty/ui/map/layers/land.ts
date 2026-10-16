@@ -1,7 +1,8 @@
 /**
  * The land layer, baked whenever a region's settled heat changes: the sea under it, each plate in
- * its heat's colour (WAR hatched), the borders, the coast hairline and the causeways. The sea
- * lanes are not drawn: a watcher asks what the dotted lines are, and the spec draws nothing else.
+ * its heat's colour (WAR hatched), the borders and the coast hairline. The sea lanes and the
+ * causeways between the islands are not drawn: a watcher asks what the lines are, and the spec
+ * draws nothing else.
  */
 import type { Heat, RegionId } from '../contract';
 import { MAP_H as H, MAP_W as W, MASSES, REGION } from '../data';
@@ -54,7 +55,6 @@ export function paintPlate(g: Gfx, id: RegionId, heat: Heat): void {
 export function paintLand(g: Gfx, heats: Readonly<Record<RegionId, Heat>>, base: Layer): void {
   const { ctx } = g;
   const paths = getPaths();
-  const geo = getGeometry();
   ctx.drawImage(base.canvas, 0, 0, W, H);
 
   for (const id in heats) if (REGION[id]) paintPlate(g, id, heats[id]);
@@ -75,17 +75,4 @@ export function paintLand(g: Gfx, heats: Readonly<Record<RegionId, Heat>>, base:
   for (const m of MASSES) ctx.stroke(paths.coast[m]);
   for (const id in heats) if (REGION[id]?.island) ctx.stroke(paths.region[id]);
   ctx.restore();
-
-  // Causeways between islands: short dark bars.
-  for (const cw of geo.causeways) {
-    ctx.save();
-    ctx.lineCap = 'butt';
-    ctx.strokeStyle = '#243444';
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(cw.p[0], cw.p[1]);
-    ctx.lineTo(cw.q[0], cw.q[1]);
-    ctx.stroke();
-    ctx.restore();
-  }
 }

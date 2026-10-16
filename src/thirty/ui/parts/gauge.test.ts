@@ -87,13 +87,19 @@ describe('the endings, in plain English', () => {
   it('agrees with the final map: a WAR ending names a red region, or none when there is none', () => {
     const war = { kind: 'WAR' as const, day: 21, danger: 100 as const, region: 'ASK' };
     const heats = (h: Record<string, 0 | 1 | 2 | 3>) => h;
-    const step = (region: string, to: 0 | 1 | 2 | 3) => ({ kind: 'heat' as const, region, from: 2 as const, to, why: 'spread' as const, danger: 90 });
+    const step = (region: string, to: 0 | 1 | 2 | 3, why: 'spread' | 'war' = 'spread') => ({ kind: 'heat' as const, region, from: 2 as const, to, why, danger: 90 });
     const trace = (steps: ReturnType<typeof step>[]) => ({ day: 20, card: 'x', region: null, acted: null, choice: 'left' as const, tag: 'CALM' as const, dangerBefore: 0, dangerAfterChoice: 0, dangerAfter: 0, steps, fired: [], ending: null, offer: null });
     // The tipping region is red: it is named.
     expect(endingLines(war, { heats: heats({ ASK: 3, SHL: 1 }), log: [] }).lines[0]).toContain('began in Ashkettle on day 21');
-    // The tipping region is only orange, another is red: the red one is named, the last to turn red first.
-    const twoRed = { heats: heats({ ASK: 2, SHL: 3, FRM: 3 }), log: [trace([step('SHL', 3)]), trace([step('FRM', 3)])] };
-    expect(endingLines(war, twoRed).lines[0]).toContain('The war in Frostmere could not be contained. On day 21');
+    // The tipping region is only orange, two others are red: the story begins where red first appeared and ends with the last to fall.
+    const twoRed = { heats: heats({ ASK: 2, SHL: 3, FRM: 3 }), log: [trace([step('SHL', 3)]), { ...trace([step('FRM', 3)]), day: 21 }] };
+    expect(endingLines(war, twoRed).lines[0]).toBe('The fighting began in Shoal on day 20. On day 21 Frostmere fell, and the world followed.');
+    // The watcher saw red days earlier: "began" names that day, and the tipping region is the last straw.
+    const earlier = { heats: heats({ ASK: 3, MRM: 3 }), log: [{ ...trace([step('MRM', 3)]), day: 18 }, { ...trace([step('ASK', 3, 'war')]), day: 21 }] };
+    expect(endingLines(war, earlier).lines[0]).toBe('The fighting began in Marram on day 18. On day 21, with too many crises at once, Ashkettle fell and the world followed.');
+    // The engine's own push painted the only red on the final night: the words say so instead of inventing a history.
+    const pushed = { heats: heats({ ASK: 3, SHL: 2 }), log: [{ ...trace([step('ASK', 3, 'war')]), day: 21 }] };
+    expect(endingLines(war, pushed).lines[0]).toBe('Too many crises at once. On day 21 the fighting began in Ashkettle, and the world followed.');
     // No red at all: the story does not invent one.
     expect(endingLines(war, { heats: heats({ ASK: 2, SHL: 1 }), log: [] }).lines[0]).toBe('Too many crises at once. On day 21 the world went to war.');
   });

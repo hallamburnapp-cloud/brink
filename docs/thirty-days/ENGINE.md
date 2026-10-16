@@ -160,10 +160,13 @@ interface Preview {
 ```
 
 **Hint rules** (`hint.ts`). The authored hint is shown when it tells the truth today: no piece
-changes the outcome, no penalty, and the tag's own effect happens as printed (a CALM region is above
-CALM; a FORCE card names the neighbour it heats; a RISKY option is at its printed odds and lowers
-DANGER if it works). A place on a map day is always labelled by the engine, so the glowing places
-compare like for like. Otherwise the engine writes the line as `<DANGER clause> · <world clause>`:
+changes the outcome, no penalty, its first words are the real DANGER word (`claimOf` the line against
+`claimFor` the delta: `Danger down` only when the sum falls, `Danger down here` only when it falls and
+some region ends hotter, `Danger unchanged` only when it stays), and the tag's own effect happens as
+printed (a CALM region is above CALM; a FORCE card names the neighbour it heats and that neighbour really
+heats; a RISKY option is at its printed odds, lowers DANGER if it works, and its miss costs something). A
+place on a map day is always labelled by the engine, so the glowing places compare like for like.
+Otherwise the engine writes the line as `<DANGER clause> · <world clause>`:
 
 - DANGER clause, one of four: `Danger down` (`Danger down here` when a neighbour heats too), `Danger
   up`, `Danger unchanged` (always this for no net change: a mark, a calm region, a cool and a heat that
@@ -171,13 +174,20 @@ compare like for like. Otherwise the engine writes the line as `<DANGER clause> 
   `Danger down if it works (65%)`, `Danger unchanged if it works (60%)`, `Danger up even if it works (60%)`.
 - World clause, comma-joined: `talks cannot fail` (Dove) / `a false alarm` / `the alarm is real`;
   `Shoal calms` (to CALM) or `Shoal cools` (still above CALM) or, for a wave, `calms Shoal and 3 more`
-  (the acted region named first); `heats Lintel`, `heats Lintel and Shoal`, `heats Lintel and 2 more`;
-  on a risky option the miss, `if not, Shoal heats` / `if not, Shoal goes to war and Lintel boils over`
+  (the acted region named first); `heats Lintel`, `heats Lintel and Shoal`, `heats Lintel and 2 more`,
+  and a region that reaches WAR as its own clause, `Kellmark goes to war`; on a risky option the miss,
+  `if not, Shoal heats` / `if not, Shoal goes to war and Lintel boils over` / `if not, nothing changes`
   (the acted region's own calming is then left unsaid: "Danger down" says it); `DANGER +15`; the mark,
   last: `Vessary guarded for a week`, `Orrinth is warned`, `the red line is Shoal`. With nothing to say:
   `a quiet day at home` (HOME), `nothing to calm in Shoal`, `nothing changes abroad`.
-- Fitted to 60 characters by dropping the last clauses first, keeping the miss for as long as any other
-  clause can go, then shortening the miss to its first region.
+- Fitted to 60 characters (46 on a map label, `MapPane.MAP_LABEL_MAX`) by tagged clauses (`fitClauses`;
+  `fit` reads a finished line back): the mark goes first, then the acted region's own calming when the
+  line says `Danger down` (implied), then a penalty; `heats A and B` shortens to `heats A and 1 more`, the
+  miss to its first part, and a shortening that does not make the line fit is undone so a later drop
+  keeps whole words; then the why-certain words and a wave; the own calming shortens to `calms here`,
+  then goes; `heats ...` becomes `heats 2 places`; a `here` line never loses what heats, and a `Danger
+  unchanged` line is never left with only a calming clause. `src/thirty/sim/hints.test.ts` plays 150
+  sensible games on the shipped pack and fails on any button or label whose first words lie.
 
 Examples: `Danger down · calms Shoal and 3 more` (Old Ambassador + Back-Channel + Peace Movement),
 `Danger down here · Shoal calms, heats Pebbleby` (a FORCE card with no `heats`), `Danger down · talks
@@ -191,9 +201,10 @@ button; it writes none of its own.
 ## Rulings (where the spec is silent, or where the playtests made us choose)
 
 - **Sea regions**: the 18 ports (both ends of every sea lane) plus Lantern Key, the island without a
-  lane: 19 regions. The Loyal Admiral's "force at sea" means the acted region is one of them, and
-  "every neighbouring sea region" is its land and lane neighbours among them; they cool by two, as much
-  as the force itself (`RULES.admiralCool`).
+  lane: 19 regions. The **Loyal Admiral**'s "show of force at sea" means the acted region is one of them;
+  every neighbour, land or lane, inland or not, cools by two, as much as the force itself
+  (`RULES.admiralCool`), before the force's own heat lands (item 15: as first written, sea neighbours
+  only, the Admiral acted on 13% of the days it was held).
 - **Home**: the Spin Doctor's "home never heats" protects all six Highmarch regions from every heat
   (pressure, flares, news, a show of force, a consequence, Peace Movement). Peace Movement's "force
   choices heat home" heats the capital, Edda Vale. A card about a home region that is calm is not dealt
@@ -209,8 +220,18 @@ button; it writes none of its own.
   held, one Talks on a map of crises calms four regions and drops the gauge by 20 (by 30 or more from
   war), which is the spec's own description of the wave. Each extra step is its own trace step, so the
   chip glows only when it did something.
-- **Hawk General** adds two steps as a second heat step on the acted region; the neighbour heat is
-  unchanged (the cost stays).
+- **Hawk General**: a show of force also cools every neighbour one step (`RULES.hawkNeighbourCool`),
+  before the force's own heat lands on the coolest (so a neighbour it cooled may end where it began,
+  and the hint says only what nets). The spec's "two steps more" on the acted region fired in 1% of the
+  games it was held (a force already takes orange to calm), so the piece is a wave instead; with the
+  Admiral at sea, three steps on every neighbour (item 15).
+- **Cautious Intel Director**: every risky choice that is not a warning is `RULES.cautiousOdds` (10)
+  points more likely to work, capped at 95 (`effectiveOdds`; the roll uses the same odds, `holds`); the
+  hint shows the new odds and the chip glows when the risk is taken. A warning keeps its own odds and is
+  marked instead. **Paranoid Intel Director**: a CRISIS or WAR region gets its card by the next morning
+  (`RULES.paranoidCardWithin`, in `starvingRegions`); `selectCardWhy` says when the card came early and
+  the deal notes it on arrival (`Orrinth spotted early`) so the chip glows. The earlier readings (warnings
+  a day earlier, one in four false) hung on the pack's one warning card and acted in 0% of games held.
 - **Hotline**: once per five-day week (days 1–5 are week 1), when a card arrives about a region at
   CRISIS or WAR, that region cools one step before the choice (`RULES.hotlineCool`): the crisis ends
   (CRISIS becomes TENSE) and the card still has something for the player to do. The step is in
@@ -219,25 +240,31 @@ button; it writes none of its own.
 - **Dove Foreign Minister** makes a RISKY option certain when it is talks: a card of the Foreign
   Minister or the Old Ambassador (CONTENT.md's convention), the envoy's hard talks included. "Fly the
   reconnaissance planes" stays a risk.
-- **Pressure order**: WAR regions spread, then CRISIS regions roll (and, from `RULES.warFromCrisisDay`,
-  may tip a CRISIS neighbour into WAR), then TENSE regions may boil, then flares, all in map order from
-  a snapshot of the heats as the day ended (a region heated tonight does not spread tonight). A WAR
+- **Pressure order**: WAR regions spread, then CRISIS regions roll (spill, the push between crises, the
+  standing crisis turning red), then TENSE regions may boil, then flares, all in map order from a
+  snapshot of the heats as the day ended (a region heated tonight does not spread tonight). A WAR
   region heats only CALM or TENSE neighbours, as the spec says. A CRISIS region's one-in-three roll
-  (rising to `RULES.crisisPressureEnd` by day 30) heats a CALM or TENSE neighbour. Two WAR regions
-  may heat the same neighbour twice.
-- **Where red comes from**: a CRISIS region that borders another CRISIS region may push it to WAR at
-  night, with a chance of 0 on `RULES.warFromCrisisDay` rising to `RULES.warFromCrisisEnd` on day 30
-  (why `pressure`, `source` the pushing crisis, to WAR). A lone crisis never turns red on its own; a
-  show of force into a crisis, a missed risk on one and a named `heats` still can. So two orange
-  regions touching are the thing to break up, and red, once there, spreads one neighbour a night until
-  a choice answers it. The deck gives a WAR region its card within two days, like a CRISIS region
-  (`RULES.warCardWithin`, `RULES.hotCardWithin`; item 13 below says why not the next day).
+  (flat, the spec's figure) heats a CALM or TENSE neighbour. Two WAR regions may heat the same neighbour
+  twice. A guard deflects pressure to another neighbour silently; the Spin Doctor's home and a warned
+  region under Launch on Warning absorb it, noted, so the piece is seen to work.
+- **Where red comes from** (item 15): from `RULES.warFromCrisisDay` (6), a CRISIS region that borders
+  another CRISIS region may push it to WAR at night, with a chance rising from 0 that day to
+  `RULES.warFromCrisisEnd` on day 30 (why `pressure`, `source` the pushing crisis, to WAR); and a
+  crisis that has stood `RULES.crisisTipAfter` nights (1; `deck.hotSince`, read through
+  `Working.hotSince`) may go to WAR on its own, at `RULES.crisisTipStart` rising to
+  `RULES.crisisTipEnd` (why `pressure`, `source` itself; the night line says `the crisis in Shoal became
+  war`), never one the choice cooled today. A show of force into a crisis, a missed risk on one and a
+  named `heats` still can. So orange left standing is the thing to answer, and red, once there, spreads
+  one neighbour a night until a choice answers it. The deck gives a WAR region its card within two days,
+  like a CRISIS region (`RULES.warCardWithin`, `RULES.hotCardWithin`; item 13 below says why not the
+  next day; the Paranoid director makes it the next morning).
 - **The slide (beyond the spec's pressure; see "Tuning")**: every night, trouble flares in calm regions
-  (`flareAt(day)`: `RULES.flareStart` expected flares on day 1 rising to `RULES.flareEnd` on day 30
-  along `slide^flareCurve`, the middle of the month quieter than the end), never in a region the choice
+  (`flareAt(day)`: `RULES.flareStart` expected flares on day 1 fading to `RULES.flareEnd` on day 30, so
+  the late month's trouble is the red and orange the player can see), never in a region the choice
   cooled today (`Working.cooledToday`: the day's work stands until morning); and a TENSE region may
   boil over to CRISIS on its own (`tensePressureAt(day)`: 0 on day 1 to `RULES.tensePressureEnd` on day
-  30). Flares and boils respect guards and the Spin Doctor's home.
+  30). Flares and boils respect guards, the Spin Doctor's home and a warned region under Launch on
+  Warning.
 - **News**: tomorrow's card finds its region in trouble. The card is dealt at night, after pressure,
   and its region rises to TENSE, or to CRISIS for an arc's first card, if it was calmer
   (`RULES.newsHeatPlain`, `RULES.newsHeat`; why `news`, the night's last step), so the morning's card
@@ -251,17 +278,23 @@ button; it writes none of its own.
   are kept on `card.targets` and `todayCard` returns the card with them, so the UI, the preview and
   the tap read one card. When the deck has run out of everything else, a lenient resolution falls back
   to the authored regions.
-- **STAND-DOWN** is judged on the map after the choice, from day 10 (`RULES.standDownFromDay`): a map
+- **STAND-DOWN** is judged on the map after the choice, from day 10 (`RULES.standDownFromDay`) and
+  only once the gauge has read `RULES.standDownPeak` (30) at the end of some day (`state.peak`): a map
   read calm has nothing for the spec's pressure to work on, and a flare that night would contradict
   "the crisis is over". The night is skipped. The spec says "after day 5"; the playtests found a day-6
-  win over a map that was never in danger read as a bug, so the crisis must have run ten days (one
-  number to change back). A penalty (a crossed red line) keeps the gauge above 0 and so prevents it.
-- **WAR** names where the fighting began, and that region is red on the final map (`warRegion`): the
-  region whose step filled the gauge if it is at WAR; if it is in crisis, it goes to WAR now (a `war`
-  heat step, the trace's last); else the region that most recently went to war; else the hottest crisis
-  goes to war; else (a map of tense regions and penalties) the hottest region does. The old reading,
-  "the region that tipped it", named a tense town over a map with no red on it in 95% of wars.
-  **HELD** is the end of day 30 below 100; `clean` under 20.
+  win over a map that was never in danger read as a bug, and then a day-13 win with a peak of 20 read as
+  the game giving up (item 15), so there must have been a crisis to end: before the peak a calm map is
+  a quiet morning and the month goes on. A penalty (a crossed red line) keeps the gauge above 0 and so
+  prevents it.
+- **WAR** names a region that is red on the final map (`warRegion`): the region whose step filled the
+  gauge if it is at WAR; if it is in crisis, it goes to WAR now (a `war` heat step, the trace's last);
+  else the region that most recently went to war; else the hottest crisis goes to war; else (a map of
+  tense regions and penalties) the hottest region does. The old reading, "the region that tipped it",
+  named a tense town over a map with no red on it in 95% of wars. The ending's words (the UI's
+  `endings.ts warLine`) read the log: the first region to go red that is still red is where the fighting
+  began, with its day; the ending's region is the last straw (`On day 28 Kellmark fell, and the world
+  followed`); and when the final night's `war` push painted the red, the line says `Too many crises at
+  once` instead of inventing a history. **HELD** is the end of day 30 below 100; `clean` under 20.
 - **Penalties**: Red Lines' +15 and Launch on Warning's +20 are the spec's own additions to a DANGER
   otherwise read off the map. They are kept in `penalty`, added to the gauge, and never fall.
 - **Red Lines** doubles every cooling step on the named region (a CALM there cools 2; with the Old
@@ -275,19 +308,25 @@ button; it writes none of its own.
   pack's is alarm-02) is a warning. Its RISKY "wait" holds exactly when the alarm is
   false, decided when the card is dealt from the printed odds (the odds are the chance it is false).
   **Cautious Intel Director**: the truth is shown on arrival (`card.alarm` is `'false'` or `'real'`; the
-  preview's odds become 100 or 0 and the hint says `a false alarm` / `the alarm is real`). **Paranoid
-  Intel Director**: warning cards and their follow-ups come a day earlier, and one in four warnings is
-  false on top of the printed odds (the preview shows the combined chance). **Launch on Warning**: a
-  false alarm on a region marked `warned` (the mark may be today's) is +20; war never spreads from a
-  warned region.
+  preview's odds become 100 or 0 and the hint says `a false alarm` / `the alarm is real`), and on every
+  other risk it adds ten points (above). **Launch on Warning**: every show of force marks its region
+  `warned` (the chip glows); a false alarm on a region marked `warned` (the mark may be today's) is +20;
+  a warned region never heats at night (pressure, spill, a push and flares are turned away by
+  `Working.protectedFrom` and noted once per region per night, `The warning held: Orrinth did not heat`,
+  so the chip glows and the OVERNIGHT line says so); and war never spreads from a warned region.
 - **HOME** sets `homeDay`; no domestic card is dealt the day after. The Spin Doctor stops them
   altogether (`fits` in deck.ts); a domestic card already dealt for tomorrow when the Spin Doctor is
   taken is dealt again (`pick` re-deals a card the new piece makes unfit).
 - **The deck**: follow-ups first (soonest deadline, then the hottest region); then cards unlocked by a
   held piece (`when.pieces`); then a card for a WAR or CRISIS region that has had none for two days (and
-  on day 1, the starting crisis); then a map card with chance one in six (never on day 1,
-  never two days running, only with places worth tapping); then a weighted draw by the region's heat
-  (CALM 1, TENSE 2, CRISIS 4, WAR 6; a map card by the heat of its places). A follow-up ignores `when`
+  on day 1, the starting crisis; the next morning with the Paranoid director); then a map card with
+  chance one in eight (never on day 1, never two days running, only with places worth tapping); then a
+  weighted draw by the region's heat (CALM 1, TENSE 2, CRISIS 4, WAR 6; a map card by the heat of its
+  places). A card about a region the day's choice cooled waits a day when it can (`selectCard`'s
+  `avoid`, the night's `cooledToday`: a follow-up at its deadline still comes), so the morning's news
+  does not undo the day's work. A map card dealt for the morning after a team offer is labelled again
+  with the new piece when it is taken (`pick` re-reads its places), so the labels on the map, the card
+  and the preview agree. A follow-up ignores `when`
   (the arc is the story) and is dropped if it could only come after day 30. A RISKY button's
   `fail.follow` replaces `follow` on a miss. Each card comes once; when nothing unused fits, the deck
   reuses the single-day card dealt longest ago, then ignores `when`, then the day range. The deck never
@@ -313,44 +352,47 @@ button; it writes none of its own.
 ## The simulator
 
 `npx tsx tools/thirty-sim.ts [--games N] [--seed P] [--bots random,sensible] [--md] [--json PATH] [--strict]`
-plays N games (default 2,000) per bot on the pack and prints the SPEC gates, the outcomes, the piece
-take rates, the hold rate by team size and the mean DANGER curve. Bots (`src/thirty/sim/bots.ts`):
-**random** (a random button or tap; at an offer a random piece or, one time in four, none);
-**sensible** (the option whose preview leaves DANGER lowest once tonight's expected pressure on the
-resulting map is counted, odds-weighted for a risk, ties towards cooling the hottest region; the piece
-that shares a tag with one it holds, `any` for half a point; with nothing held, a seeded pick weighted
-by how many pieces the candidate could later stack with). A vitest (`src/thirty/sim/sim.test.ts`)
-plays 120 games per bot and checks the gates a small sample can judge.
+plays N games (default 2,000) per bot on the pack and prints the SPEC gates, the outcomes, what the
+playtests measured over the shoulder (red seen and its first day, wars decided by the push, nights that
+gave back the day's drop, late spread against flare, amber on a HELD map, stand-down day and peak), the
+piece take rates with how often each acted while held, the hold rate by team size and the mean DANGER
+curve. Bots (`src/thirty/sim/bots.ts`): **random** (a random button or tap; at an offer a random piece
+or, one time in four, none); **sensible** (the option whose preview leaves DANGER lowest once tonight's
+expected pressure on the resulting map is counted, odds-weighted for a risk, ties towards cooling the
+hottest region; the piece that shares a tag with one it holds, `any` for half a point; with nothing held,
+a seeded pick weighted by how many pieces the candidate could later stack with); **hawk** (G9: sensible's
+eye, but the force pieces first and a show of force whenever one is within `HAWK_MARGIN` (3) of the
+best option). A vitest (`src/thirty/sim/sim.test.ts`) plays 120 games per bot and checks the gates a
+small sample can judge.
 
-### Results (2,000 games per bot, shipped numbers, pack of 127 cards)
+### Results (2,000 games per bot, shipped numbers, pack of 127 cards; this build, item 15)
 
-| gate | seeds T0–T1999 (`npm run sim:thirty`) | T0–T3999 | U0–U3999 | V0–V3999 | target |
-| --- | --- | --- | --- | --- | --- |
-| G1 random holds to day 30 | 9.5% | 9.7% | 9.3% | 9.8% | under 10% |
-| G2 sensible holds | 55.5% | 55.2% | 56.1% | 55.4% | 55–70% |
-| G3 sensible stands down early | 16.6% | 16.9% | 15.2% | 15.8% | 15–30% |
-| G4 least-taken piece (sensible) | dove-foreign 18.0% | spin-doctor 18.1% | red-lines 18.7% | spin-doctor 18.9% | at least 10% |
-| G5 most-taken piece (sensible) | peace-movement 63.0% | peace-movement 63.6% | hotline 64.2% | hotline 63.3% | at most 70% |
-| G6 median sensible game | 30 days | 30 days | 30 days | 30 days | 20–30 days |
-| G7 stalls | 0 | 0 | 0 | 0 | none |
-| G8 sensible games with the gauge above 60 | 50.1% (median peak 61) | 49.7% | 50.4% | 50.9% | at least half |
+| gate | seeds T0–T1999 (`npm run sim:thirty`) | U0–U1999 | V0–V1999 | target |
+| --- | --- | --- | --- | --- |
+| G1 random holds to day 30 | 9.9% | 9.9% | 10.9% | under 10% |
+| G2 sensible holds | 58.5% | 57.2% | 56.1% | 55–70% |
+| G3 sensible stands down early | 15.5% | 15.5% | 15.8% | 15–30% |
+| G4 least-taken piece (sensible) | red-lines 14.1% | red-lines 13.9% | red-lines 13.1% | at least 10% |
+| G5 most-taken piece (sensible) | peace-movement 62.5% | peace-movement 60.8% | peace-movement 60.3% | at most 70% |
+| G6 median sensible game | 30 days | 30 days | 30 days | 20–30 days |
+| G7 stalls | 0 | 0 | 0 | none |
+| G8 sensible games that feel close (red on the map, or above 60) | 72.0% (red 72.0%, median peak 37) | 73.0% | 73.0% | at least half |
+| G9 hawk holds | 41.3% | 40.9% | 40.8% | 40–65% |
 
-Every gate passes on the strict script (seeds T, 2,000 games per bot) and on two of three independent
-4,000-game sets; the third (T0–T3999) reads G8 at 49.7%. G1, G2, G3 and G8 all sit within about a
-point of their lines, and one standard deviation is about a point at 2,000 games and half a point at
-4,000: the gates are coupled by things the spec fixes (item 7), so this is as far inside them as the
-levers go without changing a printed number. Sensible war is 28%; random war 90%. The random bot's
-mean gauge passes 60 on day 16 and the sensible bot's never does (it peaks at 52 on day 24 and holds):
-the sensible games that go above 60 are the half that spike. Sensible games that reach the fifth
-pick hold 82% of the time; no game that ended with fewer than five pieces held.
+Every gate passes on the strict script (seeds T) and on seeds U; on seeds V, G1 reads 10.9% with the
+other eight passing. G1, G3 and G9 sit within a point or two of their lines; one standard deviation is
+about a point at 2,000 games, and the gates are coupled (item 7: every lever that drowns careless play
+drowns careful play, and the spill rate, the one lever that falls harder on random, costs the hawk G9),
+so this is as far inside them as the levers go. Sensible war is 26%; hawk war 54%; random war 89%.
 
-What the playtests' numbers read now (400 sensible games through the public API, seeds DG): a map
-day's places that would change nothing 7% (was 41%), map days with at most one place that lowers
-DANGER 0% (was 53%), days whose card is about a calm region 0% (was 6.5%), buttons saying "already
-calm" 0 (was 1,088), WAR endings naming a region that is red on the final map 100% (was 1%), earliest
-stand-down day 10 (was 6), red seen in 20% of sensible games and 78% of random ones (was 6% and 61%),
-the night adding at least what the choice removed on 74% of days (was 60%; see item 11 below), and 20
-tense regions at the median HELD ending (was 20).
+Over the shoulder (sensible, seeds T; the fifth build's reading in brackets): a region goes red before
+the end in 72% of games, on day 13 at the median (24); the engine's push on the final night decides 19%
+of WAR endings (59%); the night gives back at least the day's drop on 66% of the days the choice lowered
+DANGER (76%); over days 21–30 red spreading is a third of the night's trouble against flares (a
+fiftieth); the median HELD map has one amber region (20); a stand-down comes on day 25 at the median
+after a peak of 37 (day 13, peak 20). The hawk sees red in 96% of games and random in 98% by day 9.
+Every button and label tells the truth (`src/thirty/sim/hints.test.ts`; the shoulder critic's sweep
+reads 0 untrue `Danger down here` buttons of 546, from 1,029 of 1,722).
 
 ### Tuning log (what changed from the spec's numbers, and why)
 
@@ -441,6 +483,43 @@ tense regions at the median HELD ending (was 20).
     unchanged). Together: G1 9.3–9.8%, G2 55.2–56.1%, G3 15.2–16.9%, G8 49.7–50.9% over three
     4,000-game sets, and the strict script passes. Rejected here: `drawWeight` [1, 2, 5, 8] (both bots
     down), `hotCardWithin` 1 (random up), spill 0.47 on top (G2 54.4–54.7%).
+
+14. **The pieces that act, and G9 (this build).** Through the engine API the fifth build had one viable
+    build: a dove stack held 70%, a hawk stack lost 92%, no pieces lost 95%; the Hawk General fired on
+    1% of the games it was held (its extra steps landed on a region the force had already taken to
+    calm), the two directors and Launch on Warning hung on the pack's one warning card (seen in 10% of
+    games) and acted in 0–2%. Five rules were rewritten so that each piece does visible work on orange:
+    the Hawk General's show of force cools every neighbour one step (a wave of its own), the Loyal
+    Admiral's at sea cools every neighbour two steps (inland ones too), the Cautious Intel Director adds
+    ten points to every risky choice, the Paranoid Intel Director brings a crisis its card the next
+    morning, and Launch on Warning warns every region a show of force touches, and a warned region
+    never heats at night (the OVERNIGHT line says `the warning held: Orrinth did not heat`). A hawk bot
+    (sensible's eye, the force pieces first, a show of force within 3 of the best) and gate G9 (holds
+    40–65%) keep the second build honest. Pieces that acted while held, sensible, seeds T (before):
+    Launch on Warning 13% of days (2%), Hawk General 10% (0.1%), Loyal Admiral 10% (13%, sea
+    neighbours only), Cautious 7% (0%), Paranoid 4% (0%); and the Hotline 13% once its arrival steps
+    were counted (the critics' 0% was the measure, not the piece).
+15. **Red first, quiet calm nights, a crisis before a stand-down (this build).** The playtests' verdict
+    on the fifth build: the threat was random amber (1.7 flares a night against 0.014 spreads from
+    red), red first appeared on day 24 at the median and 59% of losses were painted red by the engine's
+    push on the final night, the night beat the day on three days in four, and a stand-down on day 13
+    with a peak of 20 read as the game giving up. So: flares fade through the month (1.0 to 0.35) instead
+    of rising to 3.6; spill is the spec's flat one in three; from day 6 a crisis that has stood a night
+    may turn red on its own (35% rising to 60%) and two crises side by side may tip each other (0 to
+    60%); a STAND-DOWN needs the gauge to have read 30 (`standDownPeak`); a card about a region the
+    choice cooled waits a day when it can; and map days come one in eight. Sixteen settings were swept
+    at 400 games, then the candidates at 2,000 on seeds T, U and V (`scratchpad thirty/final/tune.mts`):
+    flat 0.5 flares with weak tips left the sensible bot at 99% held and a median peak of 19 (a bot that
+    answers every crisis the day its card comes never climbs); an early boil (0.12–0.2 on day 1) killed
+    everyone (sensible 15–51% held); more red (tips 0.35/0.65) cost the hawk G9; a spill ramp to 0.4–0.45
+    took a point off random and three off the hawk. G8 as first written (the gauge above 60 in half the
+    sensible games) is the one line this model cannot meet without the late amber wash: the sensible
+    peak distribution is bimodal (30% of games pass 60 and most of those die; the rest never leave the
+    thirties), and a hint-reading bot (the biggest promised drop, no lookahead) reads the same. The gate
+    now counts red on the map as close, which is what the watcher sees; the gauge alone is the owner's
+    call to bring back. The night still gives back the day's drop on two days in three: with one
+    decision a day it has to win on average, but the median HELD map now ends with one amber region, not
+    twenty, and a calm map has a quiet night.
 
 Rejected on the way (both builds): crisis-level news on every card (random fell to 5% but stand-downs
 to 4%); heavier CRISIS odds alone (war without tension); a sensible bot that leans harder to stacking

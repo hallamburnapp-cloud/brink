@@ -44,6 +44,8 @@ export interface Label {
   w: number;
   /** A tap target's label (glows with it) rather than the ring's name. */
   target: boolean;
+  /** Placed away from its natural slot under or over the ring: a thin leader joins it to its region. */
+  displaced: boolean;
 }
 
 export interface Box {
@@ -57,8 +59,11 @@ function overlaps(a: Box, b: Box): boolean {
   return Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0) > 0 && Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0) > 0;
 }
 
+/** Half the gap kept between label boxes (6 px in all), so two labels never read as one. */
+const GAP = 3;
+
 function box(l: { x: number; y: number; w: number }): Box {
-  return { x0: l.x - l.w / 2 - 2, y0: l.y - LABEL_H / 2 - 2, x1: l.x + l.w / 2 + 2, y1: l.y + LABEL_H / 2 + 2 };
+  return { x0: l.x - l.w / 2 - GAP, y0: l.y - LABEL_H / 2 - GAP, x1: l.x + l.w / 2 + GAP, y1: l.y + LABEL_H / 2 + GAP };
 }
 
 /** The flag's footprint on the capital, which no label may cover. */
@@ -72,8 +77,11 @@ export function flagBox(id: RegionId): Box | null {
  * Where the labels sit. The ring's name goes under the ring (above it near the bottom edge); a
  * target's label goes on the side of its region away from the map's centre, so the labels of
  * neighbouring targets spread out instead of stacking over one another. Every label stays on the
- * map, clear of the others and of the boxes to `avoid` (the flag): one that would cover something
- * steps to the next row. `measure` gives a label's text width; pure otherwise, so there is a test.
+ * map, clear of the others (a 6 px gap) and of the boxes to `avoid` (the flag): one that would
+ * cover something slides to the side of its region, then steps to the next row, and a label that
+ * had to leave its natural slot is marked `displaced` so a leader can join it to its region (three
+ * targets on one landmass no longer stack in an anonymous column). `measure` gives a label's text
+ * width; pure otherwise, so there is a test.
  */
 export function placeLabels(items: Array<{ id: RegionId; text: string; target: boolean }>, measure: (s: string) => number, avoid: readonly Box[] = []): Label[] {
   const out: Label[] = [];
@@ -82,16 +90,27 @@ export function placeLabels(items: Array<{ id: RegionId; text: string; target: b
     if (!def) continue;
     const w = Math.min(W - 2 * EDGE, measure(it.text) + LABEL_PAD * 2);
     const r = ringRadius(it.id);
-    const x = Math.min(W - w / 2 - EDGE, Math.max(w / 2 + EDGE, def.x));
+    const clampX = (x: number) => Math.min(W - w / 2 - EDGE, Math.max(w / 2 + EDGE, x));
+    const x = clampX(def.x);
     const below = def.y + r + 4 + LABEL_H / 2;
     const above = def.y - r - 4 - LABEL_H / 2;
     const outward = it.target && def.y < H / 2;
     const first = outward ? [above, below] : [below, above];
     const rows = [first[0], first[1], first[0] + (first[0] === below ? 1 : -1) * (LABEL_H + 3), first[1] + (first[1] === below ? 1 : -1) * (LABEL_H + 3)];
+    // The natural slots first (under or over, centred), then slid to either side, then the next rows.
+    const shift = w / 2 + 10;
+    const slots: Array<{ x: number; y: number; natural: boolean }> = [
+      { x, y: rows[0], natural: true },
+      { x, y: rows[1], natural: true },
+      ...[rows[0], rows[1]].flatMap((y) => [clampX(def.x - shift), clampX(def.x + shift)].map((sx) => ({ x: sx, y, natural: false }))),
+      { x, y: rows[2], natural: false },
+      { x, y: rows[3], natural: false },
+      ...[rows[2], rows[3]].flatMap((y) => [clampX(def.x - shift), clampX(def.x + shift)].map((sx) => ({ x: sx, y, natural: false }))),
+    ];
     let placed: Label | null = null;
-    for (const y of rows) {
-      if (y - LABEL_H / 2 < EDGE || y + LABEL_H / 2 > H - EDGE) continue;
-      const cand = { id: it.id, text: it.text, x, y, w, target: it.target };
+    for (const slot of slots) {
+      if (slot.y - LABEL_H / 2 < EDGE || slot.y + LABEL_H / 2 > H - EDGE) continue;
+      const cand: Label = { id: it.id, text: it.text, x: slot.x, y: slot.y, w, target: it.target, displaced: !slot.natural };
       const b = box(cand);
       if (!out.some((o) => overlaps(box(o), b)) && !avoid.some((a) => overlaps(a, b))) {
         placed = cand;
@@ -100,11 +119,43 @@ export function placeLabels(items: Array<{ id: RegionId; text: string; target: b
     }
     if (!placed) {
       const y = Math.min(H - EDGE - LABEL_H / 2, Math.max(EDGE + LABEL_H / 2, rows[0]));
-      placed = { id: it.id, text: it.text, x, y, w, target: it.target };
+      placed = { id: it.id, text: it.text, x, y, w, target: it.target, displaced: true };
     }
     out.push(placed);
   }
   return out;
+}
+
+/** A thin line from a displaced label's nearest edge to the edge of its region's ring, so the watcher knows whose it is. */
+function paintLeader(ctx: Ctx, l: Label, alpha: number): void {
+  const def = REGION[l.id];
+  if (!def) return;
+  const r = ringRadius(l.id);
+  // From the label box, the point nearest the region; towards the region, stopping at the ring.
+  const bx = Math.min(l.x + l.w / 2, Math.max(l.x - l.w / 2, def.x));
+  const by = Math.min(l.y + LABEL_H / 2, Math.max(l.y - LABEL_H / 2, def.y));
+  const dx = def.x - bx;
+  const dy = def.y - by;
+  const d = Math.hypot(dx, dy);
+  if (d <= r + 3) return;
+  const ex = def.x - (dx / d) * (r + 1);
+  const ey = def.y - (dy / d) * (r + 1);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(6,10,18,0.7)';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(bx, by);
+  ctx.lineTo(ex, ey);
+  ctx.stroke();
+  ctx.strokeStyle = css(RING_WHITE, 0.7);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(bx, by);
+  ctx.lineTo(ex, ey);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function paintLabel(ctx: Ctx, l: Label, alpha: number, bright: number): void {
@@ -253,5 +304,6 @@ export function paintMarks(g: Gfx, view: MapView, t: MarksTiming): void {
   }
   const flag = flagBox(view.home);
   const labels = placeLabels(items, (s) => textWidth(ctx, s, LABEL_FONT, LABEL_TRACK), flag ? [flag] : []);
+  for (const l of labels) if (l.displaced) paintLeader(ctx, l, a);
   for (const l of labels) paintLabel(ctx, l, a, brights.get(l.id) ?? 0);
 }

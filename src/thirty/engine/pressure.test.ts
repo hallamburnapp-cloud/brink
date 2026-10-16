@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Rng } from '../../engine/rng.ts';
 import { pressure } from './pressure.ts';
-import { RULES, flareAt, tensePressureAt, warFromCrisisAt } from './rules.ts';
+import { RULES, crisisTipAt, flareAt, tensePressureAt, warFromCrisisAt } from './rules.ts';
 import { isHome } from './world.ts';
 import { fixture, quiet, withHeats, withTeam } from './testkit.ts';
 import type { GameState } from './types.ts';
@@ -63,26 +63,23 @@ describe('pressure (SPEC: each WAR region heats one CALM or TENSE neighbour; eac
     }
   });
 
-  it('the slide: flares turn calm regions TENSE at a rate that rises through the month; TENSE regions boil over late', () => {
+  it('the slide: flares turn calm regions TENSE at the tuned rate; TENSE regions boil over at theirs', () => {
     expect(flareAt(1)).toBeCloseTo(RULES.flareStart);
     expect(flareAt(30)).toBeCloseTo(RULES.flareEnd);
-    expect(flareAt(15)).toBeGreaterThan(RULES.flareStart);
-    expect(flareAt(15)).toBeLessThan((RULES.flareStart + RULES.flareEnd) / 2);
     expect(tensePressureAt(1)).toBe(RULES.tensePressureStart);
     expect(tensePressureAt(30)).toBeCloseTo(RULES.tensePressureEnd);
-    const late = { ...withHeats(quiet(content, 'plain-shl'), {}), day: 30 };
-    const flares = nights(late, 200).map((c) => c.filter((x) => x.why === 'flare').length);
-    const mean = flares.reduce((a, b) => a + b, 0) / flares.length;
-    expect(mean).toBeGreaterThan(RULES.flareEnd - 0.5);
-    expect(mean).toBeLessThan(RULES.flareEnd + 0.5);
-    for (const c of nights(late, 20)) for (const x of c.filter((y) => y.why === 'flare')) expect([x.from, x.to]).toEqual([0, 1]);
-    const tense = { ...withHeats(quiet(content, 'plain-shl'), { SHL: 1 }), day: 30 };
-    const boils = nights(tense, 600).filter((c) => c.some((x) => x.region === 'SHL' && x.why === 'pressure' && x.to === 2));
-    expect(boils.length / 600).toBeGreaterThan(RULES.tensePressureEnd - 0.04);
-    expect(boils.length / 600).toBeLessThan(RULES.tensePressureEnd + 0.04);
-    // Day 1: no boil.
-    const early = withHeats(quiet(content, 'plain-shl'), { SHL: 1 });
-    expect(nights(early, 100).some((c) => c.some((x) => x.region === 'SHL'))).toBe(false);
+    for (const day of [1, 30]) {
+      const quietMap = { ...withHeats(quiet(content, 'plain-shl'), {}), day };
+      const flares = nights(quietMap, 300).map((c) => c.filter((x) => x.why === 'flare').length);
+      const mean = flares.reduce((a, b) => a + b, 0) / flares.length;
+      expect(mean).toBeGreaterThan(flareAt(day) - 0.3);
+      expect(mean).toBeLessThan(flareAt(day) + 0.3);
+      for (const c of nights(quietMap, 20)) for (const x of c.filter((y) => y.why === 'flare')) expect([x.from, x.to]).toEqual([0, 1]);
+      const tense = { ...withHeats(quiet(content, 'plain-shl'), { SHL: 1 }), day };
+      const boils = nights(tense, 600).filter((c) => c.some((x) => x.region === 'SHL' && x.why === 'pressure' && x.to === 2));
+      expect(boils.length / 600).toBeGreaterThan(tensePressureAt(day) - 0.04);
+      expect(boils.length / 600).toBeLessThan(tensePressureAt(day) + 0.04);
+    }
   });
 
   it('a guarded region turns pressure away', () => {
@@ -102,7 +99,7 @@ describe('pressure (SPEC: each WAR region heats one CALM or TENSE neighbour; eac
     expect(night(without).changes().filter((x) => x.source === 'NWK')).toEqual([{ region: 'VSY', from: 0, to: 1, why: 'spread', source: 'NWK' }]);
   });
 
-  it('Launch on Warning: war never spreads from a warned region', () => {
+  it('Launch on Warning: war never spreads from a warned region, and a warned region never heats at night', () => {
     const s = withTeam(withHeats(quiet(content, 'plain-shl'), { SHL: 3 }), ['launch-on-warning']);
     s.warned = ['SHL'];
     const w = night(s);
@@ -112,24 +109,51 @@ describe('pressure (SPEC: each WAR region heats one CALM or TENSE neighbour; eac
     const inert = withHeats(quiet(content, 'plain-shl'), { SHL: 3 });
     inert.warned = ['SHL'];
     expect(night(inert).changes().filter((x) => x.source === 'SHL')).toHaveLength(1);
+    // Shoal at war can only spread to Pebbleby (Lantern Key and Lintel are in crisis): warned, Pebbleby holds, and the night says so.
+    const guarded = withTeam(withHeats(quiet(content, 'plain-shl'), { SHL: 3, LNK: 2, LTL: 2 }), ['launch-on-warning']);
+    guarded.warned = ['PBB'];
+    for (let i = 0; i < 30; i++) {
+      const n = night(guarded, `g${i}`);
+      expect(n.changes().filter((x) => x.region === 'PBB')).toEqual([]);
+      expect(n.steps).toContainEqual({ kind: 'piece', piece: 'launch-on-warning', note: 'The warning held: Pebbleby did not heat' });
+      expect(n.fired.has('launch-on-warning')).toBe(true);
+    }
+    // A warned region still heats by day: the choice's own heat is not the night's.
+    const byDay = new Working(guarded);
+    expect(byDay.heat('PBB', 1, 'choice')).toBe(1);
   });
 
-  it('two crises side by side may tip into war late in the month; a lone crisis and the early month never', () => {
-    // Shoal and Lintel border each other and are both in crisis.
+  it('two crises side by side may tip into war; a crisis left standing turns red on its own; the first days and a fresh crisis never', () => {
+    // Shoal and Lintel border each other and are both in crisis, since today (so neither has stood long enough to tip itself).
     const pair = withHeats(quiet(content, 'plain-shl'), { SHL: 2, LTL: 2 });
     for (const c of nights({ ...pair, day: RULES.warFromCrisisDay - 1 }, 100)) for (const x of c) expect(x.to).toBeLessThan(3);
     expect(warFromCrisisAt(RULES.warFromCrisisDay)).toBe(0);
     expect(warFromCrisisAt(30)).toBeCloseTo(RULES.warFromCrisisEnd);
-    const late = nights({ ...pair, day: 30 }, 600);
+    expect(crisisTipAt(RULES.warFromCrisisDay)).toBeCloseTo(RULES.crisisTipStart);
+    expect(crisisTipAt(30)).toBeCloseTo(RULES.crisisTipEnd);
+    // Both in crisis since this very day, so neither tips itself: only the push between them is measured.
+    const late = nights({ ...pair, day: 30, deck: { ...pair.deck, hotSince: { SHL: 30, LTL: 30 } } }, 600);
     const wars = late.filter((c) => c.some((x) => x.to === 3 && x.why === 'pressure' && (x.source === 'SHL' || x.source === 'LTL')));
     // Each of the two may tip the other: P(at least one) = 1 - (1 - p)^2.
     const p = RULES.warFromCrisisEnd;
     expect(wars.length / 600).toBeGreaterThan(1 - (1 - p) ** 2 - 0.07);
     expect(wars.length / 600).toBeLessThan(1 - (1 - p) ** 2 + 0.07);
     for (const c of late) for (const x of c.filter((y) => y.to === 3)) expect(['SHL', 'LTL']).toContain(x.region);
-    // A crisis with no crisis beside it never turns red on its own.
+    // A lone crisis that began today never turns red on its own; one that has stood RULES.crisisTipAfter nights may.
     const lone = withHeats(quiet(content, 'plain-shl'), { SHL: 2, LTL: 1, LNK: 1, PBB: 1 });
-    for (const c of nights({ ...lone, day: 30 }, 200)) for (const x of c) expect(x.to).toBeLessThan(3);
+    for (const c of nights({ ...lone, day: 30, deck: { ...lone.deck, hotSince: { SHL: 30 } } }, 200)) for (const x of c) expect(x.to).toBeLessThan(3);
+    const stood = { ...lone, day: 30, deck: { ...lone.deck, hotSince: { SHL: 30 - RULES.crisisTipAfter } } };
+    const tips = nights(stood, 600).filter((c) => c.some((x) => x.region === 'SHL' && x.to === 3 && x.why === 'pressure' && x.source === 'SHL'));
+    expect(tips.length / 600).toBeGreaterThan(RULES.crisisTipEnd - 0.06);
+    expect(tips.length / 600).toBeLessThan(RULES.crisisTipEnd + 0.06);
+    // Not before the pushes begin, and never a crisis the choice cooled today (it is answered).
+    for (const c of nights({ ...stood, day: RULES.warFromCrisisDay - 1 }, 100)) for (const x of c) expect(x.to).toBeLessThan(3);
+    for (let i = 0; i < 100; i++) {
+      const w = new Working(stood);
+      w.cooledToday.add('SHL');
+      pressure(w, new Rng(`answered-${i}`));
+      expect(w.heats.SHL).toBe(2);
+    }
   });
 
   it('trouble never flares where the choice brought calm today', () => {

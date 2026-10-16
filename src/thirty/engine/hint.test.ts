@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { composeHint, fit, hintLine, isPlain, type HintInput } from './hint.ts';
+import { composeHint, fit, heatsText, hintLine, isPlain, type HintInput } from './hint.ts';
 import { preview } from './preview.ts';
 import { fixture, quiet, withCard, withTeam } from './testkit.ts';
 
@@ -21,21 +21,81 @@ const base: HintInput = {
   penalty: 0,
 };
 
+/** A show of force as the card wrote it: today's region calms, the named neighbour heats, the sum falls. */
+const force: HintInput = {
+  ...base,
+  tag: 'FORCE',
+  authored: 'Danger down here · heats Pebbleby',
+  namedNeighbour: true,
+  dangerBefore: 5,
+  dangerAfter: 2,
+  changes: [
+    { region: 'SHL', from: 2, to: 0, why: 'choice' },
+    { region: 'PBB', from: 0, to: 1, why: 'choice' },
+  ],
+};
+
 describe('when the authored hint stands', () => {
-  it('a plain CALM, a FORCE that names its neighbour, a RISKY at its printed odds, every HOME', () => {
+  it('a plain CALM, a FORCE that names its neighbour and lowers the sum, a RISKY at its printed odds, every HOME', () => {
     expect(isPlain(base)).toBe(true);
     expect(hintLine(base)).toBe('Danger down · the strait calms');
-    expect(isPlain({ ...base, tag: 'FORCE', namedNeighbour: true })).toBe(true);
-    expect(isPlain({ ...base, tag: 'FORCE', namedNeighbour: false })).toBe(false);
+    expect(isPlain(force)).toBe(true);
+    expect(hintLine(force)).toBe('Danger down here · heats Pebbleby');
+    expect(isPlain({ ...force, namedNeighbour: false })).toBe(false);
     expect(isPlain({ ...base, tag: 'RISKY', printedOdds: 70, odds: 70 })).toBe(true);
     expect(isPlain({ ...base, tag: 'RISKY', printedOdds: 70, odds: 100 })).toBe(false);
-    expect(isPlain({ ...base, tag: 'HOME', heatBefore: 0, changes: [] })).toBe(true);
+    expect(isPlain({ ...base, tag: 'HOME', authored: 'Danger unchanged · a quiet day', heatBefore: 0, changes: [], dangerAfter: 5 })).toBe(true);
   });
 
   it('not when a piece fired, a penalty lands, or the region is already calm', () => {
     expect(isPlain({ ...base, pieces: ['old-ambassador'] })).toBe(false);
     expect(isPlain({ ...base, penalty: 15 })).toBe(false);
     expect(isPlain({ ...base, heatBefore: 0, changes: [] })).toBe(false);
+  });
+
+  it('not when the first words would lie: the sum does not fall, or rises', () => {
+    // A tense region: the force takes it to calm (-2) and the named neighbour heats (+2).
+    const even: HintInput = {
+      ...force,
+      heatBefore: 1,
+      dangerBefore: 2,
+      dangerAfter: 2,
+      changes: [
+        { region: 'SHL', from: 1, to: 0, why: 'choice' },
+        { region: 'PBB', from: 0, to: 1, why: 'choice' },
+      ],
+    };
+    expect(isPlain(even)).toBe(false);
+    expect(hintLine(even)).toBe('Danger unchanged · Shoal calms, heats Pebbleby');
+    // The neighbour tips into war: the sum rises, and "heats" would understate it.
+    const war: HintInput = {
+      ...force,
+      heatBefore: 1,
+      dangerBefore: 7,
+      dangerAfter: 12,
+      changes: [
+        { region: 'SHL', from: 1, to: 0, why: 'choice' },
+        { region: 'PBB', from: 2, to: 3, why: 'choice' },
+      ],
+    };
+    expect(hintLine(war)).toBe('Danger up · Shoal calms, Pebbleby goes to war');
+    // The named neighbour is already at war and cannot heat: no "here".
+    const quietNeighbour: HintInput = { ...force, changes: [{ region: 'SHL', from: 2, to: 0, why: 'choice' }] };
+    expect(isPlain(quietNeighbour)).toBe(false);
+    expect(hintLine(quietNeighbour)).toBe('Danger down · Shoal calms');
+    // A calming button written with "here" (it heats a named region) is held to the same words.
+    const fright: HintInput = { ...base, authored: 'Danger down here · Gullrest takes fright', dangerAfter: 2, changes: [...base.changes, { region: 'GUL', from: 0, to: 1, why: 'choice' }] };
+    expect(isPlain(fright)).toBe(true);
+    expect(isPlain({ ...fright, dangerAfter: 5 })).toBe(false);
+    expect(hintLine({ ...fright, dangerAfter: 5 })).toBe('Danger unchanged · Shoal cools, heats Gullrest');
+    expect(isPlain({ ...fright, changes: base.changes })).toBe(false);
+    // A risky line's printed miss must cost something: the region at war cannot heat.
+    const risky: HintInput = { ...base, tag: 'RISKY', authored: 'Danger down if it works (70%) · if not, Shoal heats', printedOdds: 70, odds: 70 };
+    expect(isPlain({ ...risky, missed: { danger: 7, changes: [{ region: 'SHL', from: 2, to: 3, why: 'choice' }] } })).toBe(true);
+    expect(isPlain({ ...risky, heatBefore: 3, dangerBefore: 12, dangerAfter: 2, missed: { danger: 12, changes: [] } })).toBe(false);
+    expect(hintLine({ ...risky, heatBefore: 3, dangerBefore: 12, dangerAfter: 2, changes: [{ region: 'SHL', from: 3, to: 1, why: 'choice' }], missed: { danger: 12, changes: [] } })).toBe(
+      'Danger down if it works (70%) · if not, nothing changes',
+    );
   });
 });
 
@@ -114,7 +174,7 @@ describe('the engine\'s own line', () => {
     );
     expect(hintLine({ ...risky, odds: 100, certainBy: 'dove-foreign', pieces: ['dove-foreign'] })).toBe('Danger down · talks cannot fail, Shoal calms');
     expect(hintLine({ ...risky, odds: 100, certainBy: 'false-alarm' })).toBe('Danger down · a false alarm, Shoal calms');
-    expect(hintLine({ ...risky, odds: 0, certainBy: 'real-alarm', dangerAfter: 12, changes: [{ region: 'SHL', from: 2, to: 3, why: 'choice' }] })).toBe('Danger up · the alarm is real, heats Shoal');
+    expect(hintLine({ ...risky, odds: 0, certainBy: 'real-alarm', dangerAfter: 12, changes: [{ region: 'SHL', from: 2, to: 3, why: 'choice' }] })).toBe('Danger up · the alarm is real, Shoal goes to war');
   });
 
   it('nothing to do, a quiet day, a crossed red line', () => {
@@ -145,16 +205,46 @@ describe('the engine\'s own line', () => {
           { region: 'KLP', from: 2, to: 3, why: 'choice' },
         ],
       }),
-    ).toBe('Danger up · Lintel calms, heats Kelpmouth, DANGER +15');
+    ).toBe('Danger up · Lintel calms, Kelpmouth goes to war, DANGER +15');
   });
 
-  it('fits sixty characters by dropping the last clauses, keeping a risky miss for last', () => {
+  it('fits sixty characters by dropping what the DANGER words already say, keeping a risky miss and what heats', () => {
     expect(fit('Danger down · calms 4 regions')).toBe('Danger down · calms 4 regions');
     expect(fit('Danger down if it works (65%) · calms Shoal and 2 more, if not, Shoal heats, Shoal guarded for a week')).toBe(
       'Danger down if it works (65%) · if not, Shoal heats',
     );
-    expect(fit('Danger down here · Brindle Coast calms, heats Morrow Downs, DANGER +15')).toBe('Danger down here · Brindle Coast calms, heats Morrow Downs');
+    // "Danger down here" says the region calms: its own clause goes before a cost does.
+    expect(fit('Danger down here · Brindle Coast calms, heats Morrow Downs, DANGER +15')).toBe('Danger down here · heats Morrow Downs, DANGER +15');
+    // The clause that explains "here" is kept; the acted region's calming goes first (the playtests' day-11 line).
+    expect(fit('Danger down here · Floe End calms, heats Orrinth and Edda Vale', 60, 'Floe End')).toBe('Danger down here · heats Orrinth and Edda Vale');
+    expect(fit('Danger down here · calms Brindle Coast and 2 more, heats Saltwhite and Hearth')).toBe('Danger down here · heats Saltwhite and Hearth');
+    // Two heated regions shorten to a count before anything a "here" line needs is lost.
+    expect(fit('Danger down here · heats Brindle Coast and Morrow Downs', 50)).toBe('Danger down here · heats Brindle Coast and 1 more');
+    expect(fit('Danger down here · heats Brindle Coast and Morrow Downs', 46)).toBe('Danger down here · heats 2 places');
+    // "Danger unchanged" is never left with only a calming clause: the calming shortens to "calms here" first.
+    expect(fit('Danger unchanged · Morrow Downs calms, heats Ashkettle', 46, 'Morrow Downs')).toBe('Danger unchanged · calms here, heats Ashkettle');
     expect(fit('x'.repeat(70))).toHaveLength(60);
+  });
+
+  it('labels on the map (46 characters): the place\'s own calming goes first, what heats stays, a risky label keeps its odds', () => {
+    const label = (line: string, acted?: string) => fit(line, 46, acted);
+    expect(label('Danger down · Shoal calms')).toBe('Danger down · Shoal calms');
+    expect(label('Danger unchanged · Vessary guarded for a week')).toBe('Danger unchanged · Vessary guarded for a week');
+    expect(label('Danger down here · Orrinth calms, heats Dunmarrow, Orrinth is warned', 'Orrinth')).toBe('Danger down here · heats Dunmarrow');
+    expect(label('Danger down here · calms Brindle Coast and 2 more, heats Floe End', 'Brindle Coast')).toBe('Danger down here · heats Floe End');
+    expect(label('Danger down · calms Tern Isle and 3 more, heats Gullrest', 'Tern Isle')).toBe('Danger down · heats Gullrest');
+    // Both names of what heats are worth more than the calming the label sits on.
+    expect(label('Danger unchanged · Brindle Coast calms, heats Saltwhite and Hearth', 'Brindle Coast')).toBe('Danger unchanged · heats Saltwhite and Hearth');
+    expect(label('Danger unchanged · Morrow Downs calms, heats Ashkettle', 'Morrow Downs')).toBe('Danger unchanged · calms here, heats Ashkettle');
+    expect(label('Danger down if it works (60%) · if not, Northwake heats')).toBe('Danger down if it works (60%)');
+    expect(fit('Danger up even if it works (60%) · heats Lintel and 2 more', 20)).toBe('Danger up even if i…');
+  });
+
+  it('writes what heats at each length', () => {
+    expect(heatsText(['Lintel'])).toBe('heats Lintel');
+    expect(heatsText(['Lintel', 'Shoal'])).toBe('heats Lintel and Shoal');
+    expect(heatsText(['Lintel', 'Shoal', 'Orrinth'])).toBe('heats Lintel and 2 more');
+    expect(heatsText(['Lintel'], 2)).toBe('heats Lintel and 2 more');
   });
 });
 

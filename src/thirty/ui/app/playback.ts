@@ -29,8 +29,10 @@ export const TIMES = {
   float: 1000,
   /** A breath after the choice's float, before the night begins. */
   breath: 120,
-  /** How long the night's line stays, from its appearance (the recolouring runs inside it). */
+  /** How long the night's line stays, from its appearance (the recolouring runs inside it): one clause, two, three or more. */
+  nightHoldShort: 1000,
   nightHold: 1300,
+  nightHoldLong: 1500,
   /** The new card is on the table this long before its news recolours the map. */
   read: 400,
   arrival: 450,
@@ -39,6 +41,12 @@ export const TIMES = {
 
 function wait(ms: number): Promise<void> {
   return new Promise((r) => window.setTimeout(r, Math.max(0, ms)));
+}
+
+/** The night's line is held long enough to read: a clause a second, within limits (pure, for the test). */
+export function nightHoldFor(line: string | null): number {
+  const clauses = line ? line.split('; ').length : 1;
+  return clauses <= 1 ? TIMES.nightHoldShort : clauses === 2 ? TIMES.nightHold : TIMES.nightHoldLong;
 }
 
 let needleToken = 0;
@@ -142,7 +150,7 @@ export async function playDay(before: GameState, after: GameState, option: strin
     if (!live()) return;
     // A piece that acted at night takes credit as it would by day.
     glowChips(arrivalPieces(nightSteps(trace)), TIMES.float);
-    await wait(r ? TIMES.reducedPause + 300 : TIMES.nightHold - (performance.now() - started));
+    await wait(r ? TIMES.reducedPause + 300 : nightHoldFor(line) - (performance.now() - started));
     if (!live()) return;
     night.value = null;
   }

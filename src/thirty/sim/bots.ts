@@ -1,9 +1,11 @@
 /**
- * The two bots of SPEC "Balance gates": random (a random button or tap, a random piece or none) and
+ * The bots of SPEC "Balance gates": random (a random button or tap, a random piece or none) and
  * sensible (the option whose preview leaves DANGER lowest once tonight's expected pressure is counted,
  * odds-weighted for a risk, ties towards cooling the hottest region; the piece that stacks with what
- * it holds). Each bot draws its own
- * randomness from an Rng the simulator gives it, so a game is reproducible from (seed, bot seed).
+ * it holds); and the hawk of gate G9 (ENGINE.md "Tuning", item 15): sensible's eye, but it takes the
+ * force pieces first and a show of force whenever one is nearly as good as the best option. Each bot
+ * draws its own randomness from an Rng the simulator gives it, so a game is reproducible from
+ * (seed, bot seed).
  */
 import type { Rng } from '../../engine/rng.ts';
 import type { Heat, PieceId, PieceTag, RegionId, ThirtyContent } from '../content/types.ts';
@@ -12,8 +14,8 @@ import { CRISIS, RULES, TENSE, WAR, crisisPressureAt, tensePressureAt, warFromCr
 import { REGION_IDS, neighboursOf } from '../engine/world.ts';
 import type { GameState, HeatChange, Preview } from '../engine/types.ts';
 
-export type BotName = 'random' | 'sensible';
-export const BOT_NAMES: readonly BotName[] = ['random', 'sensible'];
+export type BotName = 'random' | 'sensible' | 'hawk';
+export const BOT_NAMES: readonly BotName[] = ['random', 'sensible', 'hawk'];
 
 export function isBotName(x: string): x is BotName {
   return (BOT_NAMES as readonly string[]).includes(x);
@@ -139,7 +141,7 @@ export const sensibleBot: Bot = {
     const offer = state.offer ?? [];
     if (!offer.length) return null;
     // Nothing held yet: lean to the pieces that build (the spec's "takes stacking pieces"), weighted by their partners.
-    if (!state.team.length) return Math.max(0, rng.weightedIndex(offer.map((p) => 1 + partners(content, p))));
+    if (!state.team.length) return Math.max(0, rng.weightedIndex(offer.map((p) => 2 + partners(content, p))));
     const scores = offer.map((p) => stackScore(content, state.team, p));
     const top = Math.max(...scores);
     const tied = offer.map((_, i) => i).filter((i) => scores[i] === top);
@@ -147,4 +149,31 @@ export const sensibleBot: Bot = {
   },
 };
 
-export const BOTS: Readonly<Record<BotName, Bot>> = { random: randomBot, sensible: sensibleBot };
+/** The pieces the hawk takes, in order of preference; anything else by stacking. */
+export const HAWK_PIECES: readonly PieceId[] = ['hawk-general', 'loyal-admiral', 'launch-on-warning', 'red-lines', 'spin-doctor', 'hotline', 'paranoid-intel'];
+/** How much worse (in expected DANGER) a show of force may be than the best option and still be the hawk's choice. */
+export const HAWK_MARGIN = 3;
+
+export const hawkBot: Bot = {
+  name: 'hawk',
+  option: (content, state, rng) => {
+    const options = todayOptions(content, state);
+    const rows = options.map((o) => ({ o, p: preview(content, state, o) })).filter((r): r is { o: typeof r.o; p: Preview } => !!r.p);
+    if (!rows.length) return options[0];
+    const best = Math.min(...rows.map((r) => expectedCost(r.p, state)));
+    const force = rows.filter((r) => r.p.tag === 'FORCE' && expectedCost(r.p, state) <= best + HAWK_MARGIN);
+    if (force.length) return force.sort((a, b) => expectedCost(a.p, state) - expectedCost(b.p, state))[0].o;
+    return sensibleBot.option(content, state, rng);
+  },
+  pick: (content, state, rng) => {
+    const offer = state.offer ?? [];
+    if (!offer.length) return null;
+    for (const id of HAWK_PIECES) {
+      const i = offer.indexOf(id);
+      if (i >= 0) return i;
+    }
+    return sensibleBot.pick(content, state, rng);
+  },
+};
+
+export const BOTS: Readonly<Record<BotName, Bot>> = { random: randomBot, sensible: sensibleBot, hawk: hawkBot };

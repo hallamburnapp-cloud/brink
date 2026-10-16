@@ -2,6 +2,39 @@
 
 All notable changes to BRINK. Dates are UTC.
 
+## 0.7.0 — 2026-10-16 (Thirty Days)
+
+A new game on the same brand after the owner's verdict on 0.6.0 (D-108): "Too many visuals, my partner has no clue what is going on. You've not understood the brief." Back to the brief's story and to one decision a day. It is selected with `VITE_GAME=thirty`; the war room and the hotel are untouched and dormant.
+
+### The game
+- You lead the Republic as the world slides towards war. Thirty days; each day one message from an adviser and two buttons, sometimes a tap on the map instead. Every button's first words are the truth about DANGER (`Danger down · Iceward calms`, `Danger down here · heats Lintel`, `Danger unchanged · Iceward waits for spring`, `Danger down if it works (65%) · if not, Glassmoor heats`); when the authored line would be untrue today the engine writes the line itself (D-109).
+- The map's thirty regions run CALM, TENSE, CRISIS, WAR, and their heat is the one number on screen: DANGER. Keep it under 100 for thirty days (HELD, graded cleanly, held or barely), calm the whole map from day 10 once there has been a real crisis (STAND-DOWN), or lose when it fills (WAR, which names where the fighting began, red on the final map) (D-111).
+- A day plays in three beats: what the button did (the map recolours, the needle slides, a `−7` floats), then one OVERNIGHT line in plain words with its own `DANGER +8` ("The war in Wintermast spread to Glassmoor; trouble flared in Tern Isle"), then the next card. Nothing moves without a sentence.
+- At night red is the threat: war spreads to a neighbour; from day 6 a crisis left standing may turn red, as may two side by side; trouble flares in calm places less and less as the month goes on, and never in a place calmed that day (D-110).
+- Map days choose their places from the live map (the hottest sea regions for the fleet, allies for the call, home for the brigade), every place labelled DANGER first, and only when at least two places would lower DANGER (D-112).
+- After days 5, 10, 15, 20 and 25 three people or policies offer to join the team; take one or none. Twelve in all: the Old Ambassador, the Back-Channel, the Peace Movement, the Hotline, the Dove Foreign Minister, the Hawk General, the Loyal Admiral, two Intel Directors, the Spin Doctor, Red Lines, Launch on Warning. They change what decisions do and they stack: the Balatro part, kept in the background and shown as the map cooling in a wave, the hint line saying how far (`Danger down · calms Shoal and 3 more`) and the chip glowing when it acted. The five force and intelligence pieces were rewritten after the playtests so that a hawk's build holds about as often as a dove's.
+- The game screen is exactly four things, top to bottom: the strip (DAY n OF 30, the DANGER gauge), the map, the team row (hidden until someone is held) and the card. Nothing else is ever drawn.
+
+### Teaching
+- Two explanation screens over the live map ("The world is sliding towards war. You lead the Republic (the flag). Each day, one decision." / "Keep DANGER below 100 for thirty days. Calm the whole map and the crisis ends early." / "Your advisers make your decisions count for more. Choose them well."), skippable, repeatable from the menu.
+- A save after every day; CONTINUE on the title. The menu: RESUME, HOW TO PLAY, SOUND, QUIT TO TITLE; the phone's back button and Esc open it. Endings offer PLAY AGAIN, SAME WORLD AGAIN and HOME.
+
+### Content
+- `content-thirty/`: 127 cards in YAML, ten arcs from the original brief (Satellite Blackout, The False Alarm, Undersea Cables, Proxy Incident, Cyberattack on Early Warning, The Blockade, The Defector, Debris Cascade, The Ultimatum, The Summit), a card for every region, domestic cards, six map days; six advisers; twelve pieces. A strict schema and validator (ids, regions, tags, odds, follow-ups, day ranges, hints, warning cards).
+
+### Engine and checks
+- `src/thirty/engine`: pure TypeScript rules with a trace that drives the playback, the night's sentence, the sounds and the tests; a versioned save. `src/thirty/sim`: random, sensible and hawk bots against nine gates (2,000 games each), all passing on the strict script; the tuning log in `docs/thirty-days/ENGINE.md` records every lever tried. A whole-game hint sweep fails the build on any button whose first words lie.
+- 974 unit tests across the project; 13 end-to-end tests with real taps on a phone viewport and a desktop window, failing on any console error or any request that leaves the page.
+- Reviewed by four critics (over the shoulder, finish, feel, robustness) on a phone-sized screen, fixed by two fixers and an integrator, rechecked by two and fixed again. The over-the-shoulder recheck: "On every still screen the partner can now say what is happening and what the player wants."
+
+### Known limits (owner's calls, in the README)
+- Both buttons lower DANGER on about 45% of days (the sensible pick is the calming one most days); a writing pass putting a named cost on more calming buttons is the next content job.
+- With one decision a day and a month that must feel close, the night gives back the day's drop on about two days in three; it now always says why.
+- Balance gate G8 was reworded from "the gauge above 60" to "red on the map before the end, or the gauge above 60"; the gauge-only reading was met only through a late amber wash that read as noise over the shoulder.
+
+### Docs
+- `docs/thirty-days/`: SPEC.md (amended where the build departed from it), ENGINE.md, CONTENT.md, README.md and the release screenshots.
+
 ## 0.6.0 — 2026-10-15 (Win the World)
 
 The war-room game rebuilt around one goal after the owner's verdict on 0.5.0 (D-105): turn all 30 regions of the map gold before war holds 10, in about 15 minutes.

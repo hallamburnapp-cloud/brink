@@ -9,11 +9,11 @@
 import { writeFileSync } from 'node:fs';
 import { BRAND } from '../src/config.ts';
 import { formatThirtyIssues, loadThirtyContent, thirtyContentRoot } from '../src/thirty/content/load.ts';
-import { BOT_NAMES, curveLine, gatesTable, isBotName, outcomesTable, piecesTable, simulate, teamSizeTable, type BotName, type Format } from '../src/thirty/sim/index.ts';
+import { BOT_NAMES, curveLine, feelTable, gatesTable, isBotName, outcomesTable, piecesTable, simulate, teamSizeTable, type BotName, type Format } from '../src/thirty/sim/index.ts';
 
 const USAGE = `usage: npx tsx tools/thirty-sim.ts [options]
   --games N     games per bot (default 2000)
-  --bots LIST   random, sensible (default both; the gates need both)
+  --bots LIST   random, sensible, hawk (default all three; the gates need all three)
   --seed P      seed prefix: games are P0 ... P{N-1} for every bot (default T)
   --md          tables as Markdown
   --json PATH   also write the statistics, gates and every game as JSON
@@ -114,6 +114,9 @@ function main(): void {
     '',
     'OUTCOMES',
     outcomesTable(res.stats, fmt),
+    '',
+    'OVER THE SHOULDER (what the playtests measured)',
+    feelTable(res.stats, fmt),
   );
   const s = res.stats.sensible;
   if (s) {

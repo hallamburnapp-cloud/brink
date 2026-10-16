@@ -49,7 +49,8 @@ export function nightLine(trace: Pick<DayTrace, 'steps'>): string | null {
   const steps = nightSteps(trace);
   const heats = steps.filter((s): s is Heat => s.kind === 'heat' && s.to !== s.from);
   const penalties = steps.filter((s) => s.kind === 'penalty');
-  if (!heats.length && !penalties.length) return null;
+  const guards = steps.filter((s) => s.kind === 'piece' && s.piece === 'launch-on-warning');
+  if (!heats.length && !penalties.length && !guards.length) return null;
 
   const up = heats.filter((s) => s.to > s.from);
   const war = up.filter((s) => s.why === 'war');
@@ -57,10 +58,11 @@ export function nightLine(trace: Pick<DayTrace, 'steps'>): string | null {
   const pressure = up.filter((s) => s.why === 'pressure');
   const tipped = pressure.filter((s) => s.source && s.source !== s.region && s.to === WAR);
   const spilled = pressure.filter((s) => s.source && s.source !== s.region && s.to < WAR);
-  const boiled = pressure.filter((s) => !s.source || s.source === s.region);
+  const ignited = pressure.filter((s) => (!s.source || s.source === s.region) && s.to === WAR);
+  const boiled = pressure.filter((s) => (!s.source || s.source === s.region) && s.to < WAR);
   const flared = up.filter((s) => s.why === 'flare');
   const news = up.filter((s) => s.why === 'news');
-  const named = new Set<Heat>([...war, ...spread, ...tipped, ...spilled, ...boiled, ...flared, ...news]);
+  const named = new Set<Heat>([...war, ...spread, ...tipped, ...spilled, ...ignited, ...boiled, ...flared, ...news]);
   const otherUp = up.filter((s) => !named.has(s));
   const down = heats.filter((s) => s.to < s.from);
 
@@ -87,10 +89,13 @@ export function nightLine(trace: Pick<DayTrace, 'steps'>): string | null {
       (regions) => `crises spilled into ${listNames(regions)}`,
     ),
   );
+  if (ignited.length) clauses.push(`the crisis in ${listNames(ignited.map((s) => s.region))} became war`);
   if (boiled.length) clauses.push(`${listNames(boiled.map((s) => s.region))} boiled over`);
   if (flared.length) clauses.push(`trouble flared in ${listNames(flared.map((s) => s.region))}`);
   if (otherUp.length) clauses.push(`trouble grew in ${listNames(otherUp.map((s) => s.region))}`);
   if (news.length) clauses.push(`the morning brought bad news from ${listNames(news.map((s) => s.region))}`);
+  // A policy that turned the night's trouble away says so, in its own words.
+  for (const s of steps) if (s.kind === 'piece' && s.piece === 'launch-on-warning') clauses.push(`${s.note[0].toLowerCase()}${s.note.slice(1)}`);
   if (down.length) {
     const hotline = down.filter((s) => s.piece === 'hotline');
     const rest = down.filter((s) => s.piece !== 'hotline');
