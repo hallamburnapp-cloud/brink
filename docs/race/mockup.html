@@ -1,0 +1,313 @@
+<title>BRINK: Treaty Against War</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a situation-room briefing. One column of running text about 65 characters wide; the four phone screens
+   sit in a grid above it. Single dark theme by choice: this is the look being proposed. */
+:root{
+  --bg:#0B1016; --panel:#121A24; --panel-2:#18222E; --rule:#2A3644; --ink:#E6EBF0; --muted:#8A98A8; --faint:#55636F;
+  --red:#D6453D; --amber:#E0A33B; --blue:#4C9BE8; --green:#4BB37A; --sea:#0A1119; --land:#2B3744; --land-edge:#4A5868;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif; --body:"Barlow",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+html,body{height:auto}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;margin:0;
+  padding-block:24px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:40px}
+.wrap>*{min-width:0}
+.eyebrow{font-family:var(--display);font-weight:600;letter-spacing:.12em;text-transform:uppercase;font-size:13px;color:var(--muted)}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(40px,7vw,64px);line-height:1;margin:6px 0 10px;letter-spacing:.01em;text-wrap:balance}
+h2{font-family:var(--display);font-weight:600;font-size:26px;line-height:1.1;margin:0 0 10px;letter-spacing:.02em;text-wrap:balance}
+h3{font-family:var(--display);font-weight:600;font-size:18px;letter-spacing:.06em;text-transform:uppercase;margin:0 0 6px;color:var(--muted)}
+p{margin:0 0 12px;max-width:68ch}
+.lead{font-size:19px;color:var(--ink);max-width:62ch}
+.prose{display:grid;grid-template-columns:minmax(0,1fr);gap:28px;max-width:720px}
+.prose>*{min-width:0}
+ul{margin:0 0 12px;padding-left:20px;max-width:68ch} li{margin-bottom:6px}
+.k{font-family:var(--mono);font-size:.92em;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font-family:var(--display);font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border:1px solid var(--rule);border-radius:3px;color:var(--muted);vertical-align:middle}
+.screens{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:28px 24px;align-items:start}
+.shot{display:grid;gap:10px;min-width:0}
+.shot figcaption{font-size:14px;color:var(--muted);max-width:40ch} .shot figcaption b{color:var(--ink);font-weight:500}
+.phone-fit{width:100%;max-width:390px;position:relative;overflow:hidden;height:844px}
+.phone{width:390px;height:844px;background:var(--bg);border:1px solid var(--rule);border-radius:28px;overflow:hidden;position:relative;transform-origin:top left;font-family:var(--body)}
+.phone *{box-sizing:border-box}
+.ab{position:absolute}
+.top{left:0;top:0;width:390px;height:60px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 16px 8px;border-bottom:1px solid var(--rule)}
+.pts{display:flex;align-items:baseline;gap:6px;font-family:var(--display);letter-spacing:.08em;text-transform:uppercase;font-size:11px;color:var(--muted)}
+.pts .n{font-family:var(--mono);font-size:20px;color:var(--amber);letter-spacing:0;font-weight:700}
+.day{font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.08em}
+.speed{display:flex;gap:4px}
+.speed span{width:26px;height:22px;border:1px solid var(--rule);border-radius:4px;display:grid;place-items:center;font-size:11px;color:var(--muted);font-family:var(--mono)}
+.speed span.on{background:var(--panel-2);color:var(--ink);border-color:var(--land-edge)}
+.race{left:0;top:60px;width:390px;height:56px;padding:8px 16px;display:grid;gap:7px;border-bottom:1px solid var(--rule)}
+.bar{display:grid;grid-template-columns:62px 1fr 56px;align-items:center;gap:8px;font-family:var(--display);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.bar .track{height:8px;background:var(--panel-2);border-radius:2px;position:relative;overflow:hidden}
+.bar .fill{position:absolute;left:0;top:0;bottom:0;border-radius:2px}
+.bar.war .fill{background:var(--red)} .bar.treaty .fill{background:var(--blue)}
+.bar .v{font-family:var(--mono);font-size:12px;color:var(--ink);text-align:right;letter-spacing:0}
+.map{left:0;top:116px;width:390px;height:520px;background:var(--sea)}
+.map svg{display:block;width:390px;height:520px}
+.ticker{left:0;top:636px;width:390px;height:28px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:14px;padding:0 16px;white-space:nowrap;overflow:hidden;font-size:13px;color:var(--ink)}
+.ticker .lbl{font-family:var(--display);font-size:11px;letter-spacing:.12em;color:var(--red);text-transform:uppercase;flex:none}
+.ticker .dot{color:var(--faint)}
+.panel{left:0;top:664px;width:390px;height:146px;background:var(--panel)}
+.tabs{display:grid;grid-template-columns:1fr 1fr 1fr;height:36px;border-bottom:1px solid var(--rule)}
+.tabs span{display:grid;place-items:center;font-family:var(--display);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.tabs span.on{color:var(--ink);box-shadow:inset 0 -2px 0 var(--ink)}
+.pbody{padding:10px 16px;font-size:14px;line-height:1.4;color:var(--ink)}
+.pbody .mut{color:var(--muted)}
+.legend{display:flex;gap:14px;margin-top:8px;font-family:var(--display);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.home{left:0;top:810px;width:390px;height:34px;display:grid;place-items:center}
+.home i{width:134px;height:5px;border-radius:3px;background:var(--rule)}
+/* the phone call */
+.veil{left:0;top:60px;width:390px;height:750px;background:rgba(6,10,15,.62)}
+.call{left:16px;top:300px;width:358px;background:var(--panel);border:1px solid var(--land-edge);border-radius:12px;padding:16px;display:grid;gap:10px;box-shadow:0 18px 50px rgba(0,0,0,.6)}
+.call .who{display:flex;justify-content:space-between;font-family:var(--display);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.call .who b{color:var(--red);font-weight:600}
+.call .msg{font-size:16px;line-height:1.35}
+.opt{border:1px solid var(--rule);border-radius:8px;padding:9px 12px;display:grid;gap:2px;background:var(--panel-2)}
+.opt .a{font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.02em}
+.opt .h{font-size:12.5px;color:var(--muted)} .opt .h em{font-style:normal;color:var(--amber);font-family:var(--mono);font-size:12px}
+.paused{left:0;top:116px;width:390px;display:grid;place-items:center}
+.paused span{font-family:var(--display);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink);background:var(--panel);border:1px solid var(--rule);padding:3px 10px;border-radius:3px;margin-top:10px}
+/* the tree */
+.sheet{left:0;top:380px;width:390px;height:430px;background:var(--panel);border-top:1px solid var(--land-edge)}
+.tree{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:10px 12px 0}
+.col h4{margin:0 0 6px;font-family:var(--display);font-size:11px;letter-spacing:.12em;text-transform:uppercase;text-align:center}
+.col.d h4{color:var(--blue)} .col.t h4{color:var(--red)} .col.h h4{color:var(--green)}
+.node{display:grid;grid-template-columns:1fr auto;gap:4px;align-items:center;border:1px solid var(--rule);border-radius:6px;padding:5px 7px;margin-bottom:6px;font-family:var(--display);font-size:12.5px;letter-spacing:.02em;color:var(--muted);background:var(--panel-2)}
+.node .c{font-family:var(--mono);font-size:11px;color:var(--faint)}
+.node.got{color:var(--ink);border-color:var(--land-edge)} .node.got .c{color:var(--green)}
+.col.d .node.got{border-color:var(--blue)} .col.t .node.got{border-color:var(--red)} .col.h .node.got{border-color:var(--green)}
+.node.can{color:var(--ink);border-style:dashed;border-color:var(--amber)} .node.can .c{color:var(--amber)}
+.node.sel{background:var(--ink);color:var(--bg);border-color:var(--ink)} .node.sel .c{color:var(--bg)}
+.rule{margin:4px 12px 0;padding:9px 12px;border:1px solid var(--rule);border-radius:8px;font-size:13.5px;line-height:1.35}
+.rule b{font-family:var(--display);font-weight:600;letter-spacing:.02em}
+.rule .cost{font-family:var(--mono);color:var(--amber);font-size:12px}
+.buy{margin:8px 12px 0;height:40px;border-radius:8px;background:var(--amber);color:#1B1507;display:grid;place-items:center;font-family:var(--display);font-weight:700;letter-spacing:.1em;font-size:15px}
+/* the treaty */
+.bloc{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--rule);font-size:13.5px;line-height:1.3}
+.bloc:last-child{border-bottom:0}
+.bloc .nm{font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.03em}
+.bloc .st{font-family:var(--display);font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:3px;border:1px solid var(--rule);color:var(--muted);white-space:nowrap}
+.bloc .st.ok{color:var(--green);border-color:var(--green)} .bloc .st.no{color:var(--red);border-color:var(--red)} .bloc .st.cost{color:var(--amber);border-color:var(--amber);font-family:var(--mono);letter-spacing:0}
+.bloc .want{color:var(--muted);font-size:13px}
+.tree-tbl{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:900px}
+.tree-tbl div{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:14px 16px}
+.tree-tbl h4{margin:0 0 8px;font-family:var(--display);font-size:13px;letter-spacing:.12em;text-transform:uppercase}
+.tree-tbl ol{margin:0;padding-left:18px;font-size:14.5px} .tree-tbl li{margin-bottom:4px} .tree-tbl li span{color:var(--muted)}
+.qs li{margin-bottom:10px}
+.foot{color:var(--muted);font-size:14px;border-top:1px solid var(--rule);padding-top:14px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">BRINK · the design after your verdict · nothing is built yet</div>
+    <h1>Treaty against war</h1>
+    <p class="lead">Plague Inc's shape with the brief's story. The world map fills the screen and the clock runs. Red spreads by itself, region by region. You lead the Republic, and you have to get a treaty signed before the war covers the world. Below: the screen as it would look, then the whole game on one page. Say yes, no, or what to change, and only then do I write code.</p>
+  </header>
+
+  <section class="screens" id="screens">
+    <figure class="shot">
+      <div class="phone-fit"><div class="phone" id="f1"></div></div>
+      <figcaption><b>The map, day 21.</b> Red is fighting, amber is tense, hatched red spreads along borders and sea lanes. Round bubbles appear and fade: amber gives influence, red is a flashpoint to handle before it tips, blue is a talk that moves the treaty. Two bars race under the top bar. The ticker says what just happened.</figcaption>
+    </figure>
+    <figure class="shot">
+      <div class="phone-fit"><div class="phone" id="f2"></div></div>
+      <figcaption><b>03:14, the phone.</b> The clock stops. An adviser's message and two or three choices, each saying in plain words what it costs and what it does. These are the brief's arcs: the blockade, the false alarm, the cables, the defector, the summit.</figcaption>
+    </figure>
+    <figure class="shot">
+      <div class="phone-fit"><div class="phone" id="f3"></div></div>
+      <figcaption><b>The policy tree.</b> Three branches, like Plague Inc's three tabs: Diplomacy, Deterrence, Home Front. Influence buys a node; each node is one line of plain English. Deterrence slows the spread but makes the world tenser. Diplomacy moves the treaty. Home Front earns and protects.</figcaption>
+    </figure>
+    <figure class="shot">
+      <div class="phone-fit"><div class="phone" id="f4"></div></div>
+      <figcaption><b>The treaty.</b> The deep goal. Five blocs; each wants something before it signs, and a bloc that is fighting will not sign at all. Bring them aboard one by one. At 100% the treaty is signed and the game is won on that day.</figcaption>
+    </figure>
+  </section>
+
+  <section class="prose">
+    <div>
+      <h2>The game in three sentences</h2>
+      <p>The world is sliding towards war. Red spreads across the map by itself, day by day. You lead the Republic, and you have until the war covers the world to get a treaty signed.</p>
+      <p class="mut" style="color:var(--muted)">That is also the explanation at the start, three lines over the live map, skippable. The test of every screen stays: someone who never plays games, watching over the player's shoulder, can say what is happening and what the player is trying to do. Here they say: "red is spreading, she's popping the bubbles and buying things, and the blue bar has to beat the red one."</p>
+    </div>
+
+    <div>
+      <h2>What is on the screen, top to bottom</h2>
+      <ul>
+        <li><b>The top bar.</b> INFLUENCE (the points you spend; Plague Inc's DNA), the day, and pause / play / fast.</li>
+        <li><b>The race.</b> Two bars with the same finish line. WAR fills red as regions fall (the finish is twenty of thirty). TREATY fills blue as blocs come aboard. Whichever reaches the end first ends the game.</li>
+        <li><b>The map.</b> The thirty fictional regions in five blocs: the Cap (the Federation), Highmarch (the Republic, you, with the flag), the Scatter, the Sound, Farsouth. Calm, tense, fighting. Fighting spreads along borders and sea lanes. Bubbles appear on it and fade if not tapped: amber for influence, red for a flashpoint, blue for a talk.</li>
+        <li><b>The ticker.</b> One line of headlines: what the world did, what you did, what it cost.</li>
+        <li><b>The panel.</b> Three tabs. WORLD: the state of the map in a sentence and the legend. POLICY: the tree. TREATY: the blocs and what each wants.</li>
+      </ul>
+      <p>Nothing else. No numbers on the map, no pins, no cards on the table. The crisis popups are the only thing that ever covers the map, and they stop the clock.</p>
+    </div>
+
+    <div>
+      <h2>How it plays</h2>
+      <ul>
+        <li><b>Time.</b> A game is sixty days. A day is about twelve seconds at normal speed, four at fast, so a full game is twelve to fifteen minutes. Pause whenever you like. Every popup pauses.</li>
+        <li><b>Spread.</b> A fighting region spreads to a neighbour every few days, faster as more of the world fights. A region beside fighting turns tense first, and a tense region shows a red flashpoint bubble with a timer ring; handle it in time and it calms, miss it and it falls. Calm regions can also turn tense from the arcs and from your own deterrence moves.</li>
+        <li><b>Influence.</b> Earned by tapping amber bubbles, by a small daily trickle from every calm region in your bloc, and by Home Front policies. Spent on the tree and on bringing blocs aboard the treaty.</li>
+        <li><b>The treaty.</b> Starts at zero. Blue talk bubbles add a few percent each; Diplomacy policies add a little every day; each bloc that signs adds twenty. A bloc signs when its condition is met and nothing in it is fighting. The Federation signs last, and only when the fighting it started has stopped. That tension between the two bars is the game: every point of spread makes the treaty harder.</li>
+        <li><b>Win.</b> Treaty at 100%: "The treaty was signed on day 41." The day is the score.</li>
+        <li><b>Lose.</b> Fighting in twenty regions, or fighting in the Republic's capital: "World war, day 33." The map shows where it began and where it ended.</li>
+        <li><b>Saved after every day.</b> CONTINUE on the title. No accounts, no network, as before.</li>
+      </ul>
+    </div>
+
+    <div>
+      <h2>The policy tree</h2>
+      <p>Eighteen nodes, six a branch, bought in order down the branch with rising costs. Each is one line of plain English. This is the Balatro part, in Plague Inc's clothes: a build that pays off, visible on the map.</p>
+      <div class="tree-tbl">
+        <div><h4 style="color:var(--blue)">Diplomacy</h4><ol>
+          <li>Hotline <span>· a flashpoint you tap also calms its neighbours a little</span></li>
+          <li>Back-channel <span>· blue talk bubbles last twice as long</span></li>
+          <li>Envoy corps <span>· talk bubbles appear twice as often</span></li>
+          <li>Summit <span>· Farsouth's condition; treaty +1% a day</span></li>
+          <li>Ceasefire talks <span>· a fighting region can be talked down (a blue bubble appears on it)</span></li>
+          <li>Grand bargain <span>· every bloc aboard adds 30 instead of 20</span></li></ol></div>
+        <div><h4 style="color:var(--red)">Deterrence</h4><ol>
+          <li>Alert level <span>· the Republic's capital cannot fall while held; its neighbours turn tense</span></li>
+          <li>Fleet posture <span>· fighting cannot cross a sea lane to your bloc</span></li>
+          <li>Forward brigade <span>· spread into Highmarch halves; the Federation's regions turn tense</span></li>
+          <li>Border guard <span>· flashpoints on your borders tick twice as slowly</span></li>
+          <li>Air cover <span>· spread everywhere slows by a third for ten days</span></li>
+          <li>Last warning <span>· the Federation stops spreading for five days; a false alarm costs a region</span></li></ol></div>
+        <div><h4 style="color:var(--green)">Home Front</h4><ol>
+          <li>Press office <span>· amber bubbles give double</span></li>
+          <li>Intelligence <span>· flashpoints are announced a day early in the ticker</span></li>
+          <li>Civil defence <span>· a fallen region in your bloc counts half towards WAR</span></li>
+          <li>Rationing <span>· the daily trickle doubles</span></li>
+          <li>Cyber shield <span>· the cyberattack and false-alarm arcs cannot hurt you</span></li>
+          <li>War chest <span>· every node costs a quarter less</span></li></ol></div>
+      </div>
+    </div>
+
+    <div>
+      <h2>The phone at 3am</h2>
+      <p>Ten arcs from the original brief, three to five popups each, chained over days: the satellite blackout, the false alarm, the undersea cables, the proxy incident, the cyberattack on early warning, the blockade, the defector, the debris cascade, the ultimatum, the summit. A popup stops the clock, puts one adviser's message on the screen (forty words or fewer) and two or three choices. Every choice says what it costs and what it does in words: <span class="k">Influence −10 · Shoal stays open · Lintel turns tense</span>; <span class="k">Treaty +4% · slower</span>; <span class="k">60% it works · if not, Shoal falls</span>. About one popup every two days. They are where the story lives and where the grip comes from; the map is where you see what you did.</p>
+    </div>
+
+    <div>
+      <h2>What I would build first</h2>
+      <p>A playable slice, nothing more: the real-time map with spread and the three kinds of bubble, the two bars, pause and fast, the ticker, the tree with all eighteen nodes, twelve popups from three arcs, win and lose, the three-line explanation. No sound, no menus beyond pause, no save. Then your partner plays it while you watch, before anything else is added. If the slice does not grip, the design is wrong and we change the design, not the polish.</p>
+    </div>
+
+    <div>
+      <h2>Three things to decide</h2>
+      <ol class="qs">
+        <li><b>Only bubbles, popups and the tree act on the map.</b> As in Plague Inc, you never move a fleet or draw a line on the map by hand. I recommend this: it keeps the map a thing you watch and read. Say if you want direct map moves.</li>
+        <li><b>Length.</b> Sixty days at twelve to fifteen minutes a game. Plague Inc runs twenty to thirty. I recommend the shorter game for a phone; say if you want it longer.</li>
+        <li><b>The look.</b> The screens above are the war-room dressing you chose: near-black panels, thin rules, status-lamp colours, condensed capitals, a dark slate map with red hatching. If anything here is wrong, name it now; it is cheaper to change in a picture than in a build.</li>
+      </ol>
+    </div>
+
+    <p class="foot">All places, powers and people are fictional. BRINK is a working title kept in one constant. No accounts, no chat, no user content; nothing leaves the phone.</p>
+  </section>
+</div>
+
+<script>
+const GEO = {"regions":[{"id":"NWK","name":"Northwake","bloc":"CAP","x":62,"y":33.8,"capital":false,"sea":false,"d":"M23.4 22.8L23.9 20.3L25.2 18L27.4 16.4L30 15.7L32.5 15.9L35.1 16.1L37.6 16.1L40.1 16.1L42.6 15.9L45.1 15.7L47.5 15.2L50 14.8L52.5 14.6L55 14.5L57.5 14.6L60 14.5L62.5 13.7L64.9 13L67.4 12.7L69.9 12.6L72.4 12.6L74.9 12.7L77.4 12.7L79.9 12.6L82.4 12.8L84.9 12.7L87.4 11.9L89.8 11.1L92.3 10.9L94.8 10.7L97.3 10.9L99.9 11.2L102.3 10.6L104.8 10.2L107.3 10.1L108.7 10.1L109.9 29.1L50.7 86.9L49.5 85.6L47.7 83.9L45.9 82.2L44 80.5L42 79L40.4 77L38.7 75.2L36.6 73.7L34.5 72.4L32.4 71L30.4 69.5L28.6 67.7L27.1 65.7L25.7 63.7L24.6 61.4L24.3 58.9L24.3 56.4L23.9 53.9L23.5 51.4L23.5 48.9L23.6 46.4L23.6 43.9L23.9 41.4L23.9 38.9L23.9 36.4L24 33.9L24.1 31.4L23.8 28.9L23.5 26.4L23.4 23.9Z","disc":null},{"id":"FRM","name":"Frostmere","bloc":"CAP","x":158,"y":27.7,"capital":false,"sea":false,"d":"M108.7 10.1L109.8 10L112.3 10.1L114.8 10.1L117.3 10.5L119.8 10.6L122.3 10.4L124.8 10.1L127.3 10L129.8 10L132.3 9.7L134.8 9.4L137.3 9.4L139.8 9.2L142.3 8.8L144.8 8.6L147.3 8.4L149.8 8.7L152.3 9.5L154.8 10.2L157.3 10.3L159.8 10.2L162.3 9.8L164.8 9.4L167.3 9.4L169.8 9.4L172.3 9.2L174.8 9.2L177.3 9.6L179.8 9.9L182.3 10.1L184.8 10.3L187.3 10.5L189.8 10.7L192.3 10.9L194.8 10.9L197.3 10.4L199.8 9.9L202.3 9.8L204.8 9.7L207.3 9.7L208.6 9.7L208 30.1L154 77.6L109.9 29.1Z","disc":null},{"id":"WMS","name":"Wintermast","bloc":"CAP","x":258,"y":30.8,"capital":true,"sea":false,"d":"M208.6 9.7L209.8 9.8L212.3 9.9L214.8 10L217.3 10L219.8 10.1L222.3 10.2L224.8 10.4L227.3 10.3L229.8 10.4L232.3 10.5L234.8 10.5L237.3 10.6L239.8 10.4L242.3 9.5L244.8 9.2L247.3 9.6L249.8 9.9L252.3 10L254.8 10.1L257.3 10.2L259.8 10.2L262.3 9.8L264.8 9.7L267.3 10L269.8 10.1L272.3 10L274.8 10L277.3 10L279.8 10.1L282.3 10.5L284.8 10.6L287.3 10.5L289.8 10.5L292.3 10.7L294.8 10.8L297.3 10.6L299.8 10.9L302.2 11.6L304.6 12.5L306.9 13.5L309.2 14.4L311.5 15.5L312.5 15.9L260.8 88.1L208 30.1Z","disc":null},{"id":"WNM","name":"Wenmoor","bloc":"CAP","x":104,"y":76.9,"capital":false,"sea":false,"d":"M153.2 104.1L152.3 104.2L149.8 104.2L147.3 104.1L144.8 103.9L142.3 103.8L139.8 103.7L137.3 103.7L134.8 103.5L132.3 103.5L129.8 103.5L127.3 103.2L124.8 103L122.3 102.4L119.9 101.6L117.4 101.4L114.9 101.2L112.4 100.9L109.9 100.6L107.4 100.6L104.9 100.9L102.4 100.8L99.9 100.8L97.4 100.4L94.9 99.9L92.4 100L89.9 100.3L87.4 100.2L84.9 100.1L82.4 99.8L79.9 99.4L77.4 99.2L74.9 99.1L72.5 98.6L70 98.2L67.5 97.9L65 97.7L62.4 97.4L59.9 96.8L57.6 95.5L55.6 93.8L54.1 91.7L52.8 89.4L51.2 87.4L50.7 86.9L109.9 29.1L154 77.6Z","disc":null},{"id":"GLM","name":"Glassmoor","bloc":"CAP","x":204,"y":80,"capital":false,"sea":false,"d":"M261.7 101.5L259.7 101.2L257.2 101.3L254.7 101.5L252.2 101.5L249.7 101.2L247.2 101.4L244.7 101.8L242.2 101.8L239.7 101.8L237.2 101.8L234.7 101.8L232.2 102L229.7 102.2L227.2 102.1L224.7 102L222.2 101.9L219.7 101.9L217.2 102.1L214.7 102.6L212.2 102.8L209.7 102.9L207.2 103L204.7 102.7L202.2 102.8L199.7 103.1L197.2 103L194.7 103.1L192.2 103.2L189.7 103.4L187.2 103.6L184.7 103.6L182.2 103.9L179.7 104.1L177.2 104L174.7 103.9L172.2 103.7L169.7 103.6L167.2 103.7L164.7 103.8L162.2 103.9L159.7 104L157.2 104L154.7 104.1L153.2 104.1L154 77.6L208 30.1L260.8 88.1Z","disc":null},{"id":"KLM","name":"Kellmark","bloc":"CAP","x":316,"y":72.3,"capital":false,"sea":false,"d":"M312.5 15.9L313.8 16.4L316.2 17.1L318.6 17.8L321.1 18.3L323.6 18.7L326 19.4L328.5 19.9L331 20.1L333.4 20.9L335.6 22.3L337.9 23.2L340.3 23.8L342.7 24.5L345 25.5L347.3 26.6L349.4 28.1L351.3 29.6L352.8 31.3L354 33.3L354.6 35.7L355.2 38.1L355.9 40.5L356.4 42.9L356.8 45.4L357.3 47.8L357.8 50.3L358.3 52.8L358.8 55.2L359.1 57.7L359.2 60.2L359.4 62.7L359.7 65.2L360.1 67.7L360.6 70.1L361.4 72.5L362.7 74.8L363.6 77.2L364.1 79.7L364.1 82.4L362.7 84.9L360.6 86.4L358.3 87L355.8 87.5L353.4 88.1L351 88.8L348.6 89.6L346.2 90.3L343.7 90.7L341.3 91.3L338.9 92.2L336.5 92.8L334.1 93.4L331.7 94L329.3 94.7L326.7 94.8L324.1 94.5L321.6 94.6L319.1 95.1L316.7 95.7L314.2 96.1L311.8 97L309.5 98.2L307.1 98.9L304.7 99.5L302.2 100.1L299.8 100.5L297.3 101L294.7 101.3L292.2 101.3L289.7 101L287.2 100.8L284.7 100.7L282.2 100.6L279.7 100.4L277.2 100.5L274.7 100.6L272.2 100.9L269.7 101.4L267.2 101.6L264.7 101.7L262.2 101.6L261.7 101.5L260.8 88.1Z","disc":null},{"id":"VSY","name":"Vessary","bloc":"HMR","x":38,"y":135.4,"capital":false,"sea":false,"d":"M9.2 119.7L9.8 117.2L11.3 115.1L13.6 114L16.1 113.8L18.6 114L21.1 114.1L23.6 113.7L26.1 113.3L28.6 113L31.1 112.9L33.6 113L36.1 113.1L38.6 112.8L41.1 112.4L43.6 112.3L46.1 112.3L48.6 112.6L51.1 112.8L53.6 112.9L56.1 113L58.6 112.4L61.1 111.8L63.6 111.9L66.1 112.1L68.6 111.6L69.5 111.5L72.6 155.7L60.4 167.6L8.1 160.2L8.4 158.9L8.7 156.4L8.9 153.9L9 151.4L9.1 148.9L9.4 146.5L9.7 144L9.6 141.5L9.4 138.9L9.2 136.4L9 133.9L8.9 131.4L8.9 128.9L9.3 126.4L9.7 123.9L9.5 121.4Z","disc":null},{"id":"RMH","name":"Rimeholt","bloc":"HMR","x":104,"y":130.8,"capital":false,"sea":false,"d":"M69.5 111.5L71 111.3L73.6 111.7L76.1 112.1L78.6 112.1L81.1 112L83.6 111.8L86.1 111.6L88.6 111.4L91.1 111.3L93.6 111.4L96.1 111.6L98.6 111.4L101.1 111.1L103.6 111.4L106.1 111.6L108.6 111.6L111.1 111.8L113.6 111.9L116.1 111.9L118.6 111.6L121.1 111.2L123.5 111.6L125.4 112.6L126.8 114.1L127.4 116.2L128 118.5L128.7 120.9L129.8 123.3L130.7 125.7L131.1 128.1L131.1 130.6L130.7 133.2L130.2 135.8L130.2 138.3L130.5 140.8L131.2 143.2L131.9 145.7L132.2 148.2L132.4 150.6L132.8 153.1L133.1 155.6L133 158.1L132.8 160.5L132.9 163L133 165.5L132.7 167.7L72.6 155.7Z","disc":null},{"id":"QLN","name":"Quillon","bloc":"HMR","x":30,"y":192.3,"capital":false,"sea":false,"d":"M9.2 227.2L9.1 226.2L8.8 223.7L8.5 221.2L8.3 218.8L8.1 216.3L7.9 213.8L7.4 211.3L7 208.8L6.5 206.4L6 203.9L5.9 201.4L5.8 198.9L5.3 196.4L4.8 193.9L5.1 191.3L5.6 188.8L6.2 186.3L6.8 183.9L7.1 181.4L7.1 178.9L7.1 176.4L7 173.9L6.6 171.3L6.3 168.8L6.6 166.3L7 163.9L7.7 161.4L8.1 160.2L60.4 167.6L61.7 218.7Z","disc":null},{"id":"EDV","name":"Edda Vale","bloc":"HMR","x":92,"y":190.8,"capital":true,"sea":false,"d":"M132.7 167.7L132.6 168L132.4 170.5L132.7 173L132.9 175.5L132.6 178L132.2 180.5L131.9 183L131.5 185.4L131.2 187.9L131 190.4L130.6 192.9L130.3 195.4L129.9 197.8L129.5 200.3L129.6 202.8L129.9 205.4L129.7 207.9L129.6 210.2L73 228.1L61.7 218.7L60.4 167.6L72.6 155.7Z","disc":null},{"id":"ASK","name":"Ashkettle","bloc":"HMR","x":40,"y":253.8,"capital":false,"sea":false,"d":"M77.7 281.6L75.7 281.6L73.2 281.6L70.7 281.2L68.2 280.8L65.7 280.4L63.3 280L60.8 279.8L58.3 279.6L55.8 279.5L53.3 279.1L50.9 278.1L48.5 277.1L46 276.8L43.5 276.8L41 276.5L38.5 276.3L36 276.6L33.5 276.6L31 276.2L28.6 275.6L26.1 275.3L23.6 275.1L21.1 274.6L18.6 274.3L16.2 274.1L13.8 273.1L11.8 271.3L10.7 268.8L10.5 266.2L10.5 263.7L10.7 261.2L10.8 258.7L10.5 256.2L10 253.7L10 251.2L10.1 248.7L10 246.2L9.8 243.7L9.6 241.2L9.5 238.7L9.6 236.2L9.8 233.7L9.7 231.2L9.4 228.7L9.2 227.2L61.7 218.7L73 228.1Z","disc":null},{"id":"MRD","name":"Morrow Downs","bloc":"HMR","x":110,"y":247.7,"capital":false,"sea":false,"d":"M129.6 210.2L129.6 210.4L129.4 212.9L129.1 215.3L128.7 217.8L128.4 220.3L128.6 222.8L129.1 225.2L129.1 227.7L129.1 230.2L129.3 232.8L129.5 235.3L130.1 237.7L130.7 240.1L131.3 242.6L131.9 245L132.3 247.5L132.7 249.9L132.8 252.5L132.8 255L133.5 257.4L134.1 259.8L134.3 262.3L134.5 264.8L135.2 267.3L135.7 269.8L134.7 272.3L132.7 273.8L130.4 274.9L127.9 275.5L125.4 275.4L122.8 275.3L120.3 275.5L117.9 275.8L115.4 276.4L113 277.1L110.6 277.9L108.1 278.6L105.7 279.1L103.2 279.2L100.6 278.9L98 278.5L95.5 278.4L93 278.7L90.6 279.5L88.2 280.4L85.8 281.1L83.3 281.6L80.8 281.7L78.2 281.6L77.7 281.6L73 228.1Z","disc":null},{"id":"GUL","name":"Gullrest","bloc":"SCT","x":176,"y":147.7,"capital":false,"sea":true,"d":null,"disc":{"x":176,"y":147.7,"r":21}},{"id":"DRF","name":"Driftholm","bloc":"SCT","x":226,"y":143.1,"capital":false,"sea":true,"d":null,"disc":{"x":226,"y":143.1,"r":21}},{"id":"TRN","name":"Tern Isle","bloc":"SCT","x":172,"y":198.5,"capital":false,"sea":true,"d":null,"disc":{"x":172,"y":198.5,"r":21}},{"id":"LNK","name":"Lantern Key","bloc":"SCT","x":222,"y":198.5,"capital":true,"sea":true,"d":null,"disc":{"x":222,"y":198.5,"r":21}},{"id":"PBB","name":"Pebbleby","bloc":"SCT","x":178,"y":249.2,"capital":false,"sea":true,"d":null,"disc":{"x":178,"y":249.2,"r":21}},{"id":"SHL","name":"Shoal","bloc":"SCT","x":228,"y":249.2,"capital":false,"sea":true,"d":null,"disc":{"x":228,"y":249.2,"r":21}},{"id":"KLP","name":"Kelpmouth","bloc":"SND","x":298,"y":132.3,"capital":false,"sea":false,"d":"M264.8 116.6L265.5 114.1L267.2 111.9L269.7 110.6L272.3 110.3L274.8 110.6L277.3 110.9L279.8 111.2L282.3 111.6L284.8 111.7L287.3 111.8L289.8 111.7L292.3 111.4L294.8 111.4L297.3 111.5L299.8 111.4L302.3 111.6L304.8 112.1L307.3 112.6L309.8 112.7L312.3 112.6L314.8 112.8L317.3 112.7L319.8 112.4L322.3 112.2L324.8 112L327.3 111.9L329.8 111.9L330 112L330 153L314.5 165L265 158.4L265.2 157.4L265.6 154.9L265.8 152.4L265.7 149.9L265.4 147.4L265.1 144.9L265 142.4L265.1 139.9L265.2 137.4L265.5 134.9L265.9 132.4L266.3 129.9L266.6 127.4L266.7 124.9L266.2 122.4L265.5 119.9L265 117.4Z","disc":null},{"id":"BRK","name":"Brackwater","bloc":"SND","x":362,"y":132.3,"capital":false,"sea":false,"d":"M330 112L332.3 112L334.8 112L337.3 112L339.8 112L342.3 112.1L344.8 112.4L347.3 112.6L349.8 112.6L352.3 112.7L354.8 112.8L357.3 112.9L359.8 113.4L362.3 113.6L364.8 113.7L367.2 113.8L369.7 113.8L372.2 113.9L374.8 113.7L377.3 113.7L379.7 114.3L381.7 116.1L382.4 118.6L382.6 121.1L382.9 123.6L383.1 126.1L383.1 128.6L383.1 131.1L383.3 133.6L383.2 136.1L383.1 138.6L382.9 141.1L382.3 143.7L382.2 146.2L382.9 148.6L383.6 151.1L384.3 153.6L384.8 156.1L384.8 158.6L384.8 161.1L385 163.6L385.2 166.1L385.4 168.5L385.5 171L385.5 172.5L330 153Z","disc":null},{"id":"LTL","name":"Lintel","bloc":"SND","x":290,"y":192.3,"capital":false,"sea":false,"d":"M267.2 226.5L267.4 224.7L267 222.2L266.4 219.8L266.1 217.3L265.9 214.8L265.6 212.3L265 209.9L264.3 207.4L263.7 204.9L263.4 202.4L263.6 199.9L263.2 197.4L262.8 194.9L263 192.4L263.2 189.9L263.1 187.3L263.1 184.8L263.7 182.4L264.2 179.9L264.3 177.4L264.2 174.9L264.6 172.4L265 169.9L264.9 167.4L264.9 164.9L264.8 162.4L264.7 159.9L265 158.4L314.5 165L317.7 220Z","disc":null},{"id":"TLM","name":"Tallowmere","bloc":"SND","x":342,"y":189.2,"capital":true,"sea":false,"d":"M385.5 172.5L385.5 173.5L385.6 176L385.8 178.5L385.9 181L386.2 183.5L386.2 186L385.8 188.6L385.5 191.1L385.3 193.6L385.3 196L385.3 198.5L385.3 201L385.2 203.5L385.1 206L385.2 208.5L385.2 211L385.4 213.5L385.4 215.5L328.5 227.3L317.7 220L314.5 165L330 153Z","disc":null},{"id":"DNM","name":"Dunmarrow","bloc":"SND","x":298,"y":253.8,"capital":false,"sea":false,"d":"M325.7 280.5L323.5 280.3L321 280.3L318.4 280.5L315.9 280.1L313.5 279.2L311 278.9L308.5 278.9L306 278.7L303.5 278.6L301 278L298.6 277.1L296.2 276.6L293.7 276.3L291.3 275.7L288.8 275.1L286.4 274.5L284 273.8L281.5 273.3L279.1 272.9L276.6 272.5L274.3 272.1L272.2 271.2L270.3 269.6L269.5 267.2L269.3 264.7L269 262.2L268.5 259.7L268.2 257.2L268.1 254.7L267.7 252.3L267.2 249.8L267.4 247.3L267.8 244.7L267.8 242.2L267.7 239.7L267.4 237.2L267 234.8L267 232.3L267 229.8L267.2 227.2L267.2 226.5L317.7 220L328.5 227.3Z","disc":null},{"id":"ORN","name":"Orrinth","bloc":"SND","x":356,"y":256.9,"capital":false,"sea":false,"d":"M385.4 215.5L385.3 216L384.7 218.5L384.5 221L384.8 223.5L384.6 226L384 228.5L383.6 231L383.1 233.5L383.2 236L383.9 238.5L384.2 241L384.1 243.5L384 246L384.2 248.5L384 251L383.7 253.5L383.4 256L383.1 258.5L382.7 261L382.4 263.5L381.9 265.9L381.3 268.4L381 270.8L380.6 272.9L379.7 274.7L378.1 276L375.8 276.5L373.4 276.3L370.9 276.6L368.4 277.2L365.9 277.7L363.4 278.1L360.9 278.2L358.4 278.1L355.9 277.9L353.4 277.7L350.9 277.6L348.4 277.7L345.9 278.1L343.4 278.8L341 279.3L338.5 279.5L336 279.6L333.5 279.7L331 280L328.5 280.3L326 280.5L325.7 280.5L328.5 227.3Z","disc":null},{"id":"BRN","name":"Brindle Coast","bloc":"FRS","x":60,"y":321.5,"capital":false,"sea":false,"d":"M18.6 307.5L18.5 305.1L19.3 302.6L21.6 301.4L24.1 301L26.6 300.8L29.1 300.5L31.6 299.9L34.1 299.3L36.6 299.3L39.1 299.4L41.6 299.2L44.1 299.2L46.6 299.6L49.1 299.8L51.6 299.7L54.1 299.4L56.6 299.2L59.1 299L61.6 298.9L64.1 298.8L66.6 298.4L69 297.8L71.5 297.4L74 297.1L76.5 296.4L78.9 296L81.4 295.8L83.9 295.6L86.4 295.6L88.9 295.6L91.4 295.7L94 296.1L96.5 296.2L99 296.2L101.5 296.6L104 296.6L106.5 296.3L109 295.9L111.5 295.3L113.9 294.9L116.4 294.6L118.9 294.3L121.4 294.5L123.9 294.6L124.9 294.5L125.5 308.3L29.2 385L27.8 385L25.3 384.9L22.9 384.4L20.8 382.9L19.6 380.6L19.3 378L19.2 375.5L19.1 373L19 370.5L18.9 368L19.1 365.5L19.5 362.9L19.9 360.4L20.2 357.9L20.3 355.4L19.9 352.9L19.5 350.4L19.6 347.9L19.7 345.4L19.7 342.9L19.6 340.4L19.4 337.9L19.1 335.5L18.8 333L18.7 330.5L18.8 328L18.9 325.5L18.5 323L18.1 320.5L18 318L17.9 315.5L17.9 313L18 310.5L18.3 308Z","disc":null},{"id":"MRM","name":"Marram","bloc":"FRS","x":192,"y":315.4,"capital":true,"sea":false,"d":"M124.9 294.5L126.4 294.2L128.9 293.8L131.4 293.5L133.9 293.2L136.4 293L138.9 292.8L141.3 292.5L143.8 292.5L146.4 292.9L148.9 293.3L151.4 293.4L153.9 293.2L156.4 293L158.9 292.7L161.4 292.7L163.9 292.7L166.4 292.4L168.9 292.3L171.4 292.7L173.9 292.9L176.4 292.7L178.9 292.5L181.4 292.5L183.9 292.2L186.3 291.6L188.8 291.3L191.3 290.9L193.8 290.9L196.3 291.3L198.8 291.8L201.4 292.4L203.9 292.6L206.4 292.2L208.9 291.8L211.4 291.9L213.9 292L216.4 291.8L218.9 291.7L221.3 291.5L223.8 291.4L226.3 291.4L228.8 291.4L231.4 291.6L233.9 291.8L236.4 292.1L238.9 292.2L241.4 292.2L243.9 292L246.3 291.5L248.8 291.2L251.3 291.4L253.8 291.7L256.3 292L258.8 292.3L259.2 292.3L258.2 314.9L244.6 341.1L148.1 347.7L125.5 308.3Z","disc":null},{"id":"FLE","name":"Floe End","bloc":"FRS","x":324,"y":321.5,"capital":false,"sea":false,"d":"M259.2 292.3L261.3 292.2L263.8 292.3L266.3 292.6L268.8 292.7L271.3 292.8L273.8 292.7L276.3 292.8L278.8 292.9L281.3 292.8L283.8 293.1L286.3 293.5L288.7 293.9L291.2 294.5L293.7 295L296.1 295.2L298.6 295.6L301.1 295.9L303.6 296.1L306 296.9L308.5 297.3L311 297L313.5 297.1L316 297.8L318.5 298L321 297.7L323.6 297.4L326.1 296.9L328.6 297L331.1 297.2L333.6 297.4L336.1 297.8L338.6 298.1L341 298.4L343.5 298.8L346 299L348.5 299.4L350.9 299.9L353.4 300.2L355.9 300.6L358.4 301L360.8 301.7L363.1 302.2L365.2 302.9L366.8 304.3L368 306.3L368.6 308.7L369.1 311.2L369.4 313.7L369.5 316.2L369.4 318.7L369 321.2L368.8 323.7L369 326.2L369.2 328.7L369.3 331.2L369.4 333.7L369.4 336.2L369.5 338.7L370.2 341.2L370.7 343.7L371.2 346.1L371.7 348.6L372.2 351.1L372.2 353.6L371.9 356.1L371.6 358.6L371.2 361.2L371.2 363.7L371.6 366.2L372.3 368.6L373.4 371L374 373.5L374.1 376L374.2 378.5L374.4 381.1L373.9 382.8L258.2 314.9Z","disc":null},{"id":"ICW","name":"Iceward","bloc":"FRS","x":98,"y":369.2,"capital":false,"sea":false,"d":"M145.9 395.4L144.7 395.4L142.2 395.3L139.7 395.1L137.2 394.8L134.7 394.8L132.2 394.9L129.7 394.7L127.2 394.5L124.7 394.3L122.3 394L119.8 394.1L117.3 394.3L114.8 394.5L112.2 394.9L109.7 394.9L107.2 394.5L104.7 394.4L102.2 394.2L99.8 393.8L97.3 393.5L94.8 393L92.3 392.7L89.9 392.2L87.4 391.7L84.9 391.4L82.5 391.1L80 390.9L77.5 390.7L75 390.2L72.6 389.6L70.1 389.5L67.5 389.5L65.1 389.1L62.6 388.5L60.1 388.1L57.7 387.6L55.2 387.3L52.7 387.1L50.2 386.9L47.7 386.8L45.2 386.5L42.8 386L40.3 385.9L37.8 385.9L35.3 385.6L32.8 385.2L30.3 385L29.2 385L125.5 308.3L148.1 347.7Z","disc":null},{"id":"SLW","name":"Saltwhite","bloc":"FRS","x":196,"y":373.8,"capital":false,"sea":false,"d":"M247.1 395.9L244.7 396.1L242.2 396.2L239.7 395.8L237.2 395L234.7 394.5L232.2 394.5L229.7 394.4L227.2 394.4L224.7 394.5L222.2 394.7L219.7 394.6L217.2 394.3L214.7 394.5L212.2 394.9L209.7 395L207.2 394.8L204.7 394.9L202.2 395.3L199.7 395.7L197.2 395.9L194.7 396.3L192.2 396.5L189.7 396.6L187.2 396.6L184.7 396.6L182.2 396.6L179.7 396.4L177.2 395.7L174.7 395.3L172.2 395L169.7 395L167.2 395.4L164.7 395.3L162.2 395.2L159.7 394.8L157.2 394.3L154.7 394.5L152.2 395L149.7 395.2L147.2 395.3L145.9 395.4L148.1 347.7L244.6 341.1Z","disc":null},{"id":"HRT","name":"Hearth","bloc":"FRS","x":296,"y":369.2,"capital":false,"sea":false,"d":"M373.9 382.8L373.6 383.7L371.7 385.5L369.4 386.3L366.9 386.7L364.4 387L361.9 386.9L359.4 387.1L356.9 387.6L354.5 387.9L352 388.2L349.5 388.5L347 388.9L344.5 389.1L342 388.9L339.5 388.9L337 389.3L334.5 389.3L332 389.3L329.5 389.5L327 389.8L324.5 390.1L322.1 390.4L319.6 390.6L317.1 390.8L314.6 391L312.1 391.2L309.6 391.3L307.1 391.6L304.6 391.6L302.1 391.3L299.5 391.1L297 391L294.5 391.1L292.1 391.5L289.6 391.9L287.1 392.4L284.6 392.9L282.2 393.3L279.7 393.4L277.1 393.1L274.6 393.2L272.1 393.4L269.6 393.5L267.1 393.5L264.6 393.8L262.2 394.1L259.7 394.5L257.2 395L254.7 395.2L252.2 395.1L249.7 395.5L247.2 395.9L247.1 395.9L244.6 341.1L258.2 314.9Z","disc":null}],"coasts":{"CAP":"M24 16.9L120 9.2L300 10.8L354 29.2L364 86.2L300 100L150 104.6L60 96.9L24 63.1Z","HMR":"M10 113.8L128 110.8L134 158.5L128 223.1L136 273.8L80 281.5L12 273.8L6 192.3Z","SND":"M266 110.8L382 113.8L386 193.8L382 276.9L318 280L270 272.3L264 193.8Z","FRS":"M18 301.5L150 292.3L250 290.8L368 301.5L374 386.2L250 395.4L120 395.4L20 384.6Z"},"joins":[["NWK","FRM"],["FRM","WMS"],["NWK","WNM"],["FRM","WNM"],["FRM","GLM"],["WMS","GLM"],["WMS","KLM"],["WNM","GLM"],["GLM","KLM"],["VSY","RMH"],["VSY","QLN"],["VSY","EDV"],["RMH","EDV"],["QLN","EDV"],["QLN","ASK"],["EDV","ASK"],["EDV","MRD"],["ASK","MRD"],["GUL","DRF"],["GUL","TRN"],["GUL","LNK"],["DRF","LNK"],["TRN","LNK"],["TRN","PBB"],["LNK","PBB"],["LNK","SHL"],["PBB","SHL"],["KLP","BRK"],["KLP","LTL"],["KLP","TLM"],["BRK","TLM"],["LTL","TLM"],["LTL","DNM"],["TLM","DNM"],["TLM","ORN"],["DNM","ORN"],["BRN","MRM"],["MRM","FLE"],["BRN","ICW"],["MRM","ICW"],["MRM","SLW"],["MRM","HRT"],["FLE","HRT"],["ICW","SLW"],["SLW","HRT"]],"lanes":[["NWK","VSY"],["KLM","KLP"],["GLM","DRF"],["RMH","GUL"],["MRD","TRN"],["ASK","BRN"],["SHL","LTL"],["PBB","MRM"],["ORN","FLE"]]};
+const NAME = Object.fromEntries(GEO.regions.map(r => [r.id, r.name]));
+const BY = Object.fromEntries(GEO.regions.map(r => [r.id, r]));
+const HOME = 'EDV';
+function mapSVG(state, opts = {}) {
+  const fill = { calm: 'var(--land)', tense: '#5A4A28', fight: '#6B2622' };
+  const edge = { calm: 'var(--land-edge)', tense: 'var(--amber)', fight: 'var(--red)' };
+  let s = `<svg viewBox="0 0 390 520" role="img" aria-label="The world map, fictional">
+  <defs><pattern id="hatch${opts.id||''}" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="#6B2622"/><rect width="2.6" height="7" fill="#B23A33"/></pattern></defs>
+  <rect width="390" height="520" fill="var(--sea)"/>`;
+  for (const [a, b] of GEO.lanes) { const A = BY[a], B = BY[b]; s += `<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="#24313F" stroke-width="1.2" stroke-dasharray="3 4"/>`; }
+  for (const d of Object.values(GEO.coasts)) s += `<path d="${d}" fill="var(--land)" stroke="var(--land-edge)" stroke-width="1.5"/>`;
+  for (const r of GEO.regions) {
+    const st = state[r.id] || 'calm';
+    const f = st === 'fight' ? `url(#hatch${opts.id||''})` : fill[st];
+    if (r.disc) s += `<circle cx="${r.disc.x}" cy="${r.disc.y}" r="${r.disc.r}" fill="${f}" stroke="${edge[st]}" stroke-width="${st==='calm'?1.2:1.8}"/>`;
+    else if (r.d) s += `<path d="${r.d}" fill="${f}" stroke="${edge[st]}" stroke-width="${st==='calm'?1:1.8}" stroke-linejoin="round"/>`;
+  }
+  for (const r of GEO.regions) {
+    const st = state[r.id] || 'calm';
+    if (r.capital) s += `<circle cx="${r.x}" cy="${r.y}" r="2.6" fill="${st==='calm'?'#9AA8B6':'#F2E9DA'}"/>`;
+  }
+  const h = BY[HOME];
+  s += `<g transform="translate(${h.x - 1} ${h.y - 16})"><rect x="0" y="0" width="1.6" height="18" fill="#F2E9DA"/><path d="M1.6 0.5 L12 3.6 L1.6 7.2 Z" fill="#F2E9DA"/></g>`;
+  for (const bb of (opts.bubbles || [])) {
+    const r = BY[bb.at]; const x = r.x + (bb.dx || 0), y = r.y + (bb.dy || 0);
+    const col = bb.kind === 'amber' ? 'var(--amber)' : bb.kind === 'red' ? 'var(--red)' : 'var(--blue)';
+    const C = 2 * Math.PI * 15;
+    s += `<g><circle cx="${x}" cy="${y}" r="15" fill="#0B1016" stroke="${col}" stroke-width="1.2" opacity=".96"/>
+      <circle cx="${x}" cy="${y}" r="15" fill="none" stroke="${col}" stroke-width="3" stroke-dasharray="${C * bb.t} ${C}" transform="rotate(-90 ${x} ${y})" stroke-linecap="butt"/>
+      <text x="${x}" y="${y + 4.5}" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="700" font-size="13" fill="${col}">${bb.g}</text></g>`;
+  }
+  if (opts.label) { const r = BY[opts.label.at]; s += `<rect x="${r.x - 46}" y="${r.y + 22}" width="92" height="18" rx="3" fill="#0B1016" stroke="#2A3644"/><text x="${r.x}" y="${r.y + 35}" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="600" font-size="11" letter-spacing=".08" fill="#E6EBF0">${opts.label.text}</text>`; }
+  return s + '</svg>';
+}
+const DAY21 = { FRM: 'fight', WNM: 'fight', GLM: 'fight', NWK: 'fight', KLP: 'fight', DRF: 'fight', WMS: 'tense', KLM: 'tense', GUL: 'tense', LNK: 'tense', VSY: 'tense', RMH: 'tense' };
+function topBar(pts, day, speed) {
+  return `<div class="ab top"><div class="pts">Influence <span class="n">${pts}</span></div><div class="day">DAY ${day}</div><div class="speed"><span class="${speed==='pause'?'on':''}">II</span><span class="${speed==='play'?'on':''}">&gt;</span><span class="${speed==='fast'?'on':''}">&gt;&gt;</span></div></div>`;
+}
+function race(warN, treaty) {
+  return `<div class="ab race"><div class="bar war"><span>War</span><div class="track"><div class="fill" style="width:${warN / 20 * 100}%"></div></div><span class="v">${warN} of 20</span></div><div class="bar treaty"><span>Treaty</span><div class="track"><div class="fill" style="width:${treaty}%"></div></div><span class="v">${treaty}%</span></div></div>`;
+}
+function ticker(items) { return `<div class="ab ticker"><span class="lbl">Live</span>${items.map(t => `<span>${t}</span>`).join('<span class="dot">·</span>')}</div>`; }
+function tabs(on) { return `<div class="tabs">${['World', 'Policy', 'Treaty'].map(t => `<span class="${t.toLowerCase()===on?'on':''}">${t}</span>`).join('')}</div>`; }
+const homeBar = `<div class="ab home"><i></i></div>`;
+const TICK = ['Federation armour crosses into Glassmoor', 'Talks in Marram enter a third day', 'The Shoal strait reopens to tankers'];
+
+// Frame 1: the map
+document.getElementById('f1').innerHTML = topBar(42, 21, 'play') + race(6, 38) +
+  `<div class="ab map">${mapSVG(DAY21, { id: 'a', bubbles: [{ at: 'TLM', kind: 'amber', g: '+', t: .7, dx: 10, dy: -8 }, { at: 'LNK', kind: 'red', g: '!', t: .45, dx: 0, dy: -4 }, { at: 'MRM', kind: 'blue', g: 'T', t: .85, dx: 14, dy: -10 }], label: { at: 'LNK', text: 'LANTERN KEY · 6 DAYS' } })}</div>` +
+  ticker(TICK) +
+  `<div class="ab panel">${tabs('world')}<div class="pbody">Fighting in <b>6</b> regions, tense in <b>6</b>. The Federation holds the Cap and has crossed to Driftholm. Your border at Vessary is tense. <span class="mut">Nothing in Highmarch is fighting.</span>
+  <div class="legend"><span><i style="background:var(--land)"></i>Calm</span><span><i style="background:#5A4A28;border:1px solid var(--amber)"></i>Tense</span><span><i style="background:#B23A33"></i>Fighting</span></div></div></div>` + homeBar;
+
+// Frame 2: the phone
+document.getElementById('f2').innerHTML = topBar(42, 21, 'pause') + race(6, 38) +
+  `<div class="ab map">${mapSVG(DAY21, { id: 'b', bubbles: [{ at: 'SHL', kind: 'red', g: '!', t: .3, dx: 0, dy: -4 }] })}</div>` + ticker(TICK) +
+  `<div class="ab panel">${tabs('world')}<div class="pbody">Fighting in <b>6</b> regions, tense in <b>6</b>.</div></div>` + homeBar +
+  `<div class="ab veil"></div><div class="ab paused"><span>Paused · 03:14</span></div>
+   <div class="ab call"><div class="who"><b>The phone</b><span>Tomas Reyde · Admiral</span></div>
+   <div class="msg">Federation ships are sitting across the Shoal strait. Our tankers are turning back. The crews want orders.</div>
+   <div class="opt"><div class="a">Escort the tankers through</div><div class="h"><em>−10 influence</em> · Shoal stays open · Lintel turns tense</div></div>
+   <div class="opt"><div class="a">Reroute and talk</div><div class="h"><em>Treaty +4%</em> · slower · the queue grows for a week</div></div>
+   <div class="opt"><div class="a">Call their admiral directly</div><div class="h"><em>60% it works</em> · if not, Shoal falls tonight</div></div></div>`;
+
+// Frame 3: the tree
+const node = (n, c, cls) => `<div class="node ${cls||''}"><span>${n}</span><span class="c">${c}</span></div>`;
+document.getElementById('f3').innerHTML = topBar(42, 21, 'pause') + race(6, 38) +
+  `<div class="ab map">${mapSVG(DAY21, { id: 'c' })}</div>` +
+  `<div class="ab sheet">${tabs('policy')}<div class="tree">
+    <div class="col d"><h4>Diplomacy</h4>${node('Hotline','✓','got')}${node('Back-channel','✓','got')}${node('Envoy corps','25','sel')}${node('Summit','40','')}${node('Ceasefire talks','60','')}${node('Grand bargain','90','')}</div>
+    <div class="col t"><h4>Deterrence</h4>${node('Alert level','✓','got')}${node('Fleet posture','20','can')}${node('Forward brigade','30','')}${node('Border guard','35','')}${node('Air cover','55','')}${node('Last warning','80','')}</div>
+    <div class="col h"><h4>Home front</h4>${node('Press office','✓','got')}${node('Intelligence','20','can')}${node('Civil defence','25','can')}${node('Rationing','30','')}${node('Cyber shield','45','')}${node('War chest','70','')}</div></div>
+    <div class="rule"><b>Envoy corps</b> <span class="cost">25 influence</span><br>Talk bubbles appear twice as often. The treaty moves faster than the war.</div>
+    <div class="buy">BUY · 25 OF 42</div></div>` + homeBar;
+
+// Frame 4: the treaty
+const bloc = (nm, want, st, cls) => `<div class="bloc"><div><div class="nm">${nm}</div><div class="want">${want}</div></div><span class="st ${cls||''}">${st}</span></div>`;
+document.getElementById('f4').innerHTML = topBar(42, 21, 'pause') + race(6, 38) +
+  `<div class="ab map">${mapSVG(DAY21, { id: 'd' })}</div>` +
+  `<div class="ab sheet">${tabs('treaty')}<div class="pbody" style="padding-bottom:0"><div class="bar treaty" style="grid-template-columns:1fr 56px"><div class="track"><div class="fill" style="width:38%"></div></div><span class="v">38%</span></div></div>
+    <div class="pbody">
+    ${bloc('Highmarch · the Republic', 'You. Signed on day 1.', 'Signed', 'ok')}
+    ${bloc('The Scatter', 'Wanted the Shoal strait open. It is.', 'Signed', 'ok')}
+    ${bloc('The Sound', 'Wants the sanctions on Tallowmere lifted.', '20 ◆', 'cost')}
+    ${bloc('Farsouth', 'Wants a seat at a summit. Buy Summit in Diplomacy.', 'Waiting', '')}
+    ${bloc('The Cap · the Federation', 'Will not sign while it is winning. The fighting in the Cap must stop first.', 'Fighting', 'no')}
+    </div></div>` + homeBar;
+
+// Fit every phone to its column.
+function fit() {
+  for (const box of document.querySelectorAll('.phone-fit')) {
+    const w = box.clientWidth; const s = Math.min(1, w / 390);
+    const ph = box.firstElementChild; ph.style.transform = `scale(${s})`; box.style.height = `${844 * s}px`;
+  }
+}
+addEventListener('resize', fit); fit();
+</script>
