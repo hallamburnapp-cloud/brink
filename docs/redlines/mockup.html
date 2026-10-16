@@ -1,0 +1,346 @@
+<title>BRINK: Treaty Against War</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a situation-room briefing. Four phone screens in a grid, then one column of running text about 65
+   characters wide. Single dark theme by choice: the look itself is what is being proposed. */
+:root{
+  --bg:#0B1016; --panel:#121A24; --panel-2:#18222E; --rule:#2A3644; --ink:#E6EBF0; --muted:#8A98A8; --faint:#55636F;
+  --red:#D6453D; --amber:#E0A33B; --blue:#4C9BE8; --green:#4BB37A; --sea:#0A1119; --land:#2B3744; --land-edge:#4A5868;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif; --body:"Barlow",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+html,body{height:auto}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;margin:0;
+  padding-block:24px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:40px}
+.wrap>*{min-width:0}
+.eyebrow{font-family:var(--display);font-weight:600;letter-spacing:.12em;text-transform:uppercase;font-size:13px;color:var(--muted)}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(40px,7vw,64px);line-height:1;margin:6px 0 10px;letter-spacing:.01em;text-wrap:balance}
+h2{font-family:var(--display);font-weight:600;font-size:26px;line-height:1.1;margin:0 0 10px;letter-spacing:.02em;text-wrap:balance}
+p{margin:0 0 12px;max-width:68ch}
+.lead{font-size:19px;max-width:62ch}
+.prose{display:grid;grid-template-columns:minmax(0,1fr);gap:28px;max-width:760px}
+.prose>*{min-width:0}
+ul,ol{margin:0 0 12px;padding-left:20px;max-width:68ch} li{margin-bottom:6px}
+.k{font-family:var(--mono);font-size:.9em;font-variant-numeric:tabular-nums}
+.mut{color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.35}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--rule)}
+th{font-family:var(--display);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.tbl{overflow-x:auto}
+.screens{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:28px 24px;align-items:start}
+.shot{display:grid;gap:10px;min-width:0;margin:0}
+.shot figcaption{font-size:14px;color:var(--muted);max-width:40ch} .shot figcaption b{color:var(--ink);font-weight:500}
+.phone-fit{width:100%;max-width:390px;position:relative;overflow:hidden;height:844px}
+.phone{width:390px;height:844px;background:var(--bg);border:1px solid var(--rule);border-radius:28px;overflow:hidden;position:relative;transform-origin:top left;font-family:var(--body)}
+.phone *{box-sizing:border-box}
+.ab{position:absolute}
+.top{left:0;top:0;width:390px;height:60px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 16px 8px;border-bottom:1px solid var(--rule)}
+.pts{display:flex;align-items:baseline;gap:6px;font-family:var(--display);letter-spacing:.08em;text-transform:uppercase;font-size:11px;color:var(--muted)}
+.pts .n{font-family:var(--mono);font-size:20px;color:var(--amber);letter-spacing:0;font-weight:700}
+.day{font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.08em}
+.speed{display:flex;gap:4px}
+.speed span{width:26px;height:22px;border:1px solid var(--rule);border-radius:4px;display:grid;place-items:center;font-size:11px;color:var(--muted);font-family:var(--mono)}
+.speed span.on{background:var(--panel-2);color:var(--ink);border-color:var(--land-edge)}
+.race{left:0;top:60px;width:390px;height:56px;padding:8px 16px;display:grid;gap:7px;border-bottom:1px solid var(--rule)}
+.bar{display:grid;grid-template-columns:92px 1fr 56px;align-items:center;gap:8px;font-family:var(--display);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.bar .track{height:8px;background:var(--panel-2);border-radius:2px;position:relative;overflow:hidden}
+.bar .fill{position:absolute;left:0;top:0;bottom:0;border-radius:2px}
+.bar.war .fill{background:var(--red)} .bar.treaty .fill{background:var(--blue)}
+.bar .v{font-family:var(--mono);font-size:12px;color:var(--ink);text-align:right;letter-spacing:0}
+.map{left:0;top:116px;width:390px;height:520px;background:var(--sea)}
+.map svg{display:block;width:390px;height:520px}
+.ticker{left:0;top:636px;width:390px;height:28px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:14px;padding:0 16px;white-space:nowrap;overflow:hidden;font-size:13px;color:var(--ink)}
+.ticker .lbl{font-family:var(--display);font-size:11px;letter-spacing:.12em;color:var(--red);text-transform:uppercase;flex:none}
+.ticker .dot{color:var(--faint)}
+.panel{left:0;top:664px;width:390px;height:146px;background:var(--panel)}
+.tabs{display:grid;grid-template-columns:1fr 1fr 1.3fr;height:36px;border-bottom:1px solid var(--rule)}
+.tabs span{display:grid;place-items:center;font-family:var(--display);font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.tabs span.on{color:var(--ink);box-shadow:inset 0 -2px 0 var(--ink)}
+.pbody{padding:10px 16px;font-size:14px;line-height:1.4;color:var(--ink)}
+.legend{display:flex;gap:14px;margin-top:8px;font-family:var(--display);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.home{left:0;top:810px;width:390px;height:34px;display:grid;place-items:center}
+.home i{width:134px;height:5px;border-radius:3px;background:var(--rule)}
+.veil{left:0;top:60px;width:390px;height:750px;background:rgba(6,10,15,.62)}
+.call{left:16px;top:150px;width:358px;background:var(--panel);border:1px solid var(--land-edge);border-radius:12px;padding:16px;display:grid;gap:10px;box-shadow:0 18px 50px rgba(0,0,0,.6)}
+.call .who{display:flex;justify-content:space-between;font-family:var(--display);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.call .who b{color:var(--red);font-weight:600}
+.call .msg{font-size:16px;line-height:1.35}
+.call .intel{font-size:12.5px;color:var(--muted);border-left:2px solid var(--blue);padding-left:10px;line-height:1.35}
+.opt{border:1px solid var(--rule);border-radius:8px;padding:9px 12px;display:grid;gap:2px;background:var(--panel-2)}
+.opt .a{font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.02em}
+.opt .h{font-size:12.5px;color:var(--muted)} .opt .h em{font-style:normal;color:var(--amber);font-family:var(--mono);font-size:12px}
+.paused{left:0;top:116px;width:390px;display:grid;place-items:center}
+.paused span{font-family:var(--display);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink);background:var(--panel);border:1px solid var(--rule);padding:3px 10px;border-radius:3px;margin-top:10px}
+.sheet{left:0;top:296px;width:390px;height:514px;background:var(--panel);border-top:1px solid var(--land-edge)}
+.draft{display:grid;gap:8px;padding:10px 12px 0}
+.draft .lede{font-size:13.5px;color:var(--muted);padding:0 2px}
+.card{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;border:1px solid var(--rule);border-radius:8px;padding:7px 11px;background:var(--panel-2)}
+.card .tag{font-family:var(--display);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;padding:3px 6px;border-radius:3px;border:1px solid;margin-top:2px}
+.card .tag.f{color:var(--red);border-color:var(--red)} .card .tag.t{color:var(--blue);border-color:var(--blue)} .card .tag.i{color:var(--green);border-color:var(--green)}
+.card .nm{font-family:var(--display);font-weight:600;font-size:16px;letter-spacing:.02em}
+.card .ru{font-size:13px;line-height:1.3} .card .sy{font-size:12px;color:var(--muted)} .card .sy b{color:var(--amber);font-weight:500}
+.card.sel{border-color:var(--ink)}
+.take{margin:6px 12px 0;height:40px;border-radius:8px;background:var(--amber);color:#1B1507;display:grid;place-items:center;font-family:var(--display);font-weight:700;letter-spacing:.1em;font-size:15px}
+.none{text-align:center;font-family:var(--display);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+.them{padding:8px 16px 0;display:grid;gap:8px}
+.row{display:grid;grid-template-columns:92px 1fr;gap:10px;align-items:start;padding-bottom:7px;border-bottom:1px solid var(--rule);font-size:12.5px;line-height:1.3}
+.row:last-child{border-bottom:0}
+.row .l{font-family:var(--display);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding-top:2px}
+.row .conf{font-family:var(--mono);font-size:11.5px;color:var(--amber)}
+.ladder{display:flex;gap:4px;margin-top:4px}
+.ladder span{flex:1;height:6px;border-radius:2px;background:var(--panel-2)} .ladder span.on{background:var(--red)}
+.ladder-l{display:flex;justify-content:space-between;font-family:var(--display);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-top:3px}
+.foot{color:var(--muted);font-size:14px;border-top:1px solid var(--rule);padding-top:14px}
+.step{left:0;top:116px;width:390px;height:22px;display:flex;align-items:center;justify-content:center;gap:8px;background:#141C27;border-bottom:1px solid var(--rule);font-family:var(--display);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.step b{color:var(--red);font-weight:600}
+.step .next{color:var(--faint);margin-left:10px;letter-spacing:.08em}
+.map{top:138px;height:498px}
+.map svg{height:498px}
+.bar .track .cap{position:absolute;right:0;top:0;bottom:0;width:25%;background:repeating-linear-gradient(135deg,#1E2935 0 3px,#243040 3px 6px)}
+.bar .track .soft{position:absolute;top:0;bottom:0;width:10px;background:linear-gradient(90deg,var(--blue),transparent)}
+.opt .say{font-size:12px;color:var(--faint);margin-top:2px}
+.quip{font-size:12px;color:var(--muted);line-height:1.3} .quip b{color:var(--ink);font-weight:500}
+.wayout{margin-top:4px;border:1px solid var(--blue);border-radius:8px;padding:8px 10px;display:grid;gap:3px;background:var(--panel-2)}
+.wayout .t{font-family:var(--display);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--blue)}
+.wayout .o{font-size:13px} .wayout .o em{font-style:normal;color:var(--amber);font-family:var(--mono);font-size:11.5px}
+.decide li{margin-bottom:10px}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">BRINK · second draft of the redesign, read by three critics before you · nothing is built yet</div>
+    <h1>Treaty against war: the other side thinks</h1>
+    <p class="lead">The first draft was reviewed and found thin: a firefighter against weather, a tree that solves itself in three runs, a treaty you could sign while the world burned. This draft keeps what held up (the two-bar race, the real-time map, plain-word costs, the slice first) and rebuilds the middle. The Federation has a mind of its own, your promises deter only when you are believed, the cabinet is drafted, not climbed. Three independent critics then tore into this draft before you saw it, and their fixes are in. Below: the screen, then the game, then what both reviews said and what changed.</p>
+  </header>
+
+  <section class="screens" id="screens">
+    <figure class="shot">
+      <div class="phone-fit"><div class="phone" id="f1"></div></div>
+      <figcaption><b>The map, day 18.</b> The Federation (their flag on Wintermast) is pushing the Sound: dotted amber where it pushes, hatched red where it has won, grey markers where its forces are heading next. Your promises are white outlines marked WE DEFEND; the anchor at Lantern Key is your fleet. The ring on Lintel is a test of a promise, and the phone has rung. Two bars race, and under them one word says how far up the ladder they are.</figcaption>
+    </figure>
+    <figure class="shot">
+      <div class="phone-fit"><div class="phone" id="f2"></div></div>
+      <figcaption><b>03:14, the phone.</b> The clock stops. They are at a line you drew. The Intel Director says what she knows and how sure she is; your cabinet weighs in. Back it, back down, or wait: each says what it costs and what it does, with the uncertainty that really exists. If you back it and they do not move, there is a second round.</figcaption>
+    </figure>
+    <figure class="shot">
+      <div class="phone-fit"><div class="phone" id="f3"></div></div>
+      <figcaption><b>The cabinet, five times a game.</b> Three cards from a pool of forty; take one, or none for influence, or reroll once. People, measures, standing policies, each one line of plain English and the card it pairs with. Every forceful card prints its risk, every talking card its cost, every intelligence card its chance of being wrong.</figcaption>
+    </figure>
+    <figure class="shot">
+      <div class="phone-fit"><div class="phone" id="f4"></div></div>
+      <figcaption><b>The other side.</b> What intelligence knows and how sure it is: what they have done so far (never a label), the lines they have declared and whether they mean them, what they think of you, and the one thing you can do here: offer them a way out, with its content named and its price.</figcaption>
+    </figure>
+  </section>
+
+  <section class="prose">
+    <div>
+      <h2>The game in three sentences</h2>
+      <p>The Federation is pushing. Where it pushes, the map turns amber, then red.<br>You lead the Republic. Work out what kind of enemy this is, promise to defend what you can hold, and keep your word when they test you.<br>Give them a way to stop and they sign. Let them win, or back them into a corner, and it is war.</p>
+      <p class="mut">That is also the explanation at the start, over the live map, skippable, with THE FEDERATION lettered across the Cap and a flag on each capital, and a third line that names this run's dilemma ("You inherited a promise to Shoal. We think they will not stand for a fleet there."). The test of every screen stays: someone who never plays games, watching over the player's shoulder, can say what is happening and what the player is trying to do. Here: "the Federation, the flag up top, keeps pushing; she's working out what they're like and promising to defend places; the blue bar is them agreeing to stop."</p>
+    </div>
+
+    <div>
+      <h2>The other side</h2>
+      <p>Every Federation is drawn with two hidden dials, <b>appetite</b> (how hard it pushes unguarded places) and <b>jumpiness</b> (how little force near its borders it tolerates). The stronger dial names what they're like, but the other is always there, so the right amount of firmness is found by feel, not by reading a label. Intelligence never names them; it describes what they have done, and the ending names them. Once a run, on a trigger, they can change.</p>
+      <div class="tbl"><table>
+        <tr><th>What they're like</th><th>How they behave</th><th>Brake (buys days, not the game)</th><th>Accelerator</th></tr>
+        <tr><td>Takes what's unguarded</td><td>Pushes where nothing is promised; probes every promise once.</td><td>A promise backed when tested: they turn away for five to eight days.</td><td>A promise you back down from: they push harder there and elsewhere.</td></tr>
+        <tr><td>Scared of us</td><td>Reads force near their borders as a threat and answers it with force.</td><td>Reassurance: the hotline, a pullback, a summit offer. Backing down near them is a step down, not up.</td><td>A brigade on their border, a fleet in their water, a public ultimatum.</td></tr>
+        <tr><td>Wants three places</td><td>Has three named claims and pushes them.</td><td>Blocked twice at a claim, or a way out that concedes one.</td><td>Ways out that say nothing about the claims.</td></tr>
+        <tr><td>Pushes when we blink</td><td>Doubles down when blocked once; raises the stakes when you hesitate.</td><td>Backing a promise twice in a row, then a way out.</td><td>Wait, a half-measure, a split answer, a back-down.</td></tr>
+      </table></div>
+      <ul>
+        <li><b>Every brake buys days, not the game.</b> It drops them one step for five to eight days; then they resume against a new target and the same brake costs more. A region taken unanswered is a step up for every Federation: gains breed pushes.</li>
+        <li><b>Their lines are declared, and some are bluffs.</b> Two or three real red lines and one or two bluffs per run, each announced before it can be crossed ("Wintermast: Republic forces in the Sound would be a grave matter"). Intelligence says "they say the Sound is a line; 40 to 60% they mean it". Crossing a bluff costs nothing and makes them believe you more. Crossing a real one climbs the ladder within a day, with the headline that says why. A pullback uncrosses it at a small cost.</li>
+        <li><b>The ladder is on the screen</b>, under the two bars, at all times: they are TESTING, PUSHING, MASSING, FIGHTING or ALL-OUT. Up a step: a real line crossed, a promise backed down from, a gain unanswered, their own accelerator, an accident. Down: their brake, a way out accepted, two pushes blocked in a row. At MASSING and FIGHTING both sides are afraid: the treaty rises every day, but every day carries a small chance of an accidental step up. Climbing to force a settlement is possible, and dangerous. A Federation left FIGHTING for ten days climbs on its own, so the clock cannot be run out.</li>
+        <li><b>What they think of you</b> is hidden and spoken: "They think you'll back down. We are fairly sure." They believe you more when you back a promise and when you do more than you say; less when you back down in public or a bluff of yours is called.</li>
+        <li><b>The blue bar is intelligence's estimate</b> of their willingness to sign, two or three days behind the truth with a soft edge, so it cannot be used as an instant probe. It rises on quiet days only while they are TESTING or PUSHING; above that, only blocks, ways out and other blocs' signatures move it, so sitting still is not a strategy. It is capped at 75% until they have a way out, and they sign only when no region has fallen for seven days.</li>
+      </ul>
+    </div>
+
+    <div>
+      <h2>The world and your promises</h2>
+      <ul>
+        <li><b>The map.</b> Thirty regions, five blocs. Highmarch is the Republic, you. The Cap is the Federation. The Scatter and the Sound are the ground between you. Farsouth is the Coalition, a swing power whose bloc tints towards whichever side it leans; its signature is worth the most, and once courted it acts once per run on its own, attributed to you, which can cross "no alliance with Farsouth" on your behalf. Alliance has a price.</li>
+        <li><b>Three states, and regions recover.</b> Calm. Under pressure (amber, dotted, the dots thickening as it nears falling). Fighting (red, hatched). Nothing spreads by itself. A fighting region drops back to under pressure when the ladder steps down or a way out names it; under pressure returns to calm after seven quiet days. The WAR bar runs both ways.</li>
+        <li><b>What is drawn.</b> Your promises as white outlines marked WE DEFEND. Your deployments as a chevron (land) or an anchor (sea). Their forces as markers moving towards the regions they will push next, two days ahead. A ring where you are being tested, left on the map for the day. Nothing to tap but the regions themselves and the tabs. No bubbles.</li>
+        <li><b>Promises are the main verb.</b> Tap and hold a region outside the Cap: PROMISE TO DEFEND. It costs one influence a day; at most three; you can withdraw one quietly before it is tested (they believe you a little less, far less than a back-down). <b>A promise deters when you are believed</b>: at good standing a promised region is pushed half as often and falls at half speed; at poor standing it invites a test. The confirm says which. Every push on a promised region is a test, and the phone rings the day it turns amber. Defending without a promise is possible through a FORCE card, costs more, and the Coalition reads it as overreach. You inherit nought to two promises, and the setup guarantees that one of them, or one of their claims, collides with a probable red line: that is the dilemma the run opens on.</li>
+      </ul>
+    </div>
+
+    <div>
+      <h2>The cabinet, drafted</h2>
+      <p>Five drafts, on days 1, 12, 24, 36 and 48: three cards from a pool of forty; take one, none for +6 influence, or reroll once for 3. Hand of six; measures are spent when played, people and policies stay. Tags FORCE, TALK, INTEL, HOME, with base synergies by tag so every run has some (two FORCE: backing costs less; TALK + INTEL: the range on a way out narrows; two HOME: the income floor rises) and named pairs as rare spikes. Every FORCE card prints its risk, every TALK card its cost, every INTEL card its chance of being wrong (the Spymaster is wrong one time in six and says so; Intercepts can be caught). No card removes content and no card removes the doubt. Measures are played only from a phone, as extra options when the card is in hand, so the clock never runs while you act.</p>
+      <p>Influence: start 30, +2 a day, −1 a day per promise; backing a promise costs 12 the first time and falls to 6 once they believe you, so the record of keeping your word pays. The cost to back a promise is printed on its outline the day it is tested, and the Chief of Staff warns the day before you would be short.</p>
+    </div>
+
+    <div>
+      <h2>The phone at 3am</h2>
+      <p>About eight scheduled calls a game, one a week, plus a test whenever they push a promised region. A test is up to three rounds with the clock stopped: back it, back down, or wait, each with its cost in words; if you back it and they do not move, a second round ("They have not moved. Reinforce / Hold / Pull back"). People in your cabinet add a line each. There are two kinds of line (a private warning through the Back-channel, or a public promise) and two kinds of block (loud, with the Press Secretary, which humiliates them; quiet, which lets them climb down). The Intel Director speaks in ranges about events and in words about states, and a validator checks that her ranges are honest. The false alarm is tied to the ladder: below ALL-OUT a "real" alarm is a test or an exercise, never an instant loss; the cost is in how you respond. Ways out name their content (a promise you drop, a claim you concede, a deployment you pull back, a summit) and print the read and the price. About thirteen stops in a median game, one every forty seconds of running clock; the next call's day is in the top bar.</p>
+    </div>
+
+    <div>
+      <h2>Why you play again</h2>
+      <ul>
+        <li>Every run is set up differently: the two dials and the name, which lines are real and which are bluffs, the claims, the promises you inherit, the Coalition's lean, the first flashpoints, the shuffle, and a guaranteed collision between a promise and a line.</li>
+        <li>Three leaders, one unlock per win in a fixed order: the Dove (Hotline in hand, ways out cheap), the Hawk (the first backing of the run is free), the Spymaster (one of their lines known on day one; believed less at the start).</li>
+        <li>A daily seed: the same world for everyone on a date; your best stays on your phone. Nothing is shared, nobody is named.</li>
+      </ul>
+    </div>
+
+    <div>
+      <h2>Endings and the score</h2>
+      <ul>
+        <li><b>Treaty.</b> "Signed on day 41 with two regions still fighting. They stopped because they could not take Vessary and you gave them a way out." The ending names what they were like.</li>
+        <li><b>World war.</b> "Day 33. It began at Shoal, when the promise you inherited was tested and you backed down." The map draws the chain through your deployments, their lines and the steps.</li>
+        <li><b>Frozen.</b> Day 60 with neither. "Nothing was signed. Two regions still fight. They came within a week of stopping." Below every treaty.</li>
+        <li>One number: (60 − day) × 10, less 15 per region fighting at the signing.</li>
+      </ul>
+    </div>
+
+    <div>
+      <h2>Two reviews, and what changed</h2>
+      <p class="mut">Your review of the first draft, then three independent critics on this one (a systems designer, a scholar of deterrence, a non-gamer who watches over a shoulder), read before you saw it. Both are kept in full in the repository.</p>
+      <div class="tbl"><table>
+        <tr><th>Found</th><th>Now</th></tr>
+        <tr><td>Your review: war as contagion, the Federation as weather; tapping bubbles; a treaty without the Federation; a tree that solves itself; content gone by run two; no variance; the fog removed.</td><td>An agent with dials, declared lines and a ladder; no bubbles; the blue bar is their willingness alone; a drafted hand; forty templates with slots and about thirteen stops; randomised setup, leaders, a daily seed; ranges and ambiguity.</td></tr>
+        <tr><td>Critics: no region ever stopped fighting, so the median game could never be offered a treaty.</td><td>Regions recover when the ladder steps down or a way out names them; they sign when no region has fallen for seven days.</td></tr>
+        <tr><td>Critics: a promise never deterred, it only invited a test you paid to pass; never promising was the best play.</td><td>At good standing a promise halves the pushes and the fall speed; at poor standing it invites. Capped at three, with quiet withdrawal. Force without a promise costs more and reads as overreach.</td></tr>
+        <tr><td>Critics: the four behaviours were a printed strategy guide, named by intelligence on day ten; brakes were kill switches; sitting still won against two of four.</td><td>Two dials per run under the name; intelligence describes, never names; brakes buy days and cost more the second time; gains breed pushes; quiet days only count early; the bar is capped until a way out.</td></tr>
+        <tr><td>Critics: their lines were silent landmines; tests were one round; the player had no ambiguity and no face to save.</td><td>Lines are declared, some are bluffs, and intelligence says whether they mean it; tests run up to three rounds with WAIT; private warnings and quiet retreats exist.</td></tr>
+        <tr><td>Critics: the player's forces were invisible; the ladder was hidden in a tab; the jargon was the document's.</td><td>Deployments and their approaching forces are drawn; the ladder word sits under the bars; the screen says WE DEFEND, BACK IT, BACK DOWN, under pressure, a way out, they believe us less.</td></tr>
+        <tr><td>Critics: "every five days" and "five drafts" were two different games; the economy had no numbers; the session was twenty minutes, not fifteen.</td><td>Five drafts on fixed days with a reroll; the numbers are written; the session is stated as about twenty minutes, with forty-five days as the shorter option.</td></tr>
+        <tr><td>Critics: five testers playing twice was noise and tested the wrong thing.</td><td>The simulator and its gates pass first; then five cold testers play three times each; the pass is a fourth game unprompted and a description of the Federation, not the cards.</td></tr>
+      </table></div>
+    </div>
+
+    <div>
+      <h2>What is built first</h2>
+      <p>A slice: the Federation with two names and per-run dials; declared lines with bluffs; the ladder with its fear and its accidents; promises that deter when believed; tests of up to three rounds; a way out with named content; regions that recover; the ladder word and your deployments on screen; one inherited-promise template; twenty of the forty cards with the five drafts; eight phone templates from three arcs; the three endings; the explanation with the collision named. Left out by decision, because they are research projects in disguise: a general misperception model, domestic politics beyond one dial, intelligence that infers rather than counts, four fully distinct behaviours with learned tells, leaders, the daily seed, sound, save. The simulator passes its gates before anyone plays; then five cold testers, three games each.</p>
+    </div>
+
+    <div>
+      <h2>Four things to decide</h2>
+      <ol class="decide">
+        <li><b>Fog at the start.</b> Intelligence never names what they're like, only describes; their lines are declared but "they mean it" starts at 40 to 60%. More fog is more real and harder to read over a shoulder.</li>
+        <li><b>Stops.</b> Five drafts and about eight scheduled calls, plus tests: about thirteen in a median game. Fewer, and the drafts fold into the calls.</li>
+        <li><b>The Coalition as the swing power</b>, with one action of its own per run, or five equal blocs.</li>
+        <li><b>Length.</b> Sixty days (about twenty minutes a full game) or forty-five (about fifteen).</li>
+      </ol>
+    </div>
+
+    <p class="foot">All places, powers and people are fictional. BRINK is a working title kept in one constant. No accounts, no chat, no user content; nothing leaves the phone. The full design is in the repository at docs/redlines/SPEC.md, with your review and the three critics' findings beside it.</p>
+  </section>
+</div>
+
+<script>
+const GEO = {"regions":[{"id":"NWK","name":"Northwake","bloc":"CAP","x":62,"y":33.8,"capital":false,"sea":false,"d":"M23.4 22.8L23.9 20.3L25.2 18L27.4 16.4L30 15.7L32.5 15.9L35.1 16.1L37.6 16.1L40.1 16.1L42.6 15.9L45.1 15.7L47.5 15.2L50 14.8L52.5 14.6L55 14.5L57.5 14.6L60 14.5L62.5 13.7L64.9 13L67.4 12.7L69.9 12.6L72.4 12.6L74.9 12.7L77.4 12.7L79.9 12.6L82.4 12.8L84.9 12.7L87.4 11.9L89.8 11.1L92.3 10.9L94.8 10.7L97.3 10.9L99.9 11.2L102.3 10.6L104.8 10.2L107.3 10.1L108.7 10.1L109.9 29.1L50.7 86.9L49.5 85.6L47.7 83.9L45.9 82.2L44 80.5L42 79L40.4 77L38.7 75.2L36.6 73.7L34.5 72.4L32.4 71L30.4 69.5L28.6 67.7L27.1 65.7L25.7 63.7L24.6 61.4L24.3 58.9L24.3 56.4L23.9 53.9L23.5 51.4L23.5 48.9L23.6 46.4L23.6 43.9L23.9 41.4L23.9 38.9L23.9 36.4L24 33.9L24.1 31.4L23.8 28.9L23.5 26.4L23.4 23.9Z","disc":null},{"id":"FRM","name":"Frostmere","bloc":"CAP","x":158,"y":27.7,"capital":false,"sea":false,"d":"M108.7 10.1L109.8 10L112.3 10.1L114.8 10.1L117.3 10.5L119.8 10.6L122.3 10.4L124.8 10.1L127.3 10L129.8 10L132.3 9.7L134.8 9.4L137.3 9.4L139.8 9.2L142.3 8.8L144.8 8.6L147.3 8.4L149.8 8.7L152.3 9.5L154.8 10.2L157.3 10.3L159.8 10.2L162.3 9.8L164.8 9.4L167.3 9.4L169.8 9.4L172.3 9.2L174.8 9.2L177.3 9.6L179.8 9.9L182.3 10.1L184.8 10.3L187.3 10.5L189.8 10.7L192.3 10.9L194.8 10.9L197.3 10.4L199.8 9.9L202.3 9.8L204.8 9.7L207.3 9.7L208.6 9.7L208 30.1L154 77.6L109.9 29.1Z","disc":null},{"id":"WMS","name":"Wintermast","bloc":"CAP","x":258,"y":30.8,"capital":true,"sea":false,"d":"M208.6 9.7L209.8 9.8L212.3 9.9L214.8 10L217.3 10L219.8 10.1L222.3 10.2L224.8 10.4L227.3 10.3L229.8 10.4L232.3 10.5L234.8 10.5L237.3 10.6L239.8 10.4L242.3 9.5L244.8 9.2L247.3 9.6L249.8 9.9L252.3 10L254.8 10.1L257.3 10.2L259.8 10.2L262.3 9.8L264.8 9.7L267.3 10L269.8 10.1L272.3 10L274.8 10L277.3 10L279.8 10.1L282.3 10.5L284.8 10.6L287.3 10.5L289.8 10.5L292.3 10.7L294.8 10.8L297.3 10.6L299.8 10.9L302.2 11.6L304.6 12.5L306.9 13.5L309.2 14.4L311.5 15.5L312.5 15.9L260.8 88.1L208 30.1Z","disc":null},{"id":"WNM","name":"Wenmoor","bloc":"CAP","x":104,"y":76.9,"capital":false,"sea":false,"d":"M153.2 104.1L152.3 104.2L149.8 104.2L147.3 104.1L144.8 103.9L142.3 103.8L139.8 103.7L137.3 103.7L134.8 103.5L132.3 103.5L129.8 103.5L127.3 103.2L124.8 103L122.3 102.4L119.9 101.6L117.4 101.4L114.9 101.2L112.4 100.9L109.9 100.6L107.4 100.6L104.9 100.9L102.4 100.8L99.9 100.8L97.4 100.4L94.9 99.9L92.4 100L89.9 100.3L87.4 100.2L84.9 100.1L82.4 99.8L79.9 99.4L77.4 99.2L74.9 99.1L72.5 98.6L70 98.2L67.5 97.9L65 97.7L62.4 97.4L59.9 96.8L57.6 95.5L55.6 93.8L54.1 91.7L52.8 89.4L51.2 87.4L50.7 86.9L109.9 29.1L154 77.6Z","disc":null},{"id":"GLM","name":"Glassmoor","bloc":"CAP","x":204,"y":80,"capital":false,"sea":false,"d":"M261.7 101.5L259.7 101.2L257.2 101.3L254.7 101.5L252.2 101.5L249.7 101.2L247.2 101.4L244.7 101.8L242.2 101.8L239.7 101.8L237.2 101.8L234.7 101.8L232.2 102L229.7 102.2L227.2 102.1L224.7 102L222.2 101.9L219.7 101.9L217.2 102.1L214.7 102.6L212.2 102.8L209.7 102.9L207.2 103L204.7 102.7L202.2 102.8L199.7 103.1L197.2 103L194.7 103.1L192.2 103.2L189.7 103.4L187.2 103.6L184.7 103.6L182.2 103.9L179.7 104.1L177.2 104L174.7 103.9L172.2 103.7L169.7 103.6L167.2 103.7L164.7 103.8L162.2 103.9L159.7 104L157.2 104L154.7 104.1L153.2 104.1L154 77.6L208 30.1L260.8 88.1Z","disc":null},{"id":"KLM","name":"Kellmark","bloc":"CAP","x":316,"y":72.3,"capital":false,"sea":false,"d":"M312.5 15.9L313.8 16.4L316.2 17.1L318.6 17.8L321.1 18.3L323.6 18.7L326 19.4L328.5 19.9L331 20.1L333.4 20.9L335.6 22.3L337.9 23.2L340.3 23.8L342.7 24.5L345 25.5L347.3 26.6L349.4 28.1L351.3 29.6L352.8 31.3L354 33.3L354.6 35.7L355.2 38.1L355.9 40.5L356.4 42.9L356.8 45.4L357.3 47.8L357.8 50.3L358.3 52.8L358.8 55.2L359.1 57.7L359.2 60.2L359.4 62.7L359.7 65.2L360.1 67.7L360.6 70.1L361.4 72.5L362.7 74.8L363.6 77.2L364.1 79.7L364.1 82.4L362.7 84.9L360.6 86.4L358.3 87L355.8 87.5L353.4 88.1L351 88.8L348.6 89.6L346.2 90.3L343.7 90.7L341.3 91.3L338.9 92.2L336.5 92.8L334.1 93.4L331.7 94L329.3 94.7L326.7 94.8L324.1 94.5L321.6 94.6L319.1 95.1L316.7 95.7L314.2 96.1L311.8 97L309.5 98.2L307.1 98.9L304.7 99.5L302.2 100.1L299.8 100.5L297.3 101L294.7 101.3L292.2 101.3L289.7 101L287.2 100.8L284.7 100.7L282.2 100.6L279.7 100.4L277.2 100.5L274.7 100.6L272.2 100.9L269.7 101.4L267.2 101.6L264.7 101.7L262.2 101.6L261.7 101.5L260.8 88.1Z","disc":null},{"id":"VSY","name":"Vessary","bloc":"HMR","x":38,"y":135.4,"capital":false,"sea":false,"d":"M9.2 119.7L9.8 117.2L11.3 115.1L13.6 114L16.1 113.8L18.6 114L21.1 114.1L23.6 113.7L26.1 113.3L28.6 113L31.1 112.9L33.6 113L36.1 113.1L38.6 112.8L41.1 112.4L43.6 112.3L46.1 112.3L48.6 112.6L51.1 112.8L53.6 112.9L56.1 113L58.6 112.4L61.1 111.8L63.6 111.9L66.1 112.1L68.6 111.6L69.5 111.5L72.6 155.7L60.4 167.6L8.1 160.2L8.4 158.9L8.7 156.4L8.9 153.9L9 151.4L9.1 148.9L9.4 146.5L9.7 144L9.6 141.5L9.4 138.9L9.2 136.4L9 133.9L8.9 131.4L8.9 128.9L9.3 126.4L9.7 123.9L9.5 121.4Z","disc":null},{"id":"RMH","name":"Rimeholt","bloc":"HMR","x":104,"y":130.8,"capital":false,"sea":false,"d":"M69.5 111.5L71 111.3L73.6 111.7L76.1 112.1L78.6 112.1L81.1 112L83.6 111.8L86.1 111.6L88.6 111.4L91.1 111.3L93.6 111.4L96.1 111.6L98.6 111.4L101.1 111.1L103.6 111.4L106.1 111.6L108.6 111.6L111.1 111.8L113.6 111.9L116.1 111.9L118.6 111.6L121.1 111.2L123.5 111.6L125.4 112.6L126.8 114.1L127.4 116.2L128 118.5L128.7 120.9L129.8 123.3L130.7 125.7L131.1 128.1L131.1 130.6L130.7 133.2L130.2 135.8L130.2 138.3L130.5 140.8L131.2 143.2L131.9 145.7L132.2 148.2L132.4 150.6L132.8 153.1L133.1 155.6L133 158.1L132.8 160.5L132.9 163L133 165.5L132.7 167.7L72.6 155.7Z","disc":null},{"id":"QLN","name":"Quillon","bloc":"HMR","x":30,"y":192.3,"capital":false,"sea":false,"d":"M9.2 227.2L9.1 226.2L8.8 223.7L8.5 221.2L8.3 218.8L8.1 216.3L7.9 213.8L7.4 211.3L7 208.8L6.5 206.4L6 203.9L5.9 201.4L5.8 198.9L5.3 196.4L4.8 193.9L5.1 191.3L5.6 188.8L6.2 186.3L6.8 183.9L7.1 181.4L7.1 178.9L7.1 176.4L7 173.9L6.6 171.3L6.3 168.8L6.6 166.3L7 163.9L7.7 161.4L8.1 160.2L60.4 167.6L61.7 218.7Z","disc":null},{"id":"EDV","name":"Edda Vale","bloc":"HMR","x":92,"y":190.8,"capital":true,"sea":false,"d":"M132.7 167.7L132.6 168L132.4 170.5L132.7 173L132.9 175.5L132.6 178L132.2 180.5L131.9 183L131.5 185.4L131.2 187.9L131 190.4L130.6 192.9L130.3 195.4L129.9 197.8L129.5 200.3L129.6 202.8L129.9 205.4L129.7 207.9L129.6 210.2L73 228.1L61.7 218.7L60.4 167.6L72.6 155.7Z","disc":null},{"id":"ASK","name":"Ashkettle","bloc":"HMR","x":40,"y":253.8,"capital":false,"sea":false,"d":"M77.7 281.6L75.7 281.6L73.2 281.6L70.7 281.2L68.2 280.8L65.7 280.4L63.3 280L60.8 279.8L58.3 279.6L55.8 279.5L53.3 279.1L50.9 278.1L48.5 277.1L46 276.8L43.5 276.8L41 276.5L38.5 276.3L36 276.6L33.5 276.6L31 276.2L28.6 275.6L26.1 275.3L23.6 275.1L21.1 274.6L18.6 274.3L16.2 274.1L13.8 273.1L11.8 271.3L10.7 268.8L10.5 266.2L10.5 263.7L10.7 261.2L10.8 258.7L10.5 256.2L10 253.7L10 251.2L10.1 248.7L10 246.2L9.8 243.7L9.6 241.2L9.5 238.7L9.6 236.2L9.8 233.7L9.7 231.2L9.4 228.7L9.2 227.2L61.7 218.7L73 228.1Z","disc":null},{"id":"MRD","name":"Morrow Downs","bloc":"HMR","x":110,"y":247.7,"capital":false,"sea":false,"d":"M129.6 210.2L129.6 210.4L129.4 212.9L129.1 215.3L128.7 217.8L128.4 220.3L128.6 222.8L129.1 225.2L129.1 227.7L129.1 230.2L129.3 232.8L129.5 235.3L130.1 237.7L130.7 240.1L131.3 242.6L131.9 245L132.3 247.5L132.7 249.9L132.8 252.5L132.8 255L133.5 257.4L134.1 259.8L134.3 262.3L134.5 264.8L135.2 267.3L135.7 269.8L134.7 272.3L132.7 273.8L130.4 274.9L127.9 275.5L125.4 275.4L122.8 275.3L120.3 275.5L117.9 275.8L115.4 276.4L113 277.1L110.6 277.9L108.1 278.6L105.7 279.1L103.2 279.2L100.6 278.9L98 278.5L95.5 278.4L93 278.7L90.6 279.5L88.2 280.4L85.8 281.1L83.3 281.6L80.8 281.7L78.2 281.6L77.7 281.6L73 228.1Z","disc":null},{"id":"GUL","name":"Gullrest","bloc":"SCT","x":176,"y":147.7,"capital":false,"sea":true,"d":null,"disc":{"x":176,"y":147.7,"r":21}},{"id":"DRF","name":"Driftholm","bloc":"SCT","x":226,"y":143.1,"capital":false,"sea":true,"d":null,"disc":{"x":226,"y":143.1,"r":21}},{"id":"TRN","name":"Tern Isle","bloc":"SCT","x":172,"y":198.5,"capital":false,"sea":true,"d":null,"disc":{"x":172,"y":198.5,"r":21}},{"id":"LNK","name":"Lantern Key","bloc":"SCT","x":222,"y":198.5,"capital":true,"sea":true,"d":null,"disc":{"x":222,"y":198.5,"r":21}},{"id":"PBB","name":"Pebbleby","bloc":"SCT","x":178,"y":249.2,"capital":false,"sea":true,"d":null,"disc":{"x":178,"y":249.2,"r":21}},{"id":"SHL","name":"Shoal","bloc":"SCT","x":228,"y":249.2,"capital":false,"sea":true,"d":null,"disc":{"x":228,"y":249.2,"r":21}},{"id":"KLP","name":"Kelpmouth","bloc":"SND","x":298,"y":132.3,"capital":false,"sea":false,"d":"M264.8 116.6L265.5 114.1L267.2 111.9L269.7 110.6L272.3 110.3L274.8 110.6L277.3 110.9L279.8 111.2L282.3 111.6L284.8 111.7L287.3 111.8L289.8 111.7L292.3 111.4L294.8 111.4L297.3 111.5L299.8 111.4L302.3 111.6L304.8 112.1L307.3 112.6L309.8 112.7L312.3 112.6L314.8 112.8L317.3 112.7L319.8 112.4L322.3 112.2L324.8 112L327.3 111.9L329.8 111.9L330 112L330 153L314.5 165L265 158.4L265.2 157.4L265.6 154.9L265.8 152.4L265.7 149.9L265.4 147.4L265.1 144.9L265 142.4L265.1 139.9L265.2 137.4L265.5 134.9L265.9 132.4L266.3 129.9L266.6 127.4L266.7 124.9L266.2 122.4L265.5 119.9L265 117.4Z","disc":null},{"id":"BRK","name":"Brackwater","bloc":"SND","x":362,"y":132.3,"capital":false,"sea":false,"d":"M330 112L332.3 112L334.8 112L337.3 112L339.8 112L342.3 112.1L344.8 112.4L347.3 112.6L349.8 112.6L352.3 112.7L354.8 112.8L357.3 112.9L359.8 113.4L362.3 113.6L364.8 113.7L367.2 113.8L369.7 113.8L372.2 113.9L374.8 113.7L377.3 113.7L379.7 114.3L381.7 116.1L382.4 118.6L382.6 121.1L382.9 123.6L383.1 126.1L383.1 128.6L383.1 131.1L383.3 133.6L383.2 136.1L383.1 138.6L382.9 141.1L382.3 143.7L382.2 146.2L382.9 148.6L383.6 151.1L384.3 153.6L384.8 156.1L384.8 158.6L384.8 161.1L385 163.6L385.2 166.1L385.4 168.5L385.5 171L385.5 172.5L330 153Z","disc":null},{"id":"LTL","name":"Lintel","bloc":"SND","x":290,"y":192.3,"capital":false,"sea":false,"d":"M267.2 226.5L267.4 224.7L267 222.2L266.4 219.8L266.1 217.3L265.9 214.8L265.6 212.3L265 209.9L264.3 207.4L263.7 204.9L263.4 202.4L263.6 199.9L263.2 197.4L262.8 194.9L263 192.4L263.2 189.9L263.1 187.3L263.1 184.8L263.7 182.4L264.2 179.9L264.3 177.4L264.2 174.9L264.6 172.4L265 169.9L264.9 167.4L264.9 164.9L264.8 162.4L264.7 159.9L265 158.4L314.5 165L317.7 220Z","disc":null},{"id":"TLM","name":"Tallowmere","bloc":"SND","x":342,"y":189.2,"capital":true,"sea":false,"d":"M385.5 172.5L385.5 173.5L385.6 176L385.8 178.5L385.9 181L386.2 183.5L386.2 186L385.8 188.6L385.5 191.1L385.3 193.6L385.3 196L385.3 198.5L385.3 201L385.2 203.5L385.1 206L385.2 208.5L385.2 211L385.4 213.5L385.4 215.5L328.5 227.3L317.7 220L314.5 165L330 153Z","disc":null},{"id":"DNM","name":"Dunmarrow","bloc":"SND","x":298,"y":253.8,"capital":false,"sea":false,"d":"M325.7 280.5L323.5 280.3L321 280.3L318.4 280.5L315.9 280.1L313.5 279.2L311 278.9L308.5 278.9L306 278.7L303.5 278.6L301 278L298.6 277.1L296.2 276.6L293.7 276.3L291.3 275.7L288.8 275.1L286.4 274.5L284 273.8L281.5 273.3L279.1 272.9L276.6 272.5L274.3 272.1L272.2 271.2L270.3 269.6L269.5 267.2L269.3 264.7L269 262.2L268.5 259.7L268.2 257.2L268.1 254.7L267.7 252.3L267.2 249.8L267.4 247.3L267.8 244.7L267.8 242.2L267.7 239.7L267.4 237.2L267 234.8L267 232.3L267 229.8L267.2 227.2L267.2 226.5L317.7 220L328.5 227.3Z","disc":null},{"id":"ORN","name":"Orrinth","bloc":"SND","x":356,"y":256.9,"capital":false,"sea":false,"d":"M385.4 215.5L385.3 216L384.7 218.5L384.5 221L384.8 223.5L384.6 226L384 228.5L383.6 231L383.1 233.5L383.2 236L383.9 238.5L384.2 241L384.1 243.5L384 246L384.2 248.5L384 251L383.7 253.5L383.4 256L383.1 258.5L382.7 261L382.4 263.5L381.9 265.9L381.3 268.4L381 270.8L380.6 272.9L379.7 274.7L378.1 276L375.8 276.5L373.4 276.3L370.9 276.6L368.4 277.2L365.9 277.7L363.4 278.1L360.9 278.2L358.4 278.1L355.9 277.9L353.4 277.7L350.9 277.6L348.4 277.7L345.9 278.1L343.4 278.8L341 279.3L338.5 279.5L336 279.6L333.5 279.7L331 280L328.5 280.3L326 280.5L325.7 280.5L328.5 227.3Z","disc":null},{"id":"BRN","name":"Brindle Coast","bloc":"FRS","x":60,"y":321.5,"capital":false,"sea":false,"d":"M18.6 307.5L18.5 305.1L19.3 302.6L21.6 301.4L24.1 301L26.6 300.8L29.1 300.5L31.6 299.9L34.1 299.3L36.6 299.3L39.1 299.4L41.6 299.2L44.1 299.2L46.6 299.6L49.1 299.8L51.6 299.7L54.1 299.4L56.6 299.2L59.1 299L61.6 298.9L64.1 298.8L66.6 298.4L69 297.8L71.5 297.4L74 297.1L76.5 296.4L78.9 296L81.4 295.8L83.9 295.6L86.4 295.6L88.9 295.6L91.4 295.7L94 296.1L96.5 296.2L99 296.2L101.5 296.6L104 296.6L106.5 296.3L109 295.9L111.5 295.3L113.9 294.9L116.4 294.6L118.9 294.3L121.4 294.5L123.9 294.6L124.9 294.5L125.5 308.3L29.2 385L27.8 385L25.3 384.9L22.9 384.4L20.8 382.9L19.6 380.6L19.3 378L19.2 375.5L19.1 373L19 370.5L18.9 368L19.1 365.5L19.5 362.9L19.9 360.4L20.2 357.9L20.3 355.4L19.9 352.9L19.5 350.4L19.6 347.9L19.7 345.4L19.7 342.9L19.6 340.4L19.4 337.9L19.1 335.5L18.8 333L18.7 330.5L18.8 328L18.9 325.5L18.5 323L18.1 320.5L18 318L17.9 315.5L17.9 313L18 310.5L18.3 308Z","disc":null},{"id":"MRM","name":"Marram","bloc":"FRS","x":192,"y":315.4,"capital":true,"sea":false,"d":"M124.9 294.5L126.4 294.2L128.9 293.8L131.4 293.5L133.9 293.2L136.4 293L138.9 292.8L141.3 292.5L143.8 292.5L146.4 292.9L148.9 293.3L151.4 293.4L153.9 293.2L156.4 293L158.9 292.7L161.4 292.7L163.9 292.7L166.4 292.4L168.9 292.3L171.4 292.7L173.9 292.9L176.4 292.7L178.9 292.5L181.4 292.5L183.9 292.2L186.3 291.6L188.8 291.3L191.3 290.9L193.8 290.9L196.3 291.3L198.8 291.8L201.4 292.4L203.9 292.6L206.4 292.2L208.9 291.8L211.4 291.9L213.9 292L216.4 291.8L218.9 291.7L221.3 291.5L223.8 291.4L226.3 291.4L228.8 291.4L231.4 291.6L233.9 291.8L236.4 292.1L238.9 292.2L241.4 292.2L243.9 292L246.3 291.5L248.8 291.2L251.3 291.4L253.8 291.7L256.3 292L258.8 292.3L259.2 292.3L258.2 314.9L244.6 341.1L148.1 347.7L125.5 308.3Z","disc":null},{"id":"FLE","name":"Floe End","bloc":"FRS","x":324,"y":321.5,"capital":false,"sea":false,"d":"M259.2 292.3L261.3 292.2L263.8 292.3L266.3 292.6L268.8 292.7L271.3 292.8L273.8 292.7L276.3 292.8L278.8 292.9L281.3 292.8L283.8 293.1L286.3 293.5L288.7 293.9L291.2 294.5L293.7 295L296.1 295.2L298.6 295.6L301.1 295.9L303.6 296.1L306 296.9L308.5 297.3L311 297L313.5 297.1L316 297.8L318.5 298L321 297.7L323.6 297.4L326.1 296.9L328.6 297L331.1 297.2L333.6 297.4L336.1 297.8L338.6 298.1L341 298.4L343.5 298.8L346 299L348.5 299.4L350.9 299.9L353.4 300.2L355.9 300.6L358.4 301L360.8 301.7L363.1 302.2L365.2 302.9L366.8 304.3L368 306.3L368.6 308.7L369.1 311.2L369.4 313.7L369.5 316.2L369.4 318.7L369 321.2L368.8 323.7L369 326.2L369.2 328.7L369.3 331.2L369.4 333.7L369.4 336.2L369.5 338.7L370.2 341.2L370.7 343.7L371.2 346.1L371.7 348.6L372.2 351.1L372.2 353.6L371.9 356.1L371.6 358.6L371.2 361.2L371.2 363.7L371.6 366.2L372.3 368.6L373.4 371L374 373.5L374.1 376L374.2 378.5L374.4 381.1L373.9 382.8L258.2 314.9Z","disc":null},{"id":"ICW","name":"Iceward","bloc":"FRS","x":98,"y":369.2,"capital":false,"sea":false,"d":"M145.9 395.4L144.7 395.4L142.2 395.3L139.7 395.1L137.2 394.8L134.7 394.8L132.2 394.9L129.7 394.7L127.2 394.5L124.7 394.3L122.3 394L119.8 394.1L117.3 394.3L114.8 394.5L112.2 394.9L109.7 394.9L107.2 394.5L104.7 394.4L102.2 394.2L99.8 393.8L97.3 393.5L94.8 393L92.3 392.7L89.9 392.2L87.4 391.7L84.9 391.4L82.5 391.1L80 390.9L77.5 390.7L75 390.2L72.6 389.6L70.1 389.5L67.5 389.5L65.1 389.1L62.6 388.5L60.1 388.1L57.7 387.6L55.2 387.3L52.7 387.1L50.2 386.9L47.7 386.8L45.2 386.5L42.8 386L40.3 385.9L37.8 385.9L35.3 385.6L32.8 385.2L30.3 385L29.2 385L125.5 308.3L148.1 347.7Z","disc":null},{"id":"SLW","name":"Saltwhite","bloc":"FRS","x":196,"y":373.8,"capital":false,"sea":false,"d":"M247.1 395.9L244.7 396.1L242.2 396.2L239.7 395.8L237.2 395L234.7 394.5L232.2 394.5L229.7 394.4L227.2 394.4L224.7 394.5L222.2 394.7L219.7 394.6L217.2 394.3L214.7 394.5L212.2 394.9L209.7 395L207.2 394.8L204.7 394.9L202.2 395.3L199.7 395.7L197.2 395.9L194.7 396.3L192.2 396.5L189.7 396.6L187.2 396.6L184.7 396.6L182.2 396.6L179.7 396.4L177.2 395.7L174.7 395.3L172.2 395L169.7 395L167.2 395.4L164.7 395.3L162.2 395.2L159.7 394.8L157.2 394.3L154.7 394.5L152.2 395L149.7 395.2L147.2 395.3L145.9 395.4L148.1 347.7L244.6 341.1Z","disc":null},{"id":"HRT","name":"Hearth","bloc":"FRS","x":296,"y":369.2,"capital":false,"sea":false,"d":"M373.9 382.8L373.6 383.7L371.7 385.5L369.4 386.3L366.9 386.7L364.4 387L361.9 386.9L359.4 387.1L356.9 387.6L354.5 387.9L352 388.2L349.5 388.5L347 388.9L344.5 389.1L342 388.9L339.5 388.9L337 389.3L334.5 389.3L332 389.3L329.5 389.5L327 389.8L324.5 390.1L322.1 390.4L319.6 390.6L317.1 390.8L314.6 391L312.1 391.2L309.6 391.3L307.1 391.6L304.6 391.6L302.1 391.3L299.5 391.1L297 391L294.5 391.1L292.1 391.5L289.6 391.9L287.1 392.4L284.6 392.9L282.2 393.3L279.7 393.4L277.1 393.1L274.6 393.2L272.1 393.4L269.6 393.5L267.1 393.5L264.6 393.8L262.2 394.1L259.7 394.5L257.2 395L254.7 395.2L252.2 395.1L249.7 395.5L247.2 395.9L247.1 395.9L244.6 341.1L258.2 314.9Z","disc":null}],"coasts":{"CAP":"M24 16.9L120 9.2L300 10.8L354 29.2L364 86.2L300 100L150 104.6L60 96.9L24 63.1Z","HMR":"M10 113.8L128 110.8L134 158.5L128 223.1L136 273.8L80 281.5L12 273.8L6 192.3Z","SND":"M266 110.8L382 113.8L386 193.8L382 276.9L318 280L270 272.3L264 193.8Z","FRS":"M18 301.5L150 292.3L250 290.8L368 301.5L374 386.2L250 395.4L120 395.4L20 384.6Z"},"joins":[["NWK","FRM"],["FRM","WMS"],["NWK","WNM"],["FRM","WNM"],["FRM","GLM"],["WMS","GLM"],["WMS","KLM"],["WNM","GLM"],["GLM","KLM"],["VSY","RMH"],["VSY","QLN"],["VSY","EDV"],["RMH","EDV"],["QLN","EDV"],["QLN","ASK"],["EDV","ASK"],["EDV","MRD"],["ASK","MRD"],["GUL","DRF"],["GUL","TRN"],["GUL","LNK"],["DRF","LNK"],["TRN","LNK"],["TRN","PBB"],["LNK","PBB"],["LNK","SHL"],["PBB","SHL"],["KLP","BRK"],["KLP","LTL"],["KLP","TLM"],["BRK","TLM"],["LTL","TLM"],["LTL","DNM"],["TLM","DNM"],["TLM","ORN"],["DNM","ORN"],["BRN","MRM"],["MRM","FLE"],["BRN","ICW"],["MRM","ICW"],["MRM","SLW"],["MRM","HRT"],["FLE","HRT"],["ICW","SLW"],["SLW","HRT"]],"lanes":[["NWK","VSY"],["KLM","KLP"],["GLM","DRF"],["RMH","GUL"],["MRD","TRN"],["ASK","BRN"],["SHL","LTL"],["PBB","MRM"],["ORN","FLE"]]};
+const BY = Object.fromEntries(GEO.regions.map(r => [r.id, r]));
+const HOME = 'EDV';
+function mapSVG(state, opts = {}) {
+  const id = opts.id || '';
+  const fill = { calm: 'var(--land)', pressed: `url(#dots${id})`, fight: `url(#hatch${id})` };
+  const edge = { calm: 'var(--land-edge)', pressed: 'var(--amber)', fight: 'var(--red)' };
+  let s = `<svg viewBox="0 0 390 520" role="img" aria-label="The world map, fictional">
+  <defs>
+    <pattern id="hatch${id}" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="#6B2622"/><rect width="2.6" height="7" fill="#B23A33"/></pattern>
+    <pattern id="dots${id}" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#4A3F22"/><circle cx="4" cy="4" r="1.5" fill="#E0A33B"/></pattern>
+  </defs>
+  <rect width="390" height="520" fill="var(--sea)"/>`;
+  for (const [a, b] of GEO.lanes) { const A = BY[a], B = BY[b]; s += `<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="#24313F" stroke-width="1.2" stroke-dasharray="3 4"/>`; }
+  for (const d of Object.values(GEO.coasts)) s += `<path d="${d}" fill="var(--land)" stroke="var(--land-edge)" stroke-width="1.5"/>`;
+  for (const r of GEO.regions) {
+    const st = state[r.id] || 'calm';
+    if (r.disc) s += `<circle cx="${r.disc.x}" cy="${r.disc.y}" r="${r.disc.r}" fill="${fill[st]}" stroke="${edge[st]}" stroke-width="${st==='calm'?1.2:1.8}"/>`;
+    else if (r.d) s += `<path d="${r.d}" fill="${fill[st]}" stroke="${edge[st]}" stroke-width="${st==='calm'?1:1.8}" stroke-linejoin="round"/>`;
+  }
+  for (const r of GEO.regions) if (r.capital) s += `<circle cx="${r.x}" cy="${r.y}" r="2.6" fill="#9AA8B6"/>`;
+  for (const p of (opts.pledged || [])) {
+    const r = BY[p];
+    if (r.disc) s += `<circle cx="${r.disc.x}" cy="${r.disc.y}" r="${r.disc.r + 3}" fill="none" stroke="#F2E9DA" stroke-width="1.6" stroke-dasharray="5 3"/>`;
+    else s += `<path d="${r.d}" fill="none" stroke="#F2E9DA" stroke-width="2" stroke-dasharray="6 3" stroke-linejoin="round"/>`;
+    s += `<rect x="${r.x - 27}" y="${r.y + 9}" width="54" height="14" rx="2" fill="#0B1016" stroke="#F2E9DA" stroke-width=".8"/><text x="${r.x}" y="${r.y + 19.5}" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="600" font-size="9.5" letter-spacing=".1" fill="#F2E9DA">WE DEFEND</text>`;
+  }
+  const h = BY[HOME];
+  s += `<g transform="translate(${h.x - 1} ${h.y - 16})"><rect x="0" y="0" width="1.6" height="18" fill="#F2E9DA"/><path d="M1.6 0.5 L12 3.6 L1.6 7.2 Z" fill="#F2E9DA"/></g>`;
+  const w = BY['WMS'];
+  s += `<g transform="translate(${w.x - 1} ${w.y - 16})"><rect x="0" y="0" width="1.6" height="18" fill="#D6453D"/><path d="M1.6 0.5 L12 3.6 L1.6 7.2 Z" fill="#D6453D"/></g>`;
+  for (const d of (opts.deploy || [])) {
+    const r = BY[d.at];
+    if (d.kind === 'sea') s += `<g transform="translate(${r.x + 9} ${r.y - 12})" stroke="#F2E9DA" stroke-width="1.4" fill="none"><circle cx="0" cy="-5" r="2"/><line x1="0" y1="-3" x2="0" y2="7"/><path d="M-5 3 Q0 9 5 3"/><line x1="-4" y1="-1" x2="4" y2="-1"/></g>`;
+    else s += `<path d="M${r.x - 6} ${r.y + 6} L${r.x} ${r.y - 1} L${r.x + 6} ${r.y + 6}" fill="none" stroke="#F2E9DA" stroke-width="1.8" stroke-linecap="round"/>`;
+  }
+  for (const f of (opts.theirs || [])) {
+    const A = BY[f.from], B = BY[f.to]; const t = f.t ?? .55; const x = A.x + (B.x - A.x) * t, y = A.y + (B.y - A.y) * t;
+    s += `<line x1="${A.x}" y1="${A.y}" x2="${x}" y2="${y}" stroke="#D6453D" stroke-width="1" stroke-dasharray="2 3" opacity=".7"/><rect x="${x - 5}" y="${y - 3.5}" width="10" height="7" fill="#6B2622" stroke="#D6453D" stroke-width="1"/>`;
+  }
+  if (opts.ring) {
+    const r = BY[opts.ring.at]; const C = 2 * Math.PI * 17;
+    s += `<circle cx="${r.x}" cy="${r.y}" r="17" fill="none" stroke="#F2E9DA" stroke-width="1.4" opacity=".9"/>
+          <circle cx="${r.x}" cy="${r.y}" r="17" fill="none" stroke="var(--red)" stroke-width="3" stroke-dasharray="${C * opts.ring.t} ${C}" transform="rotate(-90 ${r.x} ${r.y})"/>
+          <rect x="${r.x - 40}" y="${r.y + 24}" width="80" height="18" rx="3" fill="#0B1016" stroke="#2A3644"/><text x="${r.x}" y="${r.y + 37}" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="600" font-size="11" letter-spacing=".08" fill="#E6EBF0">${opts.ring.text}</text>`;
+  }
+  return s + '</svg>';
+}
+const DAY18 = { KLP: 'pressed', LTL: 'pressed', BRK: 'pressed', DRF: 'fight', GUL: 'pressed', VSY: 'calm', WMS: 'calm', KLM: 'calm' };
+function topBar(pts, day, speed) {
+  return `<div class="ab top"><div class="pts">Influence <span class="n">${pts}</span></div><div class="day">DAY ${day}</div><div class="speed"><span class="${speed==='pause'?'on':''}">II</span><span class="${speed==='play'?'on':''}">&gt;</span><span class="${speed==='fast'?'on':''}">&gt;&gt;</span></div></div>`;
+}
+function race(warN, treaty) {
+  return `<div class="ab race"><div class="bar war"><span>War</span><div class="track"><div class="fill" style="width:${warN / 12 * 100}%"></div></div><span class="v">${warN} of 12</span></div><div class="bar treaty"><span>Treaty</span><div class="track"><div class="fill" style="width:${treaty}%"></div><div class="soft" style="left:${treaty}%"></div><div class="cap"></div></div><span class="v">${treaty}%</span></div></div>`;
+}
+function stepBar(word, next) { return `<div class="ab step">They are: <b>${word}</b><span class="next">next call: day ${next}</span></div>`; }
+function ticker(items) { return `<div class="ab ticker"><span class="lbl">Live</span>${items.map(t => `<span>${t}</span>`).join('<span class="dot">·</span>')}</div>`; }
+function tabs(on) { return `<div class="tabs">${[['World','world'],['Cabinet','cabinet'],['The other side','them']].map(([t,k]) => `<span class="${k===on?'on':''}">${t}</span>`).join('')}</div>`; }
+const homeBar = `<div class="ab home"><i></i></div>`;
+const TICK = ['Federation armour reaches the Lintel line', 'Wintermast: "a test of nerves, nothing more"', 'Farsouth recalls its envoy'];
+
+document.getElementById('f1').innerHTML = topBar(31, 18, 'play') + race(1, 22) + stepBar('Pushing', 21) +
+  `<div class="ab map">${mapSVG(DAY18, { id: 'a', pledged: ['VSY', 'LNK', 'LTL'], deploy: [{ at: 'LNK', kind: 'sea' }], theirs: [{ from: 'KLM', to: 'KLP', t: .6 }, { from: 'WMS', to: 'VSY', t: .35 }], ring: { at: 'LTL', text: 'LINTEL · TESTED' } })}</div>` +
+  ticker(TICK) +
+  `<div class="ab panel">${tabs('world')}<div class="pbody">They are pushing the Sound and have taken Driftholm. Your promise at Lintel is being tested now; Vessary has not been. <span class="mut">Intel: they think you'll back down; we are fairly sure.</span>
+  <div class="legend"><span><i style="background:var(--land)"></i>Calm</span><span><i style="background:#4A3F22;border:1px solid var(--amber)"></i>Under pressure</span><span><i style="background:#B23A33"></i>Fighting</span><span><i style="background:none;border:1px dashed #F2E9DA"></i>We defend</span></div></div></div>` + homeBar;
+
+document.getElementById('f2').innerHTML = topBar(31, 18, 'pause') + race(1, 22) + stepBar('Pushing', 21) +
+  `<div class="ab map">${mapSVG(DAY18, { id: 'b', pledged: ['VSY', 'LNK', 'LTL'], deploy: [{ at: 'LNK', kind: 'sea' }], ring: { at: 'LTL', text: 'LINTEL · TESTED' } })}</div>` + ticker(TICK) +
+  `<div class="ab panel">${tabs('world')}<div class="pbody">They are pushing the Sound.</div></div>` + homeBar +
+  `<div class="ab veil"></div><div class="ab paused"><span>Paused · 03:14</span></div>
+   <div class="ab call"><div class="who"><b>Phone · 1 of 3</b><span>R. Halder · General</span></div>
+   <div class="msg">Federation armour is at Lintel, the promise you inherited. Two brigades, lights on, not moving. They want to see what you do.</div>
+   <div class="intel">Intel Director: "If they take what's unguarded, backing it stops them, nine times in ten. If they are scared of us, backing it is how it starts. So far they have pushed four unpromised places and tested none of ours. I lean to the first."</div>
+   <div class="quip"><b>Hawk General:</b> "Move now, or never promise anything again." <b>Dove Foreign Minister:</b> "A brigade in the Sound may be one of their lines."</div>
+   <div class="opt"><div class="a">Back it: move the brigade up</div><div class="h"><em>Influence −12</em> · we keep our word · if they are scared of us, this is how it starts</div></div>
+   <div class="opt"><div class="a">Back down: protest and hold</div><div class="h"><em>They believe us less</em> · Lintel likely falls within days · if they are scared of us, this calms them</div></div>
+   <div class="opt"><div class="a">Wait a day</div><div class="h"><em>Intel: 30 to 50% Lintel falls</em> · confirmation may arrive · if they push when we blink, this is a blink</div></div></div>`;
+
+const card = (tag, cls, nm, ru, sy, sel) => `<div class="card ${sel?'sel':''}"><span class="tag ${cls}">${tag}</span><div><div class="nm">${nm}</div><div class="ru">${ru}</div><div class="sy">${sy}</div></div></div>`;
+document.getElementById('f3').innerHTML = topBar(31, 20, 'pause') + race(1, 24) + stepBar('Pushing', 21) +
+  `<div class="ab map">${mapSVG(DAY18, { id: 'c', pledged: ['VSY', 'LNK', 'LTL'], deploy: [{ at: 'LNK', kind: 'sea' }] })}</div>` +
+  `<div class="ab sheet">${tabs('cabinet')}<div class="draft"><div class="lede">Draft 3 of 5, day 24. Take one, none for +6, or reroll once for 3.</div>
+    ${card('Intel','i','The Spymaster','Reads their lines twice as fast. Wrong one time in six, and says so.','Pairs with <b>Intercepts</b>: their lines read by day 10.', true)}
+    ${card('Force','f','Fleet to the Scatter','A promise in the Scatter holds at sea: a test there ends without a fight, unless a line of theirs is in that water.','Risk: <b>may read as a threat</b>, depending what they\'re like.')}
+    ${card('Talk','t','Back-channel','Ways out cost half, and you can warn them privately.','Pairs with <b>Hotline</b>: ways out land more often. Cost: a week before it works.')}
+    </div><div class="take">TAKE THE SPYMASTER</div><div class="none">none +6 · reroll −3</div></div>` + homeBar;
+
+const row = (l, body) => `<div class="row"><span class="l">${l}</span><div>${body}</div></div>`;
+document.getElementById('f4').innerHTML = topBar(31, 18, 'pause') + race(1, 22) + stepBar('Pushing', 21) +
+  `<div class="ab map">${mapSVG(DAY18, { id: 'd', pledged: ['VSY', 'LNK', 'LTL'], deploy: [{ at: 'LNK', kind: 'sea' }] })}</div>` +
+  `<div class="ab sheet">${tabs('them')}<div class="them">
+    ${row('What they\'ve done', 'Pushed four unpromised places, tested one promise, complained once about our fleet. <span class="mut">Looks like they take what\'s unguarded.</span>')}
+    ${row('Lines they declared', 'No Republic forces in the Sound <span class="conf">mean it: 70 to 90%</span><br>Sea lanes to the Cap open <span class="conf">40 to 60%</span><br><span class="mut">One may be a bluff.</span>')}
+    ${row('What they think of you', 'They think you\'ll back down. <span class="mut">Fairly sure: you have not yet backed a tested promise.</span>')}
+    ${row('Treaty · 22%', 'Down 3 since Driftholm fell. <span class="mut">Capped at 75 until they have a way out.</span><div class="wayout"><div class="t">A way out · offer one</div><div class="o">Drop our promise at Lintel <em>−10 · if hungry, 50 to 70% it feeds them</em></div><div class="o">Summit without preconditions <em>−15 · Farsouth leans away a little</em></div></div>')}
+    </div></div>` + homeBar;
+
+function fit() {
+  for (const box of document.querySelectorAll('.phone-fit')) {
+    const w = box.clientWidth; const s = Math.min(1, w / 390);
+    const ph = box.firstElementChild; ph.style.transform = `scale(${s})`; box.style.height = `${844 * s}px`;
+  }
+}
+addEventListener('resize', fit); fit();
+</script>
