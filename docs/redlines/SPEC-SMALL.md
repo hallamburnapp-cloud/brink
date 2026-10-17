@@ -90,7 +90,13 @@ games, the far-promise opening must not beat the sensible bot, and the sensible 
 and a half. Then five cold testers who are not the owner's partner, two games each and the debrief; the pass is
 that most of them can say what the Federation was like without being told, and play a third game unasked.
 
-## Two decisions for the owner
+## The owner's decisions (2026-10-17)
+
+1. **The look: the situation room throughout** (`looks/paper/`): the paper map under a lamp, grease-pencil promises, red pushpins, the rubber-stamped ladder word, the teleprinter tape, the handset and typed slips for the call.
+2. **Turn-based by week.**
+3. **A deep strategy game for a niche.** The first build is this slice; the cabinet draft, the Coalition and private warnings from `SPEC.md` return in the second and third builds. The first build's engine leaves room for them without building them.
+
+## Two decisions that were put to the owner (kept for the record)
 
 1. **Turn-based by week, or real time.** The review's case for turns is strong (nothing happens between stops
    that needs a clock). The owner chose real time for the Plague Inc feel; this page recommends turns.
