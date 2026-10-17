@@ -13,7 +13,7 @@ this page, and picks a look from the three mocked beside it, before any code is 
 | The phone hands you the answer with conditional annotations. | **Advisers argue in character; nobody annotates.** The Hawk is confident and sometimes wrong. The Director reports what she has seen, never what it means. The player does the inference. Forty words, never more. |
 | Credibility from the record alone bakes in one side of a debate. | **They believe a promise when you have kept promises and when you could actually hold the place.** A promise outline is solid where you can hold it (your fleet or brigade within reach, a sea lane open, not deep in their bloc) and dashed where you cannot: a promise you cannot keep is drawn as a bluff, and everyone can see it. |
 | A solved opening: one cheap far promise, backed once. | A far promise cannot be held, so it is dashed, invites a test, costs double to back and may fail. The simulator checks this opening first. |
-| The maths does not close. | The score is ordered by construction (below). The win condition is one sentence. WAR is drawn as twelve ticks with the last one labelled WORLD WAR. |
+| The maths does not close. | The score is ordered by construction (below). The win condition is one sentence. WAR is drawn as eight pencil boxes with the last one labelled WORLD WAR. |
 | The critics were simulated; validation is cheap. | They were. The slice is the phone, promises, one Federation and ten minutes, and the bar is cold testers. |
 | Lift the fog at the end. | **The debrief**: after the ending, the eight weeks replay with the Federation's hidden thoughts under each of your decisions ("Week 3: they were bluffing at Shoal. Backing it would have cost nothing." "Week 5: your fleet looked like an invasion."). Every loss is a lesson; that is the next run. |
 
@@ -55,7 +55,7 @@ outlines get tested; solid ones mostly do not.
 
 ## The two bars
 
-- **WAR**: regions fighting, drawn as twelve ticks; the twelfth is WORLD WAR and the game is lost there.
+- **WAR**: regions fighting, drawn as eight pencil boxes; the eighth is WORLD WAR and the game is lost there. (The first draft said twelve of thirty; in eight weeks twelve is out of reach and a collapse ran out of weeks instead of ending, so the engine's tuning set the line at eight. One box a week, legible.)
 - **TREATY**: their willingness to sign, 0 to 100. Each week: +5 if they gained nothing this week; +15 when a
   way out is accepted; +10 when another bloc signs (at most two); −5 for each place they gained; −10 when they
   are humiliated (a public ultimatum they must refuse). **At 100 they sign, if no place fell this week.** Those

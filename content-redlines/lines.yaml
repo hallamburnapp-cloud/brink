@@ -1,0 +1,54 @@
+# BRINK: Red Lines — the eight lines Wintermast can declare (docs/redlines/CONTENT.md "Lines").
+# Before week 1 the engine draws three (two real, one a bluff) and prints them on the tape; the
+# player is never told which is which. `kind` says what of yours crosses it, in the covered regions
+# (src/redlines/engine/content.ts): proximity = either piece standing there; sea = the fleet there;
+# missiles = the brigade there; alliance = a WE DEFEND ring there. `text` is Wintermast's own words,
+# as the opening quotes them (30 words or fewer). `tape` is the headline form for the teleprinter
+# (46 characters or fewer; it prints in capitals). Regions are the map's ids, never in the Cap.
+- id: sound-forces
+  kind: proximity
+  regions: [KLP, BRK, LTL, TLM, DNM, ORN]
+  text: "Republic forces in the Sound would be a grave matter. We say it once, and we say it plainly."
+  tape: "Wintermast: no Republic forces in the Sound"
+
+- id: scatter-forces
+  kind: proximity
+  regions: [GUL, DRF, TRN, LNK, PBB, SHL]
+  text: "Republic forces on the islands of the Scatter would be a step we could not ignore. The islands are nobody's barracks."
+  tape: "Wintermast: no Republic forces in the Scatter"
+
+- id: cap-lanes
+  kind: sea
+  regions: [DRF, KLP]
+  text: "The sea lanes to the Cap stay open. A Republic fleet off Driftholm or Kelpmouth closes them. We will not allow that."
+  tape: "Wintermast: the lanes to the Cap 'stay open'"
+
+- id: shoal-strait
+  kind: sea
+  regions: [SHL, LTL]
+  text: "The Shoal strait is Federation water in all but name. Republic warships in it are a provocation, and we answer provocations."
+  tape: "Wintermast: the Shoal strait 'is our water'"
+
+- id: farsouth-alliance
+  kind: alliance
+  regions: [BRN, MRM, FLE, ICW, SLW, HRT]
+  text: "A Republic guarantee to any town of Farsouth is an alliance against the Federation, and we will answer it as one."
+  tape: "Wintermast warns the Republic off Farsouth"
+
+- id: scatter-promises
+  kind: alliance
+  regions: [GUL, DRF, TRN, LNK, PBB, SHL]
+  text: "Lantern Key and its islands choose their own friends. A Republic promise there chooses for them, and we will not have it."
+  tape: "Wintermast: no promises to the Scatter"
+
+- id: north-missiles
+  kind: missiles
+  regions: [VSY, RMH]
+  text: "Missiles north of Edda Vale we will treat as aimed at Wintermast. A Republic brigade carries missiles. Keep it south of your capital."
+  tape: "Wintermast: no missiles north of Edda Vale"
+
+- id: south-ports
+  kind: sea
+  regions: [BRN, MRM, FLE]
+  text: "Farsouth's ports stay neutral. A Republic fleet in them makes them something else, and we would have to act on that."
+  tape: "Wintermast: Farsouth's ports 'stay neutral'"

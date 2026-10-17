@@ -1,0 +1,27 @@
+# BRINK: Red Lines — the four people who speak on the phone (docs/redlines/CONTENT.md "Advisers").
+# Fictional names. `tag` is the nickname the caller card prints under the name ("the Hawk");
+# `voice` is for the writer and the validator, never shown. Three of them answer on every call
+# (hawk, dove, intel); the Ambassador only ever calls.
+- id: hawk
+  name: Ruun Halder
+  role: General
+  tag: the Hawk
+  voice: "Confident and blunt. Short sentences, a verb first, certain every time and wrong some of the time. Never hedges, never explains what the enemy is like."
+
+- id: dove
+  name: Mara Teshen
+  role: Foreign Minister
+  tag: the Dove
+  voice: "Cautious and measured. Full sentences. Reminds the room what was said in public and what it will cost. Never sure, never a conditional about what they are like."
+
+- id: intel
+  name: Dagny Fell
+  role: Intel Director
+  tag: the Director
+  voice: "Reports only what she has seen or counted: numbers, places, hours. Never what it means, never odds, never what they think or want."
+
+- id: ambassador
+  name: Aurelio Stane
+  role: Old Ambassador
+  tag: the Ambassador
+  voice: "Warm and slow. Remembers who made which promise and why, and the older crisis that went fine. Calls about the promises you inherited and about summits."

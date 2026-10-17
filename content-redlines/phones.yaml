@@ -1,0 +1,168 @@
+# BRINK: Red Lines — the phone templates (docs/redlines/CONTENT.md "Phones").
+# Every call is the 3am call: the caller's message in forty words or fewer, in-world, dry, tense;
+# then three advisers in character (the Hawk confident and sometimes wrong, the Dove cautious, the
+# Director reporting only what she has seen); then three choices, each with its cost in plain words.
+# Nobody annotates. No line ever says what kind of enemy this is.
+#
+# Kinds and slots are the engine's (src/redlines/engine/content.ts). The three test kinds (test,
+# test-inherited, feint) are ONE pool: a real push and a feint draw from it alike, so no template is a
+# tell; test-inherited is preferred when the promise was inherited. The Director's observations must
+# be true of a real push and of a feint. Slots: {region} the place; {promise} the promised place (the
+# same, on a test); {cost} the influence BACK IT costs this round (only meaningful on back.cost and in
+# the text); {piece} your nearest piece, with its article ("the brigade"); {from} the other heading's
+# place; {step} the ladder word; {line} the line's text (long: quote it nowhere in a call).
+# `again` (test kinds) is the message on the second and third week of the same call, after WAIT.
+# Options are a map back · down · wait: `label` is the word on the typed form, `cost` the line under it.
+
+# ---------------------------------------------------------------- the inherited promise, tested
+- id: test-inherited-armour
+  kind: test-inherited
+  caller: hawk
+  text: "Federation armour is at {region}, the promise you inherited. Two brigades, lights on, not moving. They want to see what you do."
+  again: "A week on. The armour at {region} has not moved, and there is more of it. The lights are still on. They are still watching you."
+  advisers:
+    hawk: "Move now. Or never promise anything again."
+    dove: "Keeping it puts {piece} on their doorstep. Think how that looks from Wintermast."
+    intel: "Two brigades at {region}. Lights on since dusk. Their radio went quiet at midnight."
+  options:
+    back: { label: BACK IT, cost: "move {piece} up · costs {cost} influence · we keep our word" }
+    down: { label: BACK DOWN, cost: "protest and hold · they'll believe us less · {region} will likely fall" }
+    wait: { label: WAIT, cost: "a week · {region} may fall · a second source may arrive" }
+
+- id: test-inherited-ambassador
+  kind: test-inherited
+  caller: ambassador
+  text: "I made the promise to {region} myself, twelve years ago, for a government that is gone. Federation troops are on its border tonight. It is yours now."
+  again: "Another week and they are still on the {region} border. The mayor rang me at home. I told him you had not forgotten. I hope that was true."
+  advisers:
+    hawk: "A promise is a promise. Send {piece} tonight."
+    dove: "We did not make this promise, but we signed for it. Breaking it quietly is still breaking it."
+    intel: "Troops on the {region} border since Tuesday. Tents, not trenches. Nobody has crossed."
+  options:
+    back: { label: BACK IT, cost: "send {piece} · costs {cost} influence · we keep an old word" }
+    down: { label: BACK DOWN, cost: "a quiet note to Wintermast · they'll believe us less · {region} will likely fall" }
+    wait: { label: WAIT, cost: "a week · the troops may cross · we learn more" }
+
+# ---------------------------------------------------------------- your own promise, tested
+- id: test-column
+  kind: test
+  caller: hawk
+  text: "They are testing your promise at {region}. A column crossed the border at dawn and stopped a mile in. They are waiting for your answer."
+  again: "The column at {region} is still a mile in. It has dug in. Another has formed up behind it. They are waiting for your answer."
+  advisers:
+    hawk: "They stopped because they are not sure of us. Make them sure."
+    dove: "We drew that ring in public. Whatever we do now, we do in public."
+    intel: "One column, forty vehicles, a mile inside {region}. Field kitchens up at noon. Their second column has not moved."
+  options:
+    back: { label: BACK IT, cost: "move {piece} up · costs {cost} influence · we keep our word" }
+    down: { label: BACK DOWN, cost: "a protest and nothing else · they'll believe us less · {region} will likely fall" }
+    wait: { label: WAIT, cost: "a week · {region} may fall · we see what the second column does" }
+
+- id: test-ships
+  kind: test
+  caller: dove
+  text: "Federation ships are off {region}, inside the promise you drew. They have not fired. Their captain has asked, politely, whether we meant it."
+  again: "The ships off {region} are still there. Two more joined them in the night. The captain has stopped asking."
+  advisers:
+    hawk: "Send {piece} through them. They will move."
+    dove: "Ships can leave as quietly as they came. Soldiers cannot. Choose the quiet thing where we can."
+    intel: "Three ships off {region}, one a transport. Nothing has landed. Their crews have been on deck all night."
+  options:
+    back: { label: BACK IT, cost: "send {piece} in · costs {cost} influence · we keep our word" }
+    down: { label: BACK DOWN, cost: "ask them to leave, nothing more · they'll believe us less · {region} will likely fall" }
+    wait: { label: WAIT, cost: "a week · {region} may fall · the transport may show its cargo" }
+
+# ---------------------------------------------------------------- loud pushes (the same pool; a feint draws these too)
+- id: feint-engines
+  kind: feint
+  caller: hawk
+  text: "Armour on the {region} line, exactly where you said we would fight. Engines running all night. The whole Cap can hear it. Decide."
+  again: "Still there, still loud. Engines all night again at {region}. Nothing has crossed. I do not like being made to wait."
+  advisers:
+    hawk: "This is the real one. Move everything we have."
+    dove: "A lot of noise for an army that has not moved an inch."
+    intel: "Engines at {region} since dusk. Their fuel trucks have not been found. Their other column is at {from}."
+  options:
+    back: { label: BACK IT, cost: "move {piece} up · costs {cost} influence · we keep our word" }
+    down: { label: BACK DOWN, cost: "hold and protest · they'll believe us less · {region} will likely fall" }
+    wait: { label: WAIT, cost: "a week · {region} may fall · the fuel trucks may show up" }
+
+- id: feint-flags
+  kind: feint
+  caller: intel
+  text: "Their flags are up on the {region} border, the place you promised. Two regiments by their radio. One by our count. The radio is loud tonight."
+  again: "Still two regiments by their radio at {region}, still one by our count. Their other column, at {from}, is just as loud."
+  advisers:
+    hawk: "Two regiments. Nobody bluffs with two regiments. Move."
+    dove: "Run to every flag they raise, and they will raise flags for sport."
+    intel: "I count one regiment at {region}. Their radio says two. Their other column, at {from}, is just as loud."
+  options:
+    back: { label: BACK IT, cost: "move {piece} up · costs {cost} influence · we keep our word" }
+    down: { label: BACK DOWN, cost: "hold and protest · they'll believe us less · {region} will likely fall" }
+    wait: { label: WAIT, cost: "a week · {region} may fall · the count may settle" }
+
+# ---------------------------------------------------------------- events
+- id: false-alarm
+  kind: false-alarm
+  caller: intel
+  text: "Early warning shows six Federation tracks rising over {region}. Nothing else confirms it: not the radar at Vessary, not the ships. We have four minutes."
+  advisers:
+    hawk: "Six tracks is six tracks. Get our own up before theirs land."
+    dove: "Nothing else confirms it. We do not go to war on one screen."
+    intel: "Six tracks on one screen. Nothing on the second. Nothing from Vessary. The tracks are not getting larger."
+  options:
+    back: { label: GO ON ALERT, cost: "our forces go to readiness in public · they will see it · costs {cost} influence" }
+    down: { label: STAND DOWN, cost: "we trust the second screen · costs nothing · a long night" }
+    wait: { label: WAIT, cost: "four minutes · a second source may arrive · it may not" }
+
+- id: trawler
+  kind: trawler
+  caller: dove
+  text: "{region} has seized a Federation trawler and its crew. Wintermast wants them back by morning or it will come and get them. {region} is asking what our promise is worth."
+  advisers:
+    hawk: "Our promise covers their harbour. Their harbour has a trawler in it. That is the end of the question."
+    dove: "They boarded that boat without asking us. Allies who drag you in are still allies. Ask the price first."
+    intel: "One trawler, nine crew, a radio mast too tall for fishing. Two Federation patrol boats an hour out."
+  options:
+    back: { label: BACK THEM, cost: "{region} keeps the boat · the test comes early · costs {cost} influence" }
+    down: { label: DISOWN THEM, cost: "the boat goes back tonight · {region} will not forget it · they'll believe us less" }
+    wait: { label: LEAN ON THEM, cost: "quietly · a word in the right ear has its price · the boat may go back by itself" }
+
+- id: bluff-crossed
+  kind: bluff-crossed
+  caller: intel
+  text: "Wintermast drew a line, and this morning we crossed it at {region}. Nothing has moved in the Cap. Their ambassador has not called. Yet."
+  advisers:
+    hawk: "They said a lot of things. Stay where we are and see which ones they meant."
+    dove: "A line declared in public is hard to walk back from. For them as much as for us."
+    intel: "Their radio traffic doubled at nine and has not come down. No unit has moved. Their ambassador has not called."
+  options:
+    back: { label: HOLD, cost: "we stay across it · they said it was a line · we find out" }
+    down: { label: PULL BACK, cost: "we step back from {region} tonight · they'll believe us less · the line stands" }
+    wait: { label: WAIT, cost: "a week across the line · they may move first · the stakes go up" }
+
+- id: summit
+  kind: summit
+  caller: ambassador
+  text: "Wintermast proposes a summit at Frostmere in ten days. No preconditions, they say, except one: no new promises are drawn while it sits. They want an answer tonight."
+  advisers:
+    hawk: "A summit while their boots are on someone else's ground is a surrender with better chairs."
+    dove: "They asked. That is new. Go, and say nothing we cannot keep."
+    intel: "Their delegation list has nine names. Seven are soldiers. Their forces near the border have not thinned."
+  options:
+    back: { label: ACCEPT, cost: "we go · costs {cost} influence · it counts as a way out" }
+    down: { label: REFUSE, cost: "we stay home · they'll call it an insult · their patience shortens" }
+    wait: { label: ASK FOR TERMS, cost: "we ask what they want first · the offer may lapse" }
+
+- id: fall-unpromised
+  kind: fall-unpromised
+  caller: dove
+  text: "{region} will fall this week. We promised them nothing and they knew it, but {piece} could reach them tonight. Their mayor is on the line asking whether we are coming."
+  advisers:
+    hawk: "Nobody promised {region} anything. Send {piece} anyway, before they take the next one too."
+    dove: "A place we never promised is a place we did not lose. Say so, and mean it."
+    intel: "Federation troops are an hour from {region}. Their next column has formed up facing {from}."
+  options:
+    back: { label: SEND THEM, cost: "{piece} goes to {region} · costs {cost} influence · a fight we never promised" }
+    down: { label: LET IT GO, cost: "{region} is theirs for now · they gain · the treaty slips" }
+    wait: { label: PROTEST, cost: "a protest and nothing else · {region} will likely fall · they hear us say so" }

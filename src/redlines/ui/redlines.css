@@ -1,0 +1,611 @@
+/*
+ * BRINK: Red Lines — the app around the paper room (src/redlines/ui/paper/paper.css has the room
+ * itself). A dark desk fills the window; the 390 x 844 frame sits on it, scaled as one piece. The
+ * screens' own papers (the title card, the slips a hold puts down, the way-out form, the menu, the
+ * explanation's slips, the debrief's nav) are typed paper in the same look: Special Elite for type,
+ * Caveat for the hand, graphite pencil underlines, red only for the Federation and danger, blue only
+ * for the treaty. No chrome.
+ */
+
+/* ------------------------------------------------------------------ the shell */
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #1a1410;
+  overscroll-behavior: none;
+}
+body {
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  position: fixed;
+  inset: 0;
+}
+#app {
+  position: fixed;
+  inset: 0;
+}
+.rl-root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #1a1410 radial-gradient(ellipse 70% 55% at 50% 42%, #2b2219 0%, #1a1410 65%, #110d0a 100%);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.rl-root *,
+.rl-root *::before,
+.rl-root *::after {
+  box-sizing: border-box;
+}
+.rl-inset-probe {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  visibility: hidden;
+  pointer-events: none;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.rl-frame {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+/* On a desk the sheet lies on the table with a shadow under it. */
+.rl-frame.rl-desk {
+  box-shadow:
+    0 2px 0 rgba(255, 240, 210, 0.08),
+    0 24px 60px rgba(0, 0, 0, 0.7),
+    0 8px 18px rgba(0, 0, 0, 0.5);
+}
+.rl-frame .pp-room {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.rl-upright {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1410;
+  color: #e9dcb8;
+  font: 13px/15px 'Special Elite', 'Courier New', monospace;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------------------------ layers */
+.rl-layer {
+  position: absolute;
+  inset: 0;
+}
+.rl-layer > .pp-dim {
+  pointer-events: none;
+}
+/* The title lifting off the sheet into a game (the curtain). */
+.rl-title {
+  transition: opacity 360ms ease-out;
+}
+.rl-title.rl-lifting {
+  opacity: 0;
+  pointer-events: none;
+}
+.rl-title .pp-dim {
+  background: rgba(30, 20, 8, 0.22);
+}
+.rl-scrim {
+  z-index: 20;
+  background: rgba(30, 20, 8, 0.42);
+  animation: rl-fade 160ms linear both;
+}
+@keyframes rl-fade {
+  from {
+    opacity: 0;
+  }
+}
+.rl-in {
+  animation: rl-in 300ms ease-out both;
+}
+@keyframes rl-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.rl-touch {
+  position: absolute;
+  left: 0;
+  top: 42px;
+  width: 390px;
+  height: 456px;
+  touch-action: none;
+}
+/* A tap anywhere while a week resolves skips to its end. */
+.rl-skip {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------------ typed paper */
+.rl-card {
+  position: absolute;
+  left: 24px;
+  width: 342px;
+  background: #f6f0dd;
+  padding: 16px 20px 14px 22px;
+  color: #2b2418;
+  transform: rotate(-0.6deg);
+  background-image: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 19px, rgba(120, 100, 70, 0.13) 19px 20px);
+  background-position: 0 12px;
+}
+.rl-card .pp-clip {
+  position: absolute;
+  right: 20px;
+  top: -10px;
+  transform: rotate(-5deg);
+}
+.rl-head {
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: #6d5f49;
+  margin-bottom: 6px;
+}
+.rl-card .ln {
+  font-size: 11.6px;
+  line-height: 20px;
+  margin-bottom: 8px;
+}
+.rl-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  margin-top: 8px;
+}
+.rl-row > .rl-choice {
+  flex: 1;
+}
+.rl-row > .rl-choice.rl-small {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+/* the look's button: a typed word with a pencil underline, on its own slip of paper */
+.rl-choice {
+  display: block;
+  position: relative;
+  width: 100%;
+  background: #faf5e6;
+  padding: 9px 12px 9px 14px;
+  margin-top: 8px;
+  text-align: left;
+  color: #1a1510;
+  box-shadow:
+    -1px 2px 3px rgba(50, 32, 10, 0.25),
+    -3px 6px 10px rgba(50, 32, 10, 0.12);
+  transform: rotate(-0.4deg);
+}
+.rl-choice:nth-child(even) {
+  transform: rotate(0.5deg);
+  background: #f3ebd6;
+}
+.rl-choice:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: -1px 1px 2px rgba(50, 32, 10, 0.25);
+}
+.rl-choice:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.rl-choice:after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 3px, rgba(90, 70, 40, 0.18) 3px 4px);
+}
+.rl-choice .w,
+.rl-word {
+  position: relative;
+  display: inline-block;
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  line-height: 18px;
+  color: #1a1510;
+}
+.rl-choice.rl-small .w {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  line-height: 15px;
+}
+.rl-choice .w svg,
+.rl-word svg {
+  position: absolute;
+  left: -4px;
+  right: -6px;
+  bottom: -5px;
+  height: 7px;
+  width: calc(100% + 10px);
+}
+.rl-choice .c {
+  display: block;
+  font-size: 9.8px;
+  line-height: 13px;
+  color: #3b322a;
+  margin-top: 5px;
+}
+.rl-word {
+  background: none;
+  padding: 2px 6px 4px 4px;
+}
+.rl-word.rl-quiet {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: #6d5f49;
+}
+
+/* ------------------------------------------------------------------ the title */
+.rl-title-card {
+  top: 272px;
+  padding-top: 20px;
+  transform: rotate(-0.8deg);
+}
+.rl-name {
+  font-size: 34px;
+  letter-spacing: 0.34em;
+  line-height: 38px;
+  color: #1a1510;
+  padding-left: 0.1em;
+}
+.rl-sub {
+  font-size: 30px;
+  line-height: 30px;
+  color: #c0271a;
+  transform: rotate(-2deg);
+  display: inline-block;
+  margin: 2px 0 6px 2px;
+}
+.rl-blurb {
+  font-size: 11px;
+  line-height: 17px;
+  color: #3b322a;
+  margin-bottom: 10px;
+}
+
+/* ------------------------------------------------------------------ the week */
+.rl-tag {
+  right: 12px;
+  top: 12px;
+  background: #f3ead6;
+  padding: 5px 9px 4px 10px;
+  font-size: 8.5px;
+  letter-spacing: 0.28em;
+  color: #3a3129;
+  transform: rotate(1.8deg);
+  border-radius: 1px;
+}
+.rl-tag:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+/* The mock's place for the note (a ring on the map's bottom row writes WE DEFEND above itself, so the sheet's foot is clear). */
+.pp-note {
+  top: 504px;
+  width: 158px;
+}
+.pp-note.rl-long {
+  font-size: 12px;
+  line-height: 13px;
+}
+.rl-wayout {
+  left: 18px;
+  top: 662px;
+  width: 150px;
+  min-height: 38px;
+  background: #f6f0dd;
+  padding: 8px 10px 8px 12px;
+  color: #1a1510;
+  transform: rotate(-1.6deg);
+  display: block;
+}
+.rl-wayout:after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 3px, rgba(90, 70, 40, 0.18) 3px 4px);
+}
+.rl-wayout .w {
+  position: relative;
+  display: inline-block;
+  font-size: 12.5px;
+  letter-spacing: 0.14em;
+  line-height: 15px;
+}
+.rl-wayout .w svg {
+  position: absolute;
+  left: -4px;
+  right: -6px;
+  bottom: -5px;
+  height: 7px;
+  width: calc(100% + 10px);
+}
+.rl-wayout .c {
+  display: block;
+  margin-top: 6px;
+  font-size: 8.4px;
+  line-height: 11px;
+  color: #3b322a;
+}
+.rl-wayout:disabled {
+  cursor: default;
+}
+.rl-wayout:disabled .w {
+  opacity: 0.55;
+}
+.rl-wayout:active:not(:disabled) {
+  transform: rotate(-1.6deg) translateY(1px);
+}
+
+/* the slip a hold puts down beside a place */
+.rl-slip {
+  z-index: 10;
+  background: #f6f0dd;
+  padding: 7px 12px 8px 14px;
+  color: #2b2418;
+  transform: rotate(-0.9deg);
+  animation: rl-in 160ms ease-out both;
+}
+.rl-slip:after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 3px, rgba(90, 70, 40, 0.18) 3px 4px);
+}
+.rl-slip .hd {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  color: #6d5f49;
+  margin-bottom: 3px;
+}
+.rl-slip .hd span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rl-slip .w,
+.rl-slip .rl-word {
+  display: inline-block;
+  padding: 0;
+  margin: 1px 0 0;
+  font-size: 13.5px;
+  letter-spacing: 0.12em;
+  line-height: 17px;
+  white-space: nowrap;
+}
+.rl-slip .c {
+  font-size: 9.2px;
+  line-height: 12.5px;
+  color: #3b322a;
+  margin-top: 6px;
+}
+.rl-x {
+  flex: none;
+  background: none;
+  padding: 0 0 0 4px;
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: #6d5f49;
+}
+.rl-refusal {
+  left: 16px;
+  top: 500px;
+  width: 176px;
+  z-index: 10;
+  background: #efe5cc;
+  padding: 6px 10px 7px 12px;
+  font-size: 10px;
+  line-height: 14px;
+  color: #8e1a12;
+  transform: rotate(-1.4deg);
+  clip-path: polygon(0 4%, 3% 0, 40% 3%, 70% 0, 100% 2%, 99% 60%, 100% 100%, 55% 97%, 20% 100%, 0 96%);
+  animation: rl-in 160ms ease-out both;
+}
+
+/* ------------------------------------------------------------------ the explanation */
+.rl-explain {
+  left: 18px;
+  top: 548px;
+  width: 354px;
+  min-height: 120px;
+  background: #f6f0dd;
+  padding: 14px 16px 10px 18px;
+  color: #2b2418;
+  transform: rotate(-0.6deg);
+  animation: rl-in 220ms ease-out both;
+  z-index: 10;
+}
+.rl-explain:after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 3px, rgba(90, 70, 40, 0.18) 3px 4px);
+}
+.rl-explain .n {
+  position: absolute;
+  right: 14px;
+  top: 8px;
+  font-size: 18px;
+  color: #6d5f49;
+  transform: rotate(6deg);
+}
+.rl-explain .ln {
+  font-size: 13.2px;
+  line-height: 21px;
+  padding-right: 22px;
+  min-height: 63px;
+}
+.rl-explain.rl-collision .ln {
+  font-size: 11.8px;
+  line-height: 18px;
+}
+.rl-explain .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+/* ------------------------------------------------------------------ the menu and the forms */
+.rl-menu {
+  top: 236px;
+}
+.rl-menu .ln {
+  margin: 4px 0 10px;
+}
+.rl-menu-row {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 11px 2px 10px;
+  border-top: 1px dotted rgba(90, 70, 40, 0.35);
+  background: none;
+}
+.rl-menu-row:first-of-type {
+  border-top: 0;
+}
+.rl-menu-row .w {
+  position: relative;
+  display: inline-block;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  line-height: 16px;
+  color: #1a1510;
+}
+.rl-menu-row .w svg {
+  position: absolute;
+  left: -4px;
+  right: -6px;
+  bottom: -5px;
+  height: 7px;
+  width: calc(100% + 10px);
+}
+.rl-menu-row .v {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: #6d5f49;
+}
+.rl-menu-row.rl-leave .w {
+  color: #8e1a12;
+}
+.rl-form {
+  top: 150px;
+}
+.rl-form .ln {
+  margin-bottom: 4px;
+}
+.rl-term {
+  position: relative;
+}
+.rl-sub {
+  margin: 4px 0 6px 18px;
+}
+.rl-how {
+  top: 62px;
+  padding-bottom: 12px;
+}
+.rl-how .ln {
+  font-size: 10.6px;
+  line-height: 16px;
+  margin-bottom: 7px;
+}
+
+/* ------------------------------------------------------------------ the end */
+.rl-ending .pp-typed .rl-row {
+  margin-top: 4px;
+}
+.rl-nav {
+  position: absolute;
+  left: 24px;
+  width: 342px;
+  top: 728px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+.rl-nav .rl-choice {
+  flex: 1;
+}
+.rl-nav .rl-choice.rl-small {
+  flex: 0 0 96px;
+}
+.pp-debrief {
+  animation: rl-in 220ms ease-out both;
+  /* A crowded week scrolls inside the page; the page never runs under BACK and NEXT. */
+  max-height: 598px;
+  overflow-y: auto;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 26px;
+}
+.rl-dense .pp-debrief .what,
+.rl-dense .pp-debrief .thought {
+  font-size: 10px;
+  line-height: 14.5px;
+}
+
+/* ------------------------------------------------------------------ reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .rl-title,
+  .rl-scrim,
+  .rl-in,
+  .rl-slip,
+  .rl-refusal,
+  .rl-explain,
+  .pp-debrief {
+    animation: none;
+    transition: none;
+  }
+}
+.pp-reduced .rl-title,
+.pp-reduced .rl-scrim,
+.pp-reduced .rl-in,
+.pp-reduced .rl-slip,
+.pp-reduced .rl-refusal,
+.pp-reduced .rl-explain,
+.pp-reduced .pp-debrief {
+  animation: none;
+  transition: none;
+}

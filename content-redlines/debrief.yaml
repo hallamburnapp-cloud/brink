@@ -1,0 +1,126 @@
+# BRINK: Red Lines — the Federation's hidden thoughts, shown in the debrief (CONTENT.md "Debrief").
+# One item per hidden event kind the engine logs (src/redlines/engine/content.ts HIDDEN_KINDS);
+# `thoughts` are variants (the engine picks one by seed). Past tense, addressed to the player, 30
+# words or fewer, plain: "They were bluffing at Shoal. Backing it would have cost nothing."
+# Slots: {region}, {from}, {line} (the line's text), {piece} ("the brigade", "your alert", "your
+# promise"), {cost}, {why} (a reason from strings.why), {step}, {n}.
+
+- kind: heading
+  thoughts:
+    - "They went for {region} because {why}."
+    - "{region} was their choice that week because {why}."
+
+- kind: feint
+  thoughts:
+    - "Their column at {region} was a feint. The real push was at {from}."
+    - "The arrow at {region} was for show. The one at {from} was not; that was where they were going."
+
+- kind: bothReal
+  thoughts:
+    - "Both arrows were real that week. They had the appetite for two."
+
+- kind: notTested
+  thoughts:
+    - "They left {region} alone because they believed you."
+    - "They looked at {region} and left it. A solid ring and your word was not a fight they wanted."
+
+- kind: feintBacked
+  thoughts:
+    - "They were bluffing at {region}. You backed it anyway; it cost {cost} influence, and they took note that you came."
+
+- kind: feintBackedDown
+  thoughts:
+    - "They were bluffing at {region}. Backing it would have cost nothing."
+    - "The push at {region} was for show. You backed down from a show, and they wrote that down."
+
+- kind: feintWaited
+  thoughts:
+    - "They were bluffing at {region}. You waited, and they left."
+
+- kind: realBacked
+  thoughts:
+    - "They meant it at {region}. You backed it and they turned away."
+    - "At {region} they were not sure you would come. You came, and they stepped back."
+
+- kind: realBackFailed
+  thoughts:
+    - "They meant it at {region}. You backed it from too far away, and it failed."
+
+- kind: realBackedDown
+  thoughts:
+    - "They meant it at {region}. You backed down, and they climbed a step."
+    - "At {region} you protested and did nothing. They had expected exactly that, and planned the next week around it."
+
+- kind: realWaited
+  thoughts:
+    - "They meant it at {region}. Their forces stayed, and the stakes went up."
+
+- kind: waitedFell
+  thoughts:
+    - "You waited at {region} once too often. They took it."
+
+- kind: lineReal
+  thoughts:
+    - "That line was real: '{line}' At {region}, {piece} crossed it, and they climbed a step."
+
+- kind: lineBluff
+  thoughts:
+    - "That line was a bluff: '{line}' Nothing happened, and they believed you a little more for calling it."
+
+- kind: fall
+  thoughts:
+    - "You left {region} unanswered, and they took it."
+    - "Nobody answered at {region}. They took it, and a place taken for nothing told them the next one was free too."
+
+- kind: spread
+  thoughts:
+    - "At {step}, the fighting at {from} spread to {region} on its own. They had not ordered that either."
+
+- kind: wayOutAccepted
+  thoughts:
+    - "They took the way out because {why}."
+    - "They accepted the way out. It let them stop without saying they had been stopped, and {why}."
+
+- kind: wayOutRefused
+  thoughts:
+    - "They refused the way out because {why}."
+
+- kind: accident
+  thoughts:
+    - "The accident at {region} was nobody's plan. A patrol fired on a patrol, and they were as surprised as you."
+
+- kind: jumpy
+  thoughts:
+    - "To them, {piece} at {region} looked like an invasion."
+
+- kind: jumpyQuiet
+  thoughts:
+    - "To them, {piece} at {region} was a worry. They held their nerve."
+
+- kind: believed
+  thoughts:
+    - "By now they believed you would keep your word."
+
+- kind: doubted
+  thoughts:
+    - "By now they thought you would back down."
+
+- kind: falseAlarm
+  thoughts:
+    - "The alarm at {region} was nothing: a weather rocket. They never knew how close it came."
+
+- kind: trawler
+  thoughts:
+    - "The trawler at {region} was their excuse: {why}."
+
+- kind: summit
+  thoughts:
+    - "They offered the summit because {why}."
+
+- kind: unpromised
+  thoughts:
+    - "Nobody had promised {region}; they expected to take it for free."
+
+- kind: bluffPhone
+  thoughts:
+    - "Their silence over {region} was the silence of a bluff."

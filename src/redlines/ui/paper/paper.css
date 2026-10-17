@@ -1,0 +1,934 @@
+/*
+ * BRINK: Red Lines — the paper situation room (the art director's look, docs/redlines/looks/paper).
+ * One root, .pp-room, is the 390 x 844 frame: paper under a lamp. Everything on it is paper, ink,
+ * pencil, a rubber stamp, a teleprinter tape, a handset. No chrome. Colour means three things: red is
+ * the Federation and danger, graphite is your hand, blue is the treaty and the Republic's flag.
+ * Fonts: public/redlines/fonts/fonts.css (Special Elite for type, Caveat for the hand).
+ */
+
+.pp-room {
+  position: relative;
+  width: 390px;
+  height: 844px;
+  overflow: hidden;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  background: #f0e2c0;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 62% 38%, rgba(255, 248, 226, 0.6) 0%, rgba(255, 248, 226, 0) 60%),
+    linear-gradient(170deg, #f3e5c2 0%, #ecdcb6 55%, #e3d1a8 100%);
+  font-family: 'Special Elite', 'Courier Prime', 'Courier New', 'Liberation Mono', monospace;
+  color: #2b2418;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.pp-room * {
+  box-sizing: border-box;
+}
+.pp-room-call {
+  background: #cdbb92;
+}
+
+/* ---- the light: grain, lamp pool, vignette, the call's dim ---- */
+.pp-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: 0.9;
+  will-change: transform;
+}
+.pp-lamp {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 62% 38%, rgba(0, 0, 0, 0) 0, rgba(60, 40, 15, 0.04) 38%, rgba(45, 28, 9, 0.24) 70%, rgba(26, 15, 4, 0.54) 100%);
+}
+.pp-lamp2 {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  background: radial-gradient(circle at 62% 38%, rgba(255, 226, 160, 0.5) 0, rgba(255, 226, 160, 0) 46%);
+}
+.pp-room-call .pp-lamp {
+  background: radial-gradient(circle at 50% 46%, rgba(0, 0, 0, 0) 0, rgba(45, 28, 9, 0.18) 34%, rgba(30, 18, 6, 0.62) 62%, rgba(14, 8, 2, 0.9) 100%);
+}
+.pp-room-call .pp-lamp2 {
+  background: radial-gradient(circle at 50% 46%, rgba(255, 226, 160, 0.5) 0, rgba(255, 226, 160, 0) 46%);
+}
+.pp-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(30, 20, 8, 0.36);
+  pointer-events: none;
+}
+
+/* ---- the sheet: neat line and title ---- */
+.pp-neat {
+  position: absolute;
+  left: 9px;
+  top: 46px;
+  width: 372px;
+  height: 596px;
+  border: 1px solid rgba(43, 36, 24, 0.75);
+  pointer-events: none;
+}
+.pp-neat:before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border: 0.5px solid rgba(43, 36, 24, 0.45);
+}
+.pp-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 26px;
+  text-align: center;
+  font-family: Georgia, 'Bitstream Charter', 'Liberation Serif', serif;
+  font-size: 10.5px;
+  letter-spacing: 0.46em;
+  color: #4e4028;
+  pointer-events: none;
+}
+.pp-title:before,
+.pp-title:after {
+  content: '';
+  display: inline-block;
+  width: 26px;
+  height: 1px;
+  background: #6e5f45;
+  vertical-align: middle;
+  margin: 0 10px 2px;
+  opacity: 0.7;
+}
+
+/* ---- the map ---- */
+.pp-maphost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 390px;
+  height: 844px;
+}
+.pp-map {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 390px;
+  height: 844px;
+  overflow: visible;
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.pp-map text {
+  user-select: none;
+  pointer-events: none;
+}
+.pp-map .pp-nm {
+  font-family: Georgia, 'Bitstream Charter', 'Liberation Serif', 'Times New Roman', serif;
+  font-size: 8.4px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  fill: #2a2217;
+  paint-order: stroke;
+  stroke: #e9dcb8;
+  stroke-width: 1.6px;
+  stroke-opacity: 0.55;
+  stroke-linejoin: round;
+  transition: fill 300ms;
+}
+.pp-map .pp-isle {
+  font-size: 7.1px;
+  letter-spacing: 0.09em;
+}
+.pp-map .pp-cap {
+  font-weight: 700;
+  font-size: 8.9px;
+}
+.pp-map .pp-red {
+  fill: #8e1a12;
+}
+.pp-map .pp-sm {
+  font-size: 7.4px;
+  letter-spacing: 0.08em;
+}
+.pp-map .pp-blocs text {
+  font-family: Georgia, 'Bitstream Charter', 'Liberation Serif', serif;
+  font-size: 9.4px;
+  letter-spacing: 0.34em;
+  fill: #6a5a40;
+  fill-opacity: 0.85;
+}
+.pp-map .pp-blocs .pp-bloc-sm {
+  font-size: 7.6px;
+  letter-spacing: 0.26em;
+  fill-opacity: 0.7;
+}
+.pp-map .pp-hw {
+  font-family: 'Caveat', 'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive;
+  font-size: 12.5px;
+  font-weight: 700;
+  fill: #17120e;
+  fill-opacity: 0.82;
+  letter-spacing: 0.02em;
+}
+.pp-map .pp-hwred {
+  fill: #c0271a;
+  fill-opacity: 0.9;
+  font-size: 13.5px;
+}
+.pp-map .pp-stamp-sm {
+  font-family: 'Special Elite', 'Courier New', 'Liberation Mono', monospace;
+  font-size: 8.6px;
+  letter-spacing: 0.14em;
+  fill: #a51d12;
+  font-weight: 700;
+}
+.pp-map .pp-ct {
+  font-family: 'Special Elite', 'Courier New', 'Liberation Mono', monospace;
+  font-size: 5.4px;
+  letter-spacing: 0.12em;
+  fill: #2b2418;
+  fill-opacity: 0.85;
+  paint-order: stroke;
+  stroke: #e9dcb8;
+  stroke-width: 1.6px;
+  stroke-opacity: 0.8;
+  stroke-linejoin: round;
+}
+.pp-map .pp-piece {
+  transition: transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.pp-map .pp-piece .pp-chit {
+  transition: transform 180ms ease-out;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.pp-map .pp-piece.pp-lift .pp-chit {
+  transform: rotate(-9deg) scale(1.3) translateY(-2px);
+  filter: drop-shadow(-2px 4px 3px rgba(40, 24, 6, 0.45));
+}
+.pp-map.pp-nodesk .pp-desk {
+  display: none;
+}
+.pp-map .pp-hold path {
+  transition:
+    fill-opacity 120ms,
+    stroke-opacity 120ms;
+}
+
+/* ---- entrances and exits (every mark has a reduced-motion path: none of this runs) ---- */
+@keyframes pp-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes pp-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pp-drop {
+  from {
+    transform: translateY(-16px) scale(1.35);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes pp-slam {
+  from {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(0.96);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes pp-out {
+  to {
+    opacity: 0;
+  }
+}
+.pp-map .pp-in-draw path.pp-solid,
+.pp-map .pp-in-draw path.pp-arrow,
+.pp-map .pp-in-draw path.pp-under {
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+  animation: pp-draw 600ms ease-out forwards;
+}
+.pp-map .pp-in-draw path.pp-arrow-head {
+  animation-delay: 380ms;
+  animation-duration: 180ms;
+}
+.pp-map .pp-in-draw path.pp-under {
+  animation-delay: 420ms;
+  animation-duration: 220ms;
+}
+.pp-map .pp-in-fade {
+  animation: pp-fade 360ms steps(5, end) forwards;
+}
+.pp-map .pp-l-hw .pp-in-fade {
+  animation: pp-fade 240ms ease-out 300ms both;
+}
+.pp-map .pp-in-drop > g {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pp-drop 280ms cubic-bezier(0.3, 1.3, 0.6, 1) both;
+}
+.pp-map .pp-in-slam .pp-slam {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pp-slam 240ms ease-in both;
+}
+.pp-map .pp-out {
+  animation: pp-out 220ms ease-out forwards;
+  pointer-events: none;
+}
+.pp-map.pp-reduced,
+.pp-map.pp-reduced *,
+.pp-room.pp-reduced * {
+  animation: none !important;
+  transition: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pp-room *,
+  .pp-map,
+  .pp-map * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ---- objects on the desk ---- */
+.pp-obj {
+  position: absolute;
+  box-shadow:
+    -2px 3px 5px rgba(50, 32, 10, 0.32),
+    -6px 12px 18px rgba(50, 32, 10, 0.18);
+}
+.pp-ty {
+  font-family: 'Special Elite', 'Courier Prime', 'Courier New', 'Liberation Mono', monospace;
+}
+.pp-hand {
+  font-family: 'Caveat', 'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive;
+}
+.pp-room button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* the desk calendar */
+.pp-cal {
+  left: 8px;
+  top: 6px;
+  width: 86px;
+  height: 74px;
+  background: #f3ead6;
+  border-radius: 2px;
+  transform: rotate(-2.2deg);
+  overflow: hidden;
+}
+.pp-cal .hd {
+  height: 16px;
+  background: #2e2922;
+  color: #efe6d0;
+  font-size: 8.5px;
+  letter-spacing: 0.3em;
+  text-align: center;
+  line-height: 16px;
+}
+.pp-cal .hd i {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #d9cfb8;
+  margin: 0 2px 1px;
+  vertical-align: middle;
+}
+.pp-cal .num {
+  font-size: 31px;
+  line-height: 33px;
+  text-align: center;
+  color: #1f1a14;
+  margin-top: 1px;
+}
+.pp-cal .num small {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: #5a4e3e;
+  margin-left: 4px;
+  vertical-align: 4px;
+}
+.pp-cal .nt {
+  font-size: 13px;
+  line-height: 14px;
+  text-align: center;
+  color: #3a3129;
+  transform: rotate(-1deg);
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+.pp-cal .nt b {
+  font-weight: 600;
+  color: #1f1a14;
+}
+
+/* the index card clipped to the corner */
+.pp-card {
+  left: 178px;
+  top: 556px;
+  width: 200px;
+  min-height: 138px;
+  background: #f5efdd;
+  transform: rotate(1.6deg);
+  padding: 9px 10px 10px 12px;
+  background-image: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 15px, rgba(120, 100, 70, 0.14) 15px 16px);
+}
+.pp-card .pp-clip {
+  position: absolute;
+  left: -2px;
+  top: -9px;
+  transform: rotate(8deg);
+}
+.pp-card .row {
+  position: relative;
+  height: 30px;
+}
+.pp-card .lab {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: #2b2418;
+}
+.pp-card .sub {
+  position: absolute;
+  left: 0;
+  top: 17px;
+  font-size: 7.6px;
+  letter-spacing: 0.02em;
+  color: #5a4e3e;
+  white-space: nowrap;
+}
+.pp-card .ww {
+  position: absolute;
+  right: 0;
+  top: 17px;
+  font-size: 6px;
+  letter-spacing: 0.1em;
+  color: #8e1a12;
+  white-space: nowrap;
+}
+.pp-card .ww:before {
+  content: '';
+  position: absolute;
+  right: 3px;
+  top: -4px;
+  width: 0.8px;
+  height: 4px;
+  background: #8e1a12;
+  opacity: 0.7;
+}
+.pp-card .val {
+  position: absolute;
+  right: 0;
+  top: 0;
+  font-size: 10px;
+  color: #2b2418;
+}
+.pp-card svg.bar {
+  position: absolute;
+  left: 58px;
+  top: 2px;
+}
+.pp-card .they {
+  position: relative;
+  height: 38px;
+  margin-top: 4px;
+}
+.pp-card .they .lab {
+  top: 12px;
+}
+.pp-stamp {
+  position: absolute;
+  left: 62px;
+  top: -8px;
+  width: 122px;
+  height: 40px;
+  transform-origin: center;
+}
+.pp-stamp.pp-slamming {
+  animation: pp-slam 240ms ease-in both;
+}
+.pp-stamp text {
+  font-family: 'Special Elite', 'Courier New', 'Liberation Mono', monospace;
+  font-size: 19px;
+  letter-spacing: 0.16em;
+  font-weight: 700;
+  fill: #b4231a;
+}
+.pp-stamp text.long {
+  font-size: 16px;
+  letter-spacing: 0.1em;
+}
+.pp-card .send {
+  position: relative;
+  display: block;
+  margin: 6px 0 0 -2px;
+  padding: 4px 10px 5px 8px;
+  background: #faf5e6;
+  box-shadow:
+    -1px 2px 3px rgba(50, 32, 10, 0.25),
+    -3px 6px 10px rgba(50, 32, 10, 0.12);
+  transform: rotate(-1.4deg);
+  font-size: 12.5px;
+  letter-spacing: 0.14em;
+  color: #1a1510;
+  line-height: 15px;
+  width: auto;
+}
+.pp-card .send:active {
+  transform: rotate(-1.4deg) translateY(1px);
+  box-shadow: -1px 1px 2px rgba(50, 32, 10, 0.25);
+}
+.pp-card .send:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.pp-card .send svg {
+  position: absolute;
+  left: 4px;
+  right: 6px;
+  bottom: 1px;
+  height: 7px;
+  width: calc(100% - 10px);
+}
+
+/* the handwritten situation note and the intel slip */
+.pp-note {
+  position: absolute;
+  left: 16px;
+  top: 502px;
+  width: 170px;
+  font-size: 14.5px;
+  line-height: 16px;
+  color: #2a241c;
+  transform: rotate(-1.5deg);
+}
+.pp-note span {
+  display: inline-block;
+}
+.pp-intel {
+  left: 20px;
+  top: 590px;
+  width: 156px;
+  background: #efe6cf;
+  padding: 6px 8px 7px 9px;
+  transform: rotate(-2.4deg);
+  font-size: 8.3px;
+  line-height: 11px;
+  color: #2b2418;
+  clip-path: polygon(0 3%, 4% 0, 30% 2%, 55% 0, 80% 2%, 100% 0, 99% 40%, 100% 70%, 98% 100%, 60% 98%, 30% 100%, 0 97%);
+}
+.pp-intel b {
+  display: block;
+  font-size: 7px;
+  letter-spacing: 0.22em;
+  color: #6d5f49;
+  margin-bottom: 2px;
+  font-weight: 400;
+}
+
+/* the teleprinter tape */
+.pp-tape {
+  left: 6px;
+  top: 734px;
+  width: 378px;
+  height: 88px;
+  background: #ecdfb4;
+  transform: rotate(-1.2deg);
+  padding: 10px 12px 8px 14px;
+  color: #2b2418;
+  background-image: radial-gradient(circle at 50% 4px, rgba(90, 70, 40, 0.35) 0 1.4px, rgba(0, 0, 0, 0) 1.9px);
+  background-size: 9px 8px;
+  background-repeat: repeat-x;
+  overflow: hidden;
+}
+.pp-tape .ln {
+  font-size: 9.6px;
+  line-height: 19px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: clip;
+}
+.pp-tape .ln i {
+  font-style: normal;
+  color: #7a6b52;
+  margin-right: 7px;
+  font-size: 8px;
+}
+.pp-tape .ln.pp-feed {
+  animation: pp-feed 420ms steps(14, end) both;
+}
+@keyframes pp-feed {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+.pp-room-call .pp-tape {
+  top: 782px;
+  height: 56px;
+  transform: rotate(-1deg);
+  padding: 8px 12px 6px 14px;
+  opacity: 0.85;
+}
+.pp-room-call .pp-tape .ln {
+  line-height: 18px;
+}
+
+/* ---- the call ---- */
+.pp-clock {
+  position: absolute;
+  right: 14px;
+  top: 12px;
+  font-size: 26px;
+  line-height: 28px;
+  letter-spacing: 0.08em;
+  color: #efe3c6;
+  background: #1b1715;
+  padding: 5px 10px 4px 12px;
+  border-radius: 3px;
+  box-shadow:
+    -2px 3px 6px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.pp-clock:after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 19px;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.6);
+}
+.pp-clock small {
+  display: block;
+  font-size: 7px;
+  letter-spacing: 0.3em;
+  color: #a79a80;
+  text-align: right;
+  margin-top: 1px;
+  line-height: 9px;
+}
+.pp-handset {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 270px;
+  height: 172px;
+  pointer-events: none;
+}
+.pp-caller {
+  left: 17px;
+  top: 160px;
+  width: 356px;
+  background: #f4ecd8;
+  padding: 14px 16px 13px 18px;
+  transform: rotate(-1.1deg);
+  background-image: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 17px, rgba(120, 100, 70, 0.16) 17px 18px);
+  background-position: 0 36px;
+}
+.pp-caller .pp-clip {
+  position: absolute;
+  right: 22px;
+  top: -10px;
+  transform: rotate(-6deg);
+}
+.pp-caller .who {
+  font-size: 15.5px;
+  letter-spacing: 0.1em;
+  color: #1d1812;
+  line-height: 18px;
+}
+.pp-caller .role {
+  font-size: 16px;
+  color: #3a3129;
+  line-height: 16px;
+  margin-top: 1px;
+  transform: rotate(-1.5deg);
+  display: inline-block;
+}
+.pp-caller .role b {
+  font-weight: 600;
+}
+.pp-caller .msg {
+  font-size: 11.6px;
+  line-height: 18px;
+  color: #2b2418;
+  margin-top: 9px;
+}
+.pp-caller .ring {
+  position: absolute;
+  right: 16px;
+  top: 12px;
+  font-size: 7.5px;
+  letter-spacing: 0.25em;
+  color: #b4231a;
+}
+.pp-slip {
+  position: absolute;
+  left: 22px;
+  width: 346px;
+  background: #efe5cc;
+  padding: 6px 10px 7px 12px;
+  color: #2b2418;
+}
+.pp-slip .who {
+  font-size: 7.6px;
+  letter-spacing: 0.24em;
+  color: #6d5f49;
+  display: block;
+  margin-bottom: 1px;
+}
+.pp-slip .q {
+  font-size: 11px;
+  line-height: 15px;
+}
+.pp-s1 {
+  top: 316px;
+  transform: rotate(0.7deg);
+  clip-path: polygon(0 4%, 3% 0, 40% 3%, 70% 0, 100% 2%, 99% 60%, 100% 100%, 55% 97%, 20% 100%, 0 96%);
+}
+.pp-s2 {
+  top: 366px;
+  transform: rotate(-0.9deg);
+  background: #f1e8d2;
+  clip-path: polygon(0 0, 35% 3%, 65% 0, 100% 3%, 100% 100%, 70% 97%, 30% 100%, 1% 97%);
+}
+.pp-s3 {
+  top: 430px;
+  transform: rotate(0.4deg);
+  background: #ece2c7;
+  clip-path: polygon(1% 3%, 30% 0, 60% 3%, 100% 0, 99% 97%, 60% 100%, 25% 97%, 0 100%);
+}
+/* the typed forms with a pencil underline (the choices) */
+.pp-ch {
+  position: absolute;
+  left: 18px;
+  width: 354px;
+  min-height: 74px;
+  background: #f6f0dd;
+  padding: 9px 12px 8px 14px;
+  color: #2b2418;
+  display: block;
+}
+.pp-ch:after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 3px, rgba(90, 70, 40, 0.18) 3px 4px);
+}
+.pp-ch:active {
+  transform: translateY(1px);
+}
+.pp-ch:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.pp-ch .w {
+  font-size: 17px;
+  letter-spacing: 0.12em;
+  color: #1a1510;
+  line-height: 20px;
+  display: inline-block;
+  position: relative;
+}
+.pp-ch .w svg {
+  position: absolute;
+  left: -4px;
+  right: -6px;
+  bottom: -5px;
+  height: 7px;
+  width: calc(100% + 10px);
+}
+.pp-ch .c {
+  font-size: 10.2px;
+  line-height: 14px;
+  color: #3b322a;
+  margin-top: 6px;
+}
+.pp-ch .n {
+  position: absolute;
+  right: 12px;
+  top: 7px;
+  font-size: 16px;
+  color: #6d5f49;
+  transform: rotate(6deg);
+}
+.pp-c1 {
+  top: 518px;
+  transform: rotate(-0.8deg);
+}
+.pp-c2 {
+  top: 604px;
+  transform: rotate(0.9deg);
+  background: #f2ead6;
+}
+.pp-c3 {
+  top: 690px;
+  transform: rotate(-0.5deg);
+  background: #efe6cf;
+}
+.pp-c1:active {
+  transform: rotate(-0.8deg) translateY(1px);
+}
+.pp-c2:active {
+  transform: rotate(0.9deg) translateY(1px);
+}
+.pp-c3:active {
+  transform: rotate(-0.5deg) translateY(1px);
+}
+
+/* ---- the typed card (endings) and the debrief's typed notes ---- */
+.pp-typed {
+  left: 24px;
+  top: 150px;
+  width: 342px;
+  background: #f6f0dd;
+  padding: 18px 20px 16px 22px;
+  transform: rotate(-0.6deg);
+  color: #2b2418;
+  background-image: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 19px, rgba(120, 100, 70, 0.13) 19px 20px);
+  background-position: 0 14px;
+}
+.pp-typed .pp-clip {
+  position: absolute;
+  right: 20px;
+  top: -10px;
+  transform: rotate(-5deg);
+}
+.pp-typed .hd {
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: #6d5f49;
+  margin-bottom: 4px;
+}
+.pp-typed .ti {
+  font-size: 22px;
+  letter-spacing: 0.14em;
+  line-height: 26px;
+  color: #1a1510;
+  margin-bottom: 10px;
+}
+.pp-typed .ti.red {
+  color: #a51d12;
+}
+.pp-typed .ti.blue {
+  color: #1d4b6e;
+}
+.pp-typed .ln {
+  font-size: 11.6px;
+  line-height: 20px;
+  margin-bottom: 10px;
+}
+.pp-typed .sc {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: #3b322a;
+  margin-top: 6px;
+}
+.pp-typed .sc b {
+  font-size: 15px;
+  font-weight: 400;
+  color: #1a1510;
+  margin-left: 6px;
+}
+.pp-typed .hand {
+  font-size: 16px;
+  line-height: 18px;
+  color: #2a241c;
+  transform: rotate(-1deg);
+  display: inline-block;
+}
+.pp-debrief {
+  left: 24px;
+  top: 118px;
+  width: 342px;
+  min-height: 300px;
+  background: #f4ecd8;
+  padding: 16px 20px 18px 22px;
+  transform: rotate(0.5deg);
+  color: #2b2418;
+  background-image: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 17px, rgba(120, 100, 70, 0.15) 17px 18px);
+  background-position: 0 30px;
+}
+.pp-debrief .wk {
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  color: #1a1510;
+  margin-bottom: 8px;
+}
+.pp-debrief .wk small {
+  font-size: 8px;
+  letter-spacing: 0.3em;
+  color: #6d5f49;
+  margin-left: 8px;
+}
+.pp-debrief .lab {
+  font-size: 7.6px;
+  letter-spacing: 0.24em;
+  color: #6d5f49;
+  margin: 8px 0 1px;
+}
+.pp-debrief .what {
+  font-size: 11px;
+  line-height: 18px;
+}
+.pp-debrief .thought {
+  font-size: 11px;
+  line-height: 18px;
+  color: #8e1a12;
+}
+.pp-debrief .pg {
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  font-size: 14px;
+  color: #6d5f49;
+  transform: rotate(5deg);
+}

@@ -1,0 +1,306 @@
+# BRINK: Red Lines — every word on screen that is not a phone, a line or a debrief thought
+# (CONTENT.md "Strings"). Plain English a non-gamer can repeat. The brand name is never written
+# here: it is BRAND.name in src/config.ts, one constant. Capitals are the typed and stamped words.
+# The first sections are the engine's (src/redlines/engine/content.ts `Strings`), key for key; the
+# sections from `title` on are the screens'. Slots: {region} {promise} {from} {piece} {cost} {step}
+# {line} {why} {n} {term} {bloc} {at} {week} {fighting} {because} {cause} {a} {b} {hold}.
+
+# ---------------------------------------------------------------- the engine's words
+words:
+  defend: WE DEFEND
+  tested: TESTED
+  fighting: FIGHTING
+  back: BACK IT
+  down: BACK DOWN
+  wait: WAIT
+  steps: [TESTING, PUSHING, MASSING, FIGHTING, ALL-OUT]
+  waitIsBackDown: "no more time · waiting again is backing down"
+  sendOrders: SEND ORDERS
+  wayOut: A WAY OUT
+  theyAre: THEY ARE
+  war: WAR
+  treaty: TREATY
+  worldWar: WORLD WAR
+  frozen: FROZEN
+  week: WEEK
+  influence: influence
+
+explanation:
+  - "The Federation is pushing. Where it pushes, the map turns amber, then red."
+  - "You lead the Republic. Promise to defend what you can hold, and keep your word when they test you."
+  - "Give them a way to stop and they sign. Let them win, or back them into a corner, and it is war."
+
+# The opening's dilemma: an inherited promise against a line they drew (or against their forces' heading).
+# alliance: the promise itself crosses the line. forces: nothing of ours can reach the place, so making the
+# promise good means moving {piece} across the line. near: {piece} can reach it, but standing there crosses it.
+collision:
+  alliance: "You inherited a promise to {region}. Wintermast has said: '{line}' We think they will not stand for it."
+  forces: "You inherited a promise to {region}. Nothing of ours can reach it; sending {piece} there crosses a line Wintermast has drawn: '{line}'"
+  near: "You inherited a promise to {region}. {piece} can reach it, but Wintermast has said: '{line}' We think they will not stand for it."
+  heading: "You inherited a promise to {region}, and their forces are heading there now."
+
+blocs:
+  CAP: the Cap
+  HMR: Highmarch
+  SCT: the Scatter
+  SND: the Sound
+  FRS: Farsouth
+
+pieces:
+  fleet: the fleet
+  brigade: the brigade
+  alert: your alert
+  promise: your promise
+
+terms:
+  drop-promise: a dropped promise
+  pull-back: a pullback
+  summit: a summit
+
+numbers: [no, one, two, three, four, five, six, seven, eight, nine, ten, eleven, twelve]
+
+counts:
+  none: no place fighting
+  one: one place still fighting
+  many: "{n} places still fighting"
+  sentenceNone: "No place is fighting."
+  sentenceOne: "One place is still fighting."
+  sentenceMany: "{n} places are still fighting."
+  placesOne: one place
+  placesMany: "{n} places"
+
+endings:
+  treaty:
+    - "Signed in week {week} with {fighting}."
+    - "{because}"
+  frozen:
+    - "Week eight ends. Nothing was signed."
+    - "{fighting}"
+  war:
+    - "Week {week}."
+    - "It began at {region}, {cause}."
+
+because:
+  heldAndWayOut: "They stopped because they could not take {region} and you gave them a way out."
+  held: "They stopped because they could not take {region}."
+  wayOut: "They stopped because you gave them a way out."
+  quiet: "They stopped because nothing cheap was left to take."
+
+causes:
+  back-down: "when your promise was tested and you backed down"
+  back-down-inherited: "when the promise you inherited was tested and you backed down"
+  unanswered: "taken while nobody answered"
+  failed: "where you backed a promise you could not keep"
+  spread: "where the fighting spread from next door"
+  waited: "where you waited once too often"
+
+dials:
+  appetite: { low: not very hungry, mid: patient, high: hungry }
+  jumpiness: { low: not easily scared, mid: watchful, high: easily scared }
+  line: "They were {a} and {b}."
+
+# The reasons that fill {why}: "They went for Lintel because nobody had promised it."
+why:
+  unguarded: nobody had promised it
+  dashed: your promise there was only a line on a map
+  doubted: they did not believe your promises any more
+  curious: they wanted to see whether you meant it
+  finish: they wanted to finish what they had started
+  piece: "they wanted to see whether {piece} would fight"
+  gaining: they were still gaining
+  grievance: "your promise at {region} was the thing in their way"
+  indifferent: "they did not care about {region}"
+  threat: "{piece} at {region} was what frightened them"
+  noThreat: "{piece} was no threat to them"
+  afraid: both sides were afraid by then
+  notAfraid: they were not afraid enough yet
+  noNeed: they saw no need to talk yet
+  hungry: they were hungry
+  wantedToStop: they wanted to stop while they were ahead
+
+# The tape. One line each, 46 characters once filled (the teleprinter's width after the time stamp).
+headlines:
+  declared: "{line}"
+  inherited: "Inherited: a promise to defend {region}"
+  pushed: "Federation forces push into {region}"
+  stoppedShort: "Their column near {region} stops short"
+  tested: "They are testing your promise at {region}"
+  backed: "You backed {region} · they turn away"
+  backedFar: "You backed {region} from afar · it held"
+  backFailed: "Backed {region} from too far · it failed"
+  backedDown: "You backed down at {region}"
+  waited: "You asked for time at {region}"
+  waitedFell: "You waited too long · {region} has fallen"
+  fell: "{region} has fallen"
+  takenStepUp: "A place taken, nobody came · now {step}"
+  spread: "{from} fighting spreads to {region}"
+  recovered: "Guns quiet at {region}"
+  calmed: "{region} is calm again"
+  lineCrossed: "Wintermast: 'you have crossed our line'"
+  jumpy: "Wintermast: 'provocation' at {region}"
+  accident: "Shots at {region} · nobody ordered it"
+  wayOutAccepted: "Wintermast accepts: {term}"
+  wayOutRefused: "Wintermast refuses: {term}"
+  blocSigned: "{bloc} signs · Wintermast feels the pull"
+  quietWeek: "A quiet week · they gained nothing"
+  gainedWeek: "They took {n} this week"
+  treatySigned: TREATY SIGNED
+  worldWar: "The eighth place is fighting · WORLD WAR"
+  frozen: "Week eight ends · nothing was signed"
+  alertOn: "You went on alert over {region}"
+  alertOff: "Stood down over {region} · it was nothing"
+  alertWaited: "You waited for a second source · none came"
+  trawlerBacked: "You backed {region} over the trawler"
+  trawlerDisowned: "You disowned {region} over the trawler"
+  trawlerLeaned: "You leaned on {region} privately"
+  summitAccepted: "You accepted the summit · now {step}"
+  summitRefused: "You refused the summit"
+  summitWaited: "You asked for terms · the offer lapsed"
+  bluffHeld: "You held your ground at {region}"
+  bluffPulled: "You pulled back from {region}"
+  bluffWaited: "Waited at {region} · Wintermast is silent"
+  unpromisedHeld: "What you sent to {region} held"
+  unpromisedFailed: "What you sent to {region} was too far"
+  unpromisedLet: "You let {region} go"
+
+# The player's own orders, as the log writes them for the debrief.
+acts:
+  promise: "You promised to defend {region}."
+  withdraw: "You withdrew your promise to {region}."
+  move: "You moved {piece} to {region}."
+  wayOut: "You offered a way out: {term}."
+  none: "You gave no orders."
+
+# Why an order was refused (the engine returns the code; the screens show the words).
+refusals:
+  not-this-phase: not now
+  inside-the-cap: that is the Federation's own ground
+  already-fighting: it is already fighting
+  already-promised: we already defend it
+  three-promises: three promises is the most we can keep
+  no-influence: not enough influence
+  not-promised: we made no promise there
+  under-test: they are testing it now · answer the phone
+  moved-already: one move a week for each piece
+  not-adjacent: it cannot get there in a week
+  no-such-piece: we have no such piece
+  offered-already: one way out a week
+  bad-term: that is not one of the three ways out
+  no-such-phone: the phone is not ringing
+
+# Why a promise is solid or dashed.
+hold:
+  piece-there: "{piece} is there"
+  piece-near: "{piece} is at {at}, within reach"
+  inside-the-cap: that is the Federation's own ground
+  out-of-reach: nothing of ours is within reach
+
+# ---------------------------------------------------------------- the screens' words
+title:
+  subtitle: Red Lines
+  play: PLAY
+  continue: CONTINUE
+  howToPlay: HOW TO PLAY
+  blurb: "Eight weeks. Promise what you can hold. Keep your word."
+
+screen:
+  pressed: PRESSED
+  weekOf: of 8
+  warNone: "nothing fighting · world war at 8"
+  warOne: "1 region fighting · world war at 8"
+  warMany: "{n} regions fighting · world war at 8"
+  treatySub: "the Federation's willingness to sign"
+  ordersSent: ORDERS SENT
+  heading: heading here
+  inherited: inherited
+  skip: SKIP
+  next: NEXT
+  begin: BEGIN
+
+act:
+  promise: PROMISE TO DEFEND
+  withdraw: WITHDRAW
+  moveHere: MOVE HERE
+  move: MOVE
+  cancel: CANCEL
+  promiseCost: "costs 1 influence a week"
+  promiseSolid: "solid · {hold}"
+  promiseDashed: "dashed · {hold} · a dashed ring invites a test"
+  moveCost: "costs 3 influence · one move a week"
+  withdrawCost: "quietly · they'll believe us a little less"
+  wayOutIntro: "Give them a way to stop. Pick one. They answer when the week ends."
+  wayOutOffered: "offered · they answer when the week ends"
+  termLabels:
+    drop-promise: DROP A PROMISE
+    pull-back: PULL A PIECE BACK
+    summit: A SUMMIT
+  termCosts:
+    drop-promise: "we withdraw a promise they named · costs {cost} influence"
+    pull-back: "{piece} goes home · costs {cost} influence"
+    summit: "no preconditions · costs {cost} influence"
+
+# The handwritten note on the sheet when no orders have been given this week: the world in one or two
+# sentences a watcher can read ("They are pushing the Sound and have taken Driftholm. Your promise at
+# Lintel is being tested now."). {bloc} {a} {b} are bloc names, {region} a place, {n} a number word.
+note:
+  pushing: "They are pushing {bloc}."
+  pushingTwo: "They are pushing {a} and {b}."
+  taken: "They have taken {region}."
+  takenMany: "They have taken {n} places."
+  tested: "Your promise at {region} is being tested now."
+  heading: "Their forces are heading for {region}."
+
+phone:
+  ringing: INCOMING
+  round2: the second week of this
+  round3: the third week of this
+  answered: ANSWERED
+
+menu:
+  menu: MENU
+  resume: RESUME
+  howToPlay: HOW TO PLAY
+  sound: SOUND
+  off: "OFF"
+  on: "ON"
+  quit: QUIT TO TITLE
+  quitSure: "Quit to the title? The week in progress is saved."
+  yes: "YES"
+  no: "NO"
+
+debrief:
+  title: THE DEBRIEF
+  intro: "The eight weeks again, with what they were thinking."
+  week: "Week {week}"
+  youDid: what you did
+  theyThought: what they were thinking
+  nothingHidden: "Nothing they hid from you this week."
+  next: NEXT
+  back: BACK
+  done: DONE
+  score: SCORE
+  again: PLAY AGAIN
+  toTitle: TITLE
+
+howToPlay:
+  title: HOW TO PLAY
+  lines:
+    - "The Federation is pushing. Where it pushes, the map turns amber, then red."
+    - "You lead the Republic. Each week, promise to defend places (hold a place to promise), move your fleet and your brigade, and send your orders."
+    - "A promise is solid where something of yours is within reach, dashed where it is not. They test promises they do not believe."
+    - "When they test a promise, the phone rings: BACK IT, BACK DOWN or WAIT. Keep your word and they believe you more. Back down and they believe you less."
+    - "The word on the stamp says how far up the ladder they are: TESTING, PUSHING, MASSING, FIGHTING, ALL-OUT."
+    - "WAR counts the places fighting. Eight is world war. TREATY is their willingness to sign. At 100 they sign, unless a place fell that week."
+    - "Give them a way to stop (drop a promise, pull a piece back, a summit) and the treaty moves. Eight weeks."
+
+flavour:
+  - "Farsouth recalls its envoy"
+  - "Lantern Key's minister asks for calm"
+  - "Tallowmere's parliament sits late"
+  - "Marram: 'the south is nobody's lever'"
+  - "Edda Vale: queues at the petrol pumps"
+  - "Frostmere missile fields on exercise"
+  - "Northwake harbour closed to fishing"
+  - "Gullrest cable repaired overnight"
+  - "Brindle Coast asks after its treaty"
+  - "Nine minutes of applause in Wintermast"

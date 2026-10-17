@@ -98,7 +98,7 @@ would have cost nothing."). The ending screen replays them.
 opening (one cheap far promise, back it once), sensible (promises holdable places near their headings, backs
 tests it can hold, offers a way out when the treaty stalls at MASSING or above). Gates (2,000 games per bot,
 `--strict` exits 1 on failure): passive loses (war or frozen) in more than 70%; far-promise opening wins no more
-often than sensible; sensible wins (treaty) between a third and a half, and ends FROZEN in fewer than 15%; the
+often than sensible; sensible wins (treaty) between a third and a half, loses to WORLD WAR in at least a quarter, and ends FROZEN in fewer than 15% (if a collapse runs out of weeks instead of reaching WORLD WAR, lower the WORLD WAR line, now eight of thirty, rather than adding a hidden rule); the
 median sensible treaty is signed in week 5 to 7; every game's debrief has at least six hidden lines.
 
 ## The content (`content-redlines/`, YAML, strict schema, validator, virtual module)

@@ -4,7 +4,7 @@ Portrait phone frame, exactly 390 x 844 CSS px. BRINK is the working title (fict
 no real flags, insignia, brands or people). The game: the Federation (the Cap, capital Wintermast, north) is
 pushing; you lead the Republic (Highmarch, capital Edda Vale, west). You make public promises to defend places
 (WE DEFEND); when a promised place is pushed, that is a test and the phone rings: BACK IT / BACK DOWN / WAIT.
-Two things race: WAR (regions fighting; 12 of 30 is world war) and TREATY (the Federation's willingness to sign;
+Two things race: WAR (regions fighting; 8 of 30 is world war) and TREATY (the Federation's willingness to sign;
 100 is the treaty). One word says how far up the ladder they are: TESTING, PUSHING, MASSING, FIGHTING, ALL-OUT.
 
 ## Day 18 (the still frame)

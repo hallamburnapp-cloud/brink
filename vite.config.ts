@@ -7,16 +7,18 @@ import { join } from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 import { brinkContentPlugin } from './tools/vite-plugin-content.ts';
 import { thirtyContentPlugin } from './tools/vite-plugin-thirty.ts';
+import { redlinesContentPlugin } from './tools/vite-plugin-redlines.ts';
 import { BRAND } from './src/config.ts';
 import { WAR_META } from './src/war/meta.ts';
 import { THIRTY_META } from './src/thirty/meta.ts';
+import { REDLINES_META } from './src/redlines/meta.ts';
 
 const base = process.env.BRINK_BASE ?? '/';
 
 type OutputChunk = Rollup.OutputChunk;
 
-/** The game a build is for: the hotel by default, the war room or THIRTY DAYS by VITE_GAME. */
-type Game = 'hotel' | 'war' | 'thirty';
+/** The game a build is for: the hotel by default, the war room, THIRTY DAYS or Red Lines by VITE_GAME. */
+type Game = 'hotel' | 'war' | 'thirty' | 'redlines';
 
 function escapeAttr(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -67,12 +69,13 @@ interface HeadMeta {
 }
 
 /**
- * VITE_GAME=war or thirty: the page head speaks for that game, not the hotel. index.html stays the
- * hotel's by default; this rewrites its title, description, link-preview tags and theme for the
- * build, links the self-hosted fonts early (both games share public/war/fonts), and paints the
- * table colour before any script runs.
+ * VITE_GAME=war, thirty or redlines: the page head speaks for that game, not the hotel. index.html
+ * stays the hotel's by default; this rewrites its title, description, link-preview tags and theme for
+ * the build, links the game's self-hosted fonts early (the war room and THIRTY DAYS share
+ * public/war/fonts; Red Lines has public/redlines/fonts), and paints the table colour before any
+ * script runs.
  */
-function gameHead(name: string, meta: HeadMeta): Plugin {
+function gameHead(name: string, meta: HeadMeta, fonts = 'war/fonts/fonts.css'): Plugin {
   let resolvedBase = base;
   return {
     name: `brink-${name}-head`,
@@ -100,7 +103,7 @@ function gameHead(name: string, meta: HeadMeta): Plugin {
           '<meta name="apple-mobile-web-app-capable" content="yes" />',
           '<meta name="mobile-web-app-capable" content="yes" />',
           '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />',
-          `<link rel="stylesheet" href="${resolvedBase}war/fonts/fonts.css" />`,
+          `<link rel="stylesheet" href="${resolvedBase}${fonts}" />`,
           `<style>html,body{margin:0;background:${meta.themeColor}}</style>`,
         ].join('\n    ');
         return out.replace('</title>', `</title>\n    ${head}`);
@@ -116,21 +119,25 @@ function gameHead(name: string, meta: HeadMeta): Plugin {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
   const chosen = process.env.VITE_GAME ?? env.VITE_GAME;
-  const game: Game = chosen === 'war' ? 'war' : chosen === 'thirty' ? 'thirty' : 'hotel';
+  const game: Game = chosen === 'war' ? 'war' : chosen === 'thirty' ? 'thirty' : chosen === 'redlines' ? 'redlines' : 'hotel';
   const war = game === 'war';
   const thirty = game === 'thirty';
-  const themeColor = war ? WAR_META.themeColor : thirty ? THIRTY_META.themeColor : '#0b1220';
-  const tagline = war ? WAR_META.tagline : thirty ? THIRTY_META.tagline : BRAND.tagline;
+  const redlines = game === 'redlines';
+  const themeColor = war ? WAR_META.themeColor : thirty ? THIRTY_META.themeColor : redlines ? REDLINES_META.themeColor : '#0b1220';
+  const tagline = war ? WAR_META.tagline : thirty ? THIRTY_META.tagline : redlines ? REDLINES_META.tagline : BRAND.tagline;
   return {
     base,
     plugins: [
       preact(),
       tailwindcss(),
       brinkContentPlugin(),
-      // THIRTY DAYS compiles its own pack (content-thirty/) into virtual:thirty-content.
+      // THIRTY DAYS compiles its own pack (content-thirty/) into virtual:thirty-content; Red Lines
+      // compiles content-redlines/ into virtual:redlines-content.
       ...(thirty ? [thirtyContentPlugin()] : []),
+      ...(redlines ? [redlinesContentPlugin()] : []),
       ...(war ? [gameHead('war', WAR_META)] : []),
       ...(thirty ? [gameHead('thirty', THIRTY_META)] : []),
+      ...(redlines ? [gameHead('redlines', REDLINES_META, 'redlines/fonts/fonts.css')] : []),
       gamePreload(),
       VitePWA({
         registerType: 'autoUpdate',
@@ -154,8 +161,13 @@ export default defineConfig(({ mode }) => {
         workbox: {
           globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest}'],
           // Each game precaches only its own files: the fonts in public/war serve the war room and
-          // THIRTY DAYS; the hotel leaves them out.
-          globIgnores: game === 'hotel' ? ['**/node_modules/**', 'war/**'] : ['**/node_modules/**', 'og-image.png'],
+          // THIRTY DAYS, those in public/redlines serve Red Lines; the hotel leaves both out.
+          globIgnores:
+            game === 'hotel'
+              ? ['**/node_modules/**', 'war/**', 'redlines/**']
+              : redlines
+                ? ['**/node_modules/**', 'og-image.png', 'war/**']
+                : ['**/node_modules/**', 'og-image.png', 'redlines/**'],
           navigateFallback: 'index.html',
         },
         devOptions: { enabled: false },
@@ -171,6 +183,7 @@ export default defineConfig(({ mode }) => {
           manualChunks(id: string) {
             if (id.includes('virtual:brink-content')) return 'content';
             if (id.includes('virtual:thirty-content')) return 'content';
+            if (id.includes('virtual:redlines-content')) return 'content';
             if (id.includes('/src/audio/')) return 'audio';
             if (id.includes('/src/meta/share')) return 'share';
           },
