@@ -123,7 +123,7 @@ for promises (solid when `holdable`, dashed when not) with WE DEFEND in the hand
 for pressed, a red wash and FIGHTING stamp for fighting; red pushpins with a pencil arrow for the headings; the
 fleet and brigade as paper counters; the tested place over-circled in hard red pencil with TESTED underlined.
 The desk calendar (WEEK n of 8; influence as a scribble); the index card paper-clipped to the corner (WAR as
-twelve pencil boxes with the twelfth labelled WORLD WAR; TREATY as a pencil-hatched bar; THEY ARE and the red
+eight pencil boxes with the eighth labelled WORLD WAR (the engine constant decides the count); TREATY as a pencil-hatched bar; THEY ARE and the red
 rubber stamp; "next call" replaced by what the week needs: SEND ORDERS); the teleprinter tape (the last three
 headlines); the intel slip. The call: the clock on the dark flip-tag, the bakelite handset off the hook, the
 caller card, the three torn adviser slips, the three typed forms with a pencil underline. Fonts: `public/redlines/fonts/fonts.css`
