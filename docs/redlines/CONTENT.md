@@ -63,6 +63,8 @@ Brindle Coast, Marram, Floe End). The MOMENT.md collision is an inherited promis
 - id: test-inherited-armour
   kind: test-inherited   # test | test-inherited | feint | false-alarm | trawler | bluff-crossed | summit | fall-unpromised
   caller: hawk
+  # when: promised       # trawler templates only: 'promised' (an island under a ring of yours; the words may claim the
+                         # promise) or 'unpromised' (one you never promised; the words claim none). Absent: either.
   text: "Federation armour is at {region}, the promise you inherited. Two brigades, lights on, not moving. They want to see what you do."
   again: "A week on. The armour at {region} has not moved, and there is more of it. ..."   # test kinds: rounds 2 and 3, after WAIT
   advisers:
@@ -112,10 +114,10 @@ Thoughts may also use `{why}` (a reason from `strings.why`) and `{n}`; strings m
 | kind | when it rings | back | down | wait |
 | --- | --- | --- | --- | --- |
 | `test` / `test-inherited` / `feint` | their forces have arrived at a promised place and not moved | BACK IT: move the piece up, costs `{cost}` (12; 6 once believed; 24 from too far, and it may fail; +6 a round) | BACK DOWN: belief falls, the place likely falls | WAIT: the call comes back next week, stakes up; the third WAIT is backing down |
-| `false-alarm` | early warning at `{region}` (MASSING and above; never an instant loss) | go on alert: force they can see | stand down | a second source |
-| `trawler` | an allied island (`{region}`, a Scatter port) has seized a Federation trawler | back the ally | disown them | lean on them privately |
+| `false-alarm` | early warning at `{region}` (PUSHING and above; never an instant loss) | go on alert: force they can see | stand down | a second source |
+| `trawler` | an allied island (`{region}`, a Scatter port) has seized a Federation trawler: one under a ring of yours when there is one (`when: promised`), else one you never promised (`when: unpromised`); the engine picks the template that fits | back the ally (the island counts as answered this week) | disown them | lean on them privately |
 | `bluff-crossed` | you crossed a declared line at `{region}` and Wintermast has said nothing | hold your ground | pull back | wait and see |
-| `summit` | Wintermast proposes a summit | accept (costs influence; counts as a way out) | refuse | ask for terms (the offer lapses) |
+| `summit` | Wintermast proposes a summit (never in a week you have a way out on the table; two templates, so the second offer reads differently) | accept (costs influence; counts as a way out) | refuse (−10 on the bar: their public offer refused in public) | ask for terms (the offer lapses) |
 | `fall-unpromised` | a place nobody promised will fall this week and `{piece}` could reach it | send what you have | let it go | protest |
 
 ## Debrief
@@ -126,15 +128,22 @@ Thoughts may also use `{why}` (a reason from `strings.why`) and `{n}`; strings m
     - "They were bluffing at {region}. Backing it would have cost nothing."
 ```
 
-One entry per hidden event kind (all 28 of `HIDDEN_KINDS` are required), variants to pick from (the engine picks
+One entry per hidden event kind (all 39 of `HIDDEN_KINDS` are required), variants to pick from (the engine picks
 by seed), each in the past tense, addressed to the player, 30 words or fewer. The engine writes one filled thought
 into that week's `WeekLog.hidden` for every hidden decision it makes; the ending screen replays them under the
 player's own orders (`strings.acts`). The kinds: `heading feint bothReal notTested feintBacked feintBackedDown
-feintWaited realBacked realBackFailed realBackedDown realWaited waitedFell lineReal lineBluff fall spread
-wayOutAccepted wayOutRefused accident jumpy jumpyQuiet believed doubted falseAlarm trawler summit unpromised
-bluffPhone`. `{why}` is filled from `strings.why` ("They went for Lintel because nobody had promised it."); the
-dials are named by `strings.dials` ("They were {a} and {b}." with hungry / patient / not very hungry and easily
-scared / watchful / not easily scared).
+feintWaited realBacked realBackFailed realBackedDown realBackedDownEased realWaited waitedFell lineReal lineBluff
+fall fallOutOfReach spread wayOutAccepted wayOutRefused accident jumpy jumpyQuiet believed doubted falseAlarm
+trawler summit unpromised bluffPhone`, and the closing card's lessons `lessonFeintBacked lessonBackedDown
+lessonFarDrop lessonNoMoves lessonNoOrders lessonDashedTested lessonOutOfReach lessonKeptWord
+lessonStoppedThenTalked` (the engine writes up to three a game, from what happened, as the last hidden lines of
+the final week before the dials and as `Ending.lessons`). SPEC-SMALL "The debrief teaches": `heading` is written
+at most once a week and only for a test or a new front; `feint` only when the player acted on the feint's place;
+the answer kinds (`feintBacked` ...) say "they were bluffing" themselves. `{why}` is filled from `strings.why`
+("They went for Lintel because nobody had promised it."); the dials are named by `strings.dials` ("They were {a}
+and {b}." with hungry / neither hungry nor careful / not very hungry and easily scared / neither bold nor nervous /
+not easily scared), or by `dials.lineOne` ("They were {a}. You never came close enough to see whether they
+scare.") when nothing in the game let jumpiness act.
 
 ## Strings
 
@@ -148,9 +157,10 @@ sections from `title` on are the screens'. Every section of `strings.yaml` and w
 | `collision` | the opening's dilemma by what collides: `alliance`, `forces`, `near` (slots `{region}`, `{line}`, `{piece}`), `heading` | engine (`GameState.collision`) |
 | `blocs`, `pieces`, `terms`, `numbers`, `counts` | "the Sound"; "the brigade", "your alert", "your promise"; the way-out nouns; number words 0..12; "one place still fighting" | engine |
 | `endings`, `because`, `causes` | the two typed lines of each ending (`{week}`, `{fighting}`, `{because}`, `{region}`, `{cause}`); the treaty's reasons; the world war's "when ..." clauses | engine (`Ending.lines`) |
-| `dials` | the dial words and "They were {a} and {b}." | engine (`Ending.dials`) |
-| `why` | the 16 reasons that fill `{why}` | engine |
-| `headlines` | the 42 tape lines the engine writes, 46 characters once filled | engine (`headline`, `WeekLog.visible`) |
+| `dials` | the dial words, "They were {a} and {b}." and `lineOne` for a game that never showed jumpiness | engine (`Ending.dials`) |
+| `why` | the 16 reasons that fill `{why}` in the debrief | engine |
+| `wintermast` | Wintermast's own short quoted words for a refused way out (`noNeed gaining indifferent noThreat notAfraid hungry`), 34 characters once filled: the tape's "Wintermast: 'nothing to talk about yet'" after "Wintermast refuses: a summit" | engine (`headlines.wayOutRefusedWhy`) |
+| `headlines` | the 50 tape lines the engine writes, 46 characters once filled. Every mover of the ladder says "· now {step}" (`lineCrossed`, `takenStepUp`, `jumpy`, `accident`, `backedDown`, `summitAccepted`); the new ones of round 13: `lineCrossedAt` (what crossed a line and where), `fellOutOfReach` ("{region} out of reach · still {step}"), `takenStepUp` with `{n}` (the place, or "two places"), `feintGone`, `pushedAgain`, `heldWeek` ("Nothing taken · {n} unanswered": no +5), `wayOutRefusedWhy`, `backedDownEased` | engine (`headline`, `WeekLog.visible`) |
 | `acts` | the player's orders as the log writes them | engine (`WeekLog.acts`) |
 | `refusals`, `hold` | the words for a refused order and for a solid or dashed ring (the engine returns codes) | screens |
 | `title`, `screen`, `act`, `note`, `phone`, `menu`, `debrief`, `howToPlay`, `flavour` | PLAY / CONTINUE / HOW TO PLAY, the WAR note, PROMISE TO DEFEND / WITHDRAW / MOVE HERE, the way-out form, the handwritten situation note ("They are pushing {bloc}." "They have taken {region}." "Your promise at {region} is being tested now."), INCOMING, the menu, THE DEBRIEF's words, the seven rules a player can read, in-world headlines for a thin week | screens |
@@ -201,9 +211,11 @@ reading minds or giving odds; an unknown slot, a required slot missing, `{cost}`
 a sentence starting with `{piece}`; a label in lower case or over three words, a cost over 110 characters once
 filled; an unknown region; a line in the Cap, fewer than eight lines, a declaration over 30 words, a tape line over
 56 characters; fewer than eight templates or fewer than the first build needs of a kind (two inherited tests, two
-feints, one each of the rest); a missing adviser or voice; a missing debrief kind, a thought over 30 words; the
-ladder words, WE DEFEND, WORLD WAR, SEND ORDERS, PROMISE TO DEFEND, the sentence slots, the number words; the brand
-name or a real-world name in any text; and anything the engine's own `checkContent` lists. Warnings: an "if" of any
+feints, one each of the rest); a trawler template for a promised island without one for an unpromised island (or
+one that fits both), an unpromised trawler call that claims "our promise"; Wintermast's words over 34 characters;
+a missing adviser or voice; a missing debrief kind, a thought over 30 words; the ladder words, WE DEFEND, WORLD
+WAR, SEND ORDERS, PROMISE TO DEFEND, the sentence slots, the number words; the brand name or a real-world name in
+any text; and anything the engine's own `checkContent` lists. Warnings: an "if" of any
 other kind, a tape line over 46 characters, a cost over 92, a missing ` · `, a thought that addresses nobody or
 uses the future, a lower-case word on a form, a test without `again`, a test labelled other than BACK IT / BACK
 DOWN / WAIT, a why or cause clause that does not continue its sentence. The shipped pack is strict-clean.
@@ -236,7 +248,8 @@ DOWN / WAIT, a why or cause clause that does not continue its sentence. The ship
 
 ## What is in the pack
 
-4 advisers · 8 lines (2 proximity, 3 sea, 2 alliance, 1 missiles) · 11 phone templates (2 `test-inherited`,
-2 `test`, 2 `feint`, 1 each of `false-alarm`, `trawler`, `bluff-crossed`, `summit`, `fall-unpromised`) · 36
-thoughts across the 28 hidden event kinds · 243 strings (42 headlines, 16 reasons, 14 refusals, 10 flavour
-lines). Strict-clean, and the engine's `checkContent` returns nothing.
+4 advisers · 8 lines (2 proximity, 3 sea, 2 alliance, 1 missiles) · 13 phone templates (2 `test-inherited`,
+2 `test`, 2 `feint`, 2 `trawler` (promised and unpromised), 2 `summit`, 1 each of `false-alarm`, `bluff-crossed`,
+`fall-unpromised`) · 47 thoughts across the 39 hidden event kinds (nine of them the closing card's lessons) · 264
+strings (50 headlines, 16 reasons, 6 of Wintermast's words, 14 refusals, 10 flavour lines). Strict-clean, and the
+engine's `checkContent` returns nothing.

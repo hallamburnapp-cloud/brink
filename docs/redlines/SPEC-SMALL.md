@@ -45,21 +45,46 @@ One Federation per run, drawn with two hidden dials: **appetite** (how hard it p
 names them at the end. It declares three lines before the game starts (in the opening strip): two real, one a
 bluff; you are not told which. Crossing a real line moves it up the ladder; crossing the bluff does nothing and
 makes it believe you more. Its ladder is one word on screen: TESTING, PUSHING, MASSING, FIGHTING, ALL-OUT. Up a
-step: a real line crossed, a promise you backed down from, a place taken unanswered, or, at MASSING and above,
-an accident (one chance in twenty a week). Down a step: a promise backed and held, a way out accepted. It
+step: a real line crossed, a promise you backed down from, a place taken unanswered **that something of yours
+could have reached** (a place no piece of yours could reach falls without a step: the tape says "out of
+reach"), or, at MASSING and above, an accident (one chance in twenty a week). **The fighting spreads only at
+FIGHTING and ALL-OUT**, never at MASSING, and the tape names the places it spread to. (If the frozen gate and this
+gentler spread cannot both hold at eight weeks, keep the gentler spread and let the frozen gate sit at 20%.) Down a step: a promise backed and held, a way out accepted. It
 believes you more when you back a promise you could hold; less when you back down, or back a promise you could
 not hold and it fails.
 
 **It tests promises it does not believe.** That is the whole deterrence model, and it is visible: dashed
 outlines get tested; solid ones mostly do not.
 
+**Rulings after the first build's review** (the deep-strategy critic's findings, decided here so the fixers follow
+one reading):
+- **The ladder is not a cliff.** Falls move the ladder at most one step in a week; the fall clock reads the step
+  the week started at; the fighting spreads only at FIGHTING and ALL-OUT, one or two places a week, and a piece
+  or a solid promise spares a place from spread.
+- **You start within reach of the war.** The fleet starts at Tern Isle (the Scatter), the brigade at Edda Vale;
+  the Federation's first fronts touch the Scatter and Highmarch before the Sound.
+- **Backing a feint earns nothing.** They were not coming; the debrief says so. WAIT buys information: the second
+  week's call reads differently when the column was a feint. BACK DOWN near a scared Federation is a step down.
+- **A far promise cannot be sold.** A dropped promise moves them only when it is within their reach or under test;
+  otherwise the offer is indifferent to them and the tape says so.
+- **Sitting still does not win.** A quiet week pays +5 only when no place is pressed and unanswered, and a push
+  on a place whose clock has run down takes it or opens a new front next door. Gate: a no-orders bot wins at most
+  half as often as the sensible bot.
+- **Sentences are true.** The treaty ending names a place they really pushed, never a feint; WORLD WAR names the
+  first place that fell on the tape; the trawler rings only about a promised island, or in words that claim no
+  promise.
+- **The debrief teaches.** At most one heading and one feint line a week, and only when it changed something;
+  the closing card draws two or three lessons from the game's own events.
+
 ## The two bars
 
 - **WAR**: regions fighting, drawn as eight pencil boxes; the eighth is WORLD WAR and the game is lost there. (The first draft said twelve of thirty; in eight weeks twelve is out of reach and a collapse ran out of weeks instead of ending, so the engine's tuning set the line at eight. One box a week, legible.)
 - **TREATY**: their willingness to sign, 0 to 100. Each week: +5 if they gained nothing this week; +15 when a
   way out is accepted; +10 when another bloc signs (at most two); −5 for each place they gained; −10 when they
-  are humiliated (a public ultimatum they must refuse). **At 100 they sign, if no place fell this week.** Those
-  are all the rules the bar has.
+  are humiliated (a public ultimatum they must refuse). **A refused way out costs nothing on the bar**: the
+  tape prints their reason that week ("Wintermast refuses: a summit · 'nothing to talk about yet'"), so
+  offering to talk is never punished, only unanswered. **At 100 they sign, if no place fell this week.** Those
+  are all the rules the bar has. Every mover prints its own line on the tape beside the bar's move.
 
 ## Endings and the score
 

@@ -123,6 +123,8 @@ export default defineConfig(({ mode }) => {
   const war = game === 'war';
   const thirty = game === 'thirty';
   const redlines = game === 'redlines';
+  // VITE_PWA=off (the build:*-page scripts): no service worker, no manifest; the page packers embed the build in another page.
+  const pwa = (process.env.VITE_PWA ?? env.VITE_PWA) !== 'off';
   const themeColor = war ? WAR_META.themeColor : thirty ? THIRTY_META.themeColor : redlines ? REDLINES_META.themeColor : '#0b1220';
   const tagline = war ? WAR_META.tagline : thirty ? THIRTY_META.tagline : redlines ? REDLINES_META.tagline : BRAND.tagline;
   return {
@@ -139,7 +141,7 @@ export default defineConfig(({ mode }) => {
       ...(thirty ? [gameHead('thirty', THIRTY_META)] : []),
       ...(redlines ? [gameHead('redlines', REDLINES_META, 'redlines/fonts/fonts.css')] : []),
       gamePreload(),
-      VitePWA({
+      ...(pwa ? [VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.svg', 'icons/*.svg', 'icons/*.png'],
         manifest: {
@@ -171,7 +173,7 @@ export default defineConfig(({ mode }) => {
           navigateFallback: 'index.html',
         },
         devOptions: { enabled: false },
-      }),
+      })] : []),
     ],
     resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
     build: {

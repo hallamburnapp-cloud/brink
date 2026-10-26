@@ -82,6 +82,11 @@ export interface PhoneTemplate {
   id: string;
   kind: PhoneKind;
   caller: AdviserId;
+  /**
+   * Trawler templates only: 'promised' rings about an island under a WE DEFEND ring of yours (its words may
+   * claim the promise), 'unpromised' about one you never promised (its words claim none). Absent: either.
+   */
+  when?: 'promised' | 'unpromised';
   /** The caller's message, 40 words or fewer. */
   text: string;
   /** Test kinds, optional: the message on the second and third round of the same call (after WAIT). */
@@ -125,6 +130,18 @@ export const HIDDEN_KINDS = [
   'summit', // They offered the summit because {why}.
   'unpromised', // Nobody had promised {region}; they expected to take it for free.
   'bluffPhone', // Their silence over {region} was the silence of a bluff.
+  'fallOutOfReach', // Nothing of yours could reach {region}. It fell, and they climbed no step for it.
+  'realBackedDownEased', // They meant it at {region}, but a fight scared them too. When you stepped back, so did they.
+  // The closing card's lessons (two or three a game, drawn from the game's own events; SPEC-SMALL "The debrief teaches").
+  'lessonFeintBacked', // You backed {region}, where they were bluffing ...
+  'lessonBackedDown', // You backed down at {region} ...
+  'lessonFarDrop', // You offered to drop your promise at {region}; it was nowhere near their front ...
+  'lessonNoMoves', // Your fleet and brigade never moved ...
+  'lessonNoOrders', // You gave no orders in {n} weeks ...
+  'lessonDashedTested', // Every promise they tested was one nothing of yours could reach ...
+  'lessonOutOfReach', // {region} fell with nothing of yours in reach ...
+  'lessonKeptWord', // You kept every promise they tested ...
+  'lessonStoppedThenTalked', // They took the way out after a week in which they took nothing ...
 ] as const;
 export type HiddenKind = (typeof HIDDEN_KINDS)[number];
 
@@ -149,31 +166,42 @@ export const WHY_KINDS = [
 ] as const;
 export type WhyKind = (typeof WHY_KINDS)[number];
 
+/** strings.yaml › wintermast: Wintermast's own short words for a refused way out, printed on the tape after "Wintermast refuses: {term}". Quoted, 34 characters or fewer. */
+export const REFUSE_WHYS = ['noNeed', 'gaining', 'indifferent', 'noThreat', 'notAfraid', 'hungry'] as const;
+export type RefuseWhy = (typeof REFUSE_WHYS)[number];
+
 /** strings.yaml › headlines: the tape. One line each, plain. Slots {region}, {from}, {line}, {step}, {n}, {piece}, {term}, {bloc}. */
 export const HEADLINE_KINDS = [
   'declared', // Wintermast: '{line}'
   'inherited', // You inherited a promise to defend {region}.
   'pushed', // Their forces moved into {region}.
+  'pushedAgain', // More Federation forces into {region} (the pressure kept on a place already pressed)
   'stoppedShort', // Their column near {region} stopped short.
   'tested', // They are testing your promise at {region}.
   'backed', // You backed {region}. They turned away. They are {step}.
   'backedFar', // You backed {region} from far away, and it held. They are {step}.
   'backFailed', // You backed {region} from too far away. It failed.
-  'backedDown', // You backed down at {region}. They are {step}.
+  'backedDown', // Backed down at {region} · now {step}
+  'backedDownEased', // Backed down at {region} · they stand down (a scared Federation eases a step)
   'waited', // You waited at {region}.
   'waitedFell', // You waited too long. {region} has fallen.
   'fell', // {region} has fallen.
-  'takenStepUp', // A place taken and nobody came. They are {step}.
+  'fellOutOfReach', // {region} out of reach · still {step} (a fall nothing of yours could have reached climbs no step)
+  'takenStepUp', // {n} taken unanswered · now {step} ({n}: the place, or "two places")
+  'feintGone', // {region}: their column has gone home (the week after you waited on a feint)
   'spread', // The fighting at {from} spread to {region}.
   'recovered', // Guns quiet at {region}.
   'calmed', // {region} is calm again.
-  'lineCrossed', // Wintermast: 'You have crossed our line. {line}' They are {step}.
+  'lineCrossedAt', // {piece} at {region} crosses a line (what crossed it, and where)
+  'lineCrossed', // Wintermast: 'a line crossed' · now {step}
   'jumpy', // Wintermast: 'Republic forces at {region} are a provocation.' They are {step}.
   'accident', // An accident at {region}. Nobody ordered it. They are {step}.
   'wayOutAccepted', // Wintermast accepted the way out: {term}. They are {step}.
-  'wayOutRefused', // Wintermast refused the way out: {term}.
+  'wayOutRefused', // Wintermast refuses: {term}
+  'wayOutRefusedWhy', // Wintermast: {why} (their short words, strings.wintermast)
   'blocSigned', // {bloc} has signed. Wintermast feels the pull.
-  'quietWeek', // A quiet week. They gained nothing.
+  'quietWeek', // A quiet week. They gained nothing. (+5: nothing taken and no place pressed and unanswered)
+  'heldWeek', // Nothing taken · {n} unanswered (no +5: a pressed place nobody has answered; {n}: the place, or "two places")
   'gainedWeek', // They took {n} this week.
   'treatySigned', // They signed.
   'worldWar', // The eighth place is fighting. World war.
@@ -279,9 +307,14 @@ export interface Strings {
   because: { heldAndWayOut: string; held: string; wayOut: string; quiet: string };
   /** The world war's "when ...". */
   causes: Record<FallCause, string>;
-  /** The two dials in words, and the sentence that joins them. */
-  dials: { appetite: { low: string; mid: string; high: string }; jumpiness: { low: string; mid: string; high: string }; line: string };
+  /**
+   * The two dials in words, the sentence that joins them, and the sentence for a game in which nothing let
+   * jumpiness show (slot {a} only: "They were hungry. You never came close enough to see whether they scare.").
+   */
+  dials: { appetite: { low: string; mid: string; high: string }; jumpiness: { low: string; mid: string; high: string }; line: string; lineOne: string };
   why: Record<WhyKind, string>;
+  /** Wintermast's short quoted words for a refused way out (the tape's second line). Slots {region}, {piece}. */
+  wintermast: Record<RefuseWhy, string>;
   headlines: Record<HeadlineKind, string>;
   acts: Record<ActKind, string>;
   refusals: Record<RefusalCode, string>;
@@ -328,6 +361,9 @@ export function checkContent(c: RedlinesContent): string[] {
   if (!s) return [...out, 'strings: missing'];
   for (const k of HEADLINE_KINDS) if (!s.headlines?.[k]) out.push(`strings › headlines: missing ${k}`);
   for (const k of WHY_KINDS) if (!s.why?.[k]) out.push(`strings › why: missing ${k}`);
+  for (const k of REFUSE_WHYS) if (!s.wintermast?.[k]) out.push(`strings › wintermast: missing ${k}`);
+  if (!s.dials?.lineOne) out.push('strings › dials: missing lineOne');
+  for (const p of c.phones ?? []) if (p.when && p.kind !== 'trawler') out.push(`phones › ${p.id}: "when" is only read on a trawler template`);
   for (const k of ACT_KINDS) if (!s.acts?.[k]) out.push(`strings › acts: missing ${k}`);
   for (const k of REFUSAL_CODES) if (!s.refusals?.[k]) out.push(`strings › refusals: missing ${k}`);
   for (const k of HOLD_CODES) if (!s.hold?.[k]) out.push(`strings › hold: missing ${k}`);

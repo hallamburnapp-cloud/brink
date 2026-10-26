@@ -50,10 +50,31 @@ export function tapeOf(s: GameState, weekWord: string, shown = TAPE_SHOWN): Tape
 
 // ---------------------------------------------------------------- the note and the card
 
-/** This week's orders so far, in the log's own words ("You promised to defend Lintel."). */
+/**
+ * The week's orders with the cancelled ones taken out: a promise withdrawn the same week (or a
+ * withdrawal promised over again) is no order at all, so the note never reads "You promised to
+ * defend Vessary. You withdrew your promise to Vessary. You promised to defend Vessary."
+ */
+export function netActs(acts: readonly Act[]): Act[] {
+  const out: Act[] = [];
+  for (const a of acts) {
+    if (a.kind === 'promise' || a.kind === 'withdraw') {
+      const opposite = a.kind === 'promise' ? 'withdraw' : 'promise';
+      const i = out.findIndex((b) => b.kind === opposite && b.region === a.region);
+      if (i >= 0) {
+        out.splice(i, 1);
+        continue;
+      }
+    }
+    out.push(a);
+  }
+  return out;
+}
+
+/** This week's orders so far, in the log's own words ("You promised to defend Lintel."), cancelled pairs left out. */
 export function actLines(acts: readonly Act[], S: PackStrings, name: Namer): string[] {
   const out: string[] = [];
-  for (const a of acts) {
+  for (const a of netActs(acts)) {
     if (a.kind === 'promise') out.push(fill(S.acts.promise, { region: name(a.region) }));
     else if (a.kind === 'withdraw') out.push(fill(S.acts.withdraw, { region: name(a.region) }));
     else if (a.kind === 'move') out.push(fill(S.acts.move, { piece: S.pieces[a.piece], region: name(a.to) }));
@@ -108,11 +129,15 @@ export function situation(s: GameState, S: PackStrings, name: Namer, bloc: Namer
   return S.counts.sentenceNone;
 }
 
-/** The small line under WAR on the index card. */
+/**
+ * The small line under WAR on the index card. With two or more fighting the line would run into the
+ * WORLD WAR label at its right, so it keeps its first clause only ("2 regions fighting"): the boxes and
+ * the label already say where world war is.
+ */
 export function warSub(S: PackStrings, n: number): string {
   if (n === 0) return S.screen.warNone;
   if (n === 1) return S.screen.warOne;
-  return fill(S.screen.warMany, { n });
+  return fill(S.screen.warMany, { n }).split(' · ')[0];
 }
 
 export function stepWord(S: PackStrings, step: number): string {
@@ -132,9 +157,15 @@ export function promiseLine(S: PackStrings, hold: HoldInfo, name: Namer): string
   return `${S.act.promiseCost} · ${fill(hold.ok ? S.act.promiseSolid : S.act.promiseDashed, { hold: why })}`;
 }
 
-/** The cost line under a way-out term. */
+/** The cost line under a way-out term. With no piece named yet, the clauses that would name one are left out ("costs 15 influence"). */
 export function termLine(S: PackStrings, term: WayOutTerm, cost: number, piece: PieceKind | null): string {
-  return fill(S.act.termCosts[term], { cost, piece: piece ? S.pieces[piece] : '' });
+  const template = S.act.termCosts[term];
+  if (piece || !template.includes('{piece}')) return fill(template, { cost, piece: piece ? S.pieces[piece] : '' });
+  return template
+    .split(' · ')
+    .filter((clause) => !clause.includes('{piece}'))
+    .map((clause) => fill(clause, { cost }))
+    .join(' · ');
 }
 
 /** A counter's label on the sheet, from the piece's name: "the fleet" → FLEET. */

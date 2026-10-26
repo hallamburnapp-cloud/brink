@@ -8,7 +8,7 @@ Two things race: WAR (regions fighting; 8 of 30 is world war) and TREATY (the Fe
 100 is the treaty). One word says how far up the ladder they are: TESTING, PUSHING, MASSING, FIGHTING, ALL-OUT.
 
 ## Day 18 (the still frame)
-- Top facts: DAY 18. INFLUENCE 31 (the points you spend). WAR: 1 region fighting (world war at 12). TREATY: 22%.
+- Top facts: DAY 18. INFLUENCE 31 (the points you spend). WAR: 1 region fighting (world war at 8). TREATY: 22%.
   They are: PUSHING. Next call: day 21. Pause / play / fast exist (the clock runs in days).
 - Regions (ids and names in geo.json; polygons in a 390 x 520 box, 30 regions in five blocs):
   - fighting (red): DRF Driftholm.

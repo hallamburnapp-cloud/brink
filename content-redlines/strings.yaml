@@ -94,10 +94,13 @@ causes:
   spread: "where the fighting spread from next door"
   waited: "where you waited once too often"
 
+# The two hidden dials in words. The middle words say that nothing stood out (a cold tester told "patient and
+# watchful" after a loss learned nothing from it). `lineOne` is for a game in which nothing let jumpiness show.
 dials:
-  appetite: { low: not very hungry, mid: patient, high: hungry }
-  jumpiness: { low: not easily scared, mid: watchful, high: easily scared }
+  appetite: { low: not very hungry, mid: neither hungry nor careful, high: hungry }
+  jumpiness: { low: not easily scared, mid: neither bold nor nervous, high: easily scared }
   line: "They were {a} and {b}."
+  lineOne: "They were {a}. You never came close enough to see whether they scare."
 
 # The reasons that fill {why}: "They went for Lintel because nobody had promised it."
 why:
@@ -118,31 +121,48 @@ why:
   hungry: they were hungry
   wantedToStop: they wanted to stop while they were ahead
 
+# Wintermast's own short words when a way out is refused, printed on the tape after "Wintermast refuses: {term}"
+# (SPEC-SMALL: a refusal costs nothing on the bar; the tape prints their reason that week). Quoted, 34 characters.
+wintermast:
+  noNeed: "'nothing to talk about yet'"
+  gaining: "'why stop while we are winning'"
+  indifferent: "'{region}? a small thing'"
+  noThreat: "'{piece} was never a threat'"
+  notAfraid: "'we are not afraid'"
+  hungry: "'we want more than that'"
+
 # The tape. One line each, 46 characters once filled (the teleprinter's width after the time stamp).
 headlines:
   declared: "{line}"
   inherited: "Inherited: a promise to defend {region}"
   pushed: "Federation forces push into {region}"
+  pushedAgain: "More Federation forces into {region}"
   stoppedShort: "Their column near {region} stops short"
   tested: "They are testing your promise at {region}"
   backed: "You backed {region} · they turn away"
   backedFar: "You backed {region} from afar · it held"
   backFailed: "Backed {region} from too far · it failed"
-  backedDown: "You backed down at {region}"
+  backedDown: "Backed down at {region} · now {step}"
+  backedDownEased: "Backed down at {region} · they stand down"
   waited: "You asked for time at {region}"
   waitedFell: "You waited too long · {region} has fallen"
   fell: "{region} has fallen"
-  takenStepUp: "A place taken, nobody came · now {step}"
+  fellOutOfReach: "{region} out of reach · still {step}"
+  takenStepUp: "{n} taken unanswered · now {step}"
+  feintGone: "{region}: their column has gone home"
   spread: "{from} fighting spreads to {region}"
   recovered: "Guns quiet at {region}"
   calmed: "{region} is calm again"
-  lineCrossed: "Wintermast: 'you have crossed our line'"
-  jumpy: "Wintermast: 'provocation' at {region}"
-  accident: "Shots at {region} · nobody ordered it"
+  lineCrossedAt: "{piece} at {region} crosses a line"
+  lineCrossed: "Wintermast: 'our line' · now {step}"
+  jumpy: "'Provocation' at {region} · now {step}"
+  accident: "Stray shots at {region} · now {step}"
   wayOutAccepted: "Wintermast accepts: {term}"
   wayOutRefused: "Wintermast refuses: {term}"
+  wayOutRefusedWhy: "Wintermast: {why}"
   blocSigned: "{bloc} signs · Wintermast feels the pull"
   quietWeek: "A quiet week · they gained nothing"
+  heldWeek: "Nothing taken · {n} unanswered"
   gainedWeek: "They took {n} this week"
   treatySigned: TREATY SIGNED
   worldWar: "The eighth place is fighting · WORLD WAR"
@@ -154,7 +174,7 @@ headlines:
   trawlerDisowned: "You disowned {region} over the trawler"
   trawlerLeaned: "You leaned on {region} privately"
   summitAccepted: "You accepted the summit · now {step}"
-  summitRefused: "You refused the summit"
+  summitRefused: "You refused the summit · an insult, they say"
   summitWaited: "You asked for terms · the offer lapsed"
   bluffHeld: "You held your ground at {region}"
   bluffPulled: "You pulled back from {region}"
@@ -235,7 +255,7 @@ act:
     pull-back: PULL A PIECE BACK
     summit: A SUMMIT
   termCosts:
-    drop-promise: "we withdraw a promise they named · costs {cost} influence"
+    drop-promise: "we withdraw one of our promises · costs {cost} influence"
     pull-back: "{piece} goes home · costs {cost} influence"
     summit: "no preconditions · costs {cost} influence"
 
@@ -286,12 +306,12 @@ howToPlay:
   title: HOW TO PLAY
   lines:
     - "The Federation is pushing. Where it pushes, the map turns amber, then red."
-    - "You lead the Republic. Each week, promise to defend places (hold a place to promise), move your fleet and your brigade, and send your orders."
+    - "You lead the Republic. Each week, promise to defend places (press and hold a place to promise it), move your fleet and your brigade, and send your orders."
     - "A promise is solid where something of yours is within reach, dashed where it is not. They test promises they do not believe."
     - "When they test a promise, the phone rings: BACK IT, BACK DOWN or WAIT. Keep your word and they believe you more. Back down and they believe you less."
     - "The word on the stamp says how far up the ladder they are: TESTING, PUSHING, MASSING, FIGHTING, ALL-OUT."
-    - "WAR counts the places fighting. Eight is world war. TREATY is their willingness to sign. At 100 they sign, unless a place fell that week."
-    - "Give them a way to stop (drop a promise, pull a piece back, a summit) and the treaty moves. Eight weeks."
+    - "WAR counts the places fighting. Eight is world war. TREATY is their willingness to sign: up when they take nothing and nothing is left unanswered, down for each place taken. At 100 they sign."
+    - "Give them a way to stop (drop a promise, pull a piece back, a summit) and the treaty moves. A refusal costs you nothing but the price. Eight weeks."
 
 flavour:
   - "Farsouth recalls its envoy"

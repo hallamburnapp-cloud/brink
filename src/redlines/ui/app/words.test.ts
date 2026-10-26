@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { GameState } from '../../engine/types';
 import { blocOf, content, newGame, regionName } from './fakeEngine';
-import { actLines, adviserWho, allTapeLines, callerLines, counterLabel, fightingSentence, holdWords, matchHeadline, noteFor, promiseLine, randomSeed, situation, tapeOf, warSub } from './words';
+import { actLines, adviserWho, allTapeLines, callerLines, counterLabel, fightingSentence, holdWords, matchHeadline, noteFor, promiseLine, randomSeed, situation, tapeOf, termLine, warSub } from './words';
 
 const S = content.strings as unknown as Parameters<typeof noteFor>[1];
 
@@ -39,6 +39,11 @@ describe('the note and the card', () => {
     expect(noteFor(s, S, regionName, bloc)).toBe('You inherited a promise to Lintel.');
     const acted: GameState = { ...s, acts: [{ kind: 'promise', region: 'VSY' }, { kind: 'move', piece: 'brigade', to: 'VSY' }] };
     expect(noteFor(acted, S, regionName, bloc)).toBe('You promised to defend Vessary. You moved the brigade to Vessary.');
+    // A promise withdrawn the same week (and promised again) is no order: the note keeps the net orders only.
+    const undone: GameState = { ...s, acts: [{ kind: 'move', piece: 'fleet', to: 'ASK' }, { kind: 'promise', region: 'VSY' }, { kind: 'withdraw', region: 'VSY' }, { kind: 'promise', region: 'VSY' }] };
+    expect(noteFor(undone, S, regionName, bloc)).toBe('You moved the fleet to Ashkettle. You promised to defend Vessary.');
+    const inherited: GameState = { ...s, acts: [{ kind: 'withdraw', region: 'LTL' }, { kind: 'promise', region: 'LTL' }] };
+    expect(noteFor(inherited, S, regionName, bloc)).toBe('You inherited a promise to Lintel.');
     expect(actLines([{ kind: 'way-out', term: 'summit', detail: null }], S, regionName)).toEqual(['You offered a way out: a summit.']);
     // Nothing pressed, nothing taken, no test: where their forces are heading.
     expect(noteFor({ ...s, week: 3, war: 0 }, S, regionName, bloc)).toBe('Their forces are heading for Kelpmouth.');
@@ -59,7 +64,8 @@ describe('the note and the card', () => {
   it('says how many regions are fighting under WAR', () => {
     expect(warSub(S, 0)).toBe('nothing fighting · world war at 8');
     expect(warSub(S, 1)).toBe('1 region fighting · world war at 8');
-    expect(warSub(S, 4)).toBe('4 regions fighting · world war at 8');
+    // From two up the line would run into the WORLD WAR label at the card's right: the first clause only.
+    expect(warSub(S, 4)).toBe('4 regions fighting');
   });
 });
 
@@ -70,6 +76,12 @@ describe('the slips', () => {
     expect(promiseLine(S, { ok: true, why: 'piece-near', piece }, regionName)).toBe('costs 1 influence a week · solid · the brigade is at Edda Vale, within reach');
     expect(promiseLine(S, { ok: false, why: 'out-of-reach' }, regionName)).toBe('costs 1 influence a week · dashed · nothing of ours is within reach · a dashed ring invites a test');
     expect(counterLabel(S, 'fleet')).toBe('FLEET');
+  });
+
+  it('prices a way-out term with no piece named yet by its cost alone', () => {
+    expect(termLine(S, 'pull-back', 15, null)).toBe('costs 15 influence');
+    expect(termLine(S, 'pull-back', 15, 'fleet')).toBe('the fleet goes home · costs 15 influence');
+    expect(termLine(S, 'summit', 20, null)).toBe('no preconditions · costs 20 influence');
   });
 
   it('types the caller card from the adviser', () => {

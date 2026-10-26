@@ -417,6 +417,11 @@ body {
   color: #3b322a;
   margin-top: 6px;
 }
+.rl-slip.rl-move .c {
+  font-size: 8.6px;
+  line-height: 11.5px;
+  margin-top: 4px;
+}
 .rl-x {
   flex: none;
   background: none;
@@ -425,17 +430,18 @@ body {
   letter-spacing: 0.2em;
   color: #6d5f49;
 }
+/* A refused order: a torn slip in the intel slip's place, under the note, in the hand's graphite (red is the Federation's). */
 .rl-refusal {
-  left: 16px;
-  top: 500px;
-  width: 176px;
+  left: 20px;
+  top: 592px;
+  width: 156px;
   z-index: 10;
   background: #efe5cc;
   padding: 6px 10px 7px 12px;
   font-size: 10px;
   line-height: 14px;
-  color: #8e1a12;
-  transform: rotate(-1.4deg);
+  color: #2b2418;
+  transform: rotate(-2.2deg);
   clip-path: polygon(0 4%, 3% 0, 40% 3%, 70% 0, 100% 2%, 99% 60%, 100% 100%, 55% 97%, 20% 100%, 0 96%);
   animation: rl-in 160ms ease-out both;
 }
@@ -528,7 +534,7 @@ body {
   color: #6d5f49;
 }
 .rl-menu-row.rl-leave .w {
-  color: #8e1a12;
+  color: #3b322a;
 }
 .rl-form {
   top: 150px;

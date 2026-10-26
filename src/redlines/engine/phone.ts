@@ -7,7 +7,7 @@ import type { PhoneTemplate, RedlinesContent } from './content.ts';
 import { blockedLastWeek } from './agent.ts';
 import { holdInfo, isAnswered, pieceAt, pressedRegions, promiseAt } from './board.ts';
 import { RULES, fallWeeksAt } from './rules.ts';
-import type { GameState, Line, Phone, PhoneKind, RegionId } from './types.ts';
+import type { GameState, Line, Phone, PhoneKind, RegionId, Step } from './types.ts';
 import { fill, type Slots } from './words.ts';
 import { NEAR_CAP, REGION, REGION_IDS, regionName } from './world.ts';
 
@@ -58,14 +58,23 @@ export interface PhoneContext {
   line?: string;
 }
 
-/** The call, or null when the pack has no template for it. */
+/** The trawler templates that fit an island you promised (or did not): `when` on the template, absent means either. */
+export function trawlerPool(c: RedlinesContent, promised: boolean): PhoneTemplate[] {
+  return c.phones.filter((p) => p.kind === 'trawler' && (!p.when || p.when === (promised ? 'promised' : 'unpromised')));
+}
+
+/**
+ * The call, or null when the pack has no template for it. The second and third round of a carried test
+ * keep the first round's template (its own `again` text, its own caller and advisers): one crisis, one voice.
+ */
 export function makePhone(c: RedlinesContent, s: GameState, rng: Rng, ctx: PhoneContext): Phone | null {
   const isTest = ctx.kind === 'test' || ctx.kind === 'test-inherited' || ctx.kind === 'feint';
-  let pool = isTest ? testPool(c, !!(ctx.region && promiseAt(s, ctx.region)?.inherited)) : c.phones.filter((p) => p.kind === ctx.kind);
+  let pool = isTest ? testPool(c, !!(ctx.region && promiseAt(s, ctx.region)?.inherited)) : ctx.kind === 'trawler' ? trawlerPool(c, !!(ctx.region && promiseAt(s, ctx.region))) : c.phones.filter((p) => p.kind === ctx.kind);
   if (!pool.length) return null;
   const last = s.phonesUsed[s.phonesUsed.length - 1];
-  if (pool.length > 1 && last) pool = pool.filter((p) => p.id !== last).length ? pool.filter((p) => p.id !== last) : pool;
-  const t = rng.pick(pool);
+  const carried = isTest && ctx.round > 1 ? c.phones.find((p) => p.id === last && (p.kind === 'test' || p.kind === 'test-inherited' || p.kind === 'feint')) : undefined;
+  if (!carried && pool.length > 1 && last) pool = pool.filter((p) => p.id !== last).length ? pool.filter((p) => p.id !== last) : pool;
+  const t = carried ?? rng.pick(pool);
   const region = ctx.region;
   const cost = region && isTest ? backCost(s, region, ctx.round) : answerCost({ ...s, phone: { kind: ctx.kind } as Phone }, 'back');
   const other = s.fed.headings.find((h) => h.to !== region)?.to ?? region;
@@ -107,26 +116,39 @@ export interface EventPick {
 /**
  * Which event rings this week, if any (at most RULES.events.maxPerGame a game), in this order: a bluff
  * you crossed (Wintermast's silence); a place nobody promised that will fall this week and a piece of
- * yours could reach; a summit offer (MASSING and above, the bar not empty); a false alarm (MASSING and
- * above); the trawler (an allied island, from week 2). Only kinds the pack has a template for.
+ * yours could reach; their summit offer (from week 4, the bar not empty, never in a week you have a way
+ * out on the table yourself: two summits in one week contradict each other); a false alarm (PUSHING and
+ * above); the trawler (an allied island, from week 2: one under a ring of yours when there is one, with a
+ * template that may speak of the promise; otherwise one you never promised, with a template that claims
+ * none). Only kinds the pack has a template for.
  */
 export function pickEvent(c: RedlinesContent, s: GameState, rng: Rng, bluff: { line: Line; region: RegionId } | null): EventPick | null {
   if (s.events >= RULES.events.maxPerGame) return null;
   const has = (k: PhoneKind) => c.phones.some((p) => p.kind === k);
   const E = RULES.events;
   if (bluff && has('bluff-crossed')) return { kind: 'bluff-crossed', region: bluff.region, line: bluff.line.text };
-  const doomed = pressedRegions(s).filter((r) => !promiseAt(s, r) && !isAnswered(s, r) && s.regions[r].pressedWeeks >= fallWeeksAt(s.fed.step) && holdInfo(s, r).ok);
+  const clock = fallWeeksAt(stepAtWeekStart(s));
+  const doomed = pressedRegions(s).filter((r) => !promiseAt(s, r) && !isAnswered(s, r) && s.regions[r].pressedWeeks >= clock && holdInfo(s, r).ok);
   if (doomed.length && has('fall-unpromised')) return { kind: 'fall-unpromised', region: doomed[0] };
   const stopped = s.fed.step >= 2 || blockedLastWeek(s);
   const summits = s.phonesUsed.filter((id) => c.phones.find((p) => p.id === id)?.kind === 'summit').length;
-  if (summits < E.summitMax && s.week >= E.summitFromWeek && s.fed.step >= E.summitFromStep && s.fed.will >= E.summitMinWill && stopped && has('summit') && rng.next() < E.summitChance) return { kind: 'summit', region: null };
+  if (!s.offer && summits < E.summitMax && s.week >= E.summitFromWeek && s.fed.step >= E.summitFromStep && s.fed.will >= E.summitMinWill && stopped && has('summit') && rng.next() < E.summitChance) return { kind: 'summit', region: null };
   if (s.fed.step >= E.falseAlarmFromStep && has('false-alarm') && rng.next() < E.falseAlarmChance) {
     const where = s.fed.headings.find((h) => h.real)?.to ?? NEAR_CAP[0];
     return { kind: 'false-alarm', region: where };
   }
   if (s.week >= E.trawlerFromWeek && has('trawler') && rng.next() < E.trawlerChance) {
-    const isles = REGION_IDS.filter((r) => REGION[r].bloc === 'SCT' && REGION[r].port && s.regions[r].state !== 'fighting' && !pieceAt(s, r));
-    if (isles.length) return { kind: 'trawler', region: rng.pick(isles) };
+    const isles = REGION_IDS.filter((r) => REGION[r].bloc === 'SCT' && REGION[r].port && s.regions[r].state !== 'fighting' && !pieceAt(s, r) && s.pendingTest !== r);
+    const promised = isles.filter((r) => promiseAt(s, r));
+    const pick = (pool: RegionId[]) => (pool.length ? rng.pick(pool) : null);
+    const region = promised.length && trawlerPool(c, true).length ? pick(promised) : trawlerPool(c, false).length ? pick(isles.filter((r) => !promiseAt(s, r))) : null;
+    if (region) return { kind: 'trawler', region };
   }
   return null;
+}
+
+/** The step the week started at: the log entry `beginWeek` opens records it before anything moves (SPEC-SMALL ruling: the fall clock reads that step). */
+export function stepAtWeekStart(s: GameState): Step {
+  const log = s.log[s.log.length - 1];
+  return log && log.week === s.week ? log.danger.step : s.fed.step;
 }

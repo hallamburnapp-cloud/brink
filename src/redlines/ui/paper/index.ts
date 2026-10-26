@@ -11,7 +11,7 @@ export { PaperMapView, type PaperMapProps, type PaperMapRef } from './PaperMap';
 export { viewFromState, testedOf, sameView, type ViewExtras } from './view';
 export { EMPTY_VIEW, MAP_WORDS } from './contract';
 export type { HeadingView, MapWords, PaperMap, PaperMapOptions, PaperView, PieceKind, PieceView, PromiseView, RegionId, RegionState, UpdateOptions } from './contract';
-export { CALL_SHIFT, FRAME, centreOf, hitFrame, toFrame, toMap, getGeometry, type FrameTransform } from './geometry';
+export { CALL_BAND, CALL_SHIFT, FRAME, callShiftFor, centreOf, hitFrame, toFrame, toMap, getGeometry, type FrameTransform } from './geometry';
 export { SETTLE_MS } from './marks';
 export {
   Calendar,

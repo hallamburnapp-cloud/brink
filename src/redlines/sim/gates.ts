@@ -1,11 +1,16 @@
 /**
- * The statistics of a batch of games and BUILD.md's gates judged on them (2,000 games per bot):
- * - passive loses (war or frozen) in more than 70%;
- * - the far-promise opening wins no more often than sensible;
- * - sensible wins (treaty) between a third and a half, and ends FROZEN in fewer than 15%;
- * - the median sensible treaty is signed in week 5 to 7;
- * - every game's debrief has at least six hidden lines;
- * - and no game stalls.
+ * The statistics of a batch of games and the gates judged on them (2,000 games per bot). BUILD.md's:
+ * - G1 passive loses (war or frozen) in more than 70%;
+ * - G2 the far-promise opening wins no more often than sensible;
+ * - G3 sensible wins (treaty) between a third and a half; G4 ends FROZEN in fewer than 20% (BUILD said 15;
+ *   SPEC-SMALL lets it sit at 20 if the gentler spread needs it);
+ * - G5 the median sensible treaty is signed in week 5 to 7;
+ * - G6 every game's debrief has at least six hidden lines;
+ * - G7 no game stalls.
+ * SPEC-SMALL's rulings after the first review add:
+ * - G8 the no-orders bot (sitting still) wins at most half as often as sensible;
+ * - G9 the seller (a far promise sold back) wins at least ten points less often than sensible;
+ * - G10 no line reaches the player with a slot unfilled.
  */
 import type { BotName } from './bots.ts';
 import type { GameRecord } from './play.ts';
@@ -39,6 +44,10 @@ export interface BotStats {
   /** Treaty share by appetite and jumpiness thirds (low, mid, high). */
   byAppetite: [number, number, number];
   byJumpiness: [number, number, number];
+  /** Lines (tape, debrief, ending) that reached the player with a `{slot}` unfilled, over the batch. */
+  unfilled: number;
+  /** Share of weeks in which the bot gave no orders at all. */
+  idleShare: number;
 }
 
 function third(x: number): 0 | 1 | 2 {
@@ -87,6 +96,8 @@ export function summarise(bot: BotName, games: readonly GameRecord[]): BotStats 
     treatyWeeks: counts(treaty.map((g) => g.week)),
     byAppetite: byA.map((n, i) => share(n, nA[i])) as [number, number, number],
     byJumpiness: byJ.map((n, i) => share(n, nJ[i])) as [number, number, number],
+    unfilled: games.reduce((a, g) => a + g.unfilled, 0),
+    idleShare: share(games.reduce((a, g) => a + g.idleWeeks, 0), games.reduce((a, g) => a + g.weeks, 0)),
   };
 }
 
@@ -100,9 +111,14 @@ export interface Gate {
 export const GATES = {
   passiveLoseMin: 0.7,
   sensibleTreaty: [1 / 3, 1 / 2] as const,
-  sensibleFrozenMax: 0.15,
+  /** BUILD.md said 15%; SPEC-SMALL ("The other side") lets the frozen gate sit at 20% to keep the gentler spread. */
+  sensibleFrozenMax: 0.2,
   treatyWeek: [5, 7] as const,
   minHidden: 6,
+  /** SPEC-SMALL ruling: a no-orders bot wins at most half as often as the sensible bot. */
+  noOrdersShare: 0.5,
+  /** The seller sits at least this many points of treaty share under sensible. */
+  sellerGap: 0.1,
 } as const;
 
 /** Judge the gates on the batch; a gate whose bot was not played is left out. */
@@ -124,7 +140,7 @@ export function evaluateGates(stats: Partial<Record<BotName, BotStats>>): Gate[]
     const win = share(s.treaty, s.games);
     const frozen = share(s.frozen, s.games);
     out.push({ id: 'G3', text: 'Sensible wins (treaty) between a third and a half', value: pct(win), pass: win >= GATES.sensibleTreaty[0] && win <= GATES.sensibleTreaty[1] });
-    out.push({ id: 'G4', text: 'Sensible ends FROZEN in fewer than 15%', value: pct(frozen), pass: frozen < GATES.sensibleFrozenMax });
+    out.push({ id: 'G4', text: 'Sensible ends FROZEN in fewer than 20%', value: pct(frozen), pass: frozen < GATES.sensibleFrozenMax });
     out.push({
       id: 'G5',
       text: 'The median sensible treaty is signed in week 5 to 7',
@@ -138,6 +154,22 @@ export function evaluateGates(stats: Partial<Record<BotName, BotStats>>): Gate[]
     out.push({ id: 'G6', text: "Every game's debrief has at least six hidden lines", value: `min ${minHidden}`, pass: minHidden >= GATES.minHidden });
     const stalls = all.reduce((a, x) => a + x.stalls, 0);
     out.push({ id: 'G7', text: 'No game stalls', value: String(stalls), pass: stalls === 0 });
+  }
+  const n = stats['no-orders'];
+  if (n && s) {
+    const a = share(n.treaty, n.games);
+    const b = share(s.treaty, s.games);
+    out.push({ id: 'G8', text: 'Sitting still (no orders) wins at most half as often as sensible', value: `${pct(a)} vs ${pct(b)}`, pass: a <= b * GATES.noOrdersShare });
+  }
+  const sell = stats.seller;
+  if (sell && s) {
+    const a = share(sell.treaty, sell.games);
+    const b = share(s.treaty, s.games);
+    out.push({ id: 'G9', text: 'The sold far promise wins at least ten points less often than sensible', value: `${pct(a)} vs ${pct(b)}`, pass: a <= b - GATES.sellerGap });
+  }
+  if (all.length) {
+    const unfilled = all.reduce((a, x) => a + x.unfilled, 0);
+    out.push({ id: 'G10', text: 'No line reaches the player with a slot unfilled', value: String(unfilled), pass: unfilled === 0 });
   }
   return out;
 }

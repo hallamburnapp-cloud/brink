@@ -15,7 +15,7 @@ import { BOT_NAMES, dialsTable, gatesTable, isBotName, ladderTable, outcomesTabl
 
 const USAGE = `usage: npx tsx tools/redlines-sim.ts [options]
   --games N     games per bot (default 2000)
-  --bots LIST   passive, promise-everything, far-promise, sensible (default all four; the gates need passive, far-promise and sensible)
+  --bots LIST   passive, promise-everything, far-promise, sensible, no-orders, seller (default all six; the gates need passive, far-promise, sensible, no-orders and seller)
   --seed P      seed prefix: games are P0 ... P{N-1} for every bot (default R)
   --pack DIR    a content-redlines directory to load through src/redlines/content/load.ts (default: the engine's fixture pack)
   --md          tables as Markdown

@@ -11,10 +11,12 @@
   text: "Republic forces in the Sound would be a grave matter. We say it once, and we say it plainly."
   tape: "Wintermast: no Republic forces in the Sound"
 
+# Tern Isle is left out: the fleet starts there (SPEC-SMALL: "you start within reach of the war"), and a line the
+# player crosses by doing nothing in week 1 is a trap, not a line.
 - id: scatter-forces
   kind: proximity
-  regions: [GUL, DRF, TRN, LNK, PBB, SHL]
-  text: "Republic forces on the islands of the Scatter would be a step we could not ignore. The islands are nobody's barracks."
+  regions: [GUL, DRF, LNK, PBB, SHL]
+  text: "Republic forces on the outer islands of the Scatter would be a step we could not ignore. The islands are nobody's barracks."
   tape: "Wintermast: no Republic forces in the Scatter"
 
 - id: cap-lanes

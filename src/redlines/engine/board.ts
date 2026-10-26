@@ -5,9 +5,9 @@
  */
 import type { HiddenKind, HoldCode, RedlinesContent, HeadlineKind } from './content.ts';
 import { RULES, clamp100, clampStep } from './rules.ts';
-import type { FallCause, GameState, Piece, PieceKind, PromiseMark, RegionId, WeekLog } from './types.ts';
+import type { Act, FallCause, GameState, Piece, PieceKind, PromiseMark, RegionId, Tally, WeekLog } from './types.ts';
 import { fill, type Slots } from './words.ts';
-import { isCap, mapOrder, reachOf, regionName } from './world.ts';
+import { isCap, mapOrder, pieceDistance, reachOf, regionName } from './world.ts';
 
 /** A copy safe to change. */
 export function draft(s: GameState): GameState {
@@ -27,7 +27,22 @@ export function draft(s: GameState): GameState {
     crossed: { ...s.crossed },
     turnedAway: { ...s.turnedAway },
     phonesUsed: [...s.phonesUsed],
+    tally: { ...tallyOf(s) },
   };
+}
+
+/** A fresh tally (a new game, or an old save without one). */
+export function emptyTally(): Tally {
+  return { testsSolid: 0, testsDashed: 0, backed: 0, backedDown: 0, backedDownFirst: null, feintsBacked: 0, feintBackedFirst: null, outOfReach: 0, outOfReachFirst: null, moves: 0, idleWeeks: 0, farDrops: 0, farDropFirst: null, stoppedThenTalked: 0, jumpinessSeen: false };
+}
+/** The game's tally, zeros when the state has none. */
+export function tallyOf(s: GameState): Tally {
+  return s.tally ?? emptyTally();
+}
+/** The tally on a draft, created when missing, so a rule can count into it. */
+export function tally(s: GameState): Tally {
+  if (!s.tally) s.tally = emptyTally();
+  return s.tally;
 }
 
 export function promiseAt(s: GameState, region: RegionId): PromiseMark | undefined {
@@ -94,9 +109,16 @@ export function press(s: GameState, region: RegionId): boolean {
   return true;
 }
 
-/** The place falls: fighting; any promise on it is void. `by` is kept for the WORLD WAR sentence unless a back-down already named the cause. */
+/**
+ * The place falls: fighting; any promise on it is void. `by` is kept for the WORLD WAR sentence unless a
+ * back-down already named the cause. The fall's order over the game (fellSeq) is what the WORLD WAR card
+ * reads ("it began at ..."), and whether something of yours could have reached it (fellReach) is what the
+ * ladder reads (a fall out of reach climbs no step).
+ */
 export function fall(s: GameState, region: RegionId, by: FallCause): void {
   const rec = s.regions[region];
+  rec.fellReach = couldHaveReached(s, region, rec.pressedWeeks);
+  rec.fellSeq = nextFallSeq(s);
   rec.state = 'fighting';
   rec.fellWeek = s.week;
   rec.pressedWeeks = 0;
@@ -104,6 +126,39 @@ export function fall(s: GameState, region: RegionId, by: FallCause): void {
   if (!rec.fellBy || by === 'spread') rec.fellBy = by;
   removePromise(s, region);
   if (s.pendingTest === region) s.pendingTest = null;
+}
+/**
+ * SPEC-SMALL: "a place taken unanswered that something of yours could have reached" is a step up; one no piece
+ * could reach falls without a step. Could have reached: a piece of yours could have been within one move of the
+ * place (holding it) by the time it fell, given the weeks it stood pressed and the week's warning the arrow gave:
+ * its own distance to the place, less the one move that still holds it, within `weeks` + 1.
+ */
+export function couldHaveReached(s: GameState, region: RegionId, weeks: number): boolean {
+  if (holdInfo(s, region).ok) return true;
+  return s.pieces.some((p) => pieceDistance(p.kind, p.at, region) - 1 <= weeks + 1);
+}
+/** One more than the highest fall number so far (1 for the first fall of the game). */
+export function nextFallSeq(s: GameState): number {
+  let max = 0;
+  for (const r of Object.values(s.regions)) {
+    const n = fallOrder(r);
+    if (n !== undefined && n > max) max = n;
+  }
+  return max + 1;
+}
+/** Where a fall stands in the game's order: its fellSeq, or (a state made by hand, an old save) its week times a thousand. */
+export function fallOrder(rec: { fellSeq?: number; fellWeek?: number }): number | undefined {
+  if (rec.fellSeq !== undefined) return rec.fellSeq;
+  return rec.fellWeek !== undefined ? rec.fellWeek * 1000 : undefined;
+}
+/** SPEC-SMALL ruling: a piece standing in a place, or a solid promise on it, spares it from the spread of the fighting. */
+export function isSpared(s: GameState, region: RegionId): boolean {
+  if (pieceAt(s, region)) return true;
+  return !!promiseAt(s, region) && holdInfo(s, region).ok;
+}
+/** Pressed places nobody has answered (the bar pays no +5 while one stands; RULES.quietBlockedBy says whether places beyond reach count). */
+export function unansweredRegions(s: GameState): RegionId[] {
+  return pressedRegions(s).filter((r) => !isAnswered(s, r) && (RULES.quietBlockedBy === 'any' || holdInfo(s, r).ok));
 }
 
 export function removePromise(s: GameState, region: RegionId): void {
@@ -189,6 +244,27 @@ export function think(c: RedlinesContent, s: GameState, kind: HiddenKind, slots:
   const text = fill(template, baseSlots(c, s, slots));
   log.hidden.push(text);
   return text;
+}
+
+/**
+ * The week's orders with the cancelled ones taken out: a promise withdrawn the same week (or a withdrawal
+ * promised over again) is no order at all, so the debrief's "what you did" never reads "You promised to defend
+ * Vessary. You withdrew your promise to Vessary. You promised to defend Vessary." (The screens' note does the same.)
+ */
+export function netActs(acts: readonly Act[]): Act[] {
+  const out: Act[] = [];
+  for (const a of acts) {
+    if (a.kind === 'promise' || a.kind === 'withdraw') {
+      const opposite = a.kind === 'promise' ? 'withdraw' : 'promise';
+      const i = out.findIndex((b) => b.kind === opposite && b.region === a.region);
+      if (i >= 0) {
+        out.splice(i, 1);
+        continue;
+      }
+    }
+    out.push(a);
+  }
+  return out;
 }
 
 /** The player's own line in the week's acts. */

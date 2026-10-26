@@ -8,6 +8,7 @@
 import type { JSX } from 'preact';
 import { CallerCard, Dim, FlipClock, Handset, Lamp, Tape, TornSlip, TypedForm } from '../paper';
 import { answer } from '../app/actions';
+import { useArmed } from '../app/armed';
 import { canAnswer, content, type Phone } from '../app/engine';
 import { busy, shown } from '../app/store';
 import { tapeFor } from '../app/tape';
@@ -22,6 +23,11 @@ export function PhoneCall(): JSX.Element | null {
   const who = callerLines(phone);
   const opt = (key: Phone['options'][number]['key']) => phone.options.find((o) => o.key === key) ?? phone.options[0];
   const can = (key: 'back' | 'down' | 'wait') => !busy.value && canAnswer(s, key).ok;
+  // A tap that lands before the forms are on the paper (a thumb still drumming to skip the playback) is not an answer.
+  const ready = useArmed(`${s.week}:${phone.round}:${phone.template}`);
+  const pick = (key: 'back' | 'down' | 'wait') => {
+    if (ready) void answer(key);
+  };
   return (
     <>
       <Dim />
@@ -38,10 +44,10 @@ export function PhoneCall(): JSX.Element | null {
         <TornSlip n={2} who={adviserWho('dove', A.dove.role)} text={phone.advisers.dove} />
         <TornSlip n={3} who={adviserWho('intel', A.intel.role)} text={phone.advisers.intel} />
       </div>
-      <div class="rl-in" style="animation-delay:400ms">
-        <TypedForm n={1} word={opt('back').label} cost={opt('back').cost} onTap={() => void answer('back')} disabled={!can('back')} />
-        <TypedForm n={2} word={opt('down').label} cost={opt('down').cost} onTap={() => void answer('down')} disabled={!can('down')} />
-        <TypedForm n={3} word={opt('wait').label} cost={opt('wait').cost} onTap={() => void answer('wait')} disabled={!can('wait')} />
+      <div class={`rl-in rl-forms${ready ? ' rl-armed' : ''}`} style="animation-delay:400ms">
+        <TypedForm n={1} word={opt('back').label} cost={opt('back').cost} onTap={() => pick('back')} disabled={!can('back')} />
+        <TypedForm n={2} word={opt('down').label} cost={opt('down').cost} onTap={() => pick('down')} disabled={!can('down')} />
+        <TypedForm n={3} word={opt('wait').label} cost={opt('wait').cost} onTap={() => pick('wait')} disabled={!can('wait')} />
         <Tape lines={tapeFor(s, 2)} />
       </div>
     </>

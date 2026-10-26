@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { REGION, REGIONS } from '../../../thirty/ui/map/data';
 import { EMPTY_VIEW, MAP_WORDS, type PaperView } from './contract';
-import { CALL_SHIFT, FRAME, boundsOf, centreOf, computeGeometry, hitFrame, hitMap, regionAt, toFrame, toMap } from './geometry';
-import { defendPos, marksOf, pinPos, ringSize, testedPos } from './marks';
+import { CALL_BAND, CALL_SHIFT, FRAME, boundsOf, callShiftFor, centreOf, computeGeometry, hitFrame, hitMap, regionAt, toFrame, toMap } from './geometry';
+import { arrowEnds, defendPos, marksOf, piecePos, pinPos, ringGeom, ringSize, SHEET_FOOT, stampPos, testedPos } from './marks';
 import { rnd, seedOf } from './rand';
 import { buildSheet } from './sheet';
 import { greaseRing, island, pencilArrow, pencilLine } from './strokes';
@@ -158,8 +158,8 @@ describe('the marks for a view', () => {
     const [px, py] = pinPos(sheet.geom, 'KLM', 'KLP');
     const [kx, ky] = sheet.geom.centre.KLM;
     const [tx, ty] = sheet.geom.centre.KLP;
-    // The pin sits on Kellmark, nudged toward Kelpmouth.
-    expect(Math.hypot(px - kx, py - ky)).toBeCloseTo(20);
+    // The pin sits on Kellmark, nudged a little toward Kelpmouth (the arrow carries the rest of the way).
+    expect(Math.hypot(px - kx, py - ky)).toBeCloseTo(10);
     expect(Math.hypot(px - tx, py - ty)).toBeLessThan(Math.hypot(kx - tx, ky - ty));
     expect(m.head[0].enter).toBe('draw');
     expect(m.head[2].enter).toBe('drop');
@@ -341,5 +341,116 @@ describe('the view from a GameState', () => {
     expect(sameView(a, { ...b, pressed: 'EDV' })).toBe(false);
     expect(sameView(a, { ...b, states: { ...b.states, EDV: 'pressed' } })).toBe(false);
     expect(sameView(a, { ...b, promises: b.promises.map((p) => ({ ...p, solid: false })) })).toBe(false);
+  });
+});
+
+describe('the marks keep clear of the sheet (the critics\' collisions)', () => {
+  const geomSheet = buildSheet(MAP_WORDS, 'pp');
+  const G = geomSheet.geom;
+  const overlapBox = (a: { x0: number; y0: number; x1: number; y1: number }, b: { x0: number; y0: number; x1: number; y1: number }) =>
+    Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) * Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+  const wordBox = (x: number, y: number, w = 58) => ({ x0: x - w / 2, y0: y - 11, x1: x + w / 2, y1: y + 2 });
+
+  it('pulls a ring on the sheet\'s right edge in so it, its TESTED ring and WE DEFEND stay on the paper', () => {
+    for (const id of ['BRK', 'ORN', 'TLM', 'QLN', 'VSY', 'ASK']) {
+      const r = ringGeom(G, id);
+      expect(r.cx + r.rx + 5).toBeLessThanOrEqual(386);
+      expect(r.cx - r.rx - 5).toBeGreaterThanOrEqual(4);
+      expect(r.rx).toBeGreaterThanOrEqual(18);
+      const d = defendPos(G, id);
+      expect(d.x + 29).toBeLessThanOrEqual(386);
+      expect(d.x - 29).toBeGreaterThanOrEqual(4);
+    }
+  });
+
+  it('writes WE DEFEND for two neighbouring islands apart, and never on a printed name or a bloc title', () => {
+    const pairs: Array<[string, string]> = [
+      ['GUL', 'DRF'],
+      ['TRN', 'LNK'],
+      ['PBB', 'SHL'],
+    ];
+    for (const [a, b] of pairs) {
+      const view: PaperView = { ...EMPTY_VIEW, promises: [{ region: a, solid: false }, { region: b, solid: false }] };
+      const m = marksOf(view, G, MAP_WORDS, 'pp');
+      const words = m.hw.map((i) => /translate\(([-\d.]+) ([-\d.]+)\)/.exec(i.html)!).map((x) => wordBox(parseFloat(x[1]), parseFloat(x[2])));
+      expect(words).toHaveLength(2);
+      expect(overlapBox(words[0], words[1])).toBe(0);
+      for (const w of words) {
+        for (const id of Object.keys(G.shape)) expect(overlapBox(w, G.labelBox[id])).toBeLessThan(12);
+        // The small Scatter title, printed in the water the bottom islands crowd, may be crossed a little; the others not.
+        G.blocBoxes.forEach((bb, i) => expect(overlapBox(w, bb)).toBeLessThan(G.blocSmall[i] ? 200 : 12));
+      }
+    }
+    // Saltwhite, on the bottom row, writes its word clear of FARSOUTH; Orrinth's TESTED clears THE SOUND.
+    const slw = defendPos(G, 'SLW');
+    for (const bb of G.blocBoxes) expect(overlapBox(wordBox(slw.x, slw.y), bb)).toBeLessThan(12);
+    const orn = testedPos(G, 'ORN');
+    for (const bb of G.blocBoxes) expect(overlapBox(wordBox(orn.x, orn.y, 50), bb)).toBeLessThan(12);
+    expect(orn.x + 25).toBeLessThanOrEqual(386);
+  });
+
+  it('writes WE DEFEND for any one place clear of every printed name and (but for the small Scatter title) every bloc title', () => {
+    for (const id of Object.keys(G.shape)) {
+      const d = defendPos(G, id);
+      const w = wordBox(d.x, d.y);
+      for (const other of Object.keys(G.shape)) expect(overlapBox(w, G.labelBox[other]), `${id}'s word on ${other}'s name`).toBeLessThan(12);
+      G.blocBoxes.forEach((bb, i) => expect(overlapBox(w, bb), `${id}'s word on a bloc title`).toBeLessThan(G.blocSmall[i] ? 200 : 12));
+      expect(d.y).toBeLessThanOrEqual(SHEET_FOOT);
+      expect(d.y - 11).toBeGreaterThanOrEqual(50);
+    }
+  });
+
+  it('puts a counter where the printed name is not: under Morrow Downs, beside Pebbleby clear of PEBBLEBY', () => {
+    const chit = (x: number, y: number) => ({ x0: x - 9, y0: y - 9, x1: x + 9, y1: y + 17 });
+    const [mx, my] = piecePos(G, 'MRD', 0);
+    expect(overlapBox(chit(mx, my), G.labelBox.MRD)).toBe(0);
+    const [px, py] = piecePos(G, 'PBB', 0);
+    expect(overlapBox(chit(px, py), G.labelBox.PBB)).toBe(0);
+    expect(overlapBox(chit(px, py), G.labelBox.SHL)).toBe(0);
+    // The brigade at Edda Vale still sits beside its name, as it did.
+    const [ex, ey] = piecePos(G, 'EDV', 0);
+    expect(ex).toBeGreaterThan(G.centre.EDV[0]);
+    expect(Math.abs(ey - G.centre.EDV[1])).toBeLessThan(12);
+  });
+
+  it('steps a pin round an offset name (Northwake) and gives a heading to a next-door place a visible arrow', () => {
+    const [px, py] = pinPos(G, 'NWK', 'VSY');
+    expect(overlapBox({ x0: px - 6, y0: py - 6, x1: px + 6, y1: py + 7 }, G.labelBox.NWK)).toBe(0);
+    for (const [from, to] of [
+      ['LTL', 'TLM'],
+      ['GUL', 'DRF'],
+      ['TRN', 'LNK'],
+      ['PBB', 'SHL'],
+      ['GLM', 'DRF'],
+      ['KLP', 'BRK'],
+    ] as const) {
+      const { start, end } = arrowEnds(G, from, to);
+      expect(Math.hypot(end[0] - start[0], end[1] - start[1])).toBeGreaterThanOrEqual(16);
+    }
+  });
+
+  it('stamps neighbouring islands small and tilted apart, so two FIGHTING stamps never read as one', () => {
+    const view: PaperView = { ...EMPTY_VIEW, states: { GUL: 'fighting', DRF: 'fighting' } };
+    const m = marksOf(view, G, MAP_WORDS, 'pp');
+    expect(m.stamp).toHaveLength(2);
+    const a = stampPos(G, 'GUL');
+    const b = stampPos(G, 'DRF');
+    expect(a.scale).toBeLessThan(1);
+    expect(a.rot).not.toBe(b.rot);
+    expect(a.x + 26 * a.scale).toBeLessThan(b.x - 26 * b.scale);
+    expect(stampPos(G, 'KLP').scale).toBe(1);
+  });
+
+  it('slides a tested place into the band under the handset on a call (callShiftFor)', () => {
+    for (const id of Object.keys(G.shape)) {
+      const c = centreOf(FRAME, id)!;
+      const sh = callShiftFor(c);
+      const x = c.x + sh.x;
+      const y = c.y + sh.y;
+      expect(Math.abs(y - CALL_BAND.y)).toBeLessThan(0.51);
+      expect(x).toBeGreaterThanOrEqual(CALL_BAND.x0);
+      expect(x).toBeLessThanOrEqual(CALL_BAND.x1);
+    }
+    expect(callShiftFor(null)).toEqual({ x: 0, y: CALL_SHIFT });
   });
 });

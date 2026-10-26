@@ -11,10 +11,11 @@ import { useEffect, useMemo, useRef } from 'preact/hooks';
 import { Calendar, IndexCard, Note, PencilUnderline, Tape } from '../paper';
 import { seedOf } from '../paper/rand';
 import { armRegion, cancelAct, doPromise, doWithdraw, holdEnd, holdStart, openMenu, openWayOut, sendOrders, skipPlayback, tapSheet } from '../app/actions';
-import { blocOf, content, holdable, pieceOf, promiseAt, regionName, RULES, type PieceKind, type RegionId } from '../app/engine';
+import { blocOf, content, holdable, kindMoves, pieceOf, promiseAt, regionName, RULES, type PieceKind, type RegionId } from '../app/engine';
 import { HoldGesture } from '../app/gesture';
 import { toFramePoint } from '../app/layout';
 import { getMap } from '../app/mapRef';
+import { placeSlip, type Pt } from '../app/slips';
 import { armed, busy, frameFit, lifted, play, refusal, shown } from '../app/store';
 import { tapeFor } from '../app/tape';
 import { noteFor, promiseLine, stepWord, warSub } from '../app/words';
@@ -116,17 +117,19 @@ function counterAt(fx: number, fy: number): PieceKind | null {
   return null;
 }
 
-/** Where a slip anchored to a place goes: under it, or over it near the foot of the sheet, inside the frame. */
-export function slipPlace(region: RegionId, width: number, height: number): { left: number; top: number } {
-  const c = getMap()?.centre(region) ?? { x: 195, y: 300 };
-  const left = Math.max(8, Math.min(390 - width - 8, c.x - width / 2));
-  const below = c.y + 30;
-  const top = below + height <= 496 ? below : Math.max(52, c.y - 30 - height);
-  return { left, top };
+/** Where a slip anchored to a place goes: under it (or beside or over it), inside the sheet, clear of the places in `avoid`. */
+export function slipPlace(region: RegionId, width: number, height: number, avoid: readonly RegionId[] = []): { left: number; top: number } {
+  const map = getMap();
+  const c = map?.centre(region) ?? { x: 195, y: 300 };
+  const pts = avoid.map((r) => map?.centre(r)).filter((p): p is Pt => !!p);
+  return placeSlip(c, width, height, pts);
 }
 
 const SLIP_W = 252;
 const SLIP_H = 88;
+/** The MOVE slip is narrow so it can sit beside the counter and leave the places it can move to clear. */
+const MOVE_W = 168;
+const MOVE_H = 70;
 
 /** The slip a hold puts down: the place's name and state, the act, its cost, CANCEL. */
 function ActSlip(): JSX.Element | null {
@@ -171,9 +174,10 @@ function MoveSlip(): JSX.Element | null {
   const S = content.strings;
   const piece = pieceOf(s, kind);
   if (!piece) return null;
-  const pos = slipPlace(piece.at, SLIP_W, 70);
+  // The slip leaves every place the counter could move to clear for the tap that moves it (or is refused: one move a week).
+  const pos = slipPlace(piece.at, MOVE_W, MOVE_H, kindMoves(kind, piece.at, pieceOf(s, 'fleet')?.at ?? null));
   return (
-    <div class="rl-slip pp-obj pp-ty" style={{ left: `${pos.left}px`, top: `${pos.top}px`, width: `${SLIP_W}px` }}>
+    <div class="rl-slip rl-move pp-obj pp-ty" style={{ left: `${pos.left}px`, top: `${pos.top}px`, width: `${MOVE_W}px` }}>
       <div class="hd">
         <span>{S.pieces[kind].toUpperCase()}</span>
         <button type="button" class="rl-x" onClick={cancelAct}>

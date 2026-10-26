@@ -32,10 +32,10 @@ export function outcomesTable(stats: Partial<Record<BotName, BotStats>>, fmt: Fo
 }
 
 export function phonesTable(stats: Partial<Record<BotName, BotStats>>, fmt: Format): string {
-  const rows: string[][] = [['bot', 'phones', 'tests', 'backed', 'backed down', 'waited', 'ways out offered', 'accepted', 'short of influence', 'hidden lines (min / median)']];
+  const rows: string[][] = [['bot', 'phones', 'tests', 'backed', 'backed down', 'waited', 'ways out offered', 'accepted', 'short of influence', 'idle weeks', 'hidden lines (min / median)']];
   for (const s of Object.values(stats)) {
     if (!s) continue;
-    rows.push([s.bot, f1(s.meanPhones), f1(s.meanTests), f1(s.meanBacked), f1(s.meanBackedDown), f1(s.meanWaited), f1(s.meanWaysOutOffered), f1(s.meanWaysOutAccepted), pct(share(s.shortGames, s.games)), `${s.minHidden} / ${f0(s.medianHidden)}`]);
+    rows.push([s.bot, f1(s.meanPhones), f1(s.meanTests), f1(s.meanBacked), f1(s.meanBackedDown), f1(s.meanWaited), f1(s.meanWaysOutOffered), f1(s.meanWaysOutAccepted), pct(share(s.shortGames, s.games)), pct(s.idleShare), `${s.minHidden} / ${f0(s.medianHidden)}`]);
   }
   return table(rows, fmt);
 }

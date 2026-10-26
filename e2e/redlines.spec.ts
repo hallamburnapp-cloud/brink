@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { loadRedlinesContent } from '../src/redlines/content/load';
-import { endWeek, newGame, regionName, RULES, type GameState, type RegionId } from '../src/redlines/engine';
+import { answerPhone, blocOf, endWeek, movesFor, newGame, regionName, RULES, type GameState, type RegionId } from '../src/redlines/engine';
 import type { RedlinesHook } from '../src/redlines/ui/app/devHook';
 
 /**
@@ -55,14 +55,16 @@ if (!content) throw new Error('content-redlines did not compile');
 const S = content.strings;
 
 /**
- * Seeds found on this pack (the scratch finder replays newGame/endWeek):
- * - WEEK: the inherited promise is at Driftholm (an island nothing of yours can reach: a dashed ring); their first
+ * Seeds found on this pack and engine (a scratch finder replays newGame/endWeek/answerPhone; re-run it when the rules change):
+ * - WEEK: the one inherited promise is at Driftholm (an island nothing of yours can reach: a dashed ring); their first
  *   heading points at it, so SEND ORDERS with no orders rings the inherited-promise test, BACK IT costs 24 (far) and
- *   holds, and WAIT carries the call to week 2 as round 2. Vessary is within the brigade's reach from Edda Vale.
- * - QUIET: week 1 resolves without a call (a push into Kelpmouth, a column stopping short), for the playback.
+ *   holds, and WAIT carries the call to week 2 as round 2 at 30. Vessary is free and within the brigade's reach from
+ *   Edda Vale; Shoal is out of reach.
+ * - QUIET: week 1 resolves without a call (a push that lands, a column stopping short), for the playback.
+ * What those weeks say and do is computed in Node from the same pack and seed, never written out here.
  */
-const SEED_WEEK = 'E2E-WEEK-2';
-const SEED_QUIET = 'E2E-QUIET-5';
+const SEED_WEEK = 'E2E-WEEK-18';
+const SEED_QUIET = 'E2E-QUIET-1';
 const PREFS_KEY = 'brink.redlines.v1.prefs';
 const SAVE_KEY = 'brink.redlines.v1.save';
 
@@ -179,6 +181,8 @@ async function sendOrders(page: Page): Promise<GameState> {
 async function answer(page: Page, key: 'back' | 'down' | 'wait'): Promise<GameState> {
   const s = await state(page);
   const opt = s.phone!.options.find((o) => o.key === key)!;
+  // The forms take taps only once they are on the paper (a thumb still drumming to skip the playback is not an answer).
+  await page.locator('.rl-forms.rl-armed').waitFor({ state: 'attached', timeout: 5_000 });
   await page.locator('.pp-ch').filter({ hasText: opt.label }).tap();
   await page.waitForFunction(() => !!window.__redlines && !window.__redlines.busy() && window.__redlines.state()?.phase !== 'phone', null, { timeout: 60_000 });
   await page.waitForTimeout(200);
@@ -186,6 +190,27 @@ async function answer(page: Page, key: 'back' | 'down' | 'wait'): Promise<GameSt
 }
 
 const choice = (page: Page, word: string) => page.getByRole('button', { name: new RegExp(`^${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`) });
+/** True when one of the lines came from this headline template with these slots (other slots may hold anything). */
+function said(lines: readonly string[], template: string, slots: Record<string, string> = {}): boolean {
+  const src = template
+    .split(/(\{\w+\})/g)
+    .map((part) => {
+      const m = /^\{(\w+)\}$/.exec(part);
+      if (!m) return part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return slots[m[1]] !== undefined ? slots[m[1]].replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '.+?';
+    })
+    .join('');
+  const re = new RegExp(`^${src}$`);
+  return lines.some((l) => re.test(l));
+}
+
+/** An element's box in frame px (the 390 x 844 sheet), through the frame's fit. */
+async function frameBox(page: Page, selector: string): Promise<{ x0: number; y0: number; x1: number; y1: number }> {
+  const box = await page.locator(selector).boundingBox();
+  if (!box) throw new Error(`no box for ${selector}`);
+  const f = await page.evaluate(() => window.__redlines!.frame());
+  return { x0: (box.x - f.left) / f.scale, y0: (box.y - f.top) / f.scale, x1: (box.x + box.width - f.left) / f.scale, y1: (box.y + box.height - f.top) / f.scale };
+}
 const slip = (page: Page) => page.locator('.rl-slip');
 const calm = (s: GameState): GameState['regions'] => Object.fromEntries(Object.keys(s.regions).map((k) => [k, { state: 'calm' as const, pressedWeeks: 0, quietWeeks: 0 }]));
 
@@ -200,6 +225,8 @@ test('the title, the three lines of the explanation over the live map, the colli
   // The world under the title is drawn: the paper map with its printed names.
   await expect(page.locator('.pp-map')).toBeVisible();
   await expect(page.locator('.pp-names text').first()).toBeAttached();
+  // The teleprinter keeps running under the title: the opening's lines.
+  await expect(page.locator('.pp-tape .ln').first()).toBeVisible();
 
   // PLAY: the first typed line over the live map, numbered 1, SKIP and NEXT.
   await choice(page, S.title.play).tap();
@@ -296,6 +323,13 @@ test('a promise by tap-and-hold (solid, WE DEFEND), a withdraw, a counter moved,
   await expect(slip(page).locator('.w')).toHaveText(S.act.move);
   await expect(slip(page).locator('.c')).toHaveText(S.act.moveCost);
   const before = await state(page);
+  // The slip leaves every place the brigade can move to clear for the tap that moves it.
+  const slipBox = await frameBox(page, '.rl-slip');
+  for (const r of movesFor(before, 'brigade')) {
+    const c = (await page.evaluate((id) => window.__redlines!.centre(id), r))!;
+    const clear = c.x < slipBox.x0 - 10 || c.x > slipBox.x1 + 10 || c.y < slipBox.y0 - 10 || c.y > slipBox.y1 + 10;
+    expect(clear, `${r} under the MOVE slip`).toBe(true);
+  }
   await tapPlace(page, 'VSY');
   await expect(slip(page)).toHaveCount(0);
   s = await state(page);
@@ -306,8 +340,8 @@ test('a promise by tap-and-hold (solid, WE DEFEND), a withdraw, a counter moved,
   await page.waitForTimeout(600);
   await tapCounter(page, 'brigade');
   await expect(page.locator('.pp-piece[data-kind="brigade"]')).toHaveClass(/pp-lift/);
-  // Northwake is clear of the MOVE slip (which lies under Vessary); one move a week is refused before reach is looked at.
-  await tapPlace(page, 'NWK');
+  // Quillon, a place the brigade could reach, is clear of the MOVE slip by construction; one move a week is refused before reach is looked at.
+  await tapPlace(page, 'QLN');
   await expect(page.locator('.rl-refusal')).toHaveText(S.refusals['moved-already']);
   expect((await state(page)).pieces.find((p) => p.kind === 'brigade')?.at).toBe('VSY');
   // The game is saved after every order.
@@ -324,6 +358,8 @@ test('A WAY OUT: the typed form with the three terms and their prices; one offer
   await expect(form.locator('.ln')).toHaveText(S.act.wayOutIntro);
   for (const term of ['drop-promise', 'pull-back', 'summit'] as const) await expect(form.getByRole('button', { name: new RegExp(`^${S.act.termLabels[term]}`) })).toBeVisible();
   await expect(form.getByRole('button', { name: new RegExp(`^${S.act.termLabels.summit}`) })).toContainText(`costs ${RULES.wayOutPrice.summit} influence`);
+  await expect(form.getByRole('button', { name: new RegExp(`^${S.act.termLabels['pull-back']}`) })).toContainText(`costs ${RULES.wayOutPrice['pull-back']} influence`);
+  await expect(form.getByRole('button', { name: new RegExp(`^${S.act.termLabels['drop-promise']}`) })).toContainText(`costs ${RULES.wayOutPrice['drop-promise']} influence`);
   // PULL A PIECE BACK opens the two pieces by name; the fleet goes home.
   await form.getByRole('button', { name: new RegExp(`^${S.act.termLabels['pull-back']}`) }).tap();
   await expect(form.getByRole('button', { name: new RegExp(`^${S.pieces.fleet.toUpperCase()}`) })).toBeVisible();
@@ -357,15 +393,17 @@ test('SEND ORDERS plays the week back a beat at a time: the tape feeds, the note
   const fed = (await page.locator('.pp-tape .ln.pp-feed').textContent())?.replace(/^WEEK \d+/, '').trim();
   expect(lines.map((l) => l.toUpperCase())).toContain((fed ?? '').toUpperCase());
   await expect(page.locator('.pp-note')).toHaveText(new RegExp(fed!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
-  // Their push lands: Kelpmouth is hatched (pressed) on the sheet.
-  await expect(page.locator('.pp-l-press [data-key="press:KLP"]')).toBeAttached({ timeout: 15_000 });
+  // Their push lands: the place it landed on is hatched (pressed) on the sheet.
+  const pressed = Object.keys(expected.regions).filter((r) => expected.regions[r].state === 'pressed');
+  expect(pressed.length).toBeGreaterThanOrEqual(1);
+  await expect(page.locator(`.pp-l-press [data-key="press:${pressed[0]}"]`)).toBeAttached({ timeout: 15_000 });
   await settle(page);
 
   const s2 = await state(page);
   expect(s2.week).toBe(2);
   expect(s2.phase).toBe('act');
   expect(s2.log[0].visible).toEqual(lines);
-  expect(s2.regions.KLP.state).toBe('pressed');
+  expect(s2.regions[pressed[0]].state).toBe('pressed');
   await expect(page.locator('.pp-cal .num')).toContainText('2');
   await expect(page.locator('.pp-cal .nt')).toContainText(`${S.words.influence} ${s2.influence}`);
   // The tape shows the last three lines, tagged with the week; the note now reads the world.
@@ -373,10 +411,11 @@ test('SEND ORDERS plays the week back a beat at a time: the tape feeds, the note
   expect(tape).toHaveLength(3);
   expect(tape[2].toUpperCase()).toContain(lines[lines.length - 1].toUpperCase());
   await expect(page.locator('.pp-tape .ln i').last()).toHaveText(`${S.words.week} 1`);
-  await expect(page.locator('.pp-note')).toHaveText(`They are pushing ${S.blocs.SND}.`);
+  await expect(page.locator('.pp-note')).toContainText(`They are pushing ${S.blocs[blocOf(pressed[0])]}`);
   // Week 2's headings are the new pins and arrows.
   for (const h of s2.fed.headings) await expect(page.locator(`.pp-l-head [data-key="pin:${h.from}:${h.to}"]`)).toBeAttached();
-  expect(s1.influence + 8 - s1.promises.length).toBe(s2.influence);
+  expect(s2.influence).toBe(expected.influence);
+  expect(s1.week).toBe(1);
 });
 
 test('the phone: the inherited promise is tested, the room goes dark, forty words, three advisers, three forms; BACK IT holds and the week finishes', async ({ page }) => {
@@ -386,7 +425,17 @@ test('the phone: the inherited promise is tested, the room goes dark, forty word
   expect(expected.phase).toBe('phone');
   const phone = expected.phone!;
 
-  const s = await sendOrders(page);
+  // SEND ORDERS, and the moment the call is laid down a tap where WAIT will be: it is not an answer (the forms are not on the paper yet).
+  await page.getByRole('button', { name: S.words.sendOrders }).tap();
+  await page.locator('.pp-ch').nth(2).waitFor({ state: 'attached', timeout: 60_000 });
+  const f = await page.evaluate(() => window.__redlines!.frame());
+  await page.touchscreen.tap(f.left + 120 * f.scale, f.top + 724 * f.scale);
+  await page.waitForTimeout(400);
+  let s = await state(page);
+  expect(s.phase).toBe('phone');
+  expect(s.phone?.round).toBe(1);
+  await settle(page);
+  s = await state(page);
   expect(s.phase).toBe('phone');
   expect(s.phone?.region).toBe('DRF');
   expect(s.phone?.text).toBe(phone.text);
@@ -416,16 +465,26 @@ test('the phone: the inherited promise is tested, the room goes dark, forty word
   await expect(forms.nth(1).locator('.w')).toHaveText(S.words.down);
   await expect(forms.nth(2).locator('.w')).toHaveText(S.words.wait);
   await expect(forms.nth(0)).toBeEnabled();
-  // The tested place is over-circled on the sheet with TESTED.
+  // The tested place is over-circled on the sheet with TESTED, and the sheet has slid so it shows in the band between the handset and the caller card.
   await expect(page.locator('.pp-l-test [data-key="test:DRF"]')).toBeAttached();
   await expect(page.locator('.pp-l-hw text', { hasText: S.words.tested })).toHaveCount(1);
+  await page.waitForTimeout(500);
+  const ring = await frameBox(page, '.pp-l-test [data-key="test:DRF"]');
+  expect(ring.y0).toBeGreaterThan(55);
+  expect(ring.y1).toBeLessThan(165);
+  expect(ring.x0).toBeGreaterThan(100);
+  expect(ring.x1).toBeLessThan(390);
 
-  // BACK IT: the rest of the week plays; it held; influence down by 24; the room is light again.
+  // BACK IT: the rest of the week plays; it held; influence down by 24 (then the week's income); the room is light again.
+  const backed = answerPhone(content, expected, 'back');
   const after = await answer(page, 'back');
   expect(after.week).toBe(2);
   expect(after.phase).toBe('act');
-  expect(after.influence).toBe(30 - 24 + 8 - 1);
-  expect(after.log[0].visible).toContain(`You backed ${regionName('DRF')} from afar · it held`);
+  expect(after.influence).toBe(backed.influence);
+  expect(backed.influence).toBeLessThanOrEqual(30 - 24 + 8);
+  // The week on the sheet is the week the engine computed in Node, line for line; and on this seed the far promise held.
+  expect(after.log[0].visible).toEqual(backed.log[0].visible);
+  expect(said(after.log[0].visible, S.headlines.backedFar, { region: regionName('DRF') })).toBe(true);
   expect(after.log[0].acts.some((a) => a.startsWith(S.words.back))).toBe(true);
   await expect(page.locator('.pp-room')).not.toHaveClass(/pp-room-call/);
   await expect(page.locator('.pp-cal .num')).toContainText('2');
@@ -459,15 +518,17 @@ test('WAIT carries the test into next week with the stakes up: the second week o
   const template = content.phones.find((p) => p.id === s.phone!.template)!;
   expect(template.again).toBeTruthy();
   await expect(page.locator('.pp-caller .msg')).toContainText(template.again!.split('{')[0].trim());
-  // BACK DOWN: the promise goes, the place they were testing falls, they climb (a fall at MASSING spreads: the
-  // ladder may run), and the stamp reads the new word.
+  // BACK DOWN: the promise goes, the place they were testing is theirs to take (pressed, or fallen when its clock has
+  // run), the ladder moves as the engine says, and the stamp reads the new word; the sheet shows the place's state.
+  const node = answerPhone(content, endWeek(content, answerPhone(content, endWeek(content, newGame(content, SEED_WEEK)), 'wait')), 'down');
   s = await answer(page, 'down');
   expect(s.promises.some((p) => p.region === 'DRF')).toBe(false);
-  expect(s.regions.DRF.state).toBe('fighting');
-  expect(s.fed.step).toBeGreaterThan(2);
-  expect(s.log[1].visible).toContain(`You backed down at ${regionName('DRF')}`);
+  expect(['pressed', 'fighting']).toContain(s.regions.DRF.state);
+  expect(s.regions.DRF.state).toBe(node.regions.DRF.state);
+  expect(s.fed.step).toBe(node.fed.step);
+  expect(said(s.log[1].visible, S.headlines.backedDown, { region: regionName('DRF') }) || said(s.log[1].visible, S.headlines.backedDownEased ?? S.headlines.backedDown, { region: regionName('DRF') })).toBe(true);
   await expect(page.getByRole('img', { name: S.words.steps[s.fed.step - 1] })).toBeVisible();
-  await expect(page.locator('.pp-l-fight [data-key="fight:DRF"]')).toBeAttached();
+  await expect(page.locator(s.regions.DRF.state === 'fighting' ? '.pp-l-fight [data-key="fight:DRF"]' : '.pp-l-press [data-key="press:DRF"]')).toBeAttached();
 });
 
 // ---------------------------------------------------------------- the endings and the debrief
@@ -489,8 +550,12 @@ test('the three endings through the hook: TREATY, WORLD WAR and FROZEN on their 
   await expect(page.locator('.pp-typed .sc b')).toHaveText(String(s.ending!.score));
   expect(s.ending!.score).toBe(100 - 10 * 5);
   expect(s.log[s.log.length - 1].visible).toContain(S.headlines.treatySigned);
+  // The teleprinter runs on under the card: its last line is the signing.
+  await expect(page.locator('.pp-tape .ln').last()).toContainText(S.headlines.treatySigned);
 
   // The debrief: one page a week, what you did and what they were thinking (in red), BACK and NEXT, then the closing card.
+  // (The card takes taps once it has landed, like the phone's forms.)
+  await page.locator('.rl-ending.rl-armed').waitFor({ state: 'attached', timeout: 5_000 });
   await choice(page, S.debrief.next).tap();
   const pages = s.log.length;
   await expect(page.locator('.pp-debrief .wk')).toContainText(`WEEK ${s.log[0].week}`);
@@ -502,6 +567,12 @@ test('the three endings through the hook: TREATY, WORLD WAR and FROZEN on their 
     await choice(page, S.debrief.next).tap();
     await expect(page.locator('.pp-debrief .pg')).toHaveText(`${i + 1} / ${pages}`);
   }
+  // A reload mid-debrief comes back, through CONTINUE, to the page being read.
+  await page.reload();
+  await page.waitForFunction(() => !!window.__redlines);
+  await page.getByRole('button', { name: /^CONTINUE/ }).tap();
+  await expect(page.locator('.pp-debrief .pg')).toHaveText(`${pages} / ${pages}`);
+  await page.waitForTimeout(500);
   // The last page names the dials among its thoughts. BACK turns a page back (to the ending card from the first page);
   // DONE shows the closing card with the dials in words, PLAY AGAIN and TITLE.
   await expect(page.locator('.pp-debrief .thought').last()).toHaveText(s.ending!.dials);
@@ -512,7 +583,11 @@ test('the three endings through the hook: TREATY, WORLD WAR and FROZEN on their 
   await expect(page.locator('.pp-debrief .pg')).toHaveText(`${pages} / ${pages}`);
   await choice(page, S.debrief.done).tap();
   await expect(page.locator('.pp-typed .hd')).toHaveText(S.debrief.title);
-  await expect(page.locator('.pp-typed .ln').nth(0)).toHaveText(s.ending!.dials);
+  // The closing card: the game's own lessons (up to three), then the dials in words as its last line.
+  const lessons = s.ending!.lessons ?? [];
+  await expect(page.locator('.pp-typed .ln')).toHaveCount(lessons.length + 1);
+  for (let i = 0; i < lessons.length; i++) await expect(page.locator('.pp-typed .ln').nth(i)).toHaveText(lessons[i]);
+  await expect(page.locator('.pp-typed .ln').last()).toHaveText(s.ending!.dials);
   await expect(choice(page, S.debrief.again)).toBeVisible();
   await expect(choice(page, S.debrief.toTitle)).toBeVisible();
 
@@ -536,6 +611,7 @@ test('the three endings through the hook: TREATY, WORLD WAR and FROZEN on their 
   await expect(page.locator('.pp-typed .ln').nth(0)).toHaveText('Week 5.');
   await expect(page.locator('.pp-typed .sc b')).toHaveText('0');
   expect(s.log[s.log.length - 1].visible.some((l) => l.includes(S.words.worldWar))).toBe(true);
+  await page.locator('.rl-ending.rl-armed').waitFor({ state: 'attached', timeout: 5_000 });
   await choice(page, S.debrief.next).tap();
   await expect(page.locator('.pp-debrief')).toBeVisible();
   // NEXT through the pages to DONE; TITLE from the closing card puts the finished game away.

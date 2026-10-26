@@ -15,6 +15,7 @@ export {
   endWeek,
   holdable,
   isCap,
+  kindMoves,
   loadGame,
   movePiece,
   movesFor,

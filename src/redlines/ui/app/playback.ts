@@ -9,7 +9,7 @@
  */
 import { viewFromState, type PaperView, type PieceView } from '../paper';
 import { weekBeats, type Beat } from './beats';
-import { content, holdable, REGION_IDS, regionName, type GameState, type RegionId } from './engine';
+import { content, holdable, REGION_IDS, regionName, RULES, type GameState, type RegionId } from './engine';
 import { busy, play, reduced, shown } from './store';
 import { shorten } from './tape';
 import { allTapeLines, TAPE_SHOWN, type TapeLine } from './words';
@@ -23,6 +23,8 @@ export const TIMES = {
   stamp: 1500,
   /** The last beat (next week's pins drop) before the slips come back up. */
   last: 420,
+  /** The beat that fills the eighth box (WORLD WAR) is held, so the watcher sees the chain on the map before the card. */
+  worldWar: 1400,
   reduced: 420,
 } as const;
 
@@ -84,10 +86,48 @@ function idOf(name: string): RegionId | null {
   return names.get(name) ?? null;
 }
 
+/** How much a tape line of this kind moves the TREATY bar (SPEC-SMALL "The two bars"; RULES has the numbers). */
+export function barMoveOf(kind: string, slots: Record<string, string>): number | null {
+  const R = RULES as unknown as Record<string, number>;
+  switch (kind) {
+    case 'quietWeek':
+      return R.willQuiet ?? 5;
+    case 'blocSigned':
+      return R.willBloc ?? 10;
+    case 'wayOutAccepted':
+    case 'summitAccepted':
+      return R.willWayOut ?? 15;
+    // Their own summit offer refused in public is the one humiliation (−10); a way out of yours they refuse costs
+    // nothing on the bar (SPEC-SMALL ruling), and the trawler never touches it.
+    case 'summitRefused':
+      return -(R.willHumiliated ?? 10);
+    case 'gainedWeek': {
+      // "They took two places this week": the number word, or a digit, in the slot.
+      const words = content.strings.numbers;
+      const first = (slots.n ?? '').trim().split(/\s+/)[0] ?? '';
+      const idx = words.indexOf(first);
+      const n = idx >= 0 ? idx : parseInt(first, 10);
+      return -(R.willPerGain ?? 5) * (Number.isFinite(n) && n > 0 ? n : 1);
+    }
+    default:
+      return null;
+  }
+}
+
 /** The beats of a resolve, read from the engine's lines (beats.ts). */
 export function beatsFor(before: GameState, after: GameState): Beat[] {
   const holdableWith = (pieces: readonly PieceView[], region: RegionId) => holdable({ ...before, pieces: pieces.map((p) => ({ kind: p.kind, at: p.at })) }, region).ok;
-  return weekBeats({ before, after, headlines: content.strings.headlines, idOf, holdable: holdableWith, startView: viewOf(before), endView: viewOf(after) });
+  return weekBeats({
+    before,
+    after,
+    headlines: content.strings.headlines,
+    idOf,
+    holdable: holdableWith,
+    startView: viewOf(before),
+    endView: viewOf(after),
+    steps: content.strings.words.steps,
+    barMove: barMoveOf,
+  });
 }
 
 /**
@@ -105,6 +145,7 @@ export async function playResolve(before: GameState, after: GameState): Promise<
   const lines: TapeLine[] = shorten(allTapeLines(before, weekWord));
   const had = before.log.find((w) => w.week === before.week)?.visible.length ?? 0;
   let prevStep = before.fed.step;
+  let prevWar = before.war;
 
   await wait(r ? TIMES.reduced : TIMES.first);
   if (!live()) return;
@@ -114,9 +155,11 @@ export async function playResolve(before: GameState, after: GameState): Promise<
     const tape = lines.slice(-TAPE_SHOWN).map((l, j, arr) => ({ ...l, feed: !!b.text && j === arr.length - 1 }));
     play.value = { view: b.view, step: b.step, war: b.war, treaty: b.treaty, note: b.text, tape };
     const slam = b.step !== prevStep;
+    const eighth = b.war >= RULES.warLimit && prevWar < RULES.warLimit;
     prevStep = b.step;
+    prevWar = b.war;
     const last = i === beats.length - 1;
-    await wait(r ? TIMES.reduced : last ? TIMES.beat + TIMES.last : slam ? TIMES.stamp : TIMES.beat);
+    await wait(r ? TIMES.reduced : (last ? TIMES.beat + TIMES.last : slam ? TIMES.stamp : TIMES.beat) + (eighth ? TIMES.worldWar : 0));
     if (!live()) return;
   }
   settle(after);

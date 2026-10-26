@@ -136,6 +136,32 @@ export function distance(a: RegionId, b: RegionId): number {
 export function distanceFromCap(id: RegionId): number {
   return Math.min(...CAP_REGIONS.map((c) => distance(c, id)));
 }
+/**
+ * How many moves a piece of this kind needs from `from` to stand in `to`, on its own graph (the fleet on lanes and
+ * coasts, the brigade on land joins; the Cap never entered): Infinity when it cannot get there at all. The brigade
+ * carried by the fleet is not counted (conservative).
+ */
+const PIECE_DIST: Record<PieceKind, Record<RegionId, Record<RegionId, number>>> = { fleet: {}, brigade: {} };
+for (const kind of ['fleet', 'brigade'] as PieceKind[]) {
+  for (const start of REGION_IDS) {
+    const d: Record<RegionId, number> = { [start]: 0 };
+    const queue = [start];
+    while (queue.length) {
+      const cur = queue.shift()!;
+      const next = kind === 'fleet' ? fleetMoves(cur) : brigadeMoves(cur, null);
+      for (const n of next) {
+        if (d[n] === undefined) {
+          d[n] = d[cur] + 1;
+          queue.push(n);
+        }
+      }
+    }
+    PIECE_DIST[kind][start] = d;
+  }
+}
+export function pieceDistance(kind: PieceKind, from: RegionId, to: RegionId): number {
+  return PIECE_DIST[kind]?.[from]?.[to] ?? Infinity;
+}
 /** Regions in the given bloc. */
 export function blocRegions(bloc: Bloc): RegionId[] {
   return WORLD_REGIONS.filter((r) => r.bloc === bloc).map((r) => r.id);

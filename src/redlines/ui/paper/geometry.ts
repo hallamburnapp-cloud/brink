@@ -320,6 +320,20 @@ export const FRAME: FrameTransform = { sx: 1, sy: 1.08, ox: 0, oy: 58 };
 /** The frame of the call mock: the same map pushed up 170 px so the Sound sits under the handset. */
 export const CALL_SHIFT = -170;
 
+/**
+ * The band of the call frame where the sheet shows between the handset and the clock above and the
+ * caller card below (frame px): a tested place is slid into it so the watcher sees the place the call
+ * is about. The handset's lower cup hangs over the band's left end, so a place is kept right of it.
+ */
+export const CALL_BAND = { x0: 170, x1: 330, y: 108 } as const;
+
+/** The sheet's shift for a call about `centre` (a place's centre in the day frame), or the mock's when no place is named. */
+export function callShiftFor(centre: { x: number; y: number } | null): { x: number; y: number } {
+  if (!centre) return { x: 0, y: CALL_SHIFT };
+  const x = centre.x < CALL_BAND.x0 ? CALL_BAND.x0 - centre.x : centre.x > CALL_BAND.x1 ? CALL_BAND.x1 - centre.x : 0;
+  return { x: Math.round(x), y: Math.round(CALL_BAND.y - centre.y) };
+}
+
 export function toFrame(f: FrameTransform, x: number, y: number): [number, number] {
   return [x * f.sx + f.ox, y * f.sy + f.oy];
 }

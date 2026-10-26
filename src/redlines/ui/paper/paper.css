@@ -88,7 +88,7 @@
   right: 0;
   top: 26px;
   text-align: center;
-  font-family: Georgia, 'Bitstream Charter', 'Liberation Serif', serif;
+  font-family: 'Gelasio', Georgia, 'Bitstream Charter', 'Liberation Serif', serif;
   font-size: 10.5px;
   letter-spacing: 0.46em;
   color: #4e4028;
@@ -128,7 +128,7 @@
   pointer-events: none;
 }
 .pp-map .pp-nm {
-  font-family: Georgia, 'Bitstream Charter', 'Liberation Serif', 'Times New Roman', serif;
+  font-family: 'Gelasio', Georgia, 'Bitstream Charter', 'Liberation Serif', 'Times New Roman', serif;
   font-size: 8.4px;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -156,7 +156,7 @@
   letter-spacing: 0.08em;
 }
 .pp-map .pp-blocs text {
-  font-family: Georgia, 'Bitstream Charter', 'Liberation Serif', serif;
+  font-family: 'Gelasio', Georgia, 'Bitstream Charter', 'Liberation Serif', serif;
   font-size: 9.4px;
   letter-spacing: 0.34em;
   fill: #6a5a40;
@@ -441,6 +441,7 @@
   position: absolute;
   right: 0;
   top: 17px;
+  padding-left: 6px;
   font-size: 6px;
   letter-spacing: 0.1em;
   color: #8e1a12;

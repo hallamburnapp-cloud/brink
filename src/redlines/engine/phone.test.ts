@@ -119,11 +119,11 @@ describe('which event rings', () => {
     s.phonesUsed = ['summit-offer', 'summit-offer'];
     for (let i = 0; i < 40; i++) expect(pickEvent(c, s, new Rng(`j${i}`), null)?.kind).not.toBe('summit');
   });
-  it('a false alarm only from MASSING; the trawler from week 2; none past the cap', () => {
+  it('a false alarm only from PUSHING; the trawler from week 2; none past the cap', () => {
     const s = base();
     s.week = 1;
     for (let i = 0; i < 40; i++) expect(pickEvent(c, s, new Rng(`k${i}`), null)).toBeNull();
-    s.fed.step = 3;
+    s.fed.step = 2;
     let alarms = 0;
     for (let i = 0; i < 60; i++) if (pickEvent(c, s, new Rng(`l${i}`), null)?.kind === 'false-alarm') alarms++;
     expect(alarms).toBeGreaterThan(5);
@@ -134,5 +134,29 @@ describe('which event rings', () => {
     expect(trawlers).toBeGreaterThan(3);
     s.events = RULES.events.maxPerGame;
     for (let i = 0; i < 20; i++) expect(pickEvent(c, s, new Rng(`m${i}`), null)).toBeNull();
+  });
+});
+
+describe('one crisis, one voice', () => {
+  it('the second and third round of a carried test keep the first round\'s template', () => {
+    const s = base();
+    s.promises = [{ region: 'VSY', since: 1, inherited: false }];
+    for (let i = 0; i < 12; i++) {
+      const first = makePhone(c, { ...s, seed: `carry-${i}` }, new Rng(`c${i}`), { kind: 'test', region: 'VSY', round: 1 })!;
+      const after = { ...s, seed: `carry-${i}`, phonesUsed: [first.template], pendingTest: 'VSY' as const, pendingRound: 2 as const };
+      const second = makePhone(c, after, new Rng(`d${i}`), { kind: 'test', region: 'VSY', round: 2 })!;
+      expect(second.template).toBe(first.template);
+      expect(second.caller).toEqual(first.caller);
+    }
+  });
+  it('the trawler template follows the island: one that may claim the promise for a promised island, one that claims none otherwise', () => {
+    const s = base();
+    s.week = 2;
+    s.promises = [{ region: 'PBB', since: 1, inherited: false }];
+    const promised = makePhone(c, s, new Rng('t'), { kind: 'trawler', region: 'PBB', round: 1 })!;
+    expect(promised.kind).toBe('trawler');
+    const un = makePhone(c, s, new Rng('t'), { kind: 'trawler', region: 'SHL', round: 1 })!;
+    expect(un.kind).toBe('trawler');
+    expect(un.text).not.toMatch(/our promise/i);
   });
 });

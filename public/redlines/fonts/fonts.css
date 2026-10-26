@@ -1,3 +1,4 @@
-/* Self-hosted, Open Font License: Special Elite (Astigmatic) and Caveat (Pablo Impallari), the two faces of the situation-room look. */
+/* Self-hosted, Open Font License: Special Elite (Astigmatic) and Caveat (Pablo Impallari), the two faces of the situation-room look; Gelasio (Eben Sorkin, OFL-Gelasio.txt), the printed sheet's serif, so the names print the same on every phone. */
 @font-face{font-family:'Special Elite';font-weight:400;font-style:normal;font-display:swap;src:url('./SpecialElite-400.woff2') format('woff2')}
 @font-face{font-family:'Caveat';font-weight:400 700;font-style:normal;font-display:swap;src:url('./Caveat-variable.woff2') format('woff2')}
+@font-face{font-family:'Gelasio';font-weight:400 700;font-style:normal;font-display:swap;src:url('./Gelasio-variable.woff2') format('woff2')}

@@ -115,8 +115,11 @@
     down: { label: STAND DOWN, cost: "we trust the second screen · costs nothing · a long night" }
     wait: { label: WAIT, cost: "four minutes · a second source may arrive · it may not" }
 
+# The trawler rings about an island under a WE DEFEND ring of yours when there is one (`when: promised`: the words
+# may speak of the promise), else about one you never promised (`when: unpromised`: the words claim none).
 - id: trawler
   kind: trawler
+  when: promised
   caller: dove
   text: "{region} has seized a Federation trawler and its crew. Wintermast wants them back by morning or it will come and get them. {region} is asking what our promise is worth."
   advisers:
@@ -125,6 +128,20 @@
     intel: "One trawler, nine crew, a radio mast too tall for fishing. Two Federation patrol boats an hour out."
   options:
     back: { label: BACK THEM, cost: "{region} keeps the boat · the test comes early · costs {cost} influence" }
+    down: { label: DISOWN THEM, cost: "the boat goes back tonight · {region} will not forget it · they'll believe us less" }
+    wait: { label: LEAN ON THEM, cost: "quietly · a word in the right ear has its price · the boat may go back by itself" }
+
+- id: trawler-unpromised
+  kind: trawler
+  when: unpromised
+  caller: dove
+  text: "{region} has seized a Federation trawler and its crew. We promised {region} nothing, and they know it; Wintermast wants the boat back by morning. The island is asking whether anyone will speak for it."
+  advisers:
+    hawk: "Speak for them. A small harbour that stands up to Wintermast is worth ten promises."
+    dove: "They boarded that boat without asking us, and we owe them nothing. Say so, kindly."
+    intel: "One trawler, nine crew. Its radio mast is too tall for fishing. Two patrol boats left Glassmoor an hour ago."
+  options:
+    back: { label: BACK THEM, cost: "{region} keeps the boat · a promise we never made · costs {cost} influence" }
     down: { label: DISOWN THEM, cost: "the boat goes back tonight · {region} will not forget it · they'll believe us less" }
     wait: { label: LEAN ON THEM, cost: "quietly · a word in the right ear has its price · the boat may go back by itself" }
 
@@ -151,7 +168,20 @@
     intel: "Their delegation list has nine names. Seven are soldiers. Their forces near the border have not thinned."
   options:
     back: { label: ACCEPT, cost: "we go · costs {cost} influence · it counts as a way out" }
-    down: { label: REFUSE, cost: "we stay home · they'll call it an insult · their patience shortens" }
+    down: { label: REFUSE, cost: "we stay home · they'll call it an insult · the treaty slips" }
+    wait: { label: ASK FOR TERMS, cost: "we ask what they want first · the offer may lapse" }
+
+- id: summit-note
+  kind: summit
+  caller: ambassador
+  text: "Wintermast proposes a summit at Frostmere. No preconditions, and this time the note came through me rather than the press. Their delegation list is shorter. They want an answer before the weekend."
+  advisers:
+    hawk: "They ask to talk when they are losing. Make them lose a little more first."
+    dove: "A quiet note is how real offers come. Go, and come back with something signed or nothing lost."
+    intel: "Their delegation list has five names. Two are soldiers. Their forces near the border have not moved this week."
+  options:
+    back: { label: ACCEPT, cost: "we go · costs {cost} influence · it counts as a way out" }
+    down: { label: REFUSE, cost: "we stay home · they'll call it an insult · the treaty slips" }
     wait: { label: ASK FOR TERMS, cost: "we ask what they want first · the offer may lapse" }
 
 - id: fall-unpromised

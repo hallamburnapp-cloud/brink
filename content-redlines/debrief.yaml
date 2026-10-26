@@ -26,7 +26,7 @@
 
 - kind: feintBacked
   thoughts:
-    - "They were bluffing at {region}. You backed it anyway; it cost {cost} influence, and they took note that you came."
+    - "They were not coming to {region}. You paid {cost} influence to meet a column that was never going to move."
 
 - kind: feintBackedDown
   thoughts:
@@ -55,6 +55,10 @@
   thoughts:
     - "They meant it at {region}. Their forces stayed, and the stakes went up."
 
+- kind: realBackedDownEased
+  thoughts:
+    - "They meant it at {region}, but a fight scared them as much as it scared you. When you stepped back, so did they."
+
 - kind: waitedFell
   thoughts:
     - "You waited at {region} once too often. They took it."
@@ -71,6 +75,10 @@
   thoughts:
     - "You left {region} unanswered, and they took it."
     - "Nobody answered at {region}. They took it, and a place taken for nothing told them the next one was free too."
+
+- kind: fallOutOfReach
+  thoughts:
+    - "Nothing of yours could reach {region}. It fell to them, and they climbed no step for it: a place you cannot reach is not yours to lose."
 
 - kind: spread
   thoughts:
@@ -124,3 +132,42 @@
 - kind: bluffPhone
   thoughts:
     - "Their silence over {region} was the silence of a bluff."
+
+# ---------------------------------------------------------------- the closing card's lessons
+# Two or three a game, drawn from the game's own events (the engine picks the ones that happened, most useful
+# first), after the weeks and before the dials. Each is the one thing the next game can do differently.
+- kind: lessonFeintBacked
+  thoughts:
+    - "You backed {region}, where they were bluffing. Backing a bluff bought you nothing; a week's wait would have shown the column leave."
+
+- kind: lessonBackedDown
+  thoughts:
+    - "You backed down at {region}. The promise went, the place fell anyway, and they wrote it down: backing down costs more than backing."
+
+- kind: lessonFarDrop
+  thoughts:
+    - "You offered to drop your promise at {region}. It was nowhere near their front, so it moved them nothing. They pay for what is in their way."
+
+- kind: lessonNoMoves
+  thoughts:
+    - "Your fleet and brigade never moved. A piece one move from a place is what makes a promise solid, and a solid promise is one they mostly leave alone."
+
+- kind: lessonNoOrders
+  thoughts:
+    - "You gave no orders in {n} weeks. The war came to the places you never answered."
+
+- kind: lessonDashedTested
+  thoughts:
+    - "Every promise they tested was one nothing of yours could reach. A dashed ring is an invitation; a solid one is mostly left alone."
+
+- kind: lessonOutOfReach
+  thoughts:
+    - "{region} fell with nothing of yours in reach, and they climbed no step for it. A ring there would have been a bluff; hold what you can reach."
+
+- kind: lessonKeptWord
+  thoughts:
+    - "You kept every promise they tested. By the end they believed you, and a promise they believe is one they rarely test."
+
+- kind: lessonStoppedThenTalked
+  thoughts:
+    - "They took the way out after a week in which they took nothing. A Federation that has been stopped talks; one that is winning does not."

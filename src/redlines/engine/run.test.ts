@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { answerPhone, canPromise, endWeek, holdable, movePiece, movesFor, newGame, offerWayOut, promise, withdraw } from './run.ts';
+import { answerPhone, canAnswer, canPromise, endWeek, holdable, movePiece, movesFor, newGame, offerWayOut, promise, withdraw } from './run.ts';
 import { RULES } from './rules.ts';
 import { isGameState, loadGame, saveGame } from './save.ts';
 import { FIXTURE_CONTENT, fixtureGame } from './testkit.ts';
@@ -242,7 +242,8 @@ function play(seed: string, from?: GameState): GameState {
       }
       s = endWeek(c, s);
     } else {
-      s = answerPhone(c, s, s.phone!.region && holdable(s, s.phone!.region).ok ? 'back' : s.phone!.round === 1 ? 'wait' : 'down');
+      const want = s.phone!.region && holdable(s, s.phone!.region).ok && canAnswer(s, 'back').ok ? 'back' : s.phone!.round === 1 ? 'wait' : 'down';
+      s = answerPhone(c, s, want);
     }
   }
   return s;

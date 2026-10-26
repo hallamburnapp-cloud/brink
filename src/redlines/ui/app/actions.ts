@@ -69,6 +69,7 @@ export function ensureTitleWorld(): void {
 export function startGame(seed: string, opts: { explain?: boolean } = {}): GameState {
   const s = newGame(content, seed);
   put(s);
+  if (prefs.value.debriefPage !== null) setPrefs({ debriefPage: null });
   writeSave(s);
   saved.value = true;
   sheet.value = null;
@@ -96,6 +97,8 @@ export function continueGame(): void {
     return;
   }
   put(s);
+  // A game that had ended comes back to the debrief page being read, not the ending card.
+  if (s.phase === 'ended' && prefs.value.debriefPage !== null) debriefPage.value = Math.min(prefs.value.debriefPage, s.log.length);
   sheet.value = null;
   explain.value = null;
   enterGame();
@@ -339,6 +342,7 @@ export function playAgain(): void {
 /** From the ending: the title, the finished game put away. */
 export function home(): void {
   clearSave();
+  if (prefs.value.debriefPage !== null) setPrefs({ debriefPage: null });
   titleWorld.value = null;
   quitToTitle();
 }
@@ -349,7 +353,8 @@ export function saveNow(): void {
   if (s) writeSave(s);
 }
 
-/** The debrief: null is the ending card, 0..n-1 a week's page, n the closing card. */
+/** The debrief: null is the ending card, 0..n-1 a week's page, n the closing card. The page is kept, so a reload comes back to it. */
 export function debriefGo(page: number | null): void {
   debriefPage.value = page;
+  setPrefs({ debriefPage: page });
 }

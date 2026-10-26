@@ -58,6 +58,10 @@ export interface RegionRec {
   quietWeeks: number;
   /** Beyond BUILD.md: how it fell, for the WORLD WAR ending's sentence. */
   fellBy?: FallCause;
+  /** Beyond BUILD.md: the order in which places fell over the game (1 is the first fall on the tape); the WORLD WAR card names the lowest. */
+  fellSeq?: number;
+  /** Beyond BUILD.md: whether something of yours could have reached it when it fell (a fall out of reach climbs no step; the tape says so). */
+  fellReach?: boolean;
 }
 export type FallCause = 'back-down' | 'back-down-inherited' | 'unanswered' | 'failed' | 'spread' | 'waited';
 export type Phase = 'act' | 'phone' | 'ended';
@@ -98,6 +102,8 @@ export interface Ending {
   lines: [string, string];
   because: string;
   dials: string;
+  /** Beyond BUILD.md: two or three lessons drawn from the game's own events, for the closing card (also the last hidden lines of the final week). */
+  lessons?: string[];
 }
 export type WayOutTerm = 'drop-promise' | 'pull-back' | 'summit';
 /** Beyond BUILD.md: this week's way out; the Federation answers it at resolve. */
@@ -160,5 +166,34 @@ export interface GameState {
   lastBacked: RegionId | null;
   /** Belief at the start of the week (the debrief's "by now they believed you" lines). */
   beliefWas: number;
+  /** Beyond BUILD.md: a feint you waited on last week; this week's tape says the column has gone (WAIT buys information). */
+  feintGone?: RegionId | null;
+  /** Beyond BUILD.md: what the game has shown so far, for the closing card's lessons and the dials line. Missing in an old save means zeros. */
+  tally?: Tally;
+}
+/** Counts kept over the game for the debrief's lessons (SPEC-SMALL rulings: "The debrief teaches"). */
+export interface Tally {
+  /** Tests of a solid promise, and of a dashed one. */
+  testsSolid: number;
+  testsDashed: number;
+  /** Real tests backed and held; back-downs at a test (and the first place); feints backed (paid for nothing; and the first place). */
+  backed: number;
+  backedDown: number;
+  backedDownFirst: RegionId | null;
+  feintsBacked: number;
+  feintBackedFirst: RegionId | null;
+  /** Places that fell with nothing of yours in reach; the first of them. */
+  outOfReach: number;
+  outOfReachFirst: RegionId | null;
+  /** Counter moves over the game; weeks with no orders at all. */
+  moves: number;
+  idleWeeks: number;
+  /** A dropped promise offered that they did not care about (nowhere near their front); the first such place. */
+  farDrops: number;
+  farDropFirst: RegionId | null;
+  /** A way out accepted (or their summit taken) in the week after a week in which they took nothing. */
+  stoppedThenTalked: number;
+  /** Whether anything let jumpiness act where the player could see it (a piece on their doorstep, an alarm, a pull-back, a back-down). */
+  jumpinessSeen: boolean;
 }
 export type Result = { ok: true; state: GameState } | { ok: false; reason: string };

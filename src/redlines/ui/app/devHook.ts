@@ -8,7 +8,7 @@ import * as act from './actions';
 import { content, loadGame, saveGame, type GameState, type PieceKind, type RegionId, type WayOutTerm } from './engine';
 import { getMap } from './mapRef';
 import { writeSave } from './storage';
-import { busy, debriefPage, explain, frameFit, run, saved, screen, sheet, type ExplainStep, type Sheet } from './store';
+import { busy, explain, frameFit, run, saved, screen, sheet, type ExplainStep, type Sheet } from './store';
 import { mapView } from './view';
 
 export interface RedlinesHook {
@@ -121,7 +121,7 @@ export function installDevHook(): void {
     },
     skip: act.skipPlayback,
     debrief(page) {
-      debriefPage.value = page;
+      act.debriefGo(page);
     },
     arm: act.armRegion,
     lift: act.liftPiece,

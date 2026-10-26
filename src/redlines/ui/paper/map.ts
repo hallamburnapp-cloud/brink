@@ -8,7 +8,7 @@
  *   await map.update(view);          // PaperView (contract.ts); resolves when the new marks have settled
  *   map.hit(fx, fy);                 // frame px -> RegionId | null
  *   map.centre('LTL');               // frame px of the place, for a real tap
- *   map.setShift(CALL_SHIFT);        // the call: the sheet slides up under the handset
+ *   map.setShift(dy, dx);            // the call: the sheet slides under the handset (callShiftFor)
  */
 import { EMPTY_VIEW, MAP_WORDS, type MapWords, type PaperMap, type PaperMapOptions, type PaperView, type RegionId, type UpdateOptions } from './contract';
 import { FRAME, boundsOf, centreOf, getGeometry, hitFrame } from './geometry';
@@ -51,11 +51,12 @@ export function createPaperMap(host: HTMLElement, opts: PaperMapOptions = {}): P
   const systemReduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   let reduced = opts.reducedMotion ?? systemReduced;
   let shift = 0;
+  let shiftX = 0;
   let first = true;
   let destroyed = false;
 
   const applyShift = () => {
-    svg.style.transform = shift ? `translateY(${shift}px)` : '';
+    svg.style.transform = shift || shiftX ? `translate(${shiftX}px, ${shift}px)` : '';
   };
   svg.classList.toggle('pp-reduced', reduced);
   if (opts.shift) {
@@ -87,17 +88,18 @@ export function createPaperMap(host: HTMLElement, opts: PaperMapOptions = {}): P
 
   const api: PaperMap = {
     update,
-    hit: (fx, fy) => hitFrame(geo, FRAME, fx, fy - shift),
+    hit: (fx, fy) => hitFrame(geo, FRAME, fx - shiftX, fy - shift),
     centre: (id) => {
       const c = centreOf(FRAME, id);
-      return c && { x: c.x, y: c.y + shift };
+      return c && { x: c.x + shiftX, y: c.y + shift };
     },
     bounds: (id) => {
       const b = boundsOf(geo, FRAME, id);
-      return b && { x0: b.x0, y0: b.y0 + shift, x1: b.x1, y1: b.y1 + shift };
+      return b && { x0: b.x0 + shiftX, y0: b.y0 + shift, x1: b.x1 + shiftX, y1: b.y1 + shift };
     },
-    setShift: (px) => {
-      shift = px;
+    setShift: (y, x = 0) => {
+      shift = y;
+      shiftX = x;
       applyShift();
     },
     setReducedMotion: (r) => {

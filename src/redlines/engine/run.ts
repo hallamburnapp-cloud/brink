@@ -6,14 +6,14 @@
  */
 import { Rng } from '../../engine/rng.ts';
 import { planHeadings } from './agent.ts';
-import { draft, holdInfo, pieceOf, promiseAt, say, type HoldInfo } from './board.ts';
+import { draft, emptyTally, holdInfo, pieceOf, promiseAt, say, type HoldInfo } from './board.ts';
 import type { LineDef, RedlinesContent, RefusalCode } from './content.ts';
 import { answerCost } from './phone.ts';
 import { BRIGADE_START, FLEET_START, applyAnswer, beginWeek, finishWeek } from './resolve.ts';
 import { RULES } from './rules.ts';
 import type { GameState, Line, PieceKind, PromiseMark, RegionId, RegionRec, Result, WayOutTerm } from './types.ts';
 import { fill } from './words.ts';
-import { REGION_IDS, distanceFromCap, isCap, kindMoves, regionName } from './world.ts';
+import { REGION_IDS, blocOf, distanceFromCap, isCap, kindMoves, regionName } from './world.ts';
 
 const ok = (state: GameState): Result => ({ ok: true, state });
 const no = (reason: RefusalCode): Result => ({ ok: false, reason });
@@ -69,17 +69,22 @@ export function newGame(content: RedlinesContent, seed: string): GameState {
     phonesUsed: [],
     lastBacked: null,
     beliefWas: RULES.beliefStart,
+    feintGone: null,
+    tally: emptyTally(),
   };
   // The tape prints the pack's short form of a declaration when it has one; the whole line runs off the paper.
   for (const l of picked) say(content, s, 'declared', { line: l.tape ?? l.text });
   s.log = [];
 
-  // The collision: an inherited promise on a place a real line covers. Strongest first: a promise that
-  // itself crosses the line (alliance), or one nothing of yours can reach (dashed: making it good means
-  // moving a piece across the line); failing both, a place their forces can reach.
+  // The collision: an inherited promise on a place a real line covers. The strongest kinds weigh most: a
+  // promise that itself crosses the line (alliance, 3), one nothing of yours can reach near their border
+  // (dashed: making it good means moving a piece across the line; 2), one far away (1); failing those, a
+  // place a piece can reach but standing in it would cross the line (near). The pick is weighted rather than
+  // the strongest every time, so openings differ by seed; a Sound collision weighs less (SPEC-SMALL: the first
+  // fronts touch the Scatter and Highmarch before the Sound).
   const realDefs = picked.filter((_, i) => i !== bluffIndex);
-  let collision: { def: LineDef; region: RegionId; kind: 'alliance' | 'forces' | 'near' } | null = null;
-  let best = -1;
+  type Collision = { def: LineDef; region: RegionId; kind: 'alliance' | 'forces' | 'near'; score: number };
+  const options: Collision[] = [];
   for (const def of rng.shuffle([...realDefs])) {
     const regs = def.regions.filter((r) => !isCap(r));
     if (!regs.length) continue;
@@ -99,12 +104,18 @@ export function newGame(content: RedlinesContent, seed: string): GameState {
     } else {
       kind = 'near';
       pool = regs;
-      score = 0;
+      score = 0.5;
     }
-    if (score > best) {
-      best = score;
-      collision = { def, region: rng.pick(pool), kind };
-    }
+    const region = rng.pick(pool);
+    if (blocOf(region) === 'SND') score *= RULES.earlyFronts.soundScale * 2;
+    options.push({ def, region, kind, score });
+  }
+  let collision: Collision | null = null;
+  if (options.length) {
+    const strong = options.filter((o) => o.kind !== 'near');
+    const from = strong.length ? strong : options;
+    const i = rng.weightedIndex(from.map((o) => o.score));
+    collision = from[i < 0 ? 0 : i];
   }
   const inherited: PromiseMark[] = [];
   if (collision) {

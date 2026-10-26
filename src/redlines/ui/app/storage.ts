@@ -11,9 +11,11 @@ export interface Prefs {
   explained: boolean;
   /** SOUND in the menu. Off by default; there is no sound in this build. */
   sound: boolean;
+  /** The debrief page being read when the game ended (0.. a week's page, the count the closing card), so a reload returns to it; null otherwise. */
+  debriefPage: number | null;
 }
 
-export const DEFAULT_PREFS: Prefs = { explained: false, sound: false };
+export const DEFAULT_PREFS: Prefs = { explained: false, sound: false, debriefPage: null };
 
 function store(): Storage | null {
   try {
@@ -46,7 +48,8 @@ function write(key: string, value: string | null): void {
 /** Only well-formed fields survive a read. */
 export function sanitize(v: unknown): Prefs {
   const o = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
-  return { explained: o.explained === true, sound: o.sound === true };
+  const page = typeof o.debriefPage === 'number' && Number.isInteger(o.debriefPage) && o.debriefPage >= 0 && o.debriefPage <= 12 ? o.debriefPage : null;
+  return { explained: o.explained === true, sound: o.sound === true, debriefPage: page };
 }
 
 export function readPrefs(): Prefs {

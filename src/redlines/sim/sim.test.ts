@@ -31,10 +31,19 @@ describe('the simulator', () => {
   });
   it('the gates read the statistics', () => {
     const gates = evaluateGates(res.stats);
-    expect(gates.map((g) => g.id)).toEqual(['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7']);
+    expect(gates.map((g) => g.id)).toEqual(['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G10']);
+    expect(gates.find((g) => g.id === 'G10')!.pass).toBe(true);
     expect(gates.find((g) => g.id === 'G1')!.pass).toBe(true);
     expect(gates.find((g) => g.id === 'G2')!.pass).toBe(true);
     expect(gates.find((g) => g.id === 'G7')!.pass).toBe(true);
+  });
+  it('sitting still and selling a far promise both sit well under sensible play (G8, G9)', () => {
+    const more = simulate(c, { games: 120, bots: ['sensible', 'no-orders', 'seller'], prefix: 'U' });
+    const g8 = more.gates.find((g) => g.id === 'G8')!;
+    const g9 = more.gates.find((g) => g.id === 'G9')!;
+    expect(g8.pass).toBe(true);
+    expect(g9.pass).toBe(true);
+    expect(more.stats['no-orders']!.idleShare).toBeGreaterThan(0.8);
   });
   it('the far promise is one nothing of yours can reach', () => {
     for (let i = 0; i < 20; i++) {

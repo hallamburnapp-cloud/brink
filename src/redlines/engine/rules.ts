@@ -38,6 +38,8 @@ export const RULES = {
   backedBelief: 15,
   /** Ruling: backing a promise nothing of yours could reach, when it holds, teaches them nothing (you were lucky); they do not turn away from it either. */
   backedFarBelief: 0,
+  /** SPEC-SMALL ruling: backing a feint earns nothing (they were not coming); the debrief says so. */
+  backedFeintBelief: 0,
   failedBelief: 15,
   backDownBelief: 15,
   waitBelief: 5,
@@ -56,9 +58,14 @@ export const RULES = {
 
   // ---- the TREATY bar (fed.will, public) ----
   /** Ruling: where the bar starts (tuning log, round 9). */
-  willStart: 55,
-  /** spec: +5 if they gained nothing this week. */
+  willStart: 50,
+  /** spec: +5 if they gained nothing this week. SPEC-SMALL ruling: only when no place is pressed and unanswered (see quietBlockedBy). */
   willQuiet: 5,
+  /**
+   * Which pressed, unanswered places hold the +5 back: 'any' (the ruling's words) or only those something of
+   * yours could reach ('reachable': a place beyond both pieces is nobody's failure). Tuning round 13 decides.
+   */
+  quietBlockedBy: 'reachable' as 'any' | 'reachable',
   /** spec: +15 when a way out is accepted. */
   willWayOut: 15,
   /** spec: +10 when another bloc signs (at most two). */
@@ -66,7 +73,11 @@ export const RULES = {
   maxBlocs: 2,
   /** spec: −5 for each place they gained. */
   willPerGain: 5,
-  /** spec: −10 when humiliated (a public ultimatum they must refuse). Ruling: a way out they refuse is that. */
+  /**
+   * spec: −10 when humiliated (a public ultimatum they must refuse). SPEC-SMALL ruling (after the first review): a
+   * way out they refuse costs NOTHING on the bar (the tape prints their reason instead); the one humiliation in the
+   * first build is refusing their own summit offer in public.
+   */
   willHumiliated: 10,
   /** spec: at 100 they sign, if no place fell this week. */
   willSign: 100,
@@ -85,9 +96,16 @@ export const RULES = {
   // ---- places ----
   /**
    * BUILD: a pressed region falls after N weeks unanswered: 3 at TESTING, 2 at PUSHING, 1 at MASSING and
-   * above (index = step). The clock runs every week the place is pressed and unanswered.
+   * above (index = step). The clock runs every week the place is pressed and unanswered. SPEC-SMALL ruling:
+   * the clock reads the step the week STARTED at, never a step climbed inside the same week.
    */
   fallWeeks: [0, 3, 2, 1, 1, 1] as const,
+  /**
+   * Tuning knob (round 13): the fall clock of a pressed place nothing of yours could reach (nobody is there
+   * to slow them): null reads the step's clock like any other place; a number is the weeks it takes (0: taken
+   * the week it is pushed).
+   */
+  outOfReachFallWeeks: null as number | null,
   /** BUILD: pressed returns to calm after two quiet weeks. */
   quietToCalm: 2,
   /** Ruling: real pushes a week by step (one at TESTING and PUSHING, two from MASSING). */
@@ -97,22 +115,27 @@ export const RULES = {
   /** Ruling: the feint points at a promised place (to make you jump) this often; otherwise at an unguarded one. */
   feintAtPromise: 0.5,
   /**
-   * Ruling: from MASSING the fighting spreads on its own to this many neighbours of a fighting place a
-   * week (3 at MASSING, 5 at FIGHTING, 8 at ALL-OUT). At MASSING it spares answered places (a piece in
-   * them, or a solid promise not under test); from FIGHTING only a piece standing in a place keeps it
-   * out (the fighting rolls over a promise nobody is there to keep). Round 12: with WORLD WAR at eight,
-   * a collapse that ran out of weeks at five to seven places fighting is what this closes.
+   * SPEC-SMALL ("The other side", and the rulings after the first review): the fighting spreads only at
+   * FIGHTING and ALL-OUT, one or two places a week, to neighbours of a fighting place; a piece standing in a
+   * place or a solid promise on it spares it. (Round 12 had 3 / 5 / 8 from MASSING, which made the ladder a
+   * cliff: round 13.)
    */
-  spreadByStep: [0, 0, 0, 3, 5, 8] as const,
-  spreadIgnoresPromisesFrom: 4 as Step,
+  spreadByStep: [0, 0, 0, 0, 1, 2] as const,
+  /** SPEC-SMALL ruling: the Federation's first fronts touch the Scatter and Highmarch before the Sound (the Sound's weight is scaled down for these weeks). */
+  earlyFronts: { untilWeek: 2, soundScale: 0.25 },
   /** Ruling: their forces reach this many steps (land joins and lanes) from a foothold: the Cap, or a place pressed or fighting. One: a creeping front. */
   reach: 1,
-  /** Ruling: after a promise is backed and held they leave that place alone for this many weeks. */
-  turnAwayWeeks: 2,
+  /** Ruling: after a promise is backed and held they leave that place alone for this many weeks (2 until round 13: they came back to the same ring every other week). */
+  turnAwayWeeks: 3,
 
   // ---- the ladder ----
-  /** spec: "a place taken unanswered" is a step up. Ruling: per place (true) or at most one step a week for falls (false). */
-  stepPerFall: true,
+  /** spec: "a place taken unanswered" is a step up. SPEC-SMALL ruling: falls move the ladder at most one step in a week (false); per place was round 9-12. */
+  stepPerFall: false,
+  /**
+   * SPEC-SMALL ruling: "BACK DOWN near a scared Federation is a step down": when jumpiness is over dialHigh, a
+   * back-down at a real test eases them a step instead of climbing one (the place still falls to them).
+   */
+  backDownEasesWhenScared: true,
   /** spec: at MASSING and above, an accident one chance in twenty a week. */
   accidentFrom: 3 as Step,
   accidentChance: 1 / 20,
@@ -156,7 +179,7 @@ export const RULES = {
     /** They refuse outright when they took this many places this week; one place halves the chance. */
     gainedRefuse: 2,
     gainedScale: 0.5,
-    /** drop-promise: the promise is one they were heading for, testing, or could not be held → grievance; else indifferent (0.25 until round 12). */
+    /** drop-promise: the promise is within their reach (a place they could push next week), heading for or under test → grievance; else indifferent. SPEC-SMALL ruling: a far promise cannot be sold (round 12 counted any dashed promise as minded). */
     dropGrievance: 0.8,
     dropIndifferent: 0.35,
     /** pull-back: the piece is on their doorstep or inside a line's regions → base + jumpiness × scale. */
@@ -188,16 +211,14 @@ export const RULES = {
     summitFromWeek: 4,
     summitMinWill: 45,
     summitAcceptCost: 10,
-    summitRefuseWill: 5,
     falseAlarmChance: 0.25,
-    falseAlarmFromStep: 3 as Step,
+    /** From PUSHING (round 13; MASSING before): the alarm is one of the few places jumpiness shows. */
+    falseAlarmFromStep: 2 as Step,
     alertCost: 6,
     trawlerChance: 0.12,
     trawlerFromWeek: 2,
     trawlerBackCost: 6,
     trawlerLeanCost: 3,
-    trawlerBackWill: 5,
-    trawlerDisownWill: 5,
     unpromisedBackCost: 15,
     bluffPullBelief: 5,
   },
@@ -233,6 +254,10 @@ export function pushesAt(step: Step): number {
 }
 export function spreadAt(step: Step): number {
   return RULES.spreadByStep[step];
+}
+/** The Federation is "scared" (easily scared) when its jumpiness is over the high mark. */
+export function isScared(jumpiness: number): boolean {
+  return jumpiness > RULES.dialHigh;
 }
 
 /** spec: treaty 100 − 10w − 5f (min 10); frozen 9 − f (min 1); war 0. */

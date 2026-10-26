@@ -110,8 +110,8 @@ export interface PaperMap {
   centre(id: RegionId): { x: number; y: number } | null;
   /** A region's plate bounds in frame px. */
   bounds(id: RegionId): { x0: number; y0: number; x1: number; y1: number } | null;
-  /** Move the whole sheet up or down (frame px): CALL_SHIFT puts the Sound under the handset. */
-  setShift(px: number): void;
+  /** Slide the whole sheet (frame px): up or down, and sideways when given; callShiftFor() puts a tested place under the handset's band. */
+  setShift(y: number, x?: number): void;
   setReducedMotion(reduced: boolean): void;
   /** The sheet's SVG element (for the screens' pointer listeners). */
   readonly svg: SVGSVGElement;

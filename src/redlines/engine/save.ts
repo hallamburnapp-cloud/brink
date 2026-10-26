@@ -51,6 +51,8 @@ export function isGameState(x: unknown): x is GameState {
     if (!isObject(rec) || !STATES.includes(rec.state as string) || !isInt(rec.pressedWeeks) || !isInt(rec.quietWeeks)) return false;
     if (rec.fellWeek !== undefined && !isInt(rec.fellWeek)) return false;
     if (rec.recoveredWeek !== undefined && !isInt(rec.recoveredWeek)) return false;
+    if (rec.fellSeq !== undefined && !isInt(rec.fellSeq, 1)) return false;
+    if (rec.fellReach !== undefined && typeof rec.fellReach !== 'boolean') return false;
   }
   if (!Array.isArray(x.promises) || x.promises.length > RULES.maxPromises) return false;
   if (!x.promises.every((p) => isObject(p) && isRegion(p.region) && isInt(p.since) && typeof p.inherited === 'boolean')) return false;
@@ -80,6 +82,7 @@ export function isGameState(x: unknown): x is GameState {
   if (ending !== null) {
     if (!isObject(ending) || !ENDINGS.includes(ending.kind as string) || !isInt(ending.week, 1) || !isInt(ending.fighting) || !isInt(ending.score)) return false;
     if (!isStrings(ending.lines) || ending.lines.length !== 2 || !isStr(ending.because) || !isStr(ending.dials)) return false;
+    if (ending.lessons !== undefined && !isStrings(ending.lessons)) return false;
   }
   if ((x.phase === 'ended') !== (ending !== null)) return false;
   if (!isStr(x.collision) || !isStrings(x.headline)) return false;
@@ -94,5 +97,14 @@ export function isGameState(x: unknown): x is GameState {
   if (!isStrings(x.phonesUsed)) return false;
   if (x.lastBacked !== null && !isRegion(x.lastBacked)) return false;
   if (!isNum(x.beliefWas, 0, 100)) return false;
+  // Beyond BUILD.md, added after the first review; a save from before them has neither, which reads as nothing seen yet.
+  if (x.feintGone !== undefined && x.feintGone !== null && !isRegion(x.feintGone)) return false;
+  if (x.tally !== undefined) {
+    const t = x.tally;
+    if (!isObject(t)) return false;
+    for (const k of ['testsSolid', 'testsDashed', 'backed', 'backedDown', 'feintsBacked', 'outOfReach', 'moves', 'idleWeeks', 'farDrops', 'stoppedThenTalked']) if (!isInt(t[k])) return false;
+    for (const k of ['backedDownFirst', 'feintBackedFirst', 'outOfReachFirst', 'farDropFirst']) if (t[k] !== null && !isRegion(t[k])) return false;
+    if (typeof t.jumpinessSeen !== 'boolean') return false;
+  }
   return true;
 }

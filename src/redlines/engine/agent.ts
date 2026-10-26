@@ -7,9 +7,9 @@
 import type { Rng } from '../../engine/rng.ts';
 import type { LineDef, WhyKind } from './content.ts';
 import { holdInfo, isAnswered, pieceAt, pieceOf, promiseAt } from './board.ts';
-import { RULES, pushesAt } from './rules.ts';
+import { RULES, fallWeeksAt, pushesAt } from './rules.ts';
 import type { GameState, Heading, PieceKind, RegionId, WayOutOffer } from './types.ts';
-import { CAP_REGIONS, NEAR_CAP, NEIGHBOURS, REGION_IDS, distance, isCap, isHome, mapOrder } from './world.ts';
+import { CAP_REGIONS, NEAR_CAP, NEIGHBOURS, REGION_IDS, blocOf, distance, isCap, isHome, mapOrder } from './world.ts';
 
 /** Where their forces already are: the Cap, and every place pressed or fighting. */
 export function footholds(s: GameState): RegionId[] {
@@ -53,7 +53,19 @@ export function weightOf(s: GameState, r: RegionId, dist: number): number {
   if (s.regions[r].state === 'pressed' && !pm) w = W.pressed;
   if (isHome(r)) w *= W.home;
   if (dist >= 2) w *= W.far;
+  // SPEC-SMALL ruling: the first fronts touch the Scatter and Highmarch before the Sound.
+  if (s.week <= RULES.earlyFronts.untilWeek && blocOf(r) === 'SND') w *= RULES.earlyFronts.soundScale;
   return w;
+}
+
+/**
+ * A pressed, unanswered place whose clock will have run down by the next resolve falls whether or not they
+ * push it again: a push there is wasted (SPEC-SMALL ruling: "a push on a place whose clock has run down takes
+ * it or opens a new front next door"), so the planner never spends an arrow on it.
+ */
+export function clockRunDown(s: GameState, r: RegionId): boolean {
+  const rec = s.regions[r];
+  return rec.state === 'pressed' && !isAnswered(s, r) && rec.pressedWeeks + 1 >= fallWeeksAt(s.fed.step);
 }
 
 /** Why they chose this place, for the debrief. */
@@ -104,12 +116,13 @@ export function planHeadings(s: GameState, rng: Rng, force: RegionId | null = nu
     feint = true;
   }
   // Each real push is a new front (an unguarded calm place) with chance = appetite; otherwise they
-  // test a promise (by how little they believe it) or keep the pressure on a place already pressed.
-  // With nothing to test or press, a new front anyway.
+  // test a promise or keep the pressure on a place already pressed, the two weighed together by how
+  // much they want each (a dashed ring 1.4, a doubted one 0.9, a believed solid one 0.3 rising up the
+  // ladder, pressure 0.6: "solid ones mostly do not" get tested). With neither, a new front anyway.
   const promised = (r: RegionId) => !!promiseAt(s, r);
   const isNew = (c: Candidate) => !promised(c.region) && s.regions[c.region].state === 'calm';
-  const isOld = (c: Candidate) => !promised(c.region) && s.regions[c.region].state === 'pressed';
-  const base = pool.map((c) => (s.pendingTest && promised(c.region) ? 0 : c.weight));
+  const isOld = (c: Candidate) => !promised(c.region) && s.regions[c.region].state === 'pressed' && !clockRunDown(s, c.region);
+  const base = pool.map((c) => (s.pendingTest && promised(c.region) ? 0 : clockRunDown(s, c.region) ? 0 : c.weight));
   const real: RegionId[] = [];
   let testTaken = !!s.pendingTest;
   const take = (i: number) => {
@@ -127,8 +140,8 @@ export function planHeadings(s: GameState, rng: Rng, force: RegionId | null = nu
     const pick = (keep: (c: Candidate, i: number) => boolean) => rng.weightedIndex(pool.map((c, i) => (base[i] > 0 && keep(c, i) ? base[i] : 0)));
     let i = -1;
     if (newFront) i = pick(isNew);
-    if (i < 0 && !testTaken) i = pick((c) => promised(c.region));
-    if (i < 0) i = pick(isOld);
+    if (i < 0) i = pick((c) => (promised(c.region) && !testTaken) || isOld(c));
+    if (i < 0) i = pick(isNew);
     if (i < 0) i = pick(() => true);
     if (i < 0) break;
     take(i);
@@ -184,6 +197,19 @@ export function blockedLastWeek(s: GameState): boolean {
   return last.danger.war <= before;
 }
 
+/**
+ * SPEC-SMALL ruling ("A far promise cannot be sold"): a dropped promise moves them only when the place is within
+ * their reach (one they could push next week), one their arrows point at, the one under test, or one a real
+ * declared line of theirs covers (they said in public that a promise there was a grievance). A dashed ring on
+ * the far side of the map is nothing to them, and the tape says so.
+ */
+export function promiseMinded(s: GameState, region: RegionId, lines: readonly LineDef[] = []): boolean {
+  if (s.pendingTest === region) return true;
+  if (s.fed.headings.some((h) => h.to === region)) return true;
+  if (s.fed.lines.some((l) => l.real && lines.some((d) => d.id === l.id && d.kind === 'alliance' && d.regions.includes(region)))) return true;
+  return candidates(s).some((c) => c.region === region);
+}
+
 export interface WayOutAnswer {
   accept: boolean;
   why: WhyKind;
@@ -197,7 +223,7 @@ export interface WayOutAnswer {
  * jumpy; a summit is taken more the higher the ladder and the fuller the bar. A hungry Federation
  * refuses more.
  */
-export function acceptWayOut(s: GameState, offer: WayOutOffer, gained: number, rng: Rng): WayOutAnswer {
+export function acceptWayOut(s: GameState, offer: WayOutOffer, gained: number, rng: Rng, lines: readonly LineDef[] = []): WayOutAnswer {
   const R = RULES.wayOut;
   if (s.week < R.fromWeek) return { accept: false, why: 'noNeed', chance: 0 };
   if (gained >= R.gainedRefuse) return { accept: false, why: 'gaining', chance: 0 };
@@ -208,8 +234,7 @@ export function acceptWayOut(s: GameState, offer: WayOutOffer, gained: number, r
     const region = offer.detail as RegionId;
     // A promise drawn this week and offered up the same week is seen through: they minded a standing promise.
     const standing = (promiseAt(s, region)?.since ?? s.week) < s.week;
-    const minded = standing && (s.fed.headings.some((h) => h.to === region) || s.pendingTest === region || !holdInfo(s, region).ok);
-    p = minded ? R.dropGrievance : R.dropIndifferent;
+    p = standing && promiseMinded(s, region, lines) ? R.dropGrievance : R.dropIndifferent;
     yes = 'grievance';
     no = 'indifferent';
   } else if (offer.term === 'pull-back') {

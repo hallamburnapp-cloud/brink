@@ -36,6 +36,21 @@ export interface GameRecord {
   influenceEnd: number;
   /** The weeks in which the bot had no influence to back a test it wanted to back. */
   short: number;
+  /** Lines (tape, debrief, ending) that reached the player with a `{slot}` unfilled. */
+  unfilled: number;
+  /** Weeks played, and weeks in which the bot gave no orders at all. */
+  weeks: number;
+  idleWeeks: number;
+}
+
+const UNFILLED = /\{[a-z][a-zA-Z]*\}/;
+
+/** Every line a game put in front of the player: the tape, the debrief, the acts, the ending, the collision, the phones. */
+export function countUnfilled(s: GameState, phones: readonly string[]): number {
+  const lines: string[] = [s.collision, ...s.headline, ...phones];
+  for (const w of s.log) lines.push(...w.visible, ...w.hidden, ...w.acts);
+  if (s.ending) lines.push(...s.ending.lines, s.ending.because, s.ending.dials, ...(s.ending.lessons ?? []));
+  return lines.filter((l) => UNFILLED.test(l)).length;
 }
 
 export function playGame(content: RedlinesContent, bot: Bot, seed: string): GameRecord {
@@ -51,6 +66,7 @@ export function playGame(content: RedlinesContent, bot: Bot, seed: string): Game
   let short = 0;
   let warPeak = 0;
   let stepPeak: Step = s.fed.step;
+  const phoneLines: string[] = [];
   while (s.phase !== 'ended' && actions++ < ACTION_BUDGET) {
     if (s.phase === 'act') {
       s = bot.act(content, s, rng);
@@ -59,6 +75,7 @@ export function playGame(content: RedlinesContent, bot: Bot, seed: string): Game
     } else if (s.phase === 'phone') {
       phones++;
       const p = s.phone!;
+      phoneLines.push(p.text, p.advisers.hawk, p.advisers.dove, p.advisers.intel, ...p.options.flatMap((o) => [o.label, o.cost]));
       const isTest = p.kind === 'test' || p.kind === 'test-inherited' || p.kind === 'feint';
       if (isTest) tests++;
       const key = bot.answer(content, s, rng);
@@ -98,5 +115,8 @@ export function playGame(content: RedlinesContent, bot: Bot, seed: string): Game
     jumpiness: s.fed.jumpiness,
     influenceEnd: s.influence,
     short,
+    unfilled: countUnfilled(s, phoneLines),
+    weeks: s.log.length,
+    idleWeeks: s.tally?.idleWeeks ?? 0,
   };
 }

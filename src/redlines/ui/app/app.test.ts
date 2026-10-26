@@ -44,7 +44,7 @@ beforeEach(() => {
   clearSave();
   act.quitToTitle();
   titleWorld.value = null;
-  prefs.value = { explained: false, sound: false };
+  prefs.value = { explained: false, sound: false, debriefPage: null };
 });
 
 afterEach(() => {
@@ -271,13 +271,16 @@ describe('the week resolves', () => {
     const before = run.value!;
     const after = (await import('./fakeEngine')).answerPhone(null, before, 'down');
     const beats = beatsFor(before, after);
-    expect(beats.map((b) => b.kind)).toEqual(['backedDown', 'quietWeek']);
+    expect(beats.map((b) => b.kind)).toEqual(['backedDown', 'fell', 'quietWeek']);
+    // The ring goes and the place is pressed at the back-down; the fall's own line does the wash and the WAR box.
     expect(beats[0].step).toBe(2);
-    expect(beats[0].view.states.LTL).toBe('fighting');
+    expect(beats[0].view.states.LTL).toBe('pressed');
     expect(beats[0].view.promises.some((p) => p.region === 'LTL')).toBe(false);
-    expect(beats[0].war).toBe(1);
-    expect(beats[1].treaty).toBe(after.treaty);
-    expect(beats[1].view.headings).toEqual(after.fed.headings.map((h) => ({ from: h.from, to: h.to })));
+    expect(beats[0].war).toBe(0);
+    expect(beats[1].view.states.LTL).toBe('fighting');
+    expect(beats[1].war).toBe(1);
+    expect(beats[2].treaty).toBe(after.treaty);
+    expect(beats[2].view.headings).toEqual(after.fed.headings.map((h) => ({ from: h.from, to: h.to })));
   });
 
   it('quitting mid-playback cancels it and nothing comes back on screen', async () => {

@@ -23,6 +23,7 @@ import {
   MAX_PHONE_WORDS,
   MAX_TAPE_CHARS,
   MAX_THOUGHT_WORDS,
+  MAX_WINTERMAST_CHARS,
   PHONE_KEYS,
   SOFT_COST_CHARS,
   TEST_KINDS,
@@ -166,6 +167,11 @@ export function validateRedlines(content: RedlinesPack): ContentIssue[] {
     if (n < min) (kind === 'test' ? warn : err)('phones.yaml', `${n} "${kind}" template${n === 1 ? '' : 's'}; the first build needs ${min}`);
   }
   for (const p of content.phones) validatePhone(content, p, issues, samples);
+  // The trawler rings about an island you promised or one you did not; a template marked for one case needs a partner for the other (or one marked for neither).
+  const trawlers = content.phones.filter((p) => p.kind === 'trawler');
+  for (const when of ['promised', 'unpromised'] as const) {
+    if (trawlers.length && !trawlers.some((p) => !p.when || p.when === when)) err('phones.yaml', `no trawler template for an island you ${when === 'promised' ? 'promised' : 'did not promise'} ("when: ${when}", or one without "when")`);
+  }
 
   // ---------------------------------------------------------------- debrief
   for (const kind of HIDDEN_KINDS) if (!content.debrief[kind]?.length) err('debrief.yaml', `no thought for the hidden event "${kind}"`);
@@ -201,6 +207,8 @@ function validatePhone(content: RedlinesPack, p: PackPhone, issues: ContentIssue
   const sampleFill = (t: string) => fill(t, samples);
 
   if (!content.advisers[p.caller]) err(where, `unknown caller "${p.caller}"`);
+  if (p.when && p.kind !== 'trawler') warn(where, '"when" is only read on a trawler template');
+  if (p.kind === 'trawler' && p.when === 'unpromised' && /\bour promise\b/i.test(`${p.text} ${p.advisers.hawk} ${p.advisers.dove} ${p.advisers.intel}`)) err(where, 'an unpromised trawler call must not claim "our promise"');
 
   const checkText = (label: string, text: string) => {
     const n = wordsWithSlots(text);
@@ -328,9 +336,19 @@ function validateStrings(content: RedlinesPack, issues: ContentIssue[], samples:
   for (const k of ['piece-there', 'piece-near'] as const) needs(`hold.${k}`, S.hold[k], ['piece']);
   for (const [k, t] of Object.entries(S.causes)) if (/^[A-Z]/.test(t) || /[.!?]$/.test(t)) warn(where(`causes.${k}`), 'a cause continues "It began at X, ..." in lower case, no full stop');
 
-  // The tape: 46 characters once filled. `declared` is filled with the line's `tape` (the engine prints the short form).
+  // Wintermast's words for a refused way out: quoted, short enough for the tape after "Wintermast: ".
+  for (const [k, t] of Object.entries(S.wintermast)) {
+    const filled = sampleFill(t);
+    if (!/^'.*'$/.test(t.trim())) warn(where(`wintermast.${k}`), "Wintermast's words are quoted: 'nothing to talk about yet'");
+    if (filled.length > MAX_WINTERMAST_CHARS) err(where(`wintermast.${k}`), `${filled.length} characters once filled; the tape has room for ${MAX_WINTERMAST_CHARS} after "Wintermast: "`);
+  }
+  // The tape: 46 characters once filled. `declared` is filled with the line's `tape` (the engine prints the short form);
+  // `wayOutRefusedWhy` is filled with Wintermast's words, not a debrief reason.
+  const longestWord = Object.values(S.wintermast).reduce((a, b) => (sampleFill(b).length > sampleFill(a).length ? b : a), '');
+  const tapeSamples = { ...samples, why: sampleFill(longestWord) };
+  const tapeFill = (t: string) => fill(t, tapeSamples);
   for (const [k, t] of Object.entries(S.headlines)) {
-    const filled = k === 'declared' ? fill(t, { ...samples, line: samples.region }) : sampleFill(t);
+    const filled = k === 'declared' ? fill(t, { ...samples, line: samples.region }) : tapeFill(t);
     if (filled.length > HARD_TAPE_CHARS) err(where(`headlines.${k}`), `${filled.length} characters once filled; the teleprinter prints ${MAX_TAPE_CHARS}`);
     else if (filled.length > MAX_TAPE_CHARS) warn(where(`headlines.${k}`), `${filled.length} characters once filled; aim for ${MAX_TAPE_CHARS}`);
     if (/[.!?]$/.test(t.trim()) && k !== 'declared') warn(where(`headlines.${k}`), 'a tape line has no full stop; clauses join with " · "');

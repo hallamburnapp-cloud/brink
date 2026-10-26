@@ -16,12 +16,15 @@ import {
   LINE_KINDS,
   PHONE_KINDS,
   REFUSAL_CODES,
+  REFUSE_WHYS,
   WAY_OUT_TERMS,
   WHY_KINDS,
 } from '../engine/content.ts';
 import type { Adviser, AdviserId, ContentIssue, HiddenKind, PackLine, PackPhone, PackStrings, PhoneKind, PhoneOptionDef, RedlinesPack } from './types.ts';
 
-export { ACT_KINDS, ADVISER_IDS, FALL_CAUSES, HEADLINE_KINDS, HIDDEN_KINDS, HOLD_CODES, LINE_KINDS, PHONE_KINDS, REFUSAL_CODES, WAY_OUT_TERMS, WHY_KINDS };
+export { ACT_KINDS, ADVISER_IDS, FALL_CAUSES, HEADLINE_KINDS, HIDDEN_KINDS, HOLD_CODES, LINE_KINDS, PHONE_KINDS, REFUSAL_CODES, REFUSE_WHYS, WAY_OUT_TERMS, WHY_KINDS };
+/** Wintermast's short words on the tape after a refused way out: quoted, this many characters once filled ("Wintermast: " takes the rest of the 46). */
+export const MAX_WINTERMAST_CHARS = 34;
 
 /** A phone message, filled, is forty words or fewer (SPEC-SMALL "The phone"). */
 export const MAX_PHONE_WORDS = 40;
@@ -85,6 +88,8 @@ export const phoneSchema = z.strictObject({
   id,
   kind: z.enum(PHONE_KINDS as readonly [PhoneKind, ...PhoneKind[]]),
   caller: z.enum(ADVISER_IDS),
+  /** Trawler templates: about an island you promised ('promised': the words may claim the promise) or one you did not ('unpromised': they claim none). Absent: either. */
+  when: z.enum(['promised', 'unpromised']).optional(),
   text: line,
   again: line.optional(),
   advisers: z.strictObject({ hawk: line, dove: line, intel: line }),
@@ -132,8 +137,10 @@ export const stringsSchema = z.strictObject({
     appetite: z.strictObject({ low: s, mid: s, high: s }),
     jumpiness: z.strictObject({ low: s, mid: s, high: s }),
     line: s,
+    lineOne: s,
   }),
   why: recordOf(WHY_KINDS),
+  wintermast: recordOf(REFUSE_WHYS),
   headlines: recordOf(HEADLINE_KINDS),
   acts: recordOf(ACT_KINDS),
   refusals: recordOf(REFUSAL_CODES),
@@ -274,6 +281,7 @@ export function compileRedlines(raw: RawRedlines): { content: RedlinesPack | nul
       options: { back: opt(p.options.back), down: opt(p.options.down), wait: opt(p.options.wait) },
     };
     if (p.again) phone.again = p.again;
+    if (p.when) phone.when = p.when;
     phones.push(phone);
   });
 

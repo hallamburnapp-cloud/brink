@@ -8,10 +8,11 @@
 import type { JSX } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import { BRAND } from '../../../config';
-import { CALL_SHIFT, Grain, Lamp, NeatLine, PaperMapView, PaperRoom, SheetTitle, type PaperMapRef } from '../paper';
+import { callShiftFor, centreOf, FRAME, Grain, Lamp, NeatLine, PaperMapView, PaperRoom, SheetTitle, Tape, testedOf, type PaperMapRef } from '../paper';
 import { BLOC_TITLES, content } from '../app/engine';
 import { setMap } from '../app/mapRef';
-import { curtain, explain, inGame, play, reduced, screen, shown } from '../app/store';
+import { curtain, debriefPage, explain, inGame, play, reduced, screen, shown, titleWorld } from '../app/store';
+import { tapeFor } from '../app/tape';
 import { mapView } from '../app/view';
 import { counterLabel } from '../app/words';
 import { Ending } from './Ending';
@@ -31,14 +32,17 @@ export function Room(): JSX.Element {
   const ended = game && !playing && !explaining && s.phase === 'ended';
   const mapRef = useRef<ReturnType<typeof Object> | null>(null) as unknown as PaperMapRef;
   const r = reduced.value;
+  // The place the call is about (the tested place, or the event's), slid into the band under the handset.
+  const about = call ? (s.phone?.region ?? testedOf(s)) : null;
+  const shift = call ? callShiftFor(about ? centreOf(FRAME, about) : null) : { x: 0, y: 0 };
 
-  // The call: the sheet slides up under the handset and the desk's compass goes.
+  // The call: the sheet slides under the handset so the place is in view, and the desk's compass goes.
   useEffect(() => {
     const m = mapRef.current;
     if (!m) return;
-    m.setShift(call ? CALL_SHIFT : 0);
+    m.setShift(shift.y, shift.x);
     m.svg.classList.toggle('pp-nodesk', call);
-  }, [call]);
+  }, [call, shift.x, shift.y]);
 
   useEffect(() => {
     mapRef.current?.setReducedMotion(r);
@@ -68,6 +72,9 @@ export function Room(): JSX.Element {
       {!call && <SheetTitle text={BRAND.name} />}
       {game && !call && !ended && !explaining && <Week />}
       {call && <PhoneCall />}
+      {/* The teleprinter keeps running under the title and the ending cards (the debrief's pages have BACK and NEXT at the foot). */}
+      {screen.value === 'title' && titleWorld.value && <Tape lines={tapeFor(titleWorld.value)} />}
+      {ended && (debriefPage.value === null || debriefPage.value >= s.log.length) && <Tape lines={tapeFor(s)} />}
       {!call && <Lamp />}
       {ended && <Ending />}
       {game && explaining && <Explain />}

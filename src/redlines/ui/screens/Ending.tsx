@@ -7,6 +7,7 @@
 import type { JSX } from 'preact';
 import { DebriefPage, Dim, TypedCard } from '../paper';
 import { debriefGo, home, playAgain } from '../app/actions';
+import { useArmed } from '../app/armed';
 import { content, type Ending as EndingT } from '../app/engine';
 import { debriefPage, shown } from '../app/store';
 import { fill } from '../app/words';
@@ -28,14 +29,16 @@ export function Ending(): JSX.Element | null {
   const weeks = s.log;
   const n = weeks.length;
   const { title, tone } = titleOf(e);
+  // The card has just landed: a tap still drumming to skip the last playback does not open the debrief.
+  const ready = useArmed(`${s.seed}:${e.kind}`);
 
   if (page === null) {
     return (
-      <div class="rl-layer rl-ending">
+      <div class={`rl-layer rl-ending${ready ? ' rl-armed' : ''}`}>
         <Dim />
         <TypedCard title={title} tone={tone} lines={e.lines} score={{ label: S.debrief.score, value: e.score }} style="top:396px">
           <div class="rl-row">
-            <Choice word={S.debrief.next} sub={S.debrief.intro} onTap={() => debriefGo(0)} seed="debrief" />
+            <Choice word={S.debrief.next} sub={S.debrief.intro} onTap={() => ready && debriefGo(0)} seed="debrief" />
           </div>
         </TypedCard>
       </div>
@@ -43,10 +46,13 @@ export function Ending(): JSX.Element | null {
   }
 
   if (page >= n) {
+    // The closing card: two or three lessons drawn from the game's own events, then the dials in words (the last line).
+    const lessons = e.lessons ?? [];
+    const top = Math.max(150, 330 - 44 * lessons.length);
     return (
       <div class="rl-layer rl-ending">
         <Dim />
-        <TypedCard head={S.debrief.title} title={title} tone={tone} lines={[e.dials]} score={{ label: S.debrief.score, value: e.score }} style="top:330px">
+        <TypedCard head={S.debrief.title} title={title} tone={tone} lines={[...lessons, e.dials]} score={{ label: S.debrief.score, value: e.score }} style={`top:${top}px`}>
           <div class="rl-row">
             <Choice word={S.debrief.again} onTap={playAgain} seed="again" />
             <Choice word={S.debrief.toTitle} onTap={home} seed="title" small />

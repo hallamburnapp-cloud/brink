@@ -65,15 +65,16 @@ describe('a week in beats', () => {
     expect(beats[0].view.tested).toBeNull();
     expect(beats[1].view.tested).toBe('LTL');
     expect(beats[2].view.tested).toBeNull();
-    expect(beats[2].view.states.LTL).toBe('fighting');
+    // Backing down drops the ring and leaves the place pressed; the sheet settles on the engine's fighting at the end.
+    expect(beats[2].view.states.LTL).toBe('pressed');
     expect(beats[2].view.promises).toEqual([]);
     expect(beats[2].step).toBe(2);
-    expect(beats[2].war).toBe(1);
+    expect(beats[2].war).toBe(0);
     expect(beats[3].view.states.SHL).toBe('fighting');
-    expect(beats[3].war).toBe(2);
+    expect(beats[3].war).toBe(1);
     expect(beats[4].step).toBe(3);
     expect(beats[5].view.states.SHL).toBe('pressed');
-    expect(beats[5].war).toBe(1);
+    expect(beats[5].war).toBe(0);
     // The bar waits for the week's reading; the old headings stay until the last beat.
     expect(beats[5].treaty).toBe(50);
     expect(beats[5].view.headings.length).toBe(2);
@@ -96,6 +97,53 @@ describe('a week in beats', () => {
     expect(beats[0].step).toBe(1);
     expect(beats[0].view.tested).toBeNull();
     expect(beats[1].step).toBe(1);
+  });
+
+  it('moves the bar beside each line by that line\'s own amount, and lands the rest on the last mover', () => {
+    const start: GameState = JSON.parse(JSON.stringify(before));
+    start.treaty = 50;
+    start.fed.will = 50;
+    const after: GameState = JSON.parse(JSON.stringify(start));
+    // Quiet (+5) with a bloc signing (+10), then a refused way out, which costs nothing on the bar: 50 → 55 → 65 → 65.
+    after.log = [log(1, ['A quiet week · they gained nothing', 'the Scatter signs · Wintermast feels the pull', 'Wintermast refuses: a summit', "Wintermast: 'nothing to talk about yet'"])];
+    after.treaty = 65;
+    after.fed.will = 65;
+    const H2 = { ...H, blocSigned: '{bloc} signs · Wintermast feels the pull', wayOutRefused: 'Wintermast refuses: {term}', wayOutRefusedWhy: 'Wintermast: {why}' };
+    const barMove = (kind: string) => (kind === 'quietWeek' ? 5 : kind === 'blocSigned' ? 10 : kind === 'summitRefused' ? -10 : null);
+    const beats = weekBeats({ before: start, after, headlines: H2, idOf, holdable, startView: viewOf(start), endView: viewOf(after), barMove });
+    expect(beats.map((b) => b.kind)).toEqual(['quietWeek', 'blocSigned', 'wayOutRefused', 'wayOutRefusedWhy']);
+    expect(beats.map((b) => b.treaty)).toEqual([55, 65, 65, 65]);
+    // Their own summit refused in public is the one humiliation: −10 beside its line, and a quiet week after it +5.
+    const insult: GameState = JSON.parse(JSON.stringify(start));
+    insult.log = [log(1, ['You refused the summit · an insult, they say', 'A quiet week · they gained nothing'])];
+    insult.treaty = 45;
+    insult.fed.will = 45;
+    const H4 = { ...H, summitRefused: 'You refused the summit · an insult, they say' };
+    const b3 = weekBeats({ before: start, after: insult, headlines: H4, idOf, holdable, startView: viewOf(start), endView: viewOf(insult), barMove });
+    expect(b3.map((b) => b.treaty)).toEqual([40, 45]);
+    // "They took two places this week" takes 10 off beside its line.
+    const taken: GameState = JSON.parse(JSON.stringify(start));
+    taken.log = [log(1, ['Shoal has fallen', 'Lintel has fallen', 'They took two places this week'])];
+    taken.regions.SHL.state = 'fighting';
+    taken.regions.LTL.state = 'fighting';
+    taken.treaty = 40;
+    taken.fed.will = 40;
+    const b2 = weekBeats({ before: start, after: taken, headlines: H, idOf, holdable, startView: viewOf(start), endView: viewOf(taken), barMove: (k, slots) => (k === 'gainedWeek' ? -5 * (slots.n.startsWith('two') ? 2 : 1) : null) });
+    expect(b2.map((b) => b.treaty)).toEqual([50, 50, 40]);
+  });
+
+  it('reads the step a line says it reached ("· now MASSING"), whatever its kind', () => {
+    const start: GameState = JSON.parse(JSON.stringify(before));
+    start.fed.step = 1;
+    const after: GameState = JSON.parse(JSON.stringify(start));
+    after.log = [log(1, ['Kelpmouth out of reach · still TESTING', 'Shoal taken, nobody came · now MASSING', 'A quiet week · they gained nothing'])];
+    after.fed.step = 3;
+    const H3 = { ...H, fellOutOfReach: '{region} out of reach · still {step}', takenStepUp: '{n} taken, nobody came · now {step}' };
+    const steps = ['TESTING', 'PUSHING', 'MASSING', 'FIGHTING', 'ALL-OUT'];
+    const beats = weekBeats({ before: start, after, headlines: H3, idOf, holdable, startView: viewOf(start), endView: viewOf(after), steps });
+    expect(beats.map((b) => b.kind)).toEqual(['fellOutOfReach', 'takenStepUp', 'quietWeek']);
+    expect(beats.map((b) => b.step)).toEqual([1, 3, 3]);
+    expect(beats[0].view.states.KLP).toBe('fighting');
   });
 
   it('gives one settled beat when the engine said nothing', () => {

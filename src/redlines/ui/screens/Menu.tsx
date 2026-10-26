@@ -89,7 +89,7 @@ function WayOutForm(): JSX.Element | null {
       <div class="ln">{S.act.wayOutIntro}</div>
       {TERMS.map((term) => {
         const price = RULES.wayOutPrice[term];
-        const line = term === 'pull-back' ? null : termLine(S, term, price, null);
+        const line = termLine(S, term, price, null);
         const expandable = term !== 'summit';
         const isOpen = open === term;
         const onTap = () => {
@@ -99,7 +99,7 @@ function WayOutForm(): JSX.Element | null {
         const disabled = term === 'drop-promise' && s.promises.length === 0;
         return (
           <div class={`rl-term${isOpen ? ' rl-open' : ''}`} key={term}>
-            <Choice word={S.act.termLabels[term]} sub={line ?? undefined} onTap={onTap} seed={term} disabled={disabled || s.influence < price} />
+            <Choice word={S.act.termLabels[term]} sub={line} onTap={onTap} seed={term} disabled={disabled || s.influence < price} />
             {isOpen && expandable && (
               <div class="rl-sub">
                 {term === 'drop-promise'

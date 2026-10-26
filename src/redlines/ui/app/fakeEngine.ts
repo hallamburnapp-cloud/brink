@@ -210,6 +210,13 @@ export function withdraw(s: GameState, region: RegionId): Result {
   return ok(n);
 }
 
+/** Where a piece could go in a week from `from` (the fake's joins), whether or not it has moved. */
+export function kindMoves(kind: PieceKind, from: RegionId, fleetAt: RegionId | null): RegionId[] {
+  void kind;
+  void fleetAt;
+  return NEAR[from] ?? [];
+}
+
 export function movesFor(s: GameState, kind: PieceKind): RegionId[] {
   const p = pieceOf(s, kind);
   return p && !s.moved.includes(kind) ? NEAR[p.at] ?? [] : [];
@@ -327,6 +334,7 @@ export function answerPhone(_c: unknown, s: GameState, key: 'back' | 'down' | 'w
     n.war = 1;
     n.fed.step = 2;
     say('You backed down at Lintel');
+    say('Lintel has fallen');
   } else {
     n.pendingRound = 2;
     say('You asked for time at Lintel');

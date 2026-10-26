@@ -72,6 +72,11 @@ export interface SheetGeom {
   /** Plate bounds in frame px. */
   bounds: Record<RegionId, Bounds>;
   island: Record<RegionId, boolean>;
+  /** The printed name's box (frame px), what a mark must not cover. */
+  labelBox: Record<RegionId, Bounds>;
+  /** The bloc titles' boxes (frame px), and which are set small (the Scatter's, in the water under its islands). */
+  blocBoxes: Bounds[];
+  blocSmall: boolean[];
 }
 
 export interface Sheet {
@@ -131,6 +136,7 @@ export function buildSheet(words: MapWords, p = 'pp', frame: FrameTransform = FR
   const nameHalf: Record<RegionId, number> = {};
   const bounds: Record<RegionId, Bounds> = {};
   const isl: Record<RegionId, boolean> = {};
+  const labelBox: Record<RegionId, Bounds> = {};
   for (const r of land) shape[r.id] = polyPath(tp(geo.plates[r.id]));
   for (const r of sea) {
     const [cx, cy] = T(r.x, r.y);
@@ -147,7 +153,17 @@ export function buildSheet(words: MapWords, p = 'pp', frame: FrameTransform = FR
     const [x1, y1] = T(b.x1, b.y1);
     bounds[r.id] = r.island ? { x0: centre[r.id][0] - ISLAND_DRAW_R, y0: centre[r.id][1] - ISLAND_DRAW_R, x1: centre[r.id][0] + ISLAND_DRAW_R, y1: centre[r.id][1] + ISLAND_DRAW_R } : { x0, y0, x1, y1 };
     isl[r.id] = r.island;
+    const [lx, ly] = label[r.id];
+    // Capitals: the glyphs stand about 0.8 em over the baseline and nothing hangs under it.
+    labelBox[r.id] = { x0: lx - nameHalf[r.id], y0: ly - size * 0.8, x1: lx + nameHalf[r.id], y1: ly + 1.5 };
   }
+  // The bloc titles, set wide: about 0.9 em a letter at their size.
+  const blocBoxes: Bounds[] = BLOC_POS.map(([bloc, x, y, small]) => {
+    const [fx, fy] = T(x, y);
+    const size = small ? 7.6 : 9.4;
+    const half = (words.blocs[bloc].length * size * 0.9) / 2;
+    return { x0: fx - half, y0: fy - size * 0.8, x1: fx + half, y1: fy + 1.5 };
+  });
   const coasts: Record<string, string> = {};
   for (const m of MASSES) coasts[m] = polyPath(tp(OUTLINES[m]));
   const coastList = [...MASSES.map((m) => coasts[m]), ...sea.map((r) => shape[r.id])];
@@ -250,7 +266,7 @@ export function buildSheet(words: MapWords, p = 'pp', frame: FrameTransform = FR
   o.push('<g class="pp-l pp-l-stamp"></g>');
   o.push(desk(p, words.north));
 
-  return { markup: o.join('\n'), geom: { frame, shape, centre, label, nameHalf, bounds, island: isl } };
+  return { markup: o.join('\n'), geom: { frame, shape, centre, label, nameHalf, bounds, island: isl, labelBox, blocBoxes, blocSmall: BLOC_POS.map(([, , , small]) => small) } };
 }
 
 export { fmt, ISLAND_R };
