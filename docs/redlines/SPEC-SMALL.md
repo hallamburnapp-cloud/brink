@@ -148,6 +148,29 @@ the owner can overrule any of them):
   thought about a ring they did not test is said only of rings the plan did not target; a lesson is drawn only
   from what happened (no-orders only when something fell), is never false, and prints once, on the closing card.
 
+**Rulings after the second recheck** (the deep-strategy and over-the-shoulder critics played 0.8.1; decided here
+so the final fixer follows one reading; the owner can overrule any of them):
+- **A provocation costs what it claims.** BACK IT on a ring drawn as a provocation costs the full price whatever
+  they believe, and backing it buys the pause only: no step down, no turn-away. The target: the one rule "ring
+  the hatched places" is worth no more than about 25 points by ablation, and the shark stays at or under 55%.
+- **Too late is said before you pay.** A ring drawn on a place at its last tick cannot pause it: either they come
+  to take it that week (a call, as a provocation should be) or the PROMISE slip says "too late to pause it · it
+  falls this week unless a piece stands there". The call is preferred.
+- **"They turn away" only when they do.** Backing a feint prints "You backed X" alone; the turn-away line and
+  its weeks belong to a real test only, and the debrief keeps "they were not coming".
+- **Reading their nerve pays.** A piece at a scared Federation's door holds back a push every week it stands
+  there, and a pull-back from a scared door is accepted almost always; a bold one is provoked by the same piece.
+  The read must be worth more than ignoring it in the simulator (a door-reading bot signs more than the shark
+  against a scared Federation).
+- **The ladder is not a cliff, at any rung.** A step up shortens a running clock by at most one tick; a place
+  keeps the clock it had less one. MASSING is pressure, not an execution.
+- **The note keeps its warning.** The falls sentence stays under the player's acts every week, and the MOVE HERE
+  slip names a pressed place the piece would leave to fall this week.
+- **A lesson answers something the player did or could see.** No closing-card lesson about a place the player
+  never touched unless nothing else happened; a bar at 100 that did not sign is a lesson when it decided the
+  game; the heading reason reads as of the moment they chose ("when they chose it, nobody had promised it"); a
+  ring they "believed and left" is only one they believed and that still stands at the week's end.
+
 ## The two bars
 
 - **WAR**: regions fighting, drawn as eight pencil boxes; the eighth is WORLD WAR and the game is lost there. (The first draft said twelve of thirty; in eight weeks twelve is out of reach and a collapse ran out of weeks instead of ending, so the engine's tuning set the line at eight. One box a week, legible.)
