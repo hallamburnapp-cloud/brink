@@ -138,7 +138,7 @@ PROMISE TO DEFEND or withdraw, tap a counter then a region to move it, A WAY OUT
 card; SEND ORDERS ends the week), the resolve playback (pins drop, hatching scribbles in, the stamp slams when
 the ladder word changes, the tape feeds a line at a time; each beat with its headline so the watcher can follow),
 the phone (full screen, stops everything, up to three rounds), the endings (a typed card with the two lines and
-the score) and the debrief (the eight weeks as typed notes with the hidden thoughts, one page a week, flip
+the score) and the debrief (the ten weeks as typed notes with the hidden thoughts, one page a week, flip
 through), a save after every week (`brink.redlines.v1.save`), a dev hook `window.__redlines` (seed(seed), state(), promise(region), withdraw(region), move(kind, region),
 wayOut(term), endWeek(), answer(key), set(patch), busy(), centre(region) → the region's centre in frame px for
 real taps, title(), explain(step)) in dev or with `VITE_REDLINES_HOOK=1`; every call drives the same functions a

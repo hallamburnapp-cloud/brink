@@ -36,7 +36,7 @@ this page, and picks a look from the three mocked beside it, before any code is 
    the stakes up.
 4. **Resolve.** Pushes land, places fall or recover, the ladder moves, the two bars move, and the strip says why.
 
-Eight weeks. A full game is ten minutes.
+Ten weeks (the ruling below). A full game is about twelve minutes.
 
 ## The other side
 
@@ -75,6 +75,38 @@ one reading):
   promise.
 - **The debrief teaches.** At most one heading and one feint line a week, and only when it changed something;
   the closing card draws two or three lessons from the game's own events.
+- **Ten weeks, not eight.** With the gentler ladder the treaty needs room: the game is ten turns; a treaty in
+  week w scores 100 − 8w − 5f (never below 10); FROZEN at the end of week 10. A quiet week pays +5 whenever they
+  gained nothing (the plain spec rule), and the no-orders bot must still win at most half as often as the
+  sensible bot: if it does not, the Federation presses a passive player harder (a push on an unpromised place
+  whose clock has run down takes it), not the bar. Gates: sensible treaty 33 to 50%, FROZEN under 20%, passive
+  loses more than 70%, far-promise and no-orders bots as above.
+- **The explanation matches the sheet.** Pressed places are hatched in red pencil, fighting ones washed red, so
+  the first line reads: "The Federation is pushing. Where it pushes, the map is hatched; where it wins, it
+  turns red." HOW TO PLAY says the same.
+
+**Rulings after the recheck** (two critics played the integrated ten-week build; decided here so the fixers follow
+one reading):
+- **Cause before effect, and a place that falls stays fallen that week.** The tape and the sheet print what you
+  or they did before what it caused: "Backed down at Shoal · they stand down", then "Shoal has fallen"; "They
+  accept: a summit", then any place it returns. No place falls and recovers inside one week's playback: a step
+  down eases the ladder word at once, but only places that fell in earlier weeks can come back. WORLD WAR names
+  the first place that fell and stayed fallen.
+- **The WAR boxes always match the sheet.** Every state the engine returns carries the count of places fighting
+  on the sheet at that moment, and every beat that changes the count prints its sentence beside it.
+- **A pressed place shows its clock.** Each hatched place carries its weeks left as pencil ticks beside the
+  hatching (three, two, one); the last week's single tick is ringed. The engine exports the number
+  (`weeksLeft(state, region)`), the sheet draws it, and the explanation's hatching line covers it.
+- **Influence is on the call.** The call shows the influence in hand beside the three forms, and a form you
+  cannot afford says why in the same typed line ("needs 12 · you have 5").
+- **Every declared line's tape form is true on the sheet.** If the fleet starts at Tern Isle, Wintermast's line
+  in the Scatter names the outer islands, not the whole Scatter.
+- **What you did is printed as what you did.** The debrief and the note print an answer as the act ("You
+  protested at Vessary"), never the form's forecast ("Vessary will likely fall").
+- **Hand play is reported, not gated, in this build.** A careful-hand bot (withdraw the far inherited rings,
+  walk a piece to the front, promise only what a piece holds, back every solid test, take their summit) is run
+  beside the gates and its treaty share printed; six hand-played games produced no treaty, so the owner and the
+  cold testers judge whether influence is too tight before any retune.
 
 ## The two bars
 
@@ -88,12 +120,12 @@ one reading):
 
 ## Endings and the score
 
-- **TREATY** on week w with f places fighting: score 100 − 10w − 5f, never below 10. "Signed in week 6 with one
+- **TREATY** on week w with f places fighting: score 100 − 8w − 5f, never below 10. "Signed in week 6 with one
   place still fighting. They stopped because they could not take Vessary and you gave them a way out."
-- **FROZEN**: week 8 ends with neither. Score 9 − f, never below 1. "Nothing was signed."
+- **FROZEN**: week 10 ends with neither. Score 9 − f, never below 1. "Nothing was signed."
 - **WORLD WAR**: score 0. "Week 5. It began at Shoal, when the promise you inherited was tested and you backed
   down." The map draws the chain.
-- Then **the debrief**: the eight weeks replayed with their hidden thoughts shown at each decision, and the two
+- Then **the debrief**: the ten weeks replayed with their hidden thoughts shown at each decision, and the two
   dials named in words ("They were hungry and not easily scared").
 
 ## The screen (whichever look the owner picks)
@@ -107,7 +139,7 @@ the headline line.
 ## What is built first, this week
 
 The map with its states; one Federation with two dials and three declared lines; promises with hold and bluff;
-two pieces; the ladder; the two bars; eight weeks; the phone with eight templates (two inherited-promise tests,
+two pieces; the ladder; the two bars; ten weeks; the phone with eight templates (two inherited-promise tests,
 two feints, a false alarm, a trawler incident, a bluff crossed, a summit offer); the three endings; the debrief.
 No cabinet, no Coalition, no leaders, no daily seed, no sound, no save. A simulator with four bots (passive,
 promise-everything, far-promise opening, sensible) runs before anyone plays: the passive bot must lose most
