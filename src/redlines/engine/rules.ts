@@ -23,7 +23,8 @@ export const RULES = {
   /** BUILD: back a holdable promise 12 (6 once belief ≥ 60); a non-holdable one 24 and it fails one time in three. */
   backCost: 12,
   backCostBelieved: 6,
-  believedAt: 60,
+  /** SPEC-SMALL "Doubt is visible where it matters" (round 15): the price steps at the belief that changes their targeting (beliefTest, 40); 60 until round 15. */
+  believedAt: 40,
   backFarCost: 24,
   farFail: 1 / 3,
   /** Ruling ("the stakes up"): each WAIT adds this to the next round's BACK IT cost. */
@@ -57,8 +58,8 @@ export const RULES = {
   doubtedLine: 40,
 
   // ---- the TREATY bar (fed.will, public) ----
-  /** Ruling: where the bar starts (tuning log: 55 until round 13, 50 in round 13, 45 in round 14 with the ten weeks). */
-  willStart: 45,
+  /** Ruling: where the bar starts (tuning log: 55 until round 13, 50 in round 13, 45 in round 14 with the ten weeks, 50 again in round 15 with the treaty over a quiet map). */
+  willStart: 50,
   /** spec: +5 if they gained nothing this week. SPEC-SMALL ruling ("Ten weeks, not eight"): whenever they gained nothing, pressed places or not (the plain spec rule). */
   willQuiet: 5,
   /** spec: +15 when a way out is accepted. */
@@ -76,8 +77,8 @@ export const RULES = {
   willHumiliated: 10,
   /** spec: at 100 they sign, if no place fell this week. */
   willSign: 100,
-  /** Ruling: in a quiet week from this week on, another bloc signs with this chance (until two have). 0.5 until round 12. */
-  blocSignChance: 0.45,
+  /** Ruling: in a quiet week from this week on, another bloc signs with this chance (until two have). 0.5 until round 12, 0.45 in rounds 12-14, 0.55 from round 15 (FROZEN's margin once a fall out of reach climbs no step). */
+  blocSignChance: 0.55,
   blocSignFrom: 3,
 
   // ---- the WAR bar ----
@@ -95,15 +96,41 @@ export const RULES = {
    * the clock reads the step the week STARTED at, never a step climbed inside the same week.
    */
   fallWeeks: [0, 3, 2, 1, 1, 1] as const,
+  /** SPEC-SMALL "The treaty is signed over a quiet map" (round 15): at 100 they sign only when no hatched place stands unanswered. */
+  treatyNeedsQuietMap: true,
+  /** SPEC-SMALL "No formula wins" (round 15): a ring drawn on a place already under siege is a provocation (tested unless believed; no pause until then). */
+  provocationRings: true,
+  /**
+   * Round 15: the belief at which they believe a provocation ring and leave it alone: the "they believed you would keep
+   * your word" line (RULES.believedLine), not the 40 at which they stop testing a ring on an open place. A ring drawn
+   * into their siege asks more of their belief than one drawn ahead of it. At 40 the shark signed 61.8% (G11 fails).
+   * An owner's question in the tuning log.
+   */
+  provocationBelief: 60,
+  /** Round 15: a hatched place "stands unanswered" once its clock has ticked this many times with nothing of yours there (a place pushed this week is not yet yours to answer). */
+  standingWeeks: 1,
+  /**
+   * Round 15: a hatched place stands unanswered for the treaty and the ways out only when a piece of yours could hold it
+   * with this many line-free moves (SPEC-SMALL "Out of reach means out of reach": a place you cannot reach is not yours
+   * to answer, as round 13 found for the +5). Read literally, every unreachable place blocked the signing: sensible
+   * signed 0.8%.
+   */
+  standingReach: true,
+  standingReachMoves: 1,
+  /** Round 15: a way out's "accepted less" counts the same places as the treaty (true), not every hatched place (false: sensible 26%). */
+  wayOutReachOnly: true,
   /** BUILD: pressed returns to calm after two quiet weeks. */
   quietToCalm: 2,
   /** Ruling: real pushes a week by step (one at TESTING and PUSHING, two from MASSING). */
   pushesByStep: [0, 1, 1, 2, 2, 2] as const,
   /**
-   * Tuning round 14: from this week on both arrows are real (two pushes and no feint, whatever the step): the
-   * ten-week game needs the second half to press harder than the first, or a careful game runs out of weeks.
+   * Tuning round 14: from this week on both arrows are real (two pushes, whatever the step; round 15: a feint now and
+   * then, `lateFeintChance`): the ten-week game needs the second half to press harder than the first, or a careful game
+   * runs out of weeks. 4 in round 14; 3 from round 15, when falls out of reach (lines close routes) slowed collapses.
    */
-  bothRealFromWeek: 4,
+  bothRealFromWeek: 3,
+  /** SPEC-SMALL "The feint keeps its mystery": from bothRealFromWeek one arrow is still a feint this often (rarer than the early third). */
+  lateFeintChance: 0.1,
   /**
    * Tuning round 14: with this many places fighting, every real push opens a new front (an unguarded place)
    * instead of keeping the pressure on or testing a ring: once they have taken a place they go for the next, so a
@@ -138,6 +165,8 @@ export const RULES = {
    * back-down at a real test eases them a step instead of climbing one (the place still falls to them).
    */
   backDownEasesWhenScared: true,
+  /** SPEC-SMALL "Backing down is never the best answer": the scared Federation's step down after a back-down happens at most this often a game, and returns no place. */
+  easedPerGame: 1,
   /**
    * Tuning round 14: backing down from a promise nothing of yours could hold (a dashed ring) loses the place at
    * once: the tape prints the back-down, then "X has fallen" (cause before effect). A solid ring backed down from
@@ -195,17 +224,29 @@ export const RULES = {
     gainedScale: 0.5,
     /** drop-promise: the promise is within their reach (a place they could push next week), heading for or under test → grievance; else indifferent. SPEC-SMALL ruling: a far promise cannot be sold (round 12 counted any dashed promise as minded). */
     dropGrievance: 0.8,
-    dropIndifferent: 0.35,
+    /** SPEC-SMALL "A far promise cannot be sold": a promise they did not mind is refused outright (0.35 until round 15 read the ruling as a small chance). */
+    dropIndifferent: 0,
     /** pull-back: the piece is on their doorstep or inside a line's regions → base + jumpiness × scale. */
     pullNearBase: 0.35,
     pullNearJumpy: 0.6,
     pullFar: 0.2,
-    /** summit by step (index = step). Round 12 raised the two low steps from 0.3 / 0.45: a Federation that has been stopped talks. */
-    summitByStep: [0, 0.45, 0.55, 0.7, 0.75, 0.8] as const,
+    /**
+     * summit by step (index = step). Round 12 raised the two low steps from 0.3 / 0.45: a Federation that has been stopped
+     * talks. Round 15, integrated: 0.35 at TESTING (0.45 before), the price of refusing a sure refusal before it is paid
+     * for (`'too-soon'`): a shark that no longer throws 15 away on it signed 60.1% on seeds S; at 0.35 it signs 55.9 /
+     * 57.3 / 56.8 on R / S / T.
+     */
+    summitByStep: [0, 0.35, 0.55, 0.7, 0.75, 0.8] as const,
     /** + (will − 50) / this. */
     summitWill: 150,
-    /** + this when they gained nothing last week either (they have been stopped: "they could not take X"). 0.3 until round 12. */
+    /** + this when they gained nothing last week either (they have been stopped: "they could not take X"), and nothing is hatched (round 15). 0.3 until round 12. */
     blocked: 0.5,
+    /** Round 15: the "stopped" pull counts only when no place is hatched at all ('any'), or none stands unanswered ('standing'), or always ('never'). */
+    blockedUnlessHatched: 'any' as 'any' | 'standing' | 'never',
+    /** SPEC-SMALL "No formula wins" (round 15): the chance is multiplied by this for each hatched place nothing of yours answers. */
+    unansweredScale: 0.6,
+    /** SPEC-SMALL "No formula wins" (round 15): at most one way out (yours or their summit) accepted in any this many weeks. */
+    spacing: 2,
     /** − (appetite − 0.5) × this: a hungry Federation refuses more. */
     appetite: 0.4,
     min: 0.05,

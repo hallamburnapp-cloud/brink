@@ -6,7 +6,7 @@
  * Pure: no DOM, no signals; the engine's own pieces (netActs, actLine) come through the seam, which the
  * tests replace with the fake engine as the store's tests do.
  */
-import { actLine, netActs, type Act, type GameState, type HoldInfo, type Phone, type PieceKind, type PackStrings, type WayOutTerm } from './engine';
+import { actLine, fallsEndTheGame, fallsThisWeek, holdable, listNames, netActs, type Act, type GameState, type HoldInfo, type Phone, type PieceKind, type PackStrings, type RegionId, type WayOutTerm } from './engine';
 
 export interface TapeLine {
   tag?: string;
@@ -42,11 +42,22 @@ export function allTapeLines(s: GameState, weekWord: string): TapeLine[] {
   return [...open, ...fromLog];
 }
 
-/** The tape shows this many lines. */
+/** The tape shows this many lines (besides the declared lines pinned at its head). */
 export const TAPE_SHOWN = 3;
 
-export function tapeOf(s: GameState, weekWord: string, shown = TAPE_SHOWN): TapeLine[] {
-  return allTapeLines(s, weekWord).slice(-shown);
+/**
+ * The running tape under the pinned lines: the declared lines are pinned at the head (SPEC-SMALL "The three lines
+ * stay on the sheet"), so the opening's own printing of them is not repeated below (the week-1 tape then ends on
+ * the inherited promises, and every line said after is in the log).
+ */
+export function rollingLines(lines: readonly TapeLine[], pinned: readonly string[]): TapeLine[] {
+  if (!pinned.length) return [...lines];
+  const set = new Set(pinned);
+  return lines.filter((l) => !(l.key?.startsWith('w0:') && set.has(l.text)));
+}
+
+export function tapeOf(s: GameState, weekWord: string, shown = TAPE_SHOWN, pinned: readonly string[] = []): TapeLine[] {
+  return rollingLines(allTapeLines(s, weekWord), pinned).slice(-shown);
 }
 
 // ---------------------------------------------------------------- the note and the card
@@ -82,11 +93,40 @@ export function fightingSentence(S: PackStrings, n: number): string {
  * are any; in week 1 before any order, the opening's collision; else the world as it stands
  * (`situation`). `bloc` names a place's bloc ("the Sound").
  */
-export function noteFor(s: GameState, S: PackStrings, name: Namer, bloc: Namer): string {
+export function noteFor(s: GameState, S: PackStrings, name: Namer, bloc: Namer, movedDashed: readonly RegionId[] = []): string {
   const acts = actLines(s.acts, S);
-  if (acts.length) return acts.join(' ');
+  const eve = eveSentence(s, S, name);
+  if (acts.length) {
+    // A move that left a ring dashed says so where it happened (the second review: the ring redrew dashed in silence).
+    const dashed = movedDashed.filter((r) => s.promises.some((p) => p.region === r) && !holdable(s, r).ok).map((r) => fill(S.note.movedDashed, { region: name(r) }));
+    return [...acts, ...dashed, ...(eve && eveEndsGame(s) ? [eve] : [])].join(' ');
+  }
   if (s.week === 1 && s.collision) return s.collision;
-  return situation(s, S, name, bloc);
+  const now = situation(s, S, name, bloc);
+  return eve ? `${now} ${eve}` : now;
+}
+
+/** The places that fall when this week resolves unless something of ours answers them (the engine's forecast: the single ringed tick). */
+export function eveOfFall(s: GameState): RegionId[] {
+  return fallsThisWeek(s);
+}
+
+/** Whether those falls would fill the eighth box: the week ends the game unless something answers them. */
+export function eveEndsGame(s: GameState): boolean {
+  return fallsEndTheGame(s);
+}
+
+/**
+ * The note on the eve of a fall (SPEC-SMALL "the note on the eve of a fall that would end the game says so"):
+ * "Shoal falls this week unless something of ours reaches it." / "Shoal and Lintel fall this week unless something
+ * of ours reaches them.", and "That would be world war." when they would fill the eighth box.
+ */
+export function eveSentence(s: GameState, S: PackStrings, name: Namer): string {
+  const eve = eveOfFall(s);
+  if (!eve.length) return '';
+  const parts = [eve.length === 1 ? fill(S.note.fallsOne, { region: name(eve[0]) }) : fill(S.note.fallsMany, { places: listNames(eve) })];
+  if (eveEndsGame(s)) parts.push(S.note.worldWarEve);
+  return parts.join(' ');
 }
 
 /**
@@ -136,6 +176,15 @@ export function warSub(S: PackStrings, n: number, limit: number): string {
 
 export function stepWord(S: PackStrings, step: number): string {
   return S.words.steps[Math.max(0, Math.min(4, step - 1))];
+}
+
+/**
+ * A week's WHAT THEY WERE THINKING without the closing card's lines: a lesson and the dials print once, on the closing
+ * card (SPEC-SMALL "The debrief reads motives when they were formed"; the second review found them on the last page too).
+ */
+export function pageThoughts(hidden: readonly string[], ending: { lessons?: readonly string[]; dials?: string } | null): string[] {
+  const closing = new Set([...(ending?.lessons ?? []), ...(ending?.dials ? [ending.dials] : [])]);
+  return hidden.filter((h) => !closing.has(h));
 }
 
 // ---------------------------------------------------------------- the slips

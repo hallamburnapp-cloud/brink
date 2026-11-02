@@ -610,6 +610,10 @@ body {
   font-size: 10px;
   line-height: 14.5px;
 }
+/* A dense page's ruled lines step at its text's line height, so the rules do not cut through the words. */
+.rl-dense .pp-debrief {
+  background-image: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 13.5px, rgba(120, 100, 70, 0.15) 13.5px 14.5px);
+}
 
 /* ------------------------------------------------------------------ reduced motion */
 @media (prefers-reduced-motion: reduce) {
@@ -651,4 +655,48 @@ body {
 .rl-purse b {
   font-weight: 700;
   font-size: 17px;
+}
+
+/* The MOVE slip's word is not a button: a tap on it does nothing (it once fell through to a refusal). */
+.rl-slip.rl-through .rl-inert {
+  pointer-events: auto;
+}
+/* What an order would set off, before it is paid for: a declared line crossed, a ring left dashed (red is danger). */
+.rl-slip .c.rl-warn {
+  color: #9b2116;
+  margin-top: 4px;
+}
+.rl-slip .c.rl-hint {
+  color: #6d5f49;
+  margin-top: 2px;
+}
+.rl-slip.rl-ask .rl-word {
+  font-size: 13px;
+}
+
+/* Tap targets about 44 px tall without changing the drawn paper (the second review measured CANCEL at 42 x 9,
+   SEND ORDERS at 119 x 24, MENU at 79 x 27): an invisible margin round the small typed words takes the tap. */
+.rl-x {
+  position: relative;
+}
+.rl-x::before,
+.rl-word::before,
+.rl-tag::before,
+.pp-card .send::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  right: -8px;
+  top: -11px;
+  bottom: -11px;
+}
+.rl-x::before {
+  left: -10px;
+  right: -12px;
+  top: -16px;
+  bottom: -16px;
+}
+/* With a game saved, PLAY (which starts afresh) stands apart from CONTINUE so a thumb aimed at one does not take the other. */
+.rl-title-card .rl-choice + .rl-choice:not(.rl-small) {
+  margin-top: 22px;
 }

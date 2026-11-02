@@ -22,6 +22,7 @@ export type {
   RegionId,
   RegionRec,
   RegionState,
+  BackDownRec,
   Result,
   Step,
   Tally,
@@ -51,16 +52,18 @@ export type {
 export { ACT_KINDS, ADVISER_IDS, ANSWER_GROUPS, answerGroup, FALL_CAUSES, HEADLINE_KINDS, HIDDEN_KINDS, HOLD_CODES, LINE_KINDS, PHONE_KINDS, REFUSAL_CODES, REFUSE_WHYS, WAY_OUT_TERMS, WHY_KINDS, checkContent } from './content.ts';
 
 // The API (BUILD.md).
-export { answerPhone, canAnswer, canPromise, endWeek, holdable, movePiece, movesFor, newGame, offerWayOut, promise, withdraw } from './run.ts';
-export { closingLines, debrief, dialsLine, endingOf, firstFallen, lessonsOf, MAX_LESSONS } from './debrief.ts';
+export { answerPhone, canAnswer, canOfferWayOut, canPromise, endWeek, holdable, isProvocation, movePiece, movesFor, newGame, offerWayOut, promise, pullBackPieces, withdraw } from './run.ts';
+// What an order would do, said before you pay (SPEC-SMALL rulings after the second review).
+export { declaredTapes, fallsEndTheGame, fallsThisWeek, linesCrossedByMove, linesCrossedByPromise, promiseWillRing, ringsLeftDashed } from './forecast.ts';
+export { backDownLesson, closingLines, debrief, dialsLine, endingOf, firstFallen, lessonsOf, MAX_LESSONS } from './debrief.ts';
 export { RULES, scoreOf, fallWeeksAt, pushesAt, spreadAt, isScared, clampStep, TESTING, PUSHING, MASSING, FIGHTING, ALL_OUT } from './rules.ts';
 export { answerCost, backCost, trawlerPool } from './phone.ts';
 // weeksLeft(state, region): the pencil ticks beside a hatched place (SPEC-SMALL "A pressed place shows its clock").
-export { weeksLeft, stepAtWeekStart, couldHaveReached, holdInfo, isAnswered, isSpared, promiseAt, pieceAt, pieceOf, fightingRegions, pressedRegions, canRecover, draft, emptyTally, tallyOf, netActs } from './board.ts';
+export { weeksLeft, stepAtWeekStart, couldHaveReached, closedTo, holdDistance, reachableWithoutLines, nearestPiece, holdInfo, isAnswered, isSpared, promiseAt, pieceAt, pieceOf, fightingRegions, pressedRegions, canRecover, draft, emptyTally, tallyOf, netActs } from './board.ts';
 export type { HoldInfo } from './board.ts';
-export { acceptWayOut, candidates, clockRunDown, crossesLine, planHeadings, promiseMinded, targetWhy, weightOf } from './agent.ts';
+export { acceptWayOut, candidates, clockRunDown, crossedLineAt, crossesLine, planHeadings, promiseMinded, summitWhy, targetWhy, weightOf } from './agent.ts';
 export { isFeintTest, FLEET_START, BRIGADE_START, homeOf } from './resolve.ts';
-export { actLine, fill, fightingPhrase, fightingSentence, numberWord, placesPhrase, stepWord } from './words.ts';
+export { actLine, cap, fill, fightingPhrase, fightingSentence, listNames, numberWord, placesPhrase, stepWord } from './words.ts';
 export {
   BRIGADE_MOVES,
   CAP_BLOC,

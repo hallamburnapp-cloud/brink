@@ -10,14 +10,16 @@ import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef } from 'preact/hooks';
 import { Calendar, IndexCard, Note, PencilUnderline, Tape } from '../paper';
 import { seedOf } from '../paper/rand';
-import { armRegion, cancelAct, doPromise, doWithdraw, holdEnd, holdStart, openMenu, openWayOut, sendOrders, skipPlayback, tapSheet } from '../app/actions';
+import { armRegion, cancelAct, doPromise, doWithdraw, holdEnd, holdStart, moveTo, openMenu, openWayOut, sendOrders, skipPlayback, tapSheet } from '../app/actions';
 import { blocOf, content, holdable, kindMoves, pieceOf, promiseAt, regionName, RULES, type PieceKind, type RegionId } from '../app/engine';
+import { moveWarnings, promiseWarnings, tryMove } from '../app/orders';
+import { slipTakes } from '../app/armed';
 import { HoldGesture } from '../app/gesture';
 import { toFramePoint } from '../app/layout';
 import { getMap } from '../app/mapRef';
 import { placeSlip, type Pt } from '../app/slips';
-import { armed, busy, frameFit, lifted, play, refusal, shown } from '../app/store';
-import { tapeFor } from '../app/tape';
+import { armed, busy, frameFit, lifted, moveAsk, movedDashed, play, refusal, shown } from '../app/store';
+import { pinnedFor, tapeFor } from '../app/tape';
 import { capitalised, fightingCount, noteFor, promiseLine, stepWord, warSub, weekOfLine } from '../app/words';
 
 export function Week(): JSX.Element | null {
@@ -25,9 +27,12 @@ export function Week(): JSX.Element | null {
   const s = shown.value;
   if (!s) return null;
   const p = play.value;
-  const note = capitalised(p ? p.note : noteFor(s, S, regionName, (r) => S.blocs[blocOf(r)]));
+  const dashed = movedDashed.value.week === s.week ? movedDashed.value.regions : [];
+  const note = capitalised(p ? p.note : noteFor(s, S, regionName, (r) => S.blocs[blocOf(r)], dashed));
   // The WAR boxes count the places fighting on the sheet, as the playback's beats do: the two never disagree.
-  const frame = p ?? { step: s.fed.step, war: fightingCount(s), treaty: s.treaty, tape: tapeFor(s) };
+  // Wintermast's three declared lines stay pinned at the tape's head all game (SPEC-SMALL "The three lines stay on the sheet").
+  const pinned = pinnedFor(s);
+  const frame = p ?? { step: s.fed.step, war: fightingCount(s), treaty: s.treaty, tape: tapeFor(s, undefined, pinned) };
   const offerLabel = s.offer ? S.act.termLabels[s.offer.term] : null;
   return (
     <>
@@ -54,11 +59,12 @@ export function Week(): JSX.Element | null {
         they={{ label: S.words.theyAre, word: stepWord(S, frame.step) }}
         slip={{ text: p ? S.screen.ordersSent : S.words.sendOrders, onTap: () => void sendOrders(), disabled: !!p || busy.value }}
       />
-      <Tape lines={frame.tape} />
+      <Tape lines={frame.tape} pinned={pinned} />
       {!p && <ActSlip />}
       {!p && <MoveSlip />}
       <RefusalSlip />
-      {p && <button type="button" class="rl-skip" aria-label={S.screen.next} onClick={skipPlayback} />}
+      {/* From the first moment of a playback (before its first line prints), a tap anywhere skips it. */}
+      {(p || busy.value) && <button type="button" class="rl-skip" aria-label={S.screen.next} onClick={skipPlayback} />}
     </>
   );
 }
@@ -130,7 +136,7 @@ const SLIP_W = 252;
 const SLIP_H = 88;
 /** The MOVE slip is narrow so it can sit beside the counter and leave the places it can move to clear. */
 const MOVE_W = 168;
-const MOVE_H = 70;
+const MOVE_H = 84;
 
 /** The slip a hold puts down: the place's name and state, the act, its cost, CANCEL. */
 function ActSlip(): JSX.Element | null {
@@ -138,7 +144,10 @@ function ActSlip(): JSX.Element | null {
   const s = shown.value;
   if (!a || !s) return null;
   const S = content.strings;
-  const pos = slipPlace(a.region, SLIP_W, SLIP_H);
+  // What the promise would set off, before it is paid for: a declared line it crosses, in the line's own tape words,
+  // that a ring on their arrow's target will be a call, and that a ring on a besieged place is a provocation.
+  const warns = a.act === 'promise' ? promiseWarnings(s, a.region) : [];
+  const pos = slipPlace(a.region, SLIP_W, SLIP_H + 24 * warns.length);
   // What a watcher wants first: their forces heading here; then the place's state; then whose promise it is.
   const tags: string[] = [];
   const rec = s.regions[a.region];
@@ -153,22 +162,34 @@ function ActSlip(): JSX.Element | null {
     <div class="rl-slip pp-obj pp-ty" style={{ left: `${pos.left}px`, top: `${pos.top}px`, width: `${SLIP_W}px` }}>
       <div class="hd">
         <span>{head}</span>
-        <button type="button" class="rl-x" onClick={cancelAct}>
+        <button type="button" class="rl-x" onClick={() => slipTakes() && cancelAct()}>
           {S.act.cancel}
         </button>
       </div>
       {word ? (
-        <button type="button" class="rl-word" onClick={() => (a.act === 'promise' ? doPromise(a.region) : doWithdraw(a.region))}>
+        <button type="button" class="rl-word" onClick={() => slipTakes() && (a.act === 'promise' ? doPromise(a.region) : doWithdraw(a.region))}>
           {word}
           <PencilUnderline seed={seedOf('rl:' + a.act)} />
         </button>
       ) : null}
       <div class="c">{cost}</div>
+      {warns.map((w, i) => (
+        <div class="c rl-warn" key={i}>
+          {w}
+        </div>
+      ))}
     </div>
   );
 }
 
-/** The slip beside a lifted counter: MOVE, the cost, CANCEL. */
+/** The MOVE HERE slip is wider: it carries the line a move would cross and the rings it would leave dashed. */
+const ASK_W = 236;
+
+/**
+ * The slip beside a lifted counter: MOVE, the cost, CANCEL; the places it can reach are pencilled round on the
+ * sheet. A tap on a place it can reach moves it, unless the move would cross a declared line or leave a ring
+ * dashed: then the MOVE HERE slip is put down at that place and says so before anything is paid.
+ */
 function MoveSlip(): JSX.Element | null {
   const kind = lifted.value;
   const s = shown.value;
@@ -176,19 +197,47 @@ function MoveSlip(): JSX.Element | null {
   const S = content.strings;
   const piece = pieceOf(s, kind);
   if (!piece) return null;
+  const ask = moveAsk.value?.kind === kind ? moveAsk.value : null;
+  if (ask) {
+    const warns = moveWarnings(tryMove(s, kind, ask.region));
+    const pos = slipPlace(ask.region, ASK_W, 74 + 24 * warns.length, [piece.at]);
+    return (
+      <div class="rl-slip rl-move rl-ask pp-obj pp-ty" style={{ left: `${pos.left}px`, top: `${pos.top}px`, width: `${ASK_W}px` }}>
+        <div class="hd">
+          <span>{`${S.pieces[kind].toUpperCase()} · ${regionName(ask.region).toUpperCase()}`}</span>
+          <button type="button" class="rl-x" onClick={() => slipTakes() && cancelAct()}>
+            {S.act.cancel}
+          </button>
+        </div>
+        <button type="button" class="rl-word" onClick={() => slipTakes() && moveTo(kind, ask.region)}>
+          {S.act.moveHere}
+          <PencilUnderline seed={seedOf('rl:movehere')} />
+        </button>
+        <div class="c">{S.act.moveCost}</div>
+        {warns.map((w, i) => (
+          <div class="c rl-warn" key={i}>
+            {w}
+          </div>
+        ))}
+      </div>
+    );
+  }
   // The slip leaves every place the counter could move to clear for the tap that moves it (or is refused: one move a week).
   const pos = slipPlace(piece.at, MOVE_W, MOVE_H, kindMoves(kind, piece.at, pieceOf(s, 'fleet')?.at ?? null));
+  const hint = S.act.moveHint;
   return (
-    // The slip lets a tap through to the sheet under it (a place it covers can still be tapped); only CANCEL takes taps.
+    // The slip lets a tap through to the sheet under it (a place it covers can still be tapped); CANCEL takes taps, and
+    // the MOVE word is inert (a tap on it once fell through to a refusal: the second review).
     <div class="rl-slip rl-move rl-through pp-obj pp-ty" style={{ left: `${pos.left}px`, top: `${pos.top}px`, width: `${MOVE_W}px` }}>
       <div class="hd">
         <span>{S.pieces[kind].toUpperCase()}</span>
-        <button type="button" class="rl-x" onClick={cancelAct}>
+        <button type="button" class="rl-x" onClick={() => slipTakes() && cancelAct()}>
           {S.act.cancel}
         </button>
       </div>
-      <div class="w">{S.act.move}</div>
+      <div class="w rl-inert">{S.act.move}</div>
       <div class="c">{S.act.moveCost}</div>
+      <div class="c rl-hint">{hint}</div>
     </div>
   );
 }

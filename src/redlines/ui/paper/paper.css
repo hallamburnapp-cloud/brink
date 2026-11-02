@@ -140,6 +140,25 @@
   stroke-linejoin: round;
   transition: fill 300ms;
 }
+/* The names are set again over the rings and arrows with a fuller paper halo, so a pencil line breaks under a name as
+   a printed map breaks a line for its label; the copy under the marks keeps the sheet's ids and is not seen. */
+.pp-map .pp-names text.pp-nm {
+  opacity: 0;
+}
+.pp-map .pp-blocs:not(.pp-over) text {
+  opacity: 0;
+}
+.pp-map .pp-blocs.pp-over text {
+  paint-order: stroke;
+  stroke: #ecdfba;
+  stroke-width: 2.2px;
+  stroke-opacity: 0.7;
+}
+.pp-map .pp-names-over .pp-nm {
+  stroke: #ecdfba;
+  stroke-width: 2.6px;
+  stroke-opacity: 0.85;
+}
 .pp-map .pp-isle {
   font-size: 7.1px;
   letter-spacing: 0.09em;
@@ -174,6 +193,12 @@
   fill: #17120e;
   fill-opacity: 0.82;
   letter-spacing: 0.02em;
+  /* a paper halo: a ring or an arrow passing under a hand-written word breaks for it */
+  paint-order: stroke;
+  stroke: #ecdfba;
+  stroke-width: 2.2px;
+  stroke-opacity: 0.75;
+  stroke-linejoin: round;
 }
 .pp-map .pp-hwred {
   fill: #c0271a;
@@ -189,8 +214,9 @@
 }
 .pp-map .pp-ct {
   font-family: 'Special Elite', 'Courier New', 'Liberation Mono', monospace;
-  font-size: 5.4px;
-  letter-spacing: 0.12em;
+  /* 6.6 px: legible at 3x and still a pencilled label at 0.79 scale (the second review measured 5.4 px at 4.3 on a short phone) */
+  font-size: 6.6px;
+  letter-spacing: 0.1em;
   fill: #2b2418;
   fill-opacity: 0.85;
   paint-order: stroke;
@@ -610,6 +636,39 @@
   margin-right: 7px;
   font-size: 8px;
 }
+/* Wintermast's three declared lines, pinned at the tape's head (SPEC-SMALL "The three lines stay on the sheet"):
+   the red ribbon, a red pin at the tape's edge, a torn rule under them; the running lines feed in below. */
+.pp-tape.pp-tape-pinned {
+  top: 722px;
+  height: 114px;
+  padding-top: 8px;
+  padding-bottom: 4px;
+}
+.pp-tape .pp-tape-head {
+  position: relative;
+  padding: 0 0 4px 0;
+  margin: 0 0 3px 0;
+  border-bottom: 1px dashed rgba(90, 70, 40, 0.45);
+}
+.pp-tape .ln.pp-decl {
+  font-size: 8.4px;
+  line-height: 12.5px;
+  letter-spacing: 0.05em;
+  color: #a3241a;
+}
+.pp-tape-pinned .ln:not(.pp-decl) {
+  line-height: 17.5px;
+}
+.pp-tape .pp-tape-pin {
+  position: absolute;
+  left: -9px;
+  top: -3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff8a80 0, #d32f2f 35%, #6e0e0e 100%);
+  box-shadow: 1px 1.5px 1.5px rgba(40, 20, 6, 0.45);
+}
 .pp-tape .ln.pp-feed {
   animation: pp-feed 420ms steps(14, end) both;
 }
@@ -945,4 +1004,26 @@
   font-size: 14px;
   color: #6d5f49;
   transform: rotate(5deg);
+}
+
+/* the explanation's ghost marks (a hatching, its ticks, a red wash) drawn faintly over the live sheet while a line describes them */
+.pp-map .pp-ghost {
+  opacity: 0.62;
+}
+/* the WORLD WAR chain: the falls numbered in red pencil */
+.pp-map .pp-chain-n {
+  font-size: 15px;
+  paint-order: stroke;
+  stroke: #efe2bf;
+  stroke-width: 2.4px;
+  stroke-opacity: 0.85;
+}
+
+/* the pencil leader that ties a WE DEFEND written off its ring to the ring */
+.pp-map .pp-leader {
+  fill: none;
+  stroke: #17120e;
+  stroke-width: 1.1px;
+  stroke-opacity: 0.7;
+  stroke-linecap: round;
 }

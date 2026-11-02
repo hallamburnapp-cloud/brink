@@ -7,10 +7,10 @@
 import type { JSX } from 'preact';
 import { DebriefPage, Dim, TypedCard } from '../paper';
 import { debriefGo, home, playAgain } from '../app/actions';
-import { useArmed } from '../app/armed';
+import { useArmedGate } from '../app/armed';
 import { content, type Ending as EndingT } from '../app/engine';
 import { debriefPage, shown } from '../app/store';
-import { fill } from '../app/words';
+import { fill, pageThoughts } from '../app/words';
 import { Choice } from './Title';
 
 function titleOf(e: EndingT): { title: string; tone: 'red' | 'blue' | 'plain' } {
@@ -30,15 +30,17 @@ export function Ending(): JSX.Element | null {
   const n = weeks.length;
   const { title, tone } = titleOf(e);
   // The card has just landed: a tap still drumming to skip the last playback does not open the debrief.
-  const ready = useArmed(`${s.seed}:${e.kind}`);
+  const gate = useArmedGate(`${s.seed}:${e.kind}`);
+  const ready = gate.armed;
 
   if (page === null) {
     return (
       <div class={`rl-layer rl-ending${ready ? ' rl-armed' : ''}`}>
         <Dim />
-        <TypedCard title={title} tone={tone} lines={e.lines} score={{ label: S.debrief.score, value: e.score }} style="top:396px">
+        {/* The card lies on the desk under the map, so the sheet it ended on (the WORLD WAR chain, the places still pressed) stays in view. */}
+        <TypedCard title={title} tone={tone} lines={e.lines} score={{ label: S.debrief.score, value: e.score }} style="top:497px">
           <div class="rl-row">
-            <Choice word={S.debrief.next} sub={S.debrief.intro} onTap={() => ready && debriefGo(0)} seed="debrief" />
+            <Choice word={S.debrief.next} sub={S.debrief.intro} onTap={() => gate.accepts() && debriefGo(0)} seed="debrief" />
           </div>
         </TypedCard>
       </div>
@@ -63,7 +65,10 @@ export function Ending(): JSX.Element | null {
   }
 
   const w = weeks[page];
-  const dense = w.hidden.length + w.acts.length > 7;
+  // A lesson and the dials print once, on the closing card (SPEC-SMALL "The debrief reads motives when they were
+  // formed"), never also under a week's WHAT THEY WERE THINKING.
+  const hidden = pageThoughts(w.hidden, e);
+  const dense = hidden.length + w.acts.length > 7;
   // The page and BACK / NEXT stand together: the buttons follow the page down, however long the week was.
   return (
     <div class="rl-layer rl-ending">
@@ -76,7 +81,7 @@ export function Ending(): JSX.Element | null {
           whatLabel={S.debrief.youDid.toUpperCase()}
           what={w.acts.length ? w.acts : [S.acts.none]}
           thoughtLabel={S.debrief.theyThought.toUpperCase()}
-          thoughts={w.hidden.length ? w.hidden : [S.debrief.nothingHidden]}
+          thoughts={hidden.length ? hidden : [S.debrief.nothingHidden]}
           page={`${page + 1} / ${n}`}
         />
         <div class="rl-nav">

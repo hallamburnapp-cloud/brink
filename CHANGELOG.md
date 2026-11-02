@@ -2,6 +2,37 @@
 
 All notable changes to BRINK. Dates are UTC.
 
+## 0.8.1 — 2026-11-02 (Red Lines, second review)
+
+Five critics played 0.8.0 with real taps before the owner (over the shoulder, a deep-strategy player, the art director, QA across 34 shadowed games, and a first-time player who read nothing first); two fixers and an integrator worked through what they found under new rulings in `SPEC-SMALL.md` (D-118).
+
+### No formula wins
+- The deep-strategy critic found a visible-information formula (ring the places already hatched, never an arrow's target, offer a summit after every quiet week) that signed about 80%. It is now a gated bot in the simulator: it signs about 56% on all three seed sets (gate: at most 60%), no one-rule bot passes 45%, and the sensible bot signs about 44%.
+- They do not talk while they are winning: a way out is accepted less while places they press stand unanswered, at most one a fortnight, and one that cannot work is refused before you pay. A ring drawn on a place already under siege is a provocation they test unless they believe you.
+- The treaty is signed only when nothing fell that week and no hatched place stands unanswered; at 100 without signing the tape says why, and the TREATY card names the places they still keep forces at.
+
+### The sheet tells the truth before you pay
+- Wintermast's three declared lines are pinned at the head of the tape all game; the opening's collision can be about the bluff; crossing a real line rings a call too.
+- The feint keeps its mystery: on a test call the other column's line prints after your answer; feints continue, rarer, after week 4.
+- Doubt is visible: BACK IT costs 6 once they believe you (belief 40), and the Director says when they doubt you. BACK IT no longer claims a piece moves.
+- Out of reach means out of reach: a route through a declared line is not a route, so a place only such a route reaches falls with no step.
+- Slips warn before you pay: a move that would leave a ring dashed, a ring on an arrow's target ("this will be a call"), a ring on a place under siege, a line an order would cross, a way out that cannot work yet (with its reason). The note warns on the eve of a fall that would end the game.
+- The closing card's lessons are drawn only from what happened and print once; the debrief records each heading's reason when it was planned.
+
+### Play
+- A plain tap on a place opens its slip; a lifted counter marks where it can go; the lift of a hold no longer presses the slip that landed under the finger; drumming through the playback can no longer answer the call; PLAY over a saved game asks first; larger tap targets.
+- No pins or arrows after an ending; at WORLD WAR the places are numbered in red in the order they fell, the first ringed.
+
+### The look
+- Marks keep their places from beat to beat; WE DEFEND is never read as another place's; printed names are drawn over rings and arrows with a paper halo; names no longer run together; the explanation's first line shows ghosts of the marks it describes.
+- On the art director's 8,972 measured sheets: marks over print or another mark on 207 sheets (from 791), a word nearer another place's name 131 times (from 2,289).
+
+### Checks
+- 1,298 unit tests across the project (324 for Red Lines); 18 end-to-end tests with real taps; twelve simulator gates passing on seeds R, S and T; no invariant broken in 60,000 games.
+
+### Questions for the owner (in the README, each with a recommendation)
+- How tight hand play should be (cold testers before any retune); a compact desk for short phone windows; the Federation's arrows in red pencil rather than graphite; the belief at which a provocation is believed; how strictly "stands unanswered" reads; the FROZEN margin.
+
 ## 0.8.0 — 2026-11-02 (Red Lines)
 
 A new game on the same brand after the owner's verdict on 0.7.0 (D-113): "I think we need a wholesale redesign. It looks crap, doesn't make sense, and certainly doesn't do what we want it to do." Two design drafts were read by the owner's reviewer and by three critics before anything was built (D-113 to D-116); the owner chose the paper situation room, weekly turns and a deep strategy game for a niche. This is the first build, the small game of `docs/redlines/SPEC-SMALL.md`, selected with `VITE_GAME=redlines`; the earlier games are untouched and dormant.

@@ -8,7 +8,7 @@ import { BRAND } from '../../../config';
 import { Dim, Paperclip, PencilUnderline } from '../paper';
 import { continueGame, howToPlay, newGameNow, play } from '../app/actions';
 import { content, RULES } from '../app/engine';
-import { saved, titleWorld } from '../app/store';
+import { saved, sheet, titleWorld } from '../app/store';
 import { seedOf } from '../paper/rand';
 import { weekOfLine } from '../app/words';
 
@@ -27,7 +27,8 @@ export function Title({ lifting }: { lifting: boolean }): JSX.Element {
         {save ? (
           <Choice word={S.title.continue} sub={sub ?? undefined} onTap={continueGame} seed="continue" />
         ) : null}
-        <Choice word={S.title.play} onTap={save ? newGameNow : play} seed="play" />
+        {/* PLAY over a game in progress asks once, as QUIT TO TITLE does (the second review); over a finished one it does not. */}
+        <Choice word={S.title.play} onTap={sub ? () => (sheet.value = 'newgame') : save ? newGameNow : play} seed="play" />
         <Choice word={S.title.howToPlay} onTap={howToPlay} seed="how" small />
       </div>
     </div>

@@ -4,8 +4,8 @@
  */
 import type { Rng } from '../../engine/rng.ts';
 import type { PhoneTemplate, RedlinesContent } from './content.ts';
-import { blockedLastWeek } from './agent.ts';
-import { holdInfo, isAnswered, pieceAt, pressedRegions, promiseAt, stepAtWeekStart } from './board.ts';
+import { blockedLastWeek, wayOutTooSoon } from './agent.ts';
+import { holdInfo, isAnswered, nearestPiece, pieceAt, pressedRegions, promiseAt, stepAtWeekStart, unansweredRegions } from './board.ts';
 import { RULES, fallWeeksAt } from './rules.ts';
 import type { GameState, Line, Phone, PhoneKind, RegionId } from './types.ts';
 import { fill, type Slots } from './words.ts';
@@ -78,25 +78,31 @@ export function makePhone(c: RedlinesContent, s: GameState, rng: Rng, ctx: Phone
   const region = ctx.region;
   const cost = region && isTest ? backCost(s, region, ctx.round) : answerCost({ ...s, phone: { kind: ctx.kind } as Phone }, 'back');
   const other = s.fed.headings.find((h) => h.to !== region)?.to ?? region;
-  const hold = region ? holdInfo(s, region) : null;
-  const piece = hold?.piece ?? s.pieces[1] ?? s.pieces[0];
+  // The piece the call names: the one that holds the place, else the nearest by its own routes (never the brigade
+  // for an island it cannot reach).
+  const piece = region ? nearestPiece(s, region) : s.pieces[1] ?? s.pieces[0];
   const slots: Slots = {
     region: region ? regionName(region) : '',
     promise: region ? regionName(region) : '',
     line: ctx.line ?? '',
     cost,
+    waitCost: answerCost({ ...s, phone: { kind: isTest ? 'test' : ctx.kind, region, round: ctx.round } as Phone }, 'wait'),
     piece: c.strings.pieces[piece.kind],
     from: other ? regionName(other) : '',
     step: c.strings.words.steps[s.fed.step - 1],
   };
   const caller = c.advisers[t.caller];
   const waitCost = isTest && ctx.round >= 3 ? c.strings.words.waitIsBackDown : fill(t.options.wait.cost, slots);
+  // A carried call's slips are a week on (againAdvisers); the Director's slip, while they doubt your promises, says
+  // what she has seen of it (SPEC-SMALL "Doubt is visible where it matters").
+  const slips = isTest && ctx.round > 1 && t.againAdvisers ? t.againAdvisers : t.advisers;
+  const intel = isTest && s.fed.belief < RULES.beliefTest && t.intelDoubted ? t.intelDoubted : slips.intel;
   return {
     template: t.id,
     kind: isTest ? t.kind : ctx.kind,
     caller: { name: caller.name, role: caller.role, tag: caller.tag },
     text: fill(isTest && ctx.round > 1 && t.again ? t.again : t.text, slots),
-    advisers: { hawk: fill(t.advisers.hawk, slots), dove: fill(t.advisers.dove, slots), intel: fill(t.advisers.intel, slots) },
+    advisers: { hawk: fill(slips.hawk, slots), dove: fill(slips.dove, slots), intel: fill(intel, slots) },
     region,
     round: ctx.round,
     options: [
@@ -123,6 +129,7 @@ export interface EventPick {
  * none). Only kinds the pack has a template for.
  */
 export function pickEvent(c: RedlinesContent, s: GameState, rng: Rng, bluff: { line: Line; region: RegionId } | null): EventPick | null {
+  // `bluff`: a line crossed this week, the bluff or a real one (SPEC-SMALL "The bluff is not a free read": both ring the same call).
   if (s.events >= RULES.events.maxPerGame) return null;
   const has = (k: PhoneKind) => c.phones.some((p) => p.kind === k);
   const E = RULES.events;
@@ -132,7 +139,10 @@ export function pickEvent(c: RedlinesContent, s: GameState, rng: Rng, bluff: { l
   if (doomed.length && has('fall-unpromised')) return { kind: 'fall-unpromised', region: doomed[0] };
   const stopped = s.fed.step >= 2 || blockedLastWeek(s);
   const summits = s.phonesUsed.filter((id) => c.phones.find((p) => p.id === id)?.kind === 'summit').length;
-  if (!s.offer && summits < E.summitMax && s.week >= E.summitFromWeek && s.fed.step >= E.summitFromStep && s.fed.will >= E.summitMinWill && stopped && has('summit') && rng.next() < E.summitChance) return { kind: 'summit', region: null };
+  // Their own summit: never in a week you have a way out on the table, never the week after a way out was accepted (one
+  // in any two weeks), and less often while places they press stand unanswered (they do not talk while they are winning).
+  const summitChance = E.summitChance * Math.pow(RULES.wayOut.unansweredScale, unansweredRegions(s, RULES.wayOutReachOnly && RULES.standingReach).length);
+  if (!s.offer && !wayOutTooSoon(s) && summits < E.summitMax && s.week >= E.summitFromWeek && s.fed.step >= E.summitFromStep && s.fed.will >= E.summitMinWill && stopped && has('summit') && rng.next() < summitChance) return { kind: 'summit', region: null };
   if (s.fed.step >= E.falseAlarmFromStep && has('false-alarm') && rng.next() < E.falseAlarmChance) {
     const where = s.fed.headings.find((h) => h.real)?.to ?? NEAR_CAP[0];
     return { kind: 'false-alarm', region: where };

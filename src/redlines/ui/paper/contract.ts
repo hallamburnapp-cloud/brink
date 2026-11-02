@@ -58,6 +58,19 @@ export interface PaperView {
    * last week's single tick is ringed. A place missing here draws no ticks.
    */
   clocks?: Record<RegionId, number>;
+  /** The places a lifted counter can move to this week: marked lightly in graphite while it is lifted. */
+  reach?: RegionId[];
+  /**
+   * The explanation's own marks, drawn faintly over the live sheet while a line describes them (the second review:
+   * "a new player is told to look for three marks that are not on the sheet"): a ghost of hatching with its ticks,
+   * a ghost of the red wash. Never part of the game.
+   */
+  ghost?: { pressed?: RegionId; ticks?: number; fighting?: RegionId } | null;
+  /**
+   * The WORLD WAR ending's chain (SPEC-SMALL "The map draws the chain"): the places that fell, in the order they fell;
+   * the first is ringed in red pencil and each is numbered.
+   */
+  chain?: RegionId[];
 }
 
 /** The words the map writes, from strings.yaml via the screens builder; the defaults are the mock's. */

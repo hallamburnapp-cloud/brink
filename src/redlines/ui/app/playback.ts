@@ -11,8 +11,8 @@ import { viewFromState, type PaperView, type PieceView } from '../paper';
 import { barMover, weekBeats, type Beat } from './beats';
 import { content, holdable, REGION_IDS, regionName, RULES, weeksLeft, type GameState, type RegionId } from './engine';
 import { busy, play, reduced, shown } from './store';
-import { shorten } from './tape';
-import { allTapeLines, TAPE_SHOWN, type TapeLine } from './words';
+import { pinnedFor, shorten } from './tape';
+import { allTapeLines, rollingLines, TAPE_SHOWN, type TapeLine } from './words';
 
 export const TIMES = {
   /** The orders are sent; a breath before the first line prints. */
@@ -119,7 +119,8 @@ export async function playResolve(before: GameState, after: GameState): Promise<
   const r = reduced.value;
   const beats = beatsFor(before, after);
   const weekWord = content.strings.words.week;
-  const lines: TapeLine[] = shorten(allTapeLines(before, weekWord));
+  // The running tape under the declared lines pinned at its head.
+  const lines: TapeLine[] = rollingLines(shorten(allTapeLines(before, weekWord)), pinnedFor(before));
   const had = before.log.find((w) => w.week === before.week)?.visible.length ?? 0;
   let prevStep = before.fed.step;
   let prevWar = before.war;

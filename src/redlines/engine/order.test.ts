@@ -60,7 +60,7 @@ const toDrf: Heading[] = [
 ];
 
 describe('cause before effect, path by path', () => {
-  it('BACK DOWN at a dashed ring facing a scared Federation: the back-down, then the fall, then an older place quieted; never a quiet week', () => {
+  it('BACK DOWN at a dashed ring facing a scared Federation: the back-down, then the fall; the step down returns no place; never a quiet week', () => {
     const s = promised(staged(toLtl), 'LTL');
     s.fed.step = 3;
     s.fed.jumpiness = 0.75;
@@ -74,21 +74,32 @@ describe('cause before effect, path by path', () => {
     const tested = at(log, 'They are testing your promise at Lintel.');
     const down = at(log, 'You backed down at Lintel. They stand down.');
     const fell = at(log, 'Lintel has fallen.');
-    const quiet = at(log, 'Guns quiet at Kelpmouth.');
     expect(tested).toBeLessThan(down);
     expect(down).toBeLessThan(fell);
-    expect(fell).toBeLessThan(quiet);
-    // Lintel fell this week and stays fallen; Kelpmouth (an earlier week's fall) is the one that comes back.
+    // Lintel fell this week and stays fallen; SPEC-SMALL "Backing down is never the best answer": the scared step down
+    // returns no place (Kelpmouth, an earlier week's fall, stays fighting).
     expect(n.regions.LTL.state).toBe('fighting');
-    expect(n.regions.KLP.state).toBe('pressed');
-    expect(log.visible.some((v) => v === 'Guns quiet at Lintel.')).toBe(false);
+    expect(n.regions.KLP.state).toBe('fighting');
+    expect(log.visible.some((v) => v.startsWith('Guns quiet'))).toBe(false);
     expect(log.visible.some((v) => v.startsWith('A quiet week'))).toBe(false);
     expect(log.visible).toContain('They took one place this week.');
-    // The beats: WAR 2 at the fall, 1 when Kelpmouth quiets; the stamp is down from the back-down's line on.
+    // The beats: WAR 2 at the fall; the stamp is down from the back-down's line on.
     expect(log.beats![fell]).toMatchObject({ kind: 'fell', region: 'LTL', war: 2 });
-    expect(log.beats![quiet]).toMatchObject({ kind: 'recovered', region: 'KLP', war: 1 });
     expect(log.beats![down]).toMatchObject({ kind: 'backedDownEased', step: 2 });
-    expect(n.war).toBe(1);
+    expect(n.war).toBe(2);
+    expect(brokenInvariants(n)).toEqual([]);
+    // Once a game: the next back-down facing the same scared Federation climbs a step like any other.
+    expect(n.tally!.eased).toBe(1);
+  });
+  it('the scared step down after a back-down happens once a game; the second back-down climbs', () => {
+    const s = promised(staged(toLtl), 'LTL');
+    s.fed.step = 3;
+    s.fed.jumpiness = 0.75;
+    s.tally = { ...s.tally!, eased: 1 };
+    const n = answerPhone(c, endWeek(c, s), 'down');
+    expect(n.log[0].visible).toContain('You backed down at Lintel. They are FIGHTING.');
+    expect(n.fed.step).toBe(4);
+    expect(n.tally!.backDowns!.at(-1)).toMatchObject({ region: 'LTL', eased: false, feint: false });
     expect(brokenInvariants(n)).toEqual([]);
   });
 

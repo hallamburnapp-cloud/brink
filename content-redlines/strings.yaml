@@ -29,7 +29,7 @@ words:
 # washed red, and a hatched place carries its weeks left as pencil ticks.
 explanation:
   - "The Federation is pushing. Where it pushes, the map is hatched; where it wins, it turns red. Ticks count the weeks before it wins."
-  - "You lead the Republic. Promise to defend what you can hold, and keep your word when they test you."
+  - "You lead the Republic. Press and hold a place to promise to defend it, and keep your word when they test you."
   - "Give them a way to stop and they sign. Let them win, or back them into a corner, and it is war."
 
 # The opening's dilemma: an inherited promise against a line they drew (or against their forces' heading).
@@ -38,7 +38,7 @@ explanation:
 collision:
   alliance: "You inherited a promise to {region}. Wintermast has said: '{line}' We think they will not stand for it."
   forces: "You inherited a promise to {region}. Nothing of ours can reach it; sending {piece} there crosses a line Wintermast has drawn: '{line}'"
-  near: "You inherited a promise to {region}. {piece} can reach it, but Wintermast has said: '{line}' We think they will not stand for it."
+  near: "You inherited a promise to {region}, and {piece} can reach it, but Wintermast has said: '{line}' We think they will not stand for it."
   heading: "You inherited a promise to {region}, and their forces are heading there now."
 
 blocs:
@@ -87,6 +87,8 @@ because:
   held: "They stopped because they could not take {region}."
   wayOut: "They stopped because you gave them a way out."
   quiet: "They stopped because nothing cheap was left to take."
+  # Follows the reason when places are still hatched at the signing (SPEC-SMALL: the card names what the treaty leaves).
+  leaves: "They keep their forces at {places}."
 
 causes:
   back-down: "when your promise was tested and you backed down"
@@ -122,6 +124,8 @@ why:
   noNeed: they saw no need to talk yet
   hungry: they were hungry
   wantedToStop: they wanted to stop while they were ahead
+  noGain: they had taken nothing and saw nothing cheap left to take
+  tooSoon: they had taken a way out the week before and could not sell another at home yet
 
 # Wintermast's own short words when a way out is refused, printed on the tape after "Wintermast refuses: {term}"
 # (SPEC-SMALL: a refusal costs nothing on the bar; the tape prints their reason that week). Quoted, 34 characters.
@@ -132,6 +136,7 @@ wintermast:
   noThreat: "'{piece} was never a threat'"
   notAfraid: "'we are not afraid'"
   hungry: "'we want more than that'"
+  tooSoon: "'one thing at a time'"
 
 # The tape. One line each, 46 characters once filled (the teleprinter's width after the time stamp).
 headlines:
@@ -145,6 +150,7 @@ headlines:
   backedFar: "You backed {region} from afar · it held"
   backFailed: "Backed {region} from too far · it failed"
   backedDown: "Backed down at {region} · now {step}"
+  backedDownSame: "Backed down at {region} · still {step}"
   backedDownEased: "Backed down at {region} · they stand down"
   waited: "You asked for time at {region}"
   waitedFell: "You waited too long · {region} has fallen"
@@ -157,16 +163,21 @@ headlines:
   calmed: "{region} is calm again"
   lineCrossedAt: "{piece} at {region} crosses a line"
   lineCrossed: "Wintermast: 'our line' · now {step}"
+  lineCrossedSame: "Wintermast: 'our line' · still {step}"
   jumpy: "'Provocation' at {region} · now {step}"
   accident: "Stray shots at {region} · now {step}"
+  wary: "Their forces hold back near {region}"
+  # The bar at 100 and no signing: why, on the tape (SPEC-SMALL: they sign if nothing fell that week and no hatched place stands unanswered).
+  noSignTaken: "No treaty · they took a place this week"
+  noSignPressed: "No treaty · {n} still unanswered"
   wayOutAccepted: "Wintermast accepts: {term}"
   wayOutRefused: "Wintermast refuses: {term}"
   wayOutRefusedWhy: "Wintermast: {why}"
   blocSigned: "{bloc} signs the call for a treaty"
-  quietWeek: "A quiet week · they gained nothing"
+  quietWeek: "They took nothing this week"
   gainedWeek: "They took {n} this week"
   treatySigned: TREATY SIGNED
-  worldWar: "The eighth place is fighting · WORLD WAR"
+  worldWar: "{n} places are fighting · WORLD WAR"
   frozen: "Week ten ends · nothing was signed"
   alertOn: "You went on alert over {region}"
   alertOff: "Stood down over {region} · it was nothing"
@@ -175,6 +186,7 @@ headlines:
   trawlerDisowned: "You disowned {region} over the trawler"
   trawlerLeaned: "You leaned on {region} privately"
   summitAccepted: "You accepted the summit · now {step}"
+  summitAcceptedSame: "You accepted the summit · still {step}"
   summitRefused: "You refused the summit · an insult, they say"
   summitWaited: "You asked for terms · the offer lapsed"
   bluffHeld: "You held your ground at {region}"
@@ -238,6 +250,10 @@ refusals:
   offered-already: one way out a week
   bad-term: that is not one of the three ways out
   no-such-phone: the phone is not ringing
+  too-early: they will not talk yet
+  too-soon: they took a way out last week
+  piece-home: it is at home already
+  no-promises: no promise to drop
 
 # Why a promise is solid or dashed.
 hold:
@@ -253,6 +269,8 @@ title:
   continue: CONTINUE
   howToPlay: HOW TO PLAY
   blurb: "Ten weeks. Promise what you can hold. Keep your word."
+  # PLAY with a game in progress saved asks once, as QUIT TO TITLE does.
+  newGameSure: "Start a new game? The one in progress is lost."
 
 # {weeks} is the rules' count of weeks and {limit} the place that is world war (RULES.weeks, RULES.warLimit): the
 # calendar and the index card read the numbers from the rules, never from here.
@@ -260,8 +278,8 @@ screen:
   pressed: PRESSED
   weekOf: "of {weeks}"
   warNone: "nothing fighting · world war at {limit}"
-  warOne: "1 region fighting · world war at {limit}"
-  warMany: "{n} regions fighting · world war at {limit}"
+  warOne: "1 place fighting · world war at {limit}"
+  warMany: "{n} places fighting · world war at {limit}"
   treatySub: "the Federation's willingness to sign"
   ordersSent: ORDERS SENT
   heading: heading here
@@ -270,6 +288,7 @@ screen:
   next: NEXT
   begin: BEGIN
   upright: Turn your phone upright
+  north: "N"
 
 act:
   promise: PROMISE TO DEFEND
@@ -277,7 +296,7 @@ act:
   moveHere: MOVE HERE
   move: MOVE
   cancel: CANCEL
-  promiseCost: "costs 1 influence a week"
+  promiseCost: "costs 2 now, then 1 a week"
   promiseSolid: "solid · {hold}"
   promiseDashed: "dashed · {hold} · a dashed ring invites a test"
   moveCost: "costs 3 influence · one move a week"
@@ -292,6 +311,13 @@ act:
     drop-promise: "we withdraw one of our promises · costs {cost} influence"
     pull-back: "{piece} goes home · costs {cost} influence"
     summit: "no preconditions · costs {cost} influence"
+  # SPEC-SMALL "The three lines stay on the sheet" and "A form that will fail says so before you pay": what an order
+  # would do, said on its slip before you pay. {line} is a declared line's tape words; {region} a place.
+  moveHint: "tap a place it can reach"
+  crosses: "crosses a line · {line}"
+  leavesDashed: "leaves {region}'s ring dashed"
+  promiseCall: "their arrow points here · this will be a call"
+  promiseProvokes: "a provocation here · they may test it first"
 
 # The handwritten note on the sheet when no orders have been given this week: the world in one or two
 # sentences a watcher can read ("They are pushing the Sound and have taken Driftholm. Your promise at
@@ -303,6 +329,11 @@ note:
   takenMany: "They have taken {n} places."
   tested: "Your promise at {region} is being tested now."
   heading: "Their forces are heading for {region}."
+  # The eve of a fall: the places whose single ringed tick runs out when this week resolves.
+  fallsOne: "{region} falls this week unless something of ours reaches it."
+  fallsMany: "{places} fall this week unless something of ours reaches them."
+  worldWarEve: "That would be world war."
+  movedDashed: "{region}'s ring is dashed now: nothing of ours can reach it."
 
 # The call. `inHand` is the influence scribbled beside the three forms; `needs` ends the typed line of a form you
 # cannot afford (SPEC-SMALL: "Influence is on the call").
@@ -328,7 +359,7 @@ menu:
 
 debrief:
   title: THE DEBRIEF
-  intro: "The ten weeks again, with what they were thinking."
+  intro: "The weeks again, with what they were thinking."
   week: "Week {week}"
   youDid: what you did
   theyThought: what they were thinking
@@ -344,12 +375,13 @@ howToPlay:
   title: HOW TO PLAY
   lines:
     - "The Federation is pushing. Where it pushes, the map is hatched; where it wins, it turns red. Pencil ticks beside the hatching count the weeks before it wins."
-    - "You lead the Republic. Each week, promise to defend places (press and hold a place to promise it), move your fleet and your brigade, and send your orders."
-    - "A promise is solid where something of yours is within reach, dashed where it is not. They test promises they do not believe."
-    - "When they test a promise, the phone rings: BACK IT, BACK DOWN or WAIT. Keep your word and they believe you more. Back down and they believe you less."
-    - "The word on the stamp says how far up the ladder they are: TESTING, PUSHING, MASSING, FIGHTING, ALL-OUT. The higher they climb, the sooner a hatched place falls."
-    - "WAR counts the places fighting. Eight is world war. TREATY is their willingness to sign: up when they take nothing, down for each place taken. At 100 they sign."
-    - "Give them a way to stop (drop a promise, pull a piece back, a summit) and the treaty moves. A refusal costs you nothing but the price. Ten weeks."
+    - "Red pins and pencil arrows show where their forces head next; one may be a feint. A piece standing in a hatched place stops its clock. A ring drawn there is a provocation they may test."
+    - "You lead the Republic. Press and hold a place to promise to defend it. Tap your fleet or brigade, then a place it can reach, to move it. SEND ORDERS ends the week."
+    - "A promise is solid where something of yours is within reach, dashed where it is not. They test promises they do not believe, and the phone rings: BACK IT, BACK DOWN or WAIT."
+    - "Wintermast has declared three lines, and one is a bluff. Crossing a real one moves them up the ladder: TESTING, PUSHING, MASSING, FIGHTING, ALL-OUT. The higher they climb, the sooner places fall."
+    - "Every order costs influence. You gain 8 a week, and each promise costs 1 a week to keep. WAR counts the places fighting; eight is world war."
+    - "TREATY is their willingness to sign: up when they take nothing, down for each place taken. At 100 they sign, unless they took a place that week or a hatched place stands unanswered."
+    - "From week three you can give them a way to stop: drop a promise, pull a piece back, or a summit. A refusal costs the price and nothing else. Ten weeks."
 
 flavour:
   - "Farsouth recalls its envoy"

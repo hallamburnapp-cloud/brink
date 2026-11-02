@@ -106,7 +106,7 @@ export function stampBoxes(st: { x: number; y: number; rot: number; scale: numbe
 }
 /** The weeks-left ticks (n short strokes, or one ringed). */
 export function clockBox(x: number, y: number, n: number): Box {
-  if (n <= 1) return around(x, y, 14, 14);
+  if (n <= 1) return around(x, y, 16, 16);
   const half = ((n - 1) * TICK_GAP) / 2 + 2.2;
   return { x0: x - half, y0: y - 6, x1: x + half, y1: y + 6 };
 }
@@ -166,6 +166,8 @@ const W = {
 } as const;
 
 interface Rules {
+  /** How near its own ring's line (px either side) a mark counts as on it: the pencil's half width, and more for a counter. */
+  ownBand?: number;
   /** Another place's ring, whole: nothing of this mark inside it. */
   otherRing: number;
   /** This mark's own ring's stroke (a counter or a word does not sit on the line). */
@@ -173,18 +175,32 @@ interface Rules {
   /** Another island's disc. */
   otherIsle: number;
 }
-const RULES_BY: Record<'word' | 'piece' | 'clock', Rules> = {
+const RULES_BY: Record<'word' | 'tested' | 'piece' | 'clock', Rules> = {
   // A word may touch its own ring (it reads as the ring's), a counter may stand on its own ring's line (the reference
   // draws the fleet so); neither inside or on anyone else's.
-  word: { otherRing: 6, ownStroke: 0.15, otherIsle: 3 },
+  // A word's own ring may touch it but not run through its letters (a word tucked inside the ring sits clear of the line).
+  word: { otherRing: 6, ownStroke: 6, otherIsle: 3, ownBand: 1.8 },
+  // TESTED is written across its own place (the island, the plate under the name): its own rings may run under it.
+  tested: { otherRing: 6, ownStroke: 0.15, otherIsle: 3 },
   piece: { otherRing: 12, ownStroke: 0.3, otherIsle: 12 },
   clock: { otherRing: 6, ownStroke: 2, otherIsle: 4 },
 };
 
-/** A word written over another place's land reads as that place's: this much a px² of it (the sea, or its own plate, is free). */
-const OTHER_PLATE = 0.035;
-/** A word nearer another place's printed name than its own ring reads as that place's. */
+/**
+ * A word written over another place's land reads as that place's: this much a px² of it (the sea, or its own plate,
+ * is free). The second review found WE DEFEND written over the next place in one placement in seven; a word on
+ * another plate now costs about as much as a small clash, so the sea or the word's own plate wins when either is clear.
+ */
+const OTHER_PLATE = 0.05;
+/** A word drifting off its own ring's line: this much a px past the first few (a WE DEFEND touches its ring). */
+const OFF_RING = 8;
+/** A counter that reads as standing at another place says the wrong thing. */
 const NOT_MINE = 30;
+/**
+ * A word nearer another place's printed name than its own ring, or set as that name's caption (stacked over or under
+ * it, or on its line within a word-space), reads as that place's: refused whenever any other spot is offered.
+ */
+const READS_AS_OTHER = 900;
 
 /** How much of a box lies on land that is not `own`'s (sampled on a 4 x 3 grid), as an area. */
 function onOtherLand(geom: SheetGeom, own: RegionId, boxes: readonly Box[]): number {
@@ -227,8 +243,99 @@ function nearerAnotherName(geom: SheetGeom, own: RegionId, ring: Ellipse, boxes:
     }
   }
   if (inside && outside_) toRing = 0;
-  for (const id of Object.keys(geom.shape)) if (id !== own && gap(all, geom.labelBox[id]) + 3 < toRing) return true;
+  // Nearer another place's name than its own ring's line, or within a few px of as near: it would read as that place's.
+  for (const id of Object.keys(geom.shape)) if (id !== own && gap(all, geom.labelBox[id]) < toRing + 4) return true;
   return false;
+}
+
+/** How far a word's box stands off its own ring's line (0 when it touches or crosses it). */
+function offRing(ring: Ellipse, boxes: readonly Box[]): number {
+  let best = Infinity;
+  let inside = false;
+  let outside_ = false;
+  for (const b of boxes) {
+    for (let i = 0; i <= 4; i++) {
+      for (let j = 0; j <= 2; j++) {
+        const x = b.x0 + ((b.x1 - b.x0) * i) / 4;
+        const y = b.y0 + ((b.y1 - b.y0) * j) / 2;
+        const q = Math.hypot((x - ring.cx) / ring.rx, (y - ring.cy) / ring.ry);
+        if (q <= 1) inside = true;
+        else outside_ = true;
+        best = Math.min(best, Math.abs(q - 1) * Math.min(ring.rx, ring.ry));
+      }
+    }
+  }
+  return inside && outside_ ? 0 : best;
+}
+
+/**
+ * Whether a word is set as another place's caption: stacked over or under that place's printed name (sharing much of
+ * its width, within a line's height) or on its line within a word-space ("LANTERN KEY WE DEFEND", "WE DEFEND / LINTEL").
+ */
+function captionOfAnother(geom: SheetGeom, own: RegionId, boxes: readonly Box[]): boolean {
+  const all: Box = { x0: Math.min(...boxes.map((b) => b.x0)), y0: Math.min(...boxes.map((b) => b.y0)), x1: Math.max(...boxes.map((b) => b.x1)), y1: Math.max(...boxes.map((b) => b.y1)) };
+  for (const id of Object.keys(geom.shape)) {
+    if (id === own) continue;
+    const n = geom.labelBox[id];
+    const xo = Math.min(all.x1, n.x1) - Math.max(all.x0, n.x0);
+    const yo = Math.min(all.y1, n.y1) - Math.max(all.y0, n.y0);
+    const narrow = Math.min(all.x1 - all.x0, n.x1 - n.x0);
+    const vgap = Math.max(n.y0 - all.y1, all.y0 - n.y1);
+    const hgap = Math.max(n.x0 - all.x1, all.x0 - n.x1);
+    if (xo > narrow * 0.35 && vgap < 14) return true;
+    if (yo > 0 && hgap < 9) return true;
+  }
+  return false;
+}
+
+/**
+ * A WE DEFEND written more than LEADER_GAP off its ring is tied to it by a pencil leader (marks.ts): a spot whose leader
+ * would cross a printed name or a bloc title costs this, so the leader is never drawn through print.
+ */
+const LEADER_THROUGH_PRINT = 160;
+export const LEADER_GAP = 5;
+
+/** The leader from a word (its boxes) to a ring, as marks.ts draws it, or null when the word touches the ring. */
+export function leaderSegment(boxes: readonly Box[], ring: Ellipse): [P, P] | null {
+  if (!boxes.length) return null;
+  const b = { x0: Math.min(...boxes.map((q) => q.x0)), y0: Math.min(...boxes.map((q) => q.y0)), x1: Math.max(...boxes.map((q) => q.x1)), y1: Math.max(...boxes.map((q) => q.y1)) };
+  const dx = (b.x0 + b.x1) / 2 - ring.cx;
+  const dy = (b.y0 + b.y1) / 2 - ring.cy;
+  const q = Math.hypot(dx / ring.rx, dy / ring.ry);
+  if (q <= 1) return null;
+  const onRing: P = [ring.cx + dx / q, ring.cy + dy / q];
+  const end: P = [Math.max(b.x0 + 2, Math.min(b.x1 - 2, onRing[0])), Math.max(b.y0 + 2, Math.min(b.y1 - 2, onRing[1]))];
+  const gap = Math.hypot(end[0] - onRing[0], end[1] - onRing[1]);
+  if (gap <= LEADER_GAP) return null;
+  const ux = (onRing[0] - end[0]) / gap;
+  const uy = (onRing[1] - end[1]) / gap;
+  return [
+    [end[0] + ux * 2, end[1] + uy * 2],
+    [onRing[0] - ux * 2.5, onRing[1] - uy * 2.5],
+  ];
+}
+
+/** Whether a leader would run through a printed name or a bloc title. */
+function leaderThroughPrint(geom: SheetGeom, seg: [P, P] | null): boolean {
+  if (!seg) return false;
+  const [[x0, y0], [x1, y1]] = seg;
+  const n = Math.max(2, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 1.5));
+  const print = [...Object.values(geom.labelBox), ...geom.blocBoxes];
+  for (let i = 0; i <= n; i++) {
+    const x = x0 + ((x1 - x0) * i) / n;
+    const y = y0 + ((y1 - y0) * i) / n;
+    if (print.some((p) => x > p.x0 && x < p.x1 && y > p.y0 && y < p.y1)) return true;
+  }
+  return false;
+}
+
+/**
+ * What a hand-written word of `own` costs for reading as another place's: the two tests above. A word near either of
+ * its place's rings (the black promise ring, or the red one round it when tested) is judged by the nearer one.
+ */
+function readsAsOther(geom: SheetGeom, own: RegionId, rings: readonly Ellipse[], boxes: readonly Box[]): number {
+  if (captionOfAnother(geom, own, boxes)) return READS_AS_OTHER;
+  return rings.every((ring) => nearerAnotherName(geom, own, ring, boxes)) ? READS_AS_OTHER : 0;
 }
 
 /** How far a frame box pokes out of the paper, as an area. */
@@ -299,16 +406,35 @@ function offPlate(geom: SheetGeom, id: RegionId, b: Box): number {
 }
 
 /** The stamps, each clear of the print and of the others: placed in turn, then each again against all the rest until none moves. */
-function placeStamps(geom: SheetGeom, ids: readonly RegionId[], base: readonly Obstacle[], placed: Placed[], fixed: Obstacle[], pinned: ReadonlySet<RegionId> = new Set()): Map<RegionId, Stamp> {
+function placeStamps(
+  geom: SheetGeom,
+  ids: readonly RegionId[],
+  base: readonly Obstacle[],
+  placed: Placed[],
+  fixed: Obstacle[],
+  pinned: ReadonlySet<RegionId> = new Set(),
+  prev?: ReadonlyMap<RegionId, Stamp>,
+  incumbents: readonly Obstacle[] = [],
+): Map<RegionId, Stamp> {
   const order = [...ids].sort();
-  const spots = order.map((id) => stampSpots(geom, id, pinned.has(id)));
-  const own = spots.map((list, i) =>
-    list.map((s) => {
+  // A stamp that has slammed stays where it landed while its spot is clear (its old spot is always on offer).
+  const spots = order.map((id) => {
+    const list = stampSpots(geom, id, pinned.has(id));
+    const was = prev?.get(id);
+    return was && !list.some((s) => samePlace(s, was) && s.rot === was.rot && s.scale === was.scale) ? [...list, { ...was, rank: 1 }] : list;
+  });
+  const own = spots.map((list, i) => {
+    const id = order[i];
+    const was = prev?.get(id);
+    const match = list.map((s) => !!was && samePlace(s, was) && s.rot === was.rot && s.scale === was.scale);
+    const held = match.some(Boolean);
+    // A new stamp keeps off the marks already on the sheet (a pin, a counter, a word, ticks), so they need not move for it.
+    const others = [...base, ...incumbents];
+    return list.map((s, k) => {
       const boxes = stampBoxes(s);
-      const id = order[i];
-      return { boxes, cost: costBoxes(boxes, near(base, boxes)) + s.rank + (geom.island[id] ? 0 : boxes.reduce((n, b) => n + offPlate(geom, id, b), 0) * 6) };
-    }),
-  );
+      return { boxes, cost: costBoxes(boxes, near(others, boxes)) + s.rank + (geom.island[id] ? 0 : boxes.reduce((n, b) => n + offPlate(geom, id, b), 0) * 6) + (held && !match[k] ? STICK : 0) };
+    });
+  });
   const chosen = order.map(() => -1);
   const pick = (i: number) => {
     let best = 0;
@@ -370,9 +496,13 @@ function near(obstacles: readonly Obstacle[], boxes: readonly Box[], pad = 0): O
 const PIN_NUDGE = 10;
 const PIN_NUDGE_ISLAND = 9;
 
-function placePins(geom: SheetGeom, headings: ReadonlyArray<{ from: RegionId; to: RegionId }>, base: readonly Obstacle[], placed: Placed[], fixed: Obstacle[]): Map<string, P> {
+/** A pushpin on a bloc title hides the title's letters (Orrinth's pin on THE SOUND): refused while any other spot is clear. */
+const PIN_ON_BLOC = 10;
+
+function placePins(geom: SheetGeom, headings: ReadonlyArray<{ from: RegionId; to: RegionId }>, base: readonly Obstacle[], placed: Placed[], fixed: Obstacle[], prev?: ReadonlyMap<string, P>): Map<string, P> {
   const out = new Map<string, P>();
   const names = base.filter((o) => o.weight === W.name);
+  const forPins = (o: Obstacle): Obstacle => (o.weight === W.bloc && geom.blocBoxes.includes(o.box) ? { box: o.box, weight: o.weight * PIN_ON_BLOC } : o);
   for (const h of headings) {
     const key = `${h.from}:${h.to}`;
     if (out.has(key)) continue;
@@ -383,7 +513,7 @@ function placePins(geom: SheetGeom, headings: ReadonlyArray<{ from: RegionId; to
     const want = isle ? PIN_NUDGE_ISLAND : PIN_NUDGE;
     // An island's pin stands on it, or (when a stamp fills it) on its shore just outside.
     const dists = isle ? [0, 4, 8, 11, 14, 17, 21, 25] : [0, 4, 8, 10, 12, 16, 20, 24, 28, 32, 36];
-    const local = near([...base, ...fixed], [geom.bounds[h.from]], 20);
+    const local = near([...base, ...fixed], [geom.bounds[h.from]], 20).map(forPins);
     const tries: Array<{ p: P; cost: number }> = [];
     for (const d of dists) {
       for (let k = 0; k < 24; k++) {
@@ -397,6 +527,11 @@ function placePins(geom: SheetGeom, headings: ReadonlyArray<{ from: RegionId; to
         const rank = Math.abs(d - want) * 0.35 + (d === 0 ? 0 : turn * 9) + (isle && d > ISLE_R ? 8 : 0);
         tries.push({ p: [x, y], cost: costBoxes([pinBox(x, y)], local) + rank });
       }
+    }
+    // A pin that has dropped stays in its hole while the hole is clear.
+    const was = prev?.get(key);
+    if (was && tries.some((t) => samePlace({ x: t.p[0], y: t.p[1] }, { x: was[0], y: was[1] }))) {
+      for (const t of tries) if (!samePlace({ x: t.p[0], y: t.p[1] }, { x: was[0], y: was[1] })) t.cost += STICK;
     }
     // The arrow a pin starts should not run through a printed name either (judged for every spot that could still win).
     tries.sort((a, b) => a.cost - b.cost);
@@ -514,7 +649,7 @@ interface SheetRing {
 function ringsFor(geom: SheetGeom, owner: RegionId | null, rings: readonly SheetRing[], rules: Rules): Obstacle[] {
   const out: Obstacle[] = [];
   for (const r of rings) {
-    if (r.owner === owner) out.push(ringObstacle(r.e, rules.ownStroke, 3));
+    if (r.owner === owner) out.push(ringObstacle(r.e, rules.ownStroke, rules.ownBand ?? 3));
     else out.push(ringObstacle(r.e, rules.otherRing));
   }
   for (const id of Object.keys(geom.shape)) {
@@ -558,20 +693,22 @@ function readsAt(geom: SheetGeom, x: number, y: number): RegionId | null {
 }
 
 /** A word's spots round a ring: every 15° about it, just clear of the line and a little further out; under the ring is preferred. */
-function ringSpots(r: Ellipse, w: number, up: number, down: number): Cand[] {
+function ringSpots(r: Ellipse, w: number, up: number, down: number, inner = false): Cand[] {
   const out: Cand[] = [];
   const h = up + down;
+  // A land place's ring is offered spots inside it too (tucked under the ring's line, as the reference writes it).
+  const ds = inner ? [-22, -16, -10, -5, 0, 3, 7, 12, 18, 26] : [-5, 0, 3, 7, 12, 18, 26];
   for (let k = 0; k < 24; k++) {
     const a = (k * Math.PI) / 12;
     const ca = Math.cos(a);
     const sa = Math.sin(a);
     const support = Math.abs((w / 2) * ca) + Math.abs((h / 2) * sa);
-    for (const d of [-5, 0, 3, 7, 12, 18, 26]) {
+    for (const d of ds) {
       const cx = r.cx + (r.rx + 2.5 + support + d) * ca;
       const cy = r.cy + (r.ry + 2.5 + support + d) * sa;
       // Under the ring is preferred, then over it, then the sides; nearer the line is preferred. Each spot is also
       // offered a few px along the ring either way, so a word can slip past a corner of something.
-      const rank = 2.5 * (1 - sa) + Math.max(0, d) * 0.45 + (d < 0 ? 3 : 0);
+      const rank = 2.5 * (1 - sa) + Math.max(0, d) * 0.45 + (d < 0 ? 3 + (d < -5 ? 1 : 0) : 0);
       for (const slide of [0, -5, 5]) out.push({ x: cx - sa * slide, y: cy + ca * slide + (up - down) / 2, rot: 0, rank: rank + Math.abs(slide) * 0.15 });
     }
   }
@@ -647,14 +784,45 @@ function clockSpots(geom: SheetGeom, id: RegionId, n: number): Cand[] {
   return out;
 }
 
+/**
+ * A pencil mark on paper does not walk (the second review: a third of the playback's beats moved a WE DEFEND, a pin,
+ * a counter or a set of ticks whose own place had not changed). A mark already on the sheet keeps its spot unless the
+ * spot now costs more than this (a clash of a couple of px² does): every other spot pays it.
+ */
+export const STICK = 60;
+
+/** Where each moving mark was in the last arrangement, by its mover key. */
+type PrevSpots = Map<string, { x: number; y: number; label?: LabelAt }>;
+
+function prevSpots(prev: Arrangement | null | undefined): PrevSpots {
+  const out: PrevSpots = new Map();
+  if (!prev) return out;
+  for (const [id, d] of prev.defend) out.set(`defend:${id}`, { x: d.x, y: d.y });
+  if (prev.tested) out.set(`tested:${prev.tested.id}`, { x: prev.tested.x, y: prev.tested.y });
+  for (const [k, c] of prev.pieces) out.set(`piece:${k}`, { x: c.x, y: c.y, label: c.label });
+  for (const [id, c] of prev.clocks) out.set(`clock:${id}`, { x: c.x, y: c.y });
+  return out;
+}
+
+const samePlace = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.abs(a.x - b.x) < 1.5 && Math.abs(a.y - b.y) < 1.5;
+
+/** The stick a spot pays: STICK unless it is the mark's last spot (and only when that spot is still on offer). */
+function stickCosts<T extends { x: number; y: number; label?: LabelAt }>(cands: readonly T[], was: { x: number; y: number; label?: LabelAt } | undefined): number[] {
+  if (!was) return cands.map(() => 0);
+  const same = cands.map((c) => samePlace(c, was) && (was.label === undefined || c.label === undefined || c.label === was.label));
+  if (!same.some(Boolean)) return cands.map(() => 0);
+  return same.map((v) => (v ? 0 : STICK));
+}
+
 /** Place the moving marks together: greedy in order, then each re-placed against all the others until none moves. */
-function solve(movers: readonly Mover[], debug?: (key: string, ranked: Array<{ x: number; y: number; cost: number; rank: number }>) => void): number[] {
+function solve(movers: readonly Mover[], debug?: (key: string, ranked: Array<{ x: number; y: number; cost: number; rank: number }>) => void, prev: PrevSpots = new Map()): number[] {
   const shapes = movers.map((m) => m.cands.map((c) => m.shape(c)));
   const fixedCost = movers.map((m, i) => {
     const local = near(m.obstacles, shapes[i].flat());
+    const stick = stickCosts(m.cands, prev.get(m.key));
     return m.cands.map((c, k) => {
       const boxes = shapes[i][k];
-      return costBoxes(boxes, local) + c.rank + (m.extra ? m.extra(c, boxes) : 0);
+      return costBoxes(boxes, local) + c.rank + (m.extra ? m.extra(c, boxes) : 0) + stick[k];
     });
   });
   const chosen = movers.map(() => -1);
@@ -678,10 +846,13 @@ function solve(movers: readonly Mover[], debug?: (key: string, ranked: Array<{ x
     return best;
   };
   if (debug) movers.forEach((m, i) => debug(m.key, m.cands.map((c, k) => ({ x: c.x, y: c.y, cost: fixedCost[i][k], rank: c.rank })).sort((a, b) => a.cost - b.cost).slice(0, 8)));
-  for (let i = 0; i < movers.length; i++) chosen[i] = pick(i);
+  // The marks already on the sheet are put down first, in their old spots where those are clear; the new ones then
+  // find room round them (else a new TESTED could take the spot of a WE DEFEND that was there before it).
+  const order = movers.map((_, i) => i).sort((a, b) => Number(!prev.has(movers[a].key)) - Number(!prev.has(movers[b].key)));
+  for (const i of order) chosen[i] = pick(i);
   for (let pass = 0; pass < 6; pass++) {
     let moved = false;
-    for (let i = 0; i < movers.length; i++) {
+    for (const i of order) {
       const c = pick(i);
       if (c !== chosen[i]) {
         chosen[i] = c;
@@ -699,8 +870,11 @@ export function defendTilt(id: RegionId): number {
   return -(3 + g.random() * 3);
 }
 
-/** Everything placed for a view. */
-export function arrange(view: PaperView, geom: SheetGeom, words: MapWords, debug?: Parameters<typeof solve>[1]): Arrangement {
+/**
+ * Everything placed for a view. `prev` is the arrangement on the sheet before this one (the last beat): a mark whose
+ * spot is still clear stays where it is.
+ */
+export function arrange(view: PaperView, geom: SheetGeom, words: MapWords, debug?: Parameters<typeof solve>[1], prev?: Arrangement | null): Arrangement {
   const known = (id: RegionId) => id in geom.shape;
   const base = printed(geom);
   const placed: Placed[] = [];
@@ -710,7 +884,11 @@ export function arrange(view: PaperView, geom: SheetGeom, words: MapWords, debug
     .filter(([id, s]) => s === 'fighting' && known(id))
     .map(([id]) => id);
   const headings = view.headings.filter((h) => known(h.from) && known(h.to) && h.from !== h.to);
-  const stamps = placeStamps(geom, fighting, base, placed, fixed, new Set(headings.map((h) => h.from)));
+  // The marks on the sheet before this one that are still wanted (a pin of a heading still drawn, a counter, a word,
+  // ticks): a new stamp keeps off them a little, so they can stay where they are.
+  const still = new Set([...headings.map((h) => `pin:${h.from}:${h.to}`), ...view.pieces.map((p) => `piece:${p.kind}`), ...view.promises.map((p) => `defend:${p.region}`), ...Object.keys(view.clocks ?? {}).map((id) => `clock:${id}`)]);
+  const incumbents: Obstacle[] = (prev?.placed ?? []).filter((m) => m.kind !== 'stamp' && still.has(m.key)).map((m) => ({ box: m.box, weight: W.mark / 4 }));
+  const stamps = placeStamps(geom, fighting, base, placed, fixed, new Set(headings.map((h) => h.from)), prev?.stamps, incumbents);
 
   // A tested island that is also a foothold keeps its middle for TESTED: the pins stand off it (on its shore), so the
   // word sits across its own island instead of being pushed round the crowded ring (the recheck's Driftholm sheet).
@@ -719,7 +897,7 @@ export function arrange(view: PaperView, geom: SheetGeom, words: MapWords, debug
     ? wordBoxes(words.tested, geom.centre[testedIsle][0] + 2, geom.centre[testedIsle][1] + 5, -3, true).map((b) => ({ box: { x0: b.x0 - 4, y0: b.y0 - 7, x1: b.x1 + 4, y1: b.y1 + 7 }, weight: W.mark / 3 }))
     : [];
   fixed.push(...reserved);
-  const pins = placePins(geom, headings, base, placed, fixed);
+  const pins = placePins(geom, headings, base, placed, fixed, prev?.pins);
   for (const r of reserved) fixed.splice(fixed.indexOf(r), 1);
   const arrows = new Map<string, Arrow>();
   for (const h of headings) {
@@ -750,8 +928,13 @@ export function arrange(view: PaperView, geom: SheetGeom, words: MapWords, debug
           { x: lx + 2, y: ly - 12, rot: -3, rank: 6 },
         ];
     const box = inkBox(TEXT.handRed, words.tested, 0, 0);
-    const around_ = ringSpots(testRingGeom(geom, id), box.x1 - box.x0, -box.y0, box.y1).map((c) => ({ ...c, rot: -3, rank: c.rank + 8 }));
-    const rules = RULES_BY.word;
+    // On the call the sheet slides the tested place up under the handset and the caller card covers what lies below its
+    // red ring: on land TESTED stays inside the ring, beside it or over it, never under it (the second review found it
+    // 92% covered on the call when Rimeholt was tested).
+    const tr = testRingGeom(geom, id);
+    const below = (c: Cand) => !geom.island[id] && c.y - 2 > tr.cy + tr.ry;
+    const around_ = ringSpots(tr, box.x1 - box.x0, -box.y0, box.y1).map((c) => ({ ...c, rot: -3, rank: c.rank + 8 + (below(c) ? 120 : 0) }));
+    const rules = RULES_BY.tested;
     movers.push({
       key: `tested:${id}`,
       kind: 'word',
@@ -759,7 +942,7 @@ export function arrange(view: PaperView, geom: SheetGeom, words: MapWords, debug
       shape: (c) => wordBoxes(words.tested, c.x, c.y, c.rot, true),
       kinds: () => ['word', 'word'],
       obstacles: [...all, ...ringsFor(geom, id, rings, rules)],
-      extra: (_c, boxes) => onOtherLand(geom, id, boxes) * OTHER_PLATE + (nearerAnotherName(geom, id, testRingGeom(geom, id), boxes) ? NOT_MINE : 0),
+      extra: (_c, boxes) => onOtherLand(geom, id, boxes) * OTHER_PLATE + readsAsOther(geom, id, [testRingGeom(geom, id)], boxes) + Math.max(0, offRing(testRingGeom(geom, id), boxes) - 3) * OFF_RING,
     });
   }
 
@@ -787,7 +970,8 @@ export function arrange(view: PaperView, geom: SheetGeom, words: MapWords, debug
     const box = inkBox(TEXT.hand, words.defend, 0, 0);
     const rules = RULES_BY.word;
     const ring = ringGeom(geom, id);
-    const cands = ringSpots(ring, box.x1 - box.x0, -box.y0, box.y1).map((c) => {
+    const red = testRingGeom(geom, id);
+    const cands = ringSpots(ring, box.x1 - box.x0, -box.y0, box.y1, !geom.island[id]).map((c) => {
       const owner = nearestOwner(geom, c.x, c.y - 4, rings);
       return { ...c, rot, rank: c.rank + (owner !== null && owner !== id ? 40 : 0) };
     });
@@ -797,8 +981,15 @@ export function arrange(view: PaperView, geom: SheetGeom, words: MapWords, debug
       cands,
       shape: (c) => wordBoxes(words.defend, c.x, c.y, c.rot, false),
       kinds: () => ['word'],
-      obstacles: [...all, ...ringsFor(geom, id, rings, rules)],
-      extra: (_c, boxes) => onOtherLand(geom, id, boxes) * OTHER_PLATE + (nearerAnotherName(geom, id, ring, boxes) ? NOT_MINE : 0),
+      // The red ring a test draws round its place may run under the word (the word's paper halo breaks it), so a test
+      // does not move a WE DEFEND already on the sheet (the second review: it jumped on the test and back after it).
+      obstacles: [...all, ...ringsFor(geom, id, rings.filter((r) => !(r.owner === id && tested === id && r.e.rx === red.rx && r.e.ry === red.ry)), rules), ...(tested === id ? [ringObstacle(red, 0.3, 3)] : [])],
+      // The word touches its ring: the black one, or (when its place is tested) the red one round it.
+      extra: (_c, boxes) => {
+        const near = tested === id ? [ring, red] : [ring];
+        const lead = leaderThroughPrint(geom, leaderSegment(boxes, near[near.length - 1])) ? LEADER_THROUGH_PRINT : 0;
+        return onOtherLand(geom, id, boxes) * OTHER_PLATE + readsAsOther(geom, id, near, boxes) + Math.max(0, Math.min(...near.map((e) => offRing(e, boxes))) - 3) * OFF_RING + lead;
+      },
     });
   }
 
@@ -817,7 +1008,7 @@ export function arrange(view: PaperView, geom: SheetGeom, words: MapWords, debug
     });
   }
 
-  const chosen = solve(movers, debug);
+  const chosen = solve(movers, debug, prevSpots(prev));
   const out: Arrangement = { stamps, pins, arrows, pieces: new Map(), defend: new Map(), tested: null, clocks: new Map(), placed };
   movers.forEach((m, i) => {
     const c = m.cands[chosen[i]];

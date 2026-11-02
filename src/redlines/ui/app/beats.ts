@@ -78,9 +78,9 @@ const STEP_MAYBE_DOWN: ReadonlySet<HeadlineKind> = new Set<HeadlineKind>(['backe
  * accepted, a place taken, their summit refused in public), and the signing itself, on which whatever the movers
  * do not account for lands. A way out of yours they refuse, and the trawler, never move it.
  */
-export const BAR: ReadonlySet<HeadlineKind> = new Set<HeadlineKind>(['gainedWeek', 'quietWeek', 'blocSigned', 'wayOutAccepted', 'summitAccepted', 'summitRefused', 'treatySigned']);
+export const BAR: ReadonlySet<HeadlineKind> = new Set<HeadlineKind>(['gainedWeek', 'quietWeek', 'blocSigned', 'wayOutAccepted', 'summitAccepted', 'summitAcceptedSame', 'summitRefused', 'treatySigned']);
 /** Kinds after which the promises and the pieces are the engine's (a way out or a pull-back moved them). */
-const REDRAW: ReadonlySet<HeadlineKind> = new Set<HeadlineKind>(['wayOutAccepted', 'bluffPulled', 'unpromisedHeld', 'summitAccepted', 'unpromisedFailed']);
+const REDRAW: ReadonlySet<HeadlineKind> = new Set<HeadlineKind>(['wayOutAccepted', 'bluffPulled', 'unpromisedHeld', 'summitAccepted', 'summitAcceptedSame', 'unpromisedFailed']);
 /** Kinds after which a place is fighting on the sheet. */
 const FALLS: ReadonlySet<HeadlineKind> = new Set<HeadlineKind>(['fell', 'fellOutOfReach', 'waitedFell', 'spread']);
 
@@ -102,6 +102,7 @@ export function barMover(R: BarRules, numbers: readonly string[]): (kind: string
         return R.willBloc;
       case 'wayOutAccepted':
       case 'summitAccepted':
+      case 'summitAcceptedSame':
         return R.willWayOut;
       case 'summitRefused':
         return -R.willHumiliated;
@@ -138,16 +139,26 @@ export function countFighting(v: PaperView): number {
   return Object.values(v.states).filter((s) => s === 'fighting').length;
 }
 
-/** A pressed place keeps the clock it had (or the one it ends the week with, when it was pressed this week); any other place has none. */
-function clocksFor(v: PaperView, start: PaperView, end: PaperView): Record<RegionId, number> {
+/**
+ * The ticks a beat draws (the second review: ticks changed beside sentences that were not theirs). A pressed place
+ * keeps the clock it had at the start of the week all through the playback, the last beat included: the week's own
+ * tick, and the shorter clock of a step climbed, land when the week turns (the calendar, the pins and the ticks move
+ * together as the playback settles). A place with no clock at the start (pressed this week, or its clock paused by a
+ * piece or a solid ring) shows the clock it ends the week with only from the beat that says why: their push into it,
+ * the test of its ring, the answer that left it.
+ */
+function clocksFor(v: PaperView, start: PaperView, end: PaperView, said: ReadonlySet<RegionId>): Record<RegionId, number> {
   const out: Record<RegionId, number> = {};
   for (const [id, st] of Object.entries(v.states)) {
     if (st !== 'pressed') continue;
-    const n = start.clocks?.[id] ?? end.clocks?.[id];
+    const n = start.clocks?.[id] ?? (said.has(id) ? end.clocks?.[id] : undefined);
     if (n !== undefined) out[id] = n;
   }
   return out;
 }
+
+/** The lines after which a place's clock may first be drawn: the push that hatches it, the test or the answer that unpauses it. */
+const CLOCK_SAID: ReadonlySet<HeadlineKind> = new Set<HeadlineKind>(['pushed', 'pushedAgain', 'tested', 'backedDown', 'backedDownSame', 'backedDownEased', 'backFailed', 'waited', 'recovered']);
 
 /** The beats of one resolve (SEND ORDERS, or the phone's answer), last beat settled on the after state. */
 export function weekBeats(input: BeatInput): Beat[] {
@@ -187,6 +198,7 @@ export function weekBeats(input: BeatInput): Beat[] {
   const unaccounted = after.treaty - before.treaty - accounted;
 
   let view = cloneView(startView);
+  const said = new Set<RegionId>();
   let step: number = before.fed.step;
   let treaty = before.treaty;
   const out: Beat[] = [];
@@ -225,6 +237,7 @@ export function weekBeats(input: BeatInput): Beat[] {
         }
         break;
       case 'backedDown':
+      case 'backedDownSame':
       case 'backedDownEased':
       case 'backFailed':
         // The ring goes and the place is pressed; the "has fallen" line, when it comes, does the wash.
@@ -259,8 +272,9 @@ export function weekBeats(input: BeatInput): Beat[] {
       view.promises = endView.promises.map((p) => ({ ...p }));
       view.pieces = endView.pieces.map((p) => ({ ...p }));
       if (view.tested && !view.promises.some((p) => p.region === view.tested)) view.tested = null;
-    } else if (kind && (FALLS.has(kind as HeadlineKind) || kind === 'backedDown' || kind === 'backedDownEased' || kind === 'backFailed')) resolid();
-    view.clocks = clocksFor(view, startView, endView);
+    } else if (kind && (FALLS.has(kind as HeadlineKind) || kind === 'backedDown' || kind === 'backedDownSame' || kind === 'backedDownEased' || kind === 'backFailed')) resolid();
+    if (region && kind && CLOCK_SAID.has(kind as HeadlineKind)) said.add(region);
+    view.clocks = clocksFor(view, startView, endView, said);
 
     if (fact) {
       // The engine's numbers right after this line: the stamp and the bar move exactly where the rules moved them.
@@ -284,7 +298,8 @@ export function weekBeats(input: BeatInput): Beat[] {
 
     const last = i === matched.length - 1;
     if (last) {
-      view = cloneView(endView);
+      // The last line settles on the engine's state, but for the ticks: those turn with the week, as the playback settles.
+      view = { ...cloneView(endView), clocks: clocksFor(endView, startView, endView, said) };
       step = after.fed.step;
       treaty = after.treaty;
     }

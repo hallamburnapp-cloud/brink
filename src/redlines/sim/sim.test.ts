@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Rng } from '../../engine/rng.ts';
 import { FIXTURE_CONTENT } from '../engine/testkit.ts';
-import { BOTS, BOT_NAMES, farPromiseTarget } from './bots.ts';
+import { BOTS, BOT_NAMES, GATED_BOTS, farPromiseTarget } from './bots.ts';
 import { GATES, evaluateGates } from './gates.ts';
 import { brokenInvariants } from './invariants.ts';
 import { playGame } from './play.ts';
@@ -84,6 +84,25 @@ describe('the simulator', () => {
     const at = (far: number, sensible: number) => evaluateGates({ 'far-promise': { treaty: far, games: 100 } as never, sensible: { treaty: sensible, games: 100, frozen: 0, medianTreatyWeek: 5 } as never }).find((g) => g.id === 'G2')!.pass;
     expect(at(20, 40)).toBe(true);
     expect(at(21, 40)).toBe(false);
+  });
+  it('G11 and G12 are the second review\'s ruling: the shark at most 60%, no one-rule bot over 45%', () => {
+    expect(GATES.sharkMax).toBe(0.6);
+    expect(GATES.oneRuleMax).toBe(0.45);
+    const g = (shark: number, still: number, summit: number) =>
+      evaluateGates({ shark: { bot: 'shark', treaty: shark, games: 100 } as never, 'shark-still': { bot: 'shark-still', treaty: still, games: 100 } as never, 'summit-only': { bot: 'summit-only', treaty: summit, games: 100 } as never }).filter((x) => x.id === 'G11' || x.id === 'G12');
+    expect(g(60, 45, 10).every((x) => x.pass)).toBe(true);
+    expect(g(61, 10, 10).find((x) => x.id === 'G11')!.pass).toBe(false);
+    expect(g(50, 10, 46).find((x) => x.id === 'G12')!.pass).toBe(false);
+    expect(GATED_BOTS).toEqual(expect.arrayContaining(['shark', 'summit-only', 'shark-still']));
+  });
+  it('the shark and its one-rule cousins play every game to an ending, from what is on the sheet', () => {
+    const r = simulate(c, { games: 40, bots: ['shark', 'summit-only', 'shark-still'], prefix: 'SH' });
+    for (const name of ['shark', 'summit-only', 'shark-still'] as const) for (const x of r.games[name]!) expect(x.ending).not.toBe('STALL');
+    // The one that never moves a piece never moves one.
+    for (let i = 0; i < 10; i++) {
+      const g = playGame(c, BOTS['shark-still'], `still-${i}`);
+      expect(g.ending).not.toBe('STALL');
+    }
   });
   it('the careful hand plays every game to an ending and is reported, never gated', () => {
     const r = simulate(c, { games: 60, bots: ['careful', 'sensible'], prefix: 'K' });

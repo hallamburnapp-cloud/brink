@@ -74,3 +74,10 @@ export function actLine(c: { strings: Pick<Strings, 'acts' | 'answers' | 'pieces
     }
   }
 }
+
+/** "Saltwhite", "Saltwhite and Hearth", "Saltwhite, Hearth and Iceward" (names, so the slot filler leaves them as they are). */
+export function listNames(ids: readonly string[]): string {
+  const names = ids.map(regionName);
+  if (names.length <= 1) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}

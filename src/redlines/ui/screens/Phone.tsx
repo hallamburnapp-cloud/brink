@@ -9,7 +9,7 @@
 import type { JSX } from 'preact';
 import { CallerCard, Dim, FlipClock, Handset, Lamp, Tape, TornSlip, TypedForm } from '../paper';
 import { answer } from '../app/actions';
-import { useArmed } from '../app/armed';
+import { useArmedGate } from '../app/armed';
 import { answerCost, canAnswer, content, type Phone } from '../app/engine';
 import { busy, shown } from '../app/store';
 import { tapeFor } from '../app/tape';
@@ -31,10 +31,12 @@ export function PhoneCall(): JSX.Element | null {
   };
   const inHand = inHandLine(S, s.influence);
   const [lead, value, tail] = inHandParts(S, s.influence);
-  // A tap that lands before the forms are on the paper (a thumb still drumming to skip the playback) is not an answer.
-  const ready = useArmed(`${s.week}:${phone.round}:${phone.template}`);
+  // A tap that lands before the forms are on the paper, or while a thumb is still drumming to skip the playback,
+  // is not an answer: the forms arm once the finger has been still, and take only a press that began after that.
+  const gate = useArmedGate(`${s.week}:${phone.round}:${phone.template}`);
+  const ready = gate.armed;
   const pick = (key: 'back' | 'down' | 'wait') => {
-    if (ready) void answer(key);
+    if (gate.accepts()) void answer(key);
   };
   return (
     <>

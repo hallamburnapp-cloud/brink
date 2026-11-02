@@ -53,6 +53,7 @@ export function Room(): JSX.Element {
     tested: S.words.tested,
     fighting: S.words.fighting,
     blocs: BLOC_TITLES,
+    north: S.screen.north,
     fleet: counterLabel(S, 'fleet'),
     brigade: counterLabel(S, 'brigade'),
   };

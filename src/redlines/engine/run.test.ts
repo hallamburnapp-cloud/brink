@@ -1,15 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { answerPhone, canAnswer, canPromise, endWeek, holdable, movePiece, movesFor, newGame, offerWayOut, promise, withdraw } from './run.ts';
+import { answerPhone, canAnswer, canOfferWayOut, canPromise, endWeek, holdable, movePiece, movesFor, newGame, offerWayOut, promise, pullBackPieces, withdraw } from './run.ts';
+import { reachableWithoutLines } from './board.ts';
+import { declaredTapes } from './forecast.ts';
 import { RULES } from './rules.ts';
 import { isGameState, loadGame, saveGame } from './save.ts';
 import { FIXTURE_CONTENT, fixtureGame } from './testkit.ts';
 import type { GameState } from './types.ts';
-import { REGION_IDS, isCap, regionName } from './world.ts';
+import { REGION_IDS, isCap, pieceDistance, regionName } from './world.ts';
 import { loadRedlinesContent } from '../content/load.ts';
 import { crossesLine } from './agent.ts';
 
 /** The shipped pack's lines (the real ones the game draws from). */
-const LINES = loadRedlinesContent(`${process.cwd()}/content-redlines`).content!.lines;
+const PACK = loadRedlinesContent(`${process.cwd()}/content-redlines`).content!;
+const LINES = PACK.lines;
+const pack = PACK as unknown as typeof FIXTURE_CONTENT;
 
 const c = FIXTURE_CONTENT;
 
@@ -41,7 +45,7 @@ describe('the opening', () => {
       expect(Object.values(s.regions).every((r) => r.state === 'calm')).toBe(true);
     }
   });
-  it('inherits one or two promises and names the collision with one of them and a real line', () => {
+  it('inherits one or two promises and names the collision with one of them and one of the three declared lines', () => {
     let two = 0;
     for (let i = 0; i < 60; i++) {
       const s = newGame(c, `coll-${i}`);
@@ -52,19 +56,49 @@ describe('the opening', () => {
       expect(s.collision.length).toBeGreaterThan(20);
       const named = s.promises.some((p) => s.collision.includes(regionName(p.region)));
       expect(named).toBe(true);
-      const realTexts = s.fed.lines.filter((l) => l.real).map((l) => l.text);
-      const quotesReal = realTexts.some((t) => s.collision.includes(t));
-      expect(quotesReal || s.collision.includes('heading there')).toBe(true);
+      const texts = s.fed.lines.map((l) => l.text);
+      expect(texts.some((t) => s.collision.includes(t)) || s.collision.includes('heading there')).toBe(true);
     }
     expect(two).toBeGreaterThan(10);
   });
-  it('the collision promise is inside a real line, and when it is dashed their first push aims at it', () => {
+  it('draws the collision from any of the three lines, the bluff included, and every collision sentence is true of the sheet', () => {
+    let bluff = 0;
+    let forces = 0;
+    for (let i = 0; i < 400; i++) {
+      const s = newGame(pack, `coll-any-${i}`);
+      const line = s.fed.lines.find((l) => s.collision.includes(l.text));
+      if (!line) continue;
+      if (!line.real) bluff++;
+      const region = s.promises[0].region;
+      expect(line.regions).toContain(region);
+      // "Nothing of ours can reach it": no piece can hold it by a route that crosses no declared line (SPEC-SMALL "Out of reach means out of reach").
+      if (s.collision.includes('Nothing of ours can reach it')) {
+        forces++;
+        expect(reachableWithoutLines(s, region)).toBe(false);
+        expect(holdable(s, region).ok).toBe(false);
+        // The piece it names could get there at all (never the brigade to an island).
+        const piece = s.collision.includes('the fleet') ? 'fleet' : 'brigade';
+        expect(Number.isFinite(pieceDistance(piece, s.pieces.find((p) => p.kind === piece)!.at, region))).toBe(true);
+      }
+    }
+    // About one opening in three is about the bluff (one line of three); never none.
+    expect(bluff).toBeGreaterThan(60);
+    expect(forces).toBeGreaterThan(40);
+  });
+  it('ends the opening tape on the three declarations (the screens show its last three lines)', () => {
+    for (let i = 0; i < 60; i++) {
+      const s = newGame(pack, `tape-end-${i}`);
+      expect(s.headline.slice(-3)).toEqual(s.fed.lines.map((l) => l.tape));
+      expect(declaredTapes(s)).toEqual(s.fed.lines.map((l) => l.tape));
+    }
+  });
+  it('the collision promise is inside a declared line, and when it is dashed their first push aims at it', () => {
     let aimed = 0;
     let dashed = 0;
     for (let i = 0; i < 60; i++) {
       const s = newGame(c, `aim-${i}`);
       const first = s.promises[0].region;
-      const covering = s.fed.lines.filter((l) => l.real).map((l) => c.lines.find((d) => d.id === l.id)!);
+      const covering = s.fed.lines.map((l) => c.lines.find((d) => d.id === l.id)!);
       expect(covering.some((d) => d.regions.includes(first))).toBe(true);
       if (!holdable(s, first).ok) {
         dashed++;
@@ -189,8 +223,22 @@ describe('pieces', () => {
 });
 
 describe('a way out', () => {
+  it('says before you pay when it will fail: too early before week 3, no promise to drop, a piece already home', () => {
+    const early = fresh();
+    expect(offerWayOut(early, 'summit')).toEqual({ ok: false, reason: 'too-early' });
+    expect(canOfferWayOut(early, 'summit')).toEqual({ ok: false, reason: 'too-early' });
+    const s = { ...fresh(), week: RULES.wayOut.fromWeek };
+    expect(canOfferWayOut({ ...s, promises: [] }, 'drop-promise')).toEqual({ ok: false, reason: 'no-promises' });
+    const home = { ...s, pieces: [{ kind: 'fleet' as const, at: 'TRN' }, { kind: 'brigade' as const, at: 'EDV' }] };
+    expect(canOfferWayOut(home, 'pull-back')).toEqual({ ok: false, reason: 'piece-home' });
+    expect(offerWayOut(home, 'pull-back', 'fleet')).toEqual({ ok: false, reason: 'piece-home' });
+    expect(pullBackPieces(home)).toEqual([]);
+    expect(pullBackPieces(s)).toEqual(['fleet']);
+    expect(canOfferWayOut({ ...s, influence: 3 }, 'summit')).toEqual({ ok: false, reason: 'no-influence' });
+    expect(canOfferWayOut(s, 'summit')).toEqual({ ok: true });
+  });
   it('once a week, priced by term, the detail checked', () => {
-    const s = fresh();
+    const s = { ...fresh(), week: RULES.wayOut.fromWeek };
     expect(offerWayOut(s, 'drop-promise', 'VSY')).toEqual({ ok: false, reason: 'not-promised' });
     expect(offerWayOut(s, 'pull-back', 'VSY' as never)).toEqual({ ok: false, reason: 'no-such-piece' });
     const r = offerWayOut(s, 'summit');
@@ -199,11 +247,11 @@ describe('a way out', () => {
     expect(r.state.influence).toBe(s.influence - RULES.wayOutPrice.summit);
     expect(r.state.offer).toEqual({ term: 'summit', detail: null, price: RULES.wayOutPrice.summit });
     expect(offerWayOut(r.state, 'pull-back', 'fleet')).toEqual({ ok: false, reason: 'offered-already' });
-    const poor = { ...fresh(), influence: 5 };
+    const poor = { ...fresh(), influence: 5, week: RULES.wayOut.fromWeek };
     expect(offerWayOut(poor, 'drop-promise', poor.promises[0]?.region ?? 'VSY')).toMatchObject({ ok: false });
   });
   it('is answered at the resolve and gone by the next week', () => {
-    let s = fresh();
+    let s: GameState = { ...fresh(), week: RULES.wayOut.fromWeek };
     s.fed.headings = [{ from: 'KLM', to: 'KLP', real: true }, { from: 'GLM', to: 'DRF', real: false }];
     const r = offerWayOut(s, 'summit');
     if (!r.ok) throw new Error(r.reason);

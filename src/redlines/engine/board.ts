@@ -6,8 +6,8 @@
 import type { HiddenKind, HoldCode, RedlinesContent, HeadlineKind } from './content.ts';
 import { RULES, clamp100, clampStep, fallWeeksAt } from './rules.ts';
 import type { Act, FallCause, GameState, Piece, PieceKind, PromiseMark, RegionId, Step, Tally, WeekLog } from './types.ts';
-import { fill, type Slots } from './words.ts';
-import { REGION, isCap, mapOrder, pieceDistance, reachOf, regionName } from './world.ts';
+import { cap, fill, type Slots } from './words.ts';
+import { REGION, isCap, kindMoves, mapOrder, pieceDistance, reachOf, regionName } from './world.ts';
 
 /** A copy safe to change. */
 export function draft(s: GameState): GameState {
@@ -16,7 +16,8 @@ export function draft(s: GameState): GameState {
     regions: Object.fromEntries(Object.entries(s.regions).map(([k, v]) => [k, { ...v }])),
     promises: s.promises.map((p) => ({ ...p })),
     pieces: s.pieces.map((p) => ({ ...p })),
-    fed: { ...s.fed, lines: s.fed.lines.map((l) => ({ ...l })), headings: s.fed.headings.map((h) => ({ ...h })) },
+    fed: { ...s.fed, lines: s.fed.lines.map((l) => ({ ...l, ...(l.regions ? { regions: [...l.regions] } : {}) })), headings: s.fed.headings.map((h) => ({ ...h })) },
+    afterCall: s.afterCall ? s.afterCall.map((h) => ({ ...h })) : (s.afterCall ?? null),
     phone: s.phone ? { ...s.phone, caller: { ...s.phone.caller }, advisers: { ...s.phone.advisers }, options: s.phone.options.map((o) => ({ ...o })) } : null,
     log: s.log.map((w) => {
       const copy: WeekLog = { ...w, visible: [...w.visible], hidden: [...w.hidden], acts: [...w.acts], danger: { ...w.danger } };
@@ -31,13 +32,42 @@ export function draft(s: GameState): GameState {
     crossed: { ...s.crossed },
     turnedAway: { ...s.turnedAway },
     phonesUsed: [...s.phonesUsed],
-    tally: { ...tallyOf(s) },
+    tally: copyTally(tallyOf(s)),
   };
+}
+
+/** A tally safe to change (its lists copied too). */
+function copyTally(t: Tally): Tally {
+  const out: Tally = { ...t };
+  if (t.backDowns) out.backDowns = t.backDowns.map((b) => ({ ...b }));
+  if (t.jumpyFirst) out.jumpyFirst = { ...t.jumpyFirst };
+  return out;
 }
 
 /** A fresh tally (a new game, or an old save without one). */
 export function emptyTally(): Tally {
-  return { testsSolid: 0, testsDashed: 0, backed: 0, backedDown: 0, backedDownFirst: null, feintsBacked: 0, feintBackedFirst: null, outOfReach: 0, outOfReachFirst: null, moves: 0, idleWeeks: 0, farDrops: 0, farDropFirst: null, stoppedThenTalked: 0, jumpinessSeen: false };
+  return {
+    testsSolid: 0,
+    testsDashed: 0,
+    backed: 0,
+    backedDown: 0,
+    backedDownFirst: null,
+    feintsBacked: 0,
+    feintBackedFirst: null,
+    outOfReach: 0,
+    outOfReachFirst: null,
+    moves: 0,
+    idleWeeks: 0,
+    farDrops: 0,
+    farDropFirst: null,
+    stoppedThenTalked: 0,
+    jumpinessSeen: false,
+    backDowns: [],
+    idleAnswerable: 0,
+    jumpySteps: 0,
+    jumpyFirst: null,
+    eased: 0,
+  };
 }
 /** The game's tally, zeros when the state has none. */
 export function tallyOf(s: GameState): Tally {
@@ -88,7 +118,28 @@ export function holdInfo(s: GameState, region: RegionId): HoldInfo {
 export function isAnswered(s: GameState, region: RegionId): boolean {
   if (pieceAt(s, region)) return true;
   const pm = promiseAt(s, region);
-  return !!pm && s.pendingTest !== region && holdInfo(s, region).ok;
+  if (!pm || s.pendingTest === region || !holdInfo(s, region).ok) return false;
+  // A ring drawn on a place already under siege pauses nothing until they believe it or it is backed (a call, not a pause).
+  return !pm.provocation || !RULES.provocationRings || provocationBelieved(s, region);
+}
+
+/** A ring they believe: solid, and their belief in your promises at RULES.beliefTest or more (what BACK IT's lower price shows). */
+export function believedRing(s: GameState, region: RegionId): boolean {
+  return !!promiseAt(s, region) && holdInfo(s, region).ok && s.fed.belief >= RULES.beliefTest;
+}
+/** A provocation ring they believe (round 15: the belief it takes is RULES.provocationBelief). */
+export function provocationBelieved(s: GameState, region: RegionId): boolean {
+  return !!promiseAt(s, region) && holdInfo(s, region).ok && s.fed.belief >= RULES.provocationBelief;
+}
+
+/**
+ * The hatched places that stand unanswered: pressed, nothing of yours answering them, and pressed for at least a week
+ * already (their clock has ticked once with nothing of yours there; a place pushed this very week has not yet been
+ * yours to answer). The treaty is not signed over them, and a way out is accepted less while they stand (SPEC-SMALL
+ * "No formula wins", "The treaty is signed over a quiet map").
+ */
+export function unansweredRegions(s: GameState, reachOnly: boolean = RULES.standingReach): RegionId[] {
+  return pressedRegions(s).filter((r) => !isAnswered(s, r) && s.regions[r].pressedWeeks >= RULES.standingWeeks && (!reachOnly || s.pieces.some((p) => holdDistance(s, p, r) <= RULES.standingReachMoves)));
 }
 
 export function fightingRegions(s: GameState): RegionId[] {
@@ -130,6 +181,8 @@ export function fall(s: GameState, region: RegionId, by: FallCause): void {
   if (!rec.fellBy || by === 'spread') rec.fellBy = by;
   removePromise(s, region);
   if (s.pendingTest === region) s.pendingTest = null;
+  // SPEC-SMALL "Sentences are true": a place they took is never the treaty's "they could not take X".
+  if (s.lastBacked === region) s.lastBacked = null;
   countWar(s);
 }
 /** SPEC-SMALL ruling ("The WAR boxes always match the sheet"): the count of places fighting, kept current by every fall and recovery. */
@@ -145,7 +198,73 @@ export function countWar(s: GameState): number {
  */
 export function couldHaveReached(s: GameState, region: RegionId, weeks: number): boolean {
   if (holdInfo(s, region).ok) return true;
-  return s.pieces.some((p) => pieceDistance(p.kind, p.at, region) - 1 <= weeks + 1);
+  return s.pieces.some((p) => holdDistance(s, p, region) <= weeks + 1);
+}
+
+/**
+ * SPEC-SMALL "Out of reach means out of reach": the places a declared line not yet crossed closes to a piece of this
+ * kind (a proximity line to both, a sea line to the fleet, a missiles line to the brigade; the player is not told
+ * which line is the bluff, so all three close). A route through them is not a route.
+ */
+export function closedTo(s: GameState, kind: PieceKind): Set<RegionId> {
+  const out = new Set<RegionId>();
+  for (const l of s.fed.lines) {
+    if (s.crossed[l.id] !== undefined || !l.regions || !l.kind) continue;
+    if (l.kind === 'proximity' || (l.kind === 'sea' && kind === 'fleet') || (l.kind === 'missiles' && kind === 'brigade')) for (const r of l.regions) out.add(r);
+  }
+  return out;
+}
+
+/**
+ * The moves a piece needs to hold `region` (stand in it, or one move from it) by a route that crosses no declared line:
+ * 0 when it holds it now, Infinity when no such route exists. A piece already standing inside a line is not stopped
+ * from moving out of it.
+ */
+export function holdDistance(s: GameState, piece: Piece, region: RegionId): number {
+  const closed = closedTo(s, piece.kind);
+  const fleetAt = null;
+  const seen = new Map<RegionId, number>([[piece.at, 0]]);
+  const queue: RegionId[] = [piece.at];
+  let best = Infinity;
+  while (queue.length) {
+    const cur = queue.shift()!;
+    const d = seen.get(cur)!;
+    if (d >= best) break;
+    if (reachOf({ kind: piece.kind, at: cur }).includes(region)) {
+      best = d;
+      break;
+    }
+    for (const n of kindMoves(piece.kind, cur, fleetAt)) {
+      if (seen.has(n) || closed.has(n)) continue;
+      seen.set(n, d + 1);
+      queue.push(n);
+    }
+  }
+  return best;
+}
+/**
+ * The piece a call or a thought names for a place: the one that holds it, else the one with the fewest moves to it by
+ * its own routes (the fleet for an island the brigade can never reach), the fleet on a tie.
+ */
+export function nearestPiece(s: GameState, region: RegionId): Piece {
+  const hold = holdInfo(s, region);
+  if (hold.ok && hold.piece) return hold.piece;
+  let best = s.pieces[0];
+  let bestD = Infinity;
+  for (const p of s.pieces) {
+    const d = pieceDistance(p.kind, p.at, region);
+    if (d < bestD) {
+      best = p;
+      bestD = d;
+    }
+  }
+  if (!Number.isFinite(bestD)) return s.pieces.find((p) => p.kind === (REGION[region]?.island ? 'fleet' : 'brigade')) ?? s.pieces[0];
+  return best;
+}
+
+/** Whether a piece of yours could ever hold the place without crossing a declared line (the collision's "nothing of ours can reach it" is the opposite). */
+export function reachableWithoutLines(s: GameState, region: RegionId): boolean {
+  return s.pieces.some((p) => Number.isFinite(holdDistance(s, p, region)));
 }
 /** One more than the highest fall number so far (1 for the first fall of the game). */
 export function nextFallSeq(s: GameState): number {
@@ -253,7 +372,7 @@ export function willing(s: GameState, delta: number): void {
 export function currentLog(s: GameState): WeekLog {
   const w = s.log[s.log.length - 1];
   if (w && w.week === s.week) return w;
-  const fresh: WeekLog = { week: s.week, visible: [], hidden: [], acts: [], danger: { war: s.war, treaty: s.treaty, step: s.fed.step } };
+  const fresh: WeekLog = { week: s.week, visible: [], hidden: [], acts: [], danger: { war: s.war, treaty: s.treaty, step: s.fed.step }, beats: [] };
   s.log.push(fresh);
   return fresh;
 }
@@ -274,7 +393,8 @@ function baseSlots(c: RedlinesContent, s: GameState, slots: Slots): Slots {
  * sheet the line describes.
  */
 export function say(c: RedlinesContent, s: GameState, kind: HeadlineKind, slots: Slots = {}): string {
-  const text = fill(c.strings.headlines[kind], baseSlots(c, s, slots));
+  // A tape line starts with a capital, whatever its first slot is ("Your promise at Driftholm crosses a line").
+  const text = cap(fill(c.strings.headlines[kind], baseSlots(c, s, slots)));
   const log = currentLog(s);
   log.visible.push(text);
   const region = typeof slots.region === 'string' && REGION[slots.region] ? slots.region : null;

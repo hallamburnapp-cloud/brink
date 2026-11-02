@@ -61,8 +61,9 @@ describe('what an answer costs', () => {
   it('a test: BACK IT by hold and belief, plus the stakes; the rest free', () => {
     const s = base();
     s.promises = [{ region: 'VSY', since: 1, inherited: false }];
+    s.fed.belief = RULES.beliefTest - 1;
     expect(backCost(s, 'VSY', 1)).toBe(RULES.backCost);
-    s.fed.belief = 70;
+    s.fed.belief = RULES.beliefTest;
     expect(backCost(s, 'VSY', 1)).toBe(RULES.backCostBelieved);
     expect(backCost(s, 'LTL', 1)).toBe(RULES.backFarCost);
     expect(backCost(s, 'LTL', 3)).toBe(RULES.backFarCost + 2 * RULES.waitStakes);

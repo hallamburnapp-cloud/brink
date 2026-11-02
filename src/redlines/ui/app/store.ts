@@ -12,7 +12,7 @@ import type { TapeLine } from './words';
 
 export type Screen = 'title' | 'game';
 /** What sits over the room: the menu, the quit question, HOW TO PLAY, the way-out form. */
-export type Sheet = 'menu' | 'quit' | 'how' | 'wayout' | null;
+export type Sheet = 'menu' | 'quit' | 'how' | 'wayout' | 'newgame' | null;
 /** The explanation: three typed lines (1..3) over the live map, then the collision on a slip (4). */
 export type ExplainStep = 1 | 2 | 3 | 4 | null;
 
@@ -62,6 +62,14 @@ export const held = signal<RegionId | null>(null);
 export const armed = signal<Armed | null>(null);
 /** The counter picked up to move (tap a counter, then a place). */
 export const lifted = signal<PieceKind | null>(null);
+/**
+ * A move that needs a word before it is paid for (it crosses a declared line or leaves a ring dashed): the counter
+ * and the place tapped, with the MOVE HERE slip put down at the place (SPEC-SMALL "A form that will fail says so
+ * before you pay").
+ */
+export const moveAsk = signal<{ kind: PieceKind; region: RegionId } | null>(null);
+/** The rings this week's moves left dashed (the note says so after the move), by the week they were left dashed in. */
+export const movedDashed = signal<{ week: number; regions: RegionId[] }>({ week: 0, regions: [] });
 /** A refused order, in the content's words, on a torn slip for a moment. */
 export const refusal = signal<{ text: string; key: number } | null>(null);
 /** The way-out form's open term (which promise to drop, which piece to pull back). */

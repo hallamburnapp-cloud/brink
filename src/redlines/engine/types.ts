@@ -19,18 +19,39 @@ export interface PromiseMark {
   region: RegionId;
   since: number;
   inherited: boolean;
+  /**
+   * Beyond BUILD.md (SPEC-SMALL "No formula wins"): a ring drawn on a place already under siege is a provocation. Until
+   * they believe it, or it is backed on a call, it pauses no clock, and their next plan tests it.
+   */
+  provocation?: boolean;
 }
 /** Declared before week 1; `real` is hidden from the player until the debrief. */
 export interface Line {
   id: string;
   text: string;
   real: boolean;
+  /**
+   * Beyond BUILD.md: what crosses it and where (the pack's line, copied at the opening so the rules can read it without
+   * the pack: SPEC-SMALL "Out of reach means out of reach"), and its tape words (SPEC-SMALL "The three lines stay on the
+   * sheet"). Missing in an old save.
+   */
+  kind?: 'proximity' | 'sea' | 'alliance' | 'missiles';
+  regions?: RegionId[];
+  tape?: string;
 }
 /** Where their forces are heading next week; `real` is hidden (a feint looks the same on the map). */
 export interface Heading {
   from: RegionId;
   to: RegionId;
   real: boolean;
+  /**
+   * Beyond BUILD.md (SPEC-SMALL "The debrief reads motives when they were formed"): why they chose the place, recorded
+   * when the heading was planned (a strings.why code), and the piece the 'piece' reason names. Missing in an old save.
+   */
+  why?: string;
+  whyPiece?: PieceKind;
+  /** Beyond BUILD.md: a real push that is there only because their timetable calls for two from RULES.bothRealFromWeek (the debrief blames the timetable, not their appetite). */
+  timetable?: boolean;
 }
 export interface Federation {
   /** 0.2..0.8, hidden: how hard it pushes unguarded places. */
@@ -185,6 +206,32 @@ export interface GameState {
   feintGone?: RegionId | null;
   /** Beyond BUILD.md: what the game has shown so far, for the closing card's lessons and the dials line. Missing in an old save means zeros. */
   tally?: Tally;
+  /**
+   * Beyond BUILD.md (SPEC-SMALL "The feint keeps its mystery"): the other columns of a week whose test call is on the
+   * line. They land, and their lines print, after the answer. Null otherwise.
+   */
+  afterCall?: Heading[] | null;
+  /** Beyond BUILD.md: the week the debrief's one "they went for X" thought was written (at most one a week, across the call). */
+  headingSaid?: number;
+  /** Beyond BUILD.md: the week a way out (yours or their summit) was last accepted; at most one is accepted in any two weeks (SPEC-SMALL "No formula wins"). */
+  wayOutWeek?: number | null;
+  /**
+   * Beyond BUILD.md (integrated round 15): a believed ring their plan for this week leaves alone, chosen when the week was
+   * planned and said on this week's debrief page ("They left Vessary alone because they believed you"), not on the page of
+   * the week before, where they may well have been testing it.
+   */
+  quietRing?: RegionId | null;
+}
+/** One back-down at a test, for the closing card's lesson (which reads what became of the place). */
+export interface BackDownRec {
+  region: RegionId;
+  week: number;
+  /** The column was a feint (nothing came; the step up was for the public back-down). */
+  feint: boolean;
+  /** A scared Federation stood down too (once a game at most). */
+  eased: boolean;
+  /** Integrated round 15: they were at the top of the ladder already ("· still ALL-OUT"), so the back-down climbed no step. */
+  top?: boolean;
 }
 /** Counts kept over the game for the debrief's lessons (SPEC-SMALL rulings: "The debrief teaches"). */
 export interface Tally {
@@ -210,5 +257,14 @@ export interface Tally {
   stoppedThenTalked: number;
   /** Whether anything let jumpiness act where the player could see it (a piece on their doorstep, an alarm, a pull-back, a back-down). */
   jumpinessSeen: boolean;
+  /** Every back-down at a test, in order (the lesson reads whether the place fell and stayed fallen). Missing in an old save. */
+  backDowns?: BackDownRec[];
+  /** Weeks with no orders in which an order could have answered something (a hatched place a piece could hold after one move). */
+  idleAnswerable?: number;
+  /** Steps up their doorstep provoked (a piece of yours next to the Cap), and the first piece and place that provoked one. */
+  jumpySteps?: number;
+  jumpyFirst?: { piece: PieceKind; region: RegionId } | null;
+  /** Times a scared Federation stood down after a back-down (at most once a game: SPEC-SMALL "Backing down is never the best answer"). */
+  eased?: number;
 }
 export type Result = { ok: true; state: GameState } | { ok: false; reason: string };

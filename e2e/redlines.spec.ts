@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { loadRedlinesContent } from '../src/redlines/content/load';
-import { answerCost, answerPhone, blocOf, endWeek, HEADLINE_KINDS, loadGame, movesFor, NEIGHBOURS, newGame, offerWayOut, regionName, REGION_IDS, RULES, saveGame, weeksLeft, type GameState, type RegionId } from '../src/redlines/engine';
+import { answerCost, answerPhone, blocOf, declaredTapes, endWeek, HEADLINE_KINDS, isCap, isProvocation, linesCrossedByMove, loadGame, movesFor, NEIGHBOURS, newGame, offerWayOut, promiseWillRing, regionName, REGION_IDS, ringsLeftDashed, RULES, saveGame, weeksLeft, type GameState, type RegionId } from '../src/redlines/engine';
 import type { RedlinesHook } from '../src/redlines/ui/app/devHook';
 
 /**
@@ -66,8 +66,10 @@ const S = content.strings;
  *   ring facing a scared Federation; a summit accepted in a week a place fell), each with a place fallen a week before.
  * What those weeks say and do is computed in Node from the same pack and seed, never written out here.
  */
-const SEED_WEEK = 'E2E-WEEK-18';
-const SEED_QUIET = 'E2E-QUIET-1';
+const SEED_WEEK = 'E2E-WEEK-21';
+const SEED_QUIET = 'E2E-QUIET-15';
+/** MOVE: the brigade's move to Rimeholt crosses a declared line and leaves the inherited ring at Quillon dashed (the MOVE HERE slip). */
+const SEED_MOVE = 'FIX-25';
 /** SUMMIT: with summitPatch staged, SEND ORDERS rings their own summit offer; ACCEPT steps them down to TESTING. With a way out of yours offered first, it never rings. */
 const SEED_SUMMIT = 'E2E-SUMMIT-1';
 /** TRAWLER: with trawlerPatch staged, SEND ORDERS rings the trawler about Gullrest under a ring of yours (promised), or in the words that claim no promise (not). */
@@ -287,7 +289,14 @@ test('the title, the three lines of the explanation over the live map, the colli
   await expect(page.locator('.pp-card .ww')).toHaveText(S.words.worldWar);
   await expect(page.getByRole('img', { name: S.words.steps[0] })).toBeVisible();
   await expect(page.getByRole('button', { name: S.words.sendOrders })).toBeVisible();
-  await expect(page.locator('.pp-tape .ln')).toHaveCount(Math.min(3, s.headline.length));
+  // Wintermast's three declared lines are pinned at the tape's head, in the tape's words; the running lines under them
+  // are the opening's others (the inherited promises), never the declared lines again.
+  const pinned = declaredTapes(s);
+  expect(pinned).toHaveLength(3);
+  await expect(page.locator('.pp-tape .ln.pp-decl')).toHaveText(pinned);
+  const running = page.locator('.pp-tape .ln:not(.pp-decl)');
+  await expect(running).toHaveCount(Math.min(3, s.promises.filter((p) => p.inherited).length));
+  for (const t of await running.allTextContents()) for (const d of pinned) expect(t.toUpperCase()).not.toContain(d.toUpperCase());
   await expect(page.locator('.rl-tag')).toHaveText(S.menu.menu);
   // The explanation is remembered: a new game starts at its collision slip.
   const prefs = await page.evaluate((k) => localStorage.getItem(k), PREFS_KEY);
@@ -311,8 +320,10 @@ test('a promise by tap-and-hold (solid, WE DEFEND), a withdraw, a counter moved,
   await expect(slip(page)).toBeVisible();
   await expect(slip(page).locator('.hd span')).toContainText(regionName('VSY').toUpperCase());
   await expect(slip(page).locator('.hd span')).toContainText(S.screen.heading);
-  await expect(slip(page).locator('.c')).toContainText(S.act.promiseCost);
-  await expect(slip(page).locator('.c')).toContainText('solid');
+  await expect(slip(page).locator('.c').first()).toContainText(S.act.promiseCost);
+  await expect(slip(page).locator('.c').first()).toContainText('solid');
+  // A ring on their arrow's target says it will be a call when the engine says it will (SPEC-SMALL: a form says so before you pay).
+  await expect(slip(page).locator('.c.rl-warn', { hasText: S.act.promiseCall })).toHaveCount(promiseWillRing(s0, 'VSY') ? 1 : 0);
   await slip(page).getByRole('button', { name: S.act.promise }).tap();
   await expect(slip(page)).toHaveCount(0);
   let s = await state(page);
@@ -340,8 +351,8 @@ test('a promise by tap-and-hold (solid, WE DEFEND), a withdraw, a counter moved,
 
   // A dashed promise: Shoal is out of reach of both pieces.
   await hold(page, 'SHL');
-  await expect(slip(page).locator('.c')).toContainText('dashed');
-  await expect(slip(page).locator('.c')).toContainText(S.hold['out-of-reach']);
+  await expect(slip(page).locator('.c').first()).toContainText('dashed');
+  await expect(slip(page).locator('.c').first()).toContainText(S.hold['out-of-reach']);
   await slip(page).getByRole('button', { name: S.act.promise }).tap();
   s = await state(page);
   expect(s.promises.map((p) => p.region)).toEqual(['DRF', 'SHL']);
@@ -353,8 +364,14 @@ test('a promise by tap-and-hold (solid, WE DEFEND), a withdraw, a counter moved,
   await tapCounter(page, 'brigade');
   await expect(page.locator('.pp-piece[data-kind="brigade"]')).toHaveClass(/pp-lift/);
   await expect(slip(page).locator('.w')).toHaveText(S.act.move);
-  await expect(slip(page).locator('.c')).toHaveText(S.act.moveCost);
+  await expect(slip(page).locator('.c').first()).toHaveText(S.act.moveCost);
+  await expect(slip(page).locator('.c.rl-hint')).toHaveText(S.act.moveHint);
   const before = await state(page);
+  // The places it can reach are pencilled round on the sheet while it is lifted.
+  await expect(page.locator('.pp-l-hold [data-key^="reach:"]')).toHaveCount(movesFor(before, 'brigade').length);
+  // Nothing to warn of on this seed: the move is made at once (a move that crosses a line asks first: the next test).
+  expect(linesCrossedByMove(before, 'brigade', 'VSY')).toEqual([]);
+  expect(ringsLeftDashed(before, 'brigade', 'VSY')).toEqual([]);
   // The slip leaves every place the brigade can move to clear for the tap that moves it.
   const slipBox = await frameBox(page, '.rl-slip');
   for (const r of movesFor(before, 'brigade')) {
@@ -364,6 +381,7 @@ test('a promise by tap-and-hold (solid, WE DEFEND), a withdraw, a counter moved,
   }
   await tapPlace(page, 'VSY');
   await expect(slip(page)).toHaveCount(0);
+  await expect(page.locator('.pp-l-hold [data-key^="reach:"]')).toHaveCount(0);
   s = await state(page);
   expect(s.pieces.find((p) => p.kind === 'brigade')?.at).toBe('VSY');
   expect(s.influence).toBe(before.influence - 3);
@@ -376,13 +394,18 @@ test('a promise by tap-and-hold (solid, WE DEFEND), a withdraw, a counter moved,
   await tapPlace(page, 'QLN');
   await expect(page.locator('.rl-refusal')).toHaveText(S.refusals['moved-already']);
   expect((await state(page)).pieces.find((p) => p.kind === 'brigade')?.at).toBe('VSY');
-  // A tap on the MOVE slip itself (not its CANCEL) goes through to the sheet under it: it is not swallowed.
+  // The MOVE word itself is inert (a tap on it once fell through to a refusal): the counter stays lifted, nothing is refused.
   await page.waitForTimeout(REFUSAL_GONE);
   await tapCounter(page, 'fleet');
   await expect(page.locator('.pp-piece[data-kind="fleet"]')).toHaveClass(/pp-lift/);
-  const moveSlip = await page.locator('.rl-slip').boundingBox();
-  if (!moveSlip) throw new Error('no MOVE slip');
-  await page.touchscreen.tap(moveSlip.x + moveSlip.width * 0.4, moveSlip.y + moveSlip.height * 0.6);
+  await slip(page).locator('.w').tap();
+  await page.waitForTimeout(300);
+  await expect(page.locator('.rl-refusal')).toHaveCount(0);
+  await expect(page.locator('.pp-piece[data-kind="fleet"]')).toHaveClass(/pp-lift/);
+  // A tap on the rest of the MOVE slip (not its CANCEL) goes through to the sheet under it: it is not swallowed.
+  const costLine = await slip(page).locator('.c').first().boundingBox();
+  if (!costLine) throw new Error('no MOVE slip');
+  await page.touchscreen.tap(costLine.x + costLine.width * 0.5, costLine.y + costLine.height * 0.5);
   // Under the slip is a place the fleet cannot reach (refused in the content's words) or the open sea (put down): either way the tap was heard.
   await expect
     .poll(async () => (await page.locator('.rl-refusal').count()) > 0 || !(await page.locator('.pp-piece[data-kind="fleet"]').getAttribute('class'))?.includes('pp-lift'))
@@ -390,6 +413,70 @@ test('a promise by tap-and-hold (solid, WE DEFEND), a withdraw, a counter moved,
   // The game is saved after every order.
   const saved = await page.evaluate((k) => localStorage.getItem(k), SAVE_KEY);
   expect(saved && JSON.parse(saved).state.pieces.find((p: { kind: string }) => p.kind === 'brigade').at).toBe('VSY');
+});
+
+test('a move that crosses a declared line or leaves a ring dashed asks MOVE HERE first and says so; a plain tap on a place puts its slip down', async ({ page }) => {
+  await open(page);
+  const s0 = await seed(page, SEED_MOVE);
+  const crossed = linesCrossedByMove(s0, 'brigade', 'RMH');
+  const dashed = ringsLeftDashed(s0, 'brigade', 'RMH');
+  expect(crossed.length).toBeGreaterThan(0);
+  expect(dashed).toEqual(['QLN']);
+  // A first-time player's plain tap on a place is answered: the slip a hold would put down.
+  await tapPlace(page, 'VSY');
+  await expect(slip(page)).toBeVisible();
+  await expect(slip(page).locator('.hd span')).toContainText(regionName('VSY').toUpperCase());
+  await slip(page).getByRole('button', { name: S.act.cancel }).tap();
+  await expect(slip(page)).toHaveCount(0);
+  // The brigade to Rimeholt: nothing is paid yet; the MOVE HERE slip at Rimeholt names the line in its tape words and the ring left dashed.
+  await tapCounter(page, 'brigade');
+  await tapPlace(page, 'RMH');
+  await expect(slip(page).getByRole('button', { name: S.act.moveHere })).toBeVisible();
+  await expect(slip(page).locator('.hd span')).toContainText(regionName('RMH').toUpperCase());
+  await expect(slip(page).locator('.c.rl-warn').nth(0)).toHaveText(S.act.crosses.replace('{line}', crossed[0]));
+  await expect(slip(page).locator('.c.rl-warn').nth(1)).toHaveText(S.act.leavesDashed.replace('{region}', regionName('QLN')));
+  expect((await state(page)).pieces.find((p) => p.kind === 'brigade')?.at).toBe('EDV');
+  expect((await state(page)).influence).toBe(s0.influence);
+  // MOVE HERE: the move is made, the ring redraws dashed and the note says why, where it happened.
+  await slip(page).getByRole('button', { name: S.act.moveHere }).tap();
+  await expect(slip(page)).toHaveCount(0);
+  const s = await state(page);
+  expect(s.pieces.find((p) => p.kind === 'brigade')?.at).toBe('RMH');
+  await expect(page.locator('.pp-note')).toContainText(S.note.movedDashed.replace('{region}', regionName('QLN')));
+  await expect(page.locator('.pp-l-prom [data-key="prom:QLN:d"]')).toBeAttached();
+
+  // A ring on a place already under siege is a provocation (the engine's isProvocation): its slip says so before it is paid for.
+  const free = (r: RegionId) => s.regions[r]?.state === 'calm' && !isCap(r) && !s.pieces.some((p) => p.at === r) && !s.promises.some((p) => p.region === r) && !s.fed.headings.some((h) => h.to === r);
+  const besieged = (['MRD', 'ASK', 'BRK', 'TLM', 'VSY', 'LTL'] as RegionId[]).find(free) ?? REGION_IDS.find(free)!;
+  const s2 = await set(page, { regions: { ...s.regions, [besieged]: { state: 'pressed', pressedWeeks: 1, quietWeeks: 0 } } });
+  expect(isProvocation(s2, besieged)).toBe(true);
+  await hold(page, besieged);
+  await expect(slip(page).locator('.hd span')).toContainText(regionName(besieged).toUpperCase());
+  await expect(slip(page).locator('.c.rl-warn', { hasText: S.act.promiseProvokes })).toHaveCount(1);
+  await slip(page).getByRole('button', { name: S.act.promise }).tap();
+  await expect(slip(page)).toHaveCount(0);
+  expect((await state(page)).promises.find((p) => p.region === besieged)?.provocation).toBe(true);
+});
+
+test('a slip put down under the finger takes only a new press: the lift of a hold at the foot of the sheet neither promises nor cancels', async ({ page }) => {
+  await open(page);
+  const s0 = await seed(page, SEED_WEEK);
+  // Hearth and Floe End lie at the foot of the sheet: their slip goes over the place, under the finger that held it.
+  for (const r of ['HRT', 'FLE'] as RegionId[]) {
+    if (s0.promises.some((p) => p.region === r) || s0.regions[r].state === 'fighting') continue;
+    const { x, y } = await placeOf(page, r);
+    await hold(page, r);
+    await expect(slip(page).locator('.hd span')).toContainText(regionName(r).toUpperCase());
+    // The slip lies under the finger, and the lift took nothing from it: no promise, the slip still down.
+    expect(await page.evaluate(([px, py]) => !!document.elementFromPoint(px, py)?.closest('.rl-slip'), [x, y] as const)).toBe(true);
+    expect((await state(page)).promises.some((p) => p.region === r)).toBe(false);
+    // A new press on PROMISE TO DEFEND is an order.
+    await slip(page).getByRole('button', { name: S.act.promise }).tap();
+    await expect(slip(page)).toHaveCount(0);
+    expect((await state(page)).promises.some((p) => p.region === r)).toBe(true);
+    await page.evaluate((x) => window.__redlines!.withdraw(x), r);
+    await settle(page);
+  }
 });
 
 test('A WAY OUT: the typed form with the three terms and their prices; one offered, the slip says so; one a week', async ({ page }) => {
@@ -403,9 +490,32 @@ test('A WAY OUT: the typed form with the three terms and their prices; one offer
   await expect(form.getByRole('button', { name: new RegExp(`^${S.act.termLabels.summit}`) })).toContainText(`costs ${RULES.wayOutPrice.summit} influence`);
   await expect(form.getByRole('button', { name: new RegExp(`^${S.act.termLabels['pull-back']}`) })).toContainText(`costs ${RULES.wayOutPrice['pull-back']} influence`);
   await expect(form.getByRole('button', { name: new RegExp(`^${S.act.termLabels['drop-promise']}`) })).toContainText(`costs ${RULES.wayOutPrice['drop-promise']} influence`);
-  // PULL A PIECE BACK opens the two pieces by name; the fleet goes home.
+  // Week 1: they will not talk yet, so each term is dimmed with their reason in its own line (no price is paid for an answer fixed in advance).
+  for (const term of ['drop-promise', 'pull-back', 'summit'] as const) {
+    const b = form.getByRole('button', { name: new RegExp(`^${S.act.termLabels[term]}`) });
+    await expect(b).toBeDisabled();
+    await expect(b).toContainText(S.refusals['too-early']);
+  }
+  await form.getByRole('button', { name: S.act.cancel }).tap();
+  await expect(form).toHaveCount(0);
+  // The week after a way out was accepted (at most one in any two weeks) the refusal is fixed too: dimmed, never paid for.
+  const g = await state(page);
+  await set(page, { week: 5, wayOutWeek: 4, acts: [], moved: [], offer: null });
+  await page.getByRole('button', { name: new RegExp(`^${S.words.wayOut}`) }).tap();
+  for (const term of ['drop-promise', 'pull-back', 'summit'] as const) {
+    const b = form.getByRole('button', { name: new RegExp(`^${S.act.termLabels[term]}`) });
+    await expect(b).toBeDisabled();
+    await expect(b).toContainText(S.refusals['too-soon']);
+  }
+  await form.getByRole('button', { name: S.act.cancel }).tap();
+  await expect(form).toHaveCount(0);
+  // Week 3, the fleet out at Gullrest and the brigade at home: PULL A PIECE BACK names only the fleet; the fleet goes home.
+  await set(page, { week: 3, wayOutWeek: null, pieces: [{ kind: 'fleet', at: 'GUL' }, { kind: 'brigade', at: g.pieces.find((p) => p.kind === 'brigade')!.at }], acts: [], moved: [], offer: null });
+  await page.getByRole('button', { name: new RegExp(`^${S.words.wayOut}`) }).tap();
+  await expect(form.getByRole('button', { name: new RegExp(`^${S.act.termLabels.summit}`) })).toBeEnabled();
   await form.getByRole('button', { name: new RegExp(`^${S.act.termLabels['pull-back']}`) }).tap();
   await expect(form.getByRole('button', { name: new RegExp(`^${S.pieces.fleet.toUpperCase()}`) })).toBeVisible();
+  await expect(form.getByRole('button', { name: new RegExp(`^${S.pieces.brigade.toUpperCase()}`) })).toHaveCount(0);
   const before = await state(page);
   await form.getByRole('button', { name: new RegExp(`^${S.pieces.fleet.toUpperCase()}`) }).tap();
   await expect(form).toHaveCount(0);
@@ -450,10 +560,12 @@ test('SEND ORDERS plays the week back a beat at a time: the tape feeds, the note
   await expect(page.locator('.pp-cal .num')).toContainText('2');
   await expect(page.locator('.pp-cal .nt')).toContainText(`${S.words.influence} ${s2.influence}`);
   // The tape shows the last three lines, tagged with the week; the note now reads the world.
-  const tape = await page.locator('.pp-tape .ln').allTextContents();
+  const tape = await page.locator('.pp-tape .ln:not(.pp-decl)').allTextContents();
   expect(tape).toHaveLength(3);
   expect(tape[2].toUpperCase()).toContain(lines[lines.length - 1].toUpperCase());
   await expect(page.locator('.pp-tape .ln i').last()).toHaveText(`${S.words.week} 1`);
+  // The three declared lines stay pinned at the head all game.
+  await expect(page.locator('.pp-tape .ln.pp-decl')).toHaveText(declaredTapes(s2));
   await expect(page.locator('.pp-note')).toContainText(`They are pushing ${S.blocs[blocOf(pressed[0])]}`);
   // Week 2's headings are the new pins and arrows.
   for (const h of s2.fed.headings) await expect(page.locator(`.pp-l-head [data-key="pin:${h.from}:${h.to}"]`)).toBeAttached();
@@ -544,6 +656,28 @@ test('the phone: the inherited promise is tested, the room goes dark, forty word
   await expect(page.locator('.pp-room')).not.toHaveClass(/pp-room-call/);
   await expect(page.locator('.pp-cal .num')).toContainText('2');
   await expect(page.locator('.pp-l-hw text', { hasText: S.words.tested })).toHaveCount(0);
+});
+
+test('a thumb drumming to skip the playback never answers the call: the forms arm only once the finger is still', async ({ page }) => {
+  await open(page);
+  await seed(page, SEED_WEEK);
+  // The robustness critic's drum: SEND ORDERS, then a tap mid-screen every 150 ms (BACK DOWN sits there) for two seconds.
+  await page.getByRole('button', { name: S.words.sendOrders }).tap();
+  const f = await page.evaluate(() => window.__redlines!.frame());
+  for (let i = 0; i < 13; i++) {
+    await page.touchscreen.tap(f.left + 195 * f.scale, f.top + 640 * f.scale);
+    await page.waitForTimeout(150);
+  }
+  // The first tap skipped the playback; none of the others answered: the call is still ringing, round 1.
+  await page.waitForTimeout(1_000);
+  const s = await state(page);
+  expect(s.phase).toBe('phone');
+  expect(s.phone?.round).toBe(1);
+  expect(s.week).toBe(1);
+  // Once the finger is still the forms arm, and a fresh tap answers.
+  await page.locator('.rl-forms.rl-armed').waitFor({ state: 'attached', timeout: 5_000 });
+  const after = await answer(page, 'back');
+  expect(after.week).toBe(2);
 });
 
 test('WAIT carries the test into next week with the stakes up: the second week of this, the price up by six', async ({ page }) => {
@@ -771,7 +905,8 @@ test('cause before effect on the sheet: a back-down at a dashed ring facing a sc
   const downAt = linesA.indexOf(line('backedDownEased', { region: regionName('DRF') }));
   expect(downAt).toBeGreaterThanOrEqual(0);
   expect(linesA[downAt + 1]).toBe(line('fell', { region: regionName('DRF') }));
-  expect(linesA[downAt + 2]).toBe(line('recovered', { region: regionName('KLP') }));
+  // SPEC-SMALL "Backing down is never the best answer": the scared Federation's step down returns no place.
+  expect(linesA).not.toContain(line('recovered', { region: regionName('KLP') }));
   await set(page, backDownPatch(a));
   // The dashed ring, Kelpmouth red, one WAR box.
   await expect(page.locator('.pp-l-prom .pp-dashed')).toHaveCount(1);
@@ -794,10 +929,8 @@ test('cause before effect on the sheet: a back-down at a dashed ring facing a sc
   const fell = at(line('fell', { region: regionName('DRF') }));
   expect(fell.fighting).toEqual(['DRF', 'KLP']);
   expect(fell.war).toBe(2);
-  // Then the step down quiets the place that fell in an earlier week, never the one that fell just now.
-  const quiet = at(line('recovered', { region: regionName('KLP') }));
-  expect(quiet.fighting).toEqual(['DRF']);
-  expect(quiet.war).toBe(1);
+  // Kelpmouth, fallen a week earlier, stays fallen: the step down returns nothing.
+  expect(seenA[seenA.length - 1].fighting).toEqual(['DRF', 'KLP']);
   // Every beat: the WAR boxes are the sheet's own count, and the sheet's red stamps agree.
   for (const b of seenA) {
     expect(b.war, b.tape).toBe(b.fighting.length);
@@ -941,7 +1074,10 @@ test('the three endings through the hook: TREATY, WORLD WAR and FROZEN on their 
   await expect(page.locator('.pp-debrief .wk')).toContainText(`WEEK ${s.log[0].week}`);
   await expect(page.locator('.pp-debrief .lab').nth(0)).toHaveText(S.debrief.youDid.toUpperCase());
   await expect(page.locator('.pp-debrief .lab').nth(1)).toHaveText(S.debrief.theyThought.toUpperCase());
-  await expect(page.locator('.pp-debrief .thought').first()).toHaveText(s.log[0].hidden[0]);
+  // A lesson and the dials print once, on the closing card: a page carries the week's own thoughts only.
+  const closing = [...(s.ending!.lessons ?? []), s.ending!.dials];
+  const thoughts0 = s.log[0].hidden.filter((h) => !closing.includes(h));
+  await expect(page.locator('.pp-debrief .thought').first()).toHaveText(thoughts0[0] ?? S.debrief.nothingHidden);
   await expect(page.locator('.pp-debrief .pg')).toHaveText(`1 / ${pages}`);
   for (let i = 1; i < pages; i++) {
     await choice(page, S.debrief.next).tap();
@@ -953,9 +1089,9 @@ test('the three endings through the hook: TREATY, WORLD WAR and FROZEN on their 
   await page.getByRole('button', { name: /^CONTINUE/ }).tap();
   await expect(page.locator('.pp-debrief .pg')).toHaveText(`${pages} / ${pages}`);
   await page.waitForTimeout(500);
-  // The last page names the dials among its thoughts. BACK turns a page back (to the ending card from the first page);
-  // DONE shows the closing card with the dials in words, PLAY AGAIN and TITLE.
-  await expect(page.locator('.pp-debrief .thought').last()).toHaveText(s.ending!.dials);
+  // The last page does not repeat the closing card (the second review: the lessons printed twice). BACK turns a page back
+  // (to the ending card from the first page); DONE shows the closing card with the lessons and the dials, PLAY AGAIN and TITLE.
+  for (const t of await page.locator('.pp-debrief .thought').allTextContents()) expect(closing).not.toContain(t);
   await choice(page, S.debrief.back).tap();
   if (pages > 1) await expect(page.locator('.pp-debrief .pg')).toHaveText(`${pages - 1} / ${pages}`);
   else await expect(page.locator('.pp-typed .ti')).toHaveText(S.words.treaty);
@@ -1071,7 +1207,7 @@ test('the menu: the MENU tag, Esc and the back button open it; HOW TO PLAY; QUIT
   await expect(menu).toBeHidden();
   expect((await state(page)).week).toBe(1);
 
-  // HOW TO PLAY: the seven typed lines; DONE returns to the game.
+  // HOW TO PLAY: its typed lines; DONE goes back to the menu it was opened from.
   await page.locator('.rl-tag').tap();
   await menu.getByRole('button', { name: S.menu.howToPlay }).tap();
   const how = page.getByRole('dialog', { name: S.howToPlay.title });
@@ -1080,9 +1216,9 @@ test('the menu: the MENU tag, Esc and the back button open it; HOW TO PLAY; QUIT
   await expect(how.locator('.ln').nth(0)).toHaveText(S.howToPlay.lines[0]);
   await how.getByRole('button', { name: S.debrief.done }).tap();
   await expect(how).toHaveCount(0);
+  await expect(menu).toBeVisible();
 
   // QUIT TO TITLE asks once; NO returns to the menu; YES goes to the title, the game saved.
-  await page.locator('.rl-tag').tap();
   await menu.getByRole('button', { name: S.menu.quit }).tap();
   const ask = page.getByRole('alertdialog', { name: S.menu.quit });
   await expect(ask).toBeVisible();
@@ -1093,6 +1229,16 @@ test('the menu: the MENU tag, Esc and the back button open it; HOW TO PLAY; QUIT
   await ask.getByRole('button', { name: S.menu.yes }).tap();
   await expect(page.getByRole('button', { name: /^CONTINUE/ })).toBeVisible();
   expect(await page.evaluate(() => window.__redlines!.state())).toBeNull();
+
+  // PLAY over the game in progress asks once, as QUIT does; NO keeps the saved game.
+  await choice(page, S.title.play).tap();
+  const fresh = page.getByRole('alertdialog', { name: S.title.play });
+  await expect(fresh).toBeVisible();
+  await expect(fresh.locator('.ln')).toHaveText(S.title.newGameSure);
+  await fresh.getByRole('button', { name: S.menu.no }).tap();
+  await expect(fresh).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /^CONTINUE/ })).toBeVisible();
+  expect(JSON.parse((await page.evaluate((k) => localStorage.getItem(k), SAVE_KEY)) ?? 'null')?.state?.seed ?? SEED_WEEK).toBe(SEED_WEEK);
 
   // HOW TO PLAY from the title does not start a game.
   await choice(page, S.title.howToPlay).tap();

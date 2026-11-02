@@ -233,3 +233,23 @@ describe('the rules the beats read (one source: the engine\'s kinds and RULES)',
     expect(beats[1].view.clocks).toEqual({ KLP: 3 });
   });
 });
+
+describe('the ticks keep to their own beats (the second review: ticks changed beside sentences that were not theirs)', () => {
+  it('a paused clock shows no ticks until the line that unpauses it, and the week\'s own tick waits for the week to turn', () => {
+    const start: GameState = JSON.parse(JSON.stringify(newGame(null, 'T')));
+    // Shoal pressed with its clock paused (no ticks at the start), Lintel pressed with two weeks left.
+    start.regions.SHL = { state: 'pressed', pressedWeeks: 1, quietWeeks: 0 };
+    start.regions.LTL = { state: 'pressed', pressedWeeks: 1, quietWeeks: 0 };
+    const after: GameState = JSON.parse(JSON.stringify(start));
+    after.log = [log(1, [H.quietWeek, H.tested.replace('{region}', regionName('SHL')), H.quietWeek])];
+    const sv = { ...viewOf(start), clocks: { LTL: 2 } };
+    const ev = { ...viewOf(after), clocks: { LTL: 1, SHL: 1 } };
+    const beats = weekBeats({ before: start, after, headlines: H, idOf, holdable, startView: sv, endView: ev });
+    // Before the test line: Shoal has no ticks; Lintel keeps its two.
+    expect(beats[0].view.clocks).toEqual({ LTL: 2 });
+    // From the test of Shoal's ring: Shoal's clock shows.
+    expect(beats[1].view.clocks).toEqual({ LTL: 2, SHL: 1 });
+    // The last line still shows the week's clocks as they were; the drop to one lands as the playback settles (the week turns).
+    expect(beats[2].view.clocks).toEqual({ LTL: 2, SHL: 1 });
+  });
+});

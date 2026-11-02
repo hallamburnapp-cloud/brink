@@ -275,10 +275,25 @@ export interface TapeLine {
   key?: string;
 }
 
-/** The teleprinter tape: the last lines of headline, newest last. */
-export function Tape({ lines }: { lines: TapeLine[] }) {
+/**
+ * The teleprinter tape: the last lines of headline, newest last. `pinned` lines (Wintermast's three declared
+ * lines, SPEC-SMALL "The three lines stay on the sheet") are kept at the tape's head under a red pin, in the
+ * red ribbon, above a torn rule; the running lines feed in under them.
+ */
+export function Tape({ lines, pinned }: { lines: TapeLine[]; pinned?: readonly string[] }) {
+  const pins = pinned?.length ? pinned : null;
   return (
-    <div class="pp-obj pp-tape pp-ty" aria-live="polite">
+    <div class={`pp-obj pp-tape pp-ty${pins ? ' pp-tape-pinned' : ''}`} aria-live="polite">
+      {pins ? (
+        <div class="pp-tape-head">
+          <span class="pp-tape-pin" aria-hidden="true" />
+          {pins.map((t, i) => (
+            <div class="ln pp-decl" key={`pin:${i}:${t}`}>
+              {t}
+            </div>
+          ))}
+        </div>
+      ) : null}
       {lines.map((l, i) => (
         <div class={`ln${l.feed ? ' pp-feed' : ''}`} key={l.key ?? `${i}:${l.text}`}>
           {l.tag ? <i>{l.tag}</i> : null}

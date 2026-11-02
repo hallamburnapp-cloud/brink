@@ -8,23 +8,29 @@
  * gates at half of sensible), seller (one far dashed promise at a time, offered up as a dropped promise the
  * next week: the sold far promise the second review found) and careful (the hand the recheck's critic played:
  * withdraw the far inherited rings, walk a piece to the front, promise only what a piece holds, back every
- * solid test, take their summit; reported beside the gates, never gated). Each bot draws its own randomness
+ * solid test, take their summit; reported beside the gates, never gated), and SPEC-SMALL "No formula wins"'s three:
+ * the shark (the second review's visible-information line), summit-only and shark-still (its one-rule cousins), all
+ * gated. Each bot draws its own randomness
  * from an Rng the simulator gives it, so a game is reproducible from (seed, bot).
  */
 import type { Rng } from '../../engine/rng.ts';
 import { promiseMinded } from '../engine/agent.ts';
-import { holdInfo, isAnswered, pieceOf, pressedRegions, promiseAt } from '../engine/board.ts';
+import { holdInfo, isAnswered, pieceOf, pressedRegions, promiseAt, weeksLeft } from '../engine/board.ts';
 import type { RedlinesContent } from '../engine/content.ts';
 import { answerCost } from '../engine/phone.ts';
 import { RULES } from '../engine/rules.ts';
-import { canAnswer, canPromise, movePiece, movesFor, offerWayOut, promise, withdraw } from '../engine/run.ts';
+import { canAnswer, canOfferWayOut, canPromise, movePiece, movesFor, offerWayOut, promise, withdraw } from '../engine/run.ts';
 import type { GameState, PieceKind, RegionId, WayOutTerm } from '../engine/types.ts';
 import { CAP_REGIONS, NEAR_CAP, REGION_IDS, distance, isCap, isHome, pieceDistance, reachOf } from '../engine/world.ts';
 
-export type BotName = 'passive' | 'promise-everything' | 'far-promise' | 'sensible' | 'no-orders' | 'seller' | 'careful';
-export const BOT_NAMES: readonly BotName[] = ['passive', 'promise-everything', 'far-promise', 'sensible', 'no-orders', 'seller', 'careful'];
-/** The bots the gates judge (the careful hand is reported beside them, not gated: SPEC-SMALL "Hand play is reported"). */
-export const GATED_BOTS: readonly BotName[] = ['passive', 'promise-everything', 'far-promise', 'sensible', 'no-orders', 'seller'];
+export type BotName = 'passive' | 'promise-everything' | 'far-promise' | 'sensible' | 'no-orders' | 'seller' | 'careful' | 'shark' | 'summit-only' | 'shark-still';
+export const BOT_NAMES: readonly BotName[] = ['passive', 'promise-everything', 'far-promise', 'sensible', 'no-orders', 'seller', 'careful', 'shark', 'summit-only', 'shark-still'];
+/**
+ * The bots the gates judge (the careful hand is reported beside them, not gated: SPEC-SMALL "Hand play is reported").
+ * SPEC-SMALL "No formula wins" adds the strongest visible-information player the second review found (the shark) and
+ * its one-rule cousins (summits only; never move a piece).
+ */
+export const GATED_BOTS: readonly BotName[] = ['passive', 'promise-everything', 'far-promise', 'sensible', 'no-orders', 'seller', 'shark', 'summit-only', 'shark-still'];
 export function isBotName(x: string): x is BotName {
   return (BOT_NAMES as readonly string[]).includes(x);
 }
@@ -442,6 +448,164 @@ export const carefulBot: Bot = {
   },
 };
 
+/** Quiet last week: the WAR boxes did not rise (visible on the index card). */
+function quietLastWeek(s: GameState): boolean {
+  const last = s.log[s.log.length - 1];
+  const prev = s.log[s.log.length - 2];
+  return !!last && last.danger.war <= (prev ? prev.danger.war : 0);
+}
+
+/**
+ * The shark (SPEC-SMALL "No formula wins"; the second review's deep-strategy critic's bot, from what a player can see):
+ * drop the dashed rings a move cannot make solid; walk the pieces so every hatched, unanswered place is in reach, the
+ * shortest clock first (stepping into a hatched place answers it), never onto a declared line for that piece, never
+ * stranding a solid ring; ring the hatched places a piece holds, never an arrow's target (a ring there turns a push
+ * into a call); drop rings on calm places nobody heads for; from week 3 offer a summit after every quiet week. On the
+ * phone: back a solid test it can pay for, wait on a dashed one, take their summit, send what it has to a place nobody
+ * promised only with influence to spare. `move: false` is the one-rule cousin that never moves a piece.
+ */
+export function sharkBot(name: BotName, opts: { move?: boolean } = {}): Bot {
+  const move = opts.move ?? true;
+  return {
+    name,
+    act(c, s0) {
+      let s = s0;
+      const avoidPiece = (kind: PieceKind) => lineRegions(c, s, kind === 'fleet' ? ['proximity', 'sea'] : ['proximity', 'missiles']);
+      const avoidPromise = lineRegions(c, s, ['alliance']);
+      // 1. Dashed rings go, unless a single move can make them solid.
+      for (const p of [...s.promises]) {
+        if (p.region === s.pendingTest || holdInfo(s, p.region).ok) continue;
+        const canFix = move && (['fleet', 'brigade'] as PieceKind[]).some((k) => movesFor(s, k).some((to) => reachOf({ kind: k, at: to }).includes(p.region) && !avoidPiece(k).has(to)));
+        if (canFix) continue;
+        const r = withdraw(s, p.region);
+        if (r.ok) s = r.state;
+      }
+      // 2. Pieces: cover the hatched, unanswered places by urgency, then the arrows, then the rings.
+      const open = pressedRegions(s).filter((r) => !isAnswered(s, r));
+      const urgency = (r: RegionId) => {
+        const w = weeksLeft(s, r);
+        return w === null ? 0 : 4 - w;
+      };
+      const arrows = s.fed.headings.map((h) => h.to).filter((r) => s.regions[r].state !== 'fighting');
+      const concerns: Array<{ r: RegionId; w: number }> = [
+        ...open.map((r) => ({ r, w: 3 + 2 * urgency(r) })),
+        ...arrows.filter((r) => !open.includes(r)).map((r) => ({ r, w: 2 })),
+        ...s.promises.map((p) => ({ r: p.region, w: 2 })),
+      ];
+      for (const kind of ['fleet', 'brigade'] as PieceKind[]) {
+        if (!move || s.influence - RULES.moveCost < RULES.backCostBelieved) break;
+        const piece = pieceOf(s, kind)!;
+        const avoid = avoidPiece(kind);
+        const score = (at: RegionId) => {
+          const reach = reachOf({ kind, at });
+          let v = 0;
+          for (const { r, w } of concerns) {
+            if (at === r && s.regions[r].state === 'pressed') v += w * 1.3;
+            else if (reach.includes(r)) v += w;
+            else v += w * Math.pow(0.5, Math.max(1, pieceDistance(kind, at, r) - 1));
+          }
+          if (avoid.has(at)) v -= 4;
+          if (NEAR_CAP.includes(at)) v -= 1.5;
+          return v;
+        };
+        const here = score(piece.at);
+        let best: { to: RegionId; v: number } | null = null;
+        for (const to of movesFor(s, kind)) {
+          const would: GameState = { ...s, pieces: s.pieces.map((p) => (p.kind === kind ? { ...p, at: to } : p)) };
+          if (s.promises.some((p) => holdInfo(s, p.region).ok && !holdInfo(would, p.region).ok)) continue;
+          const v = score(to);
+          if (v > here + 0.5 && (!best || v > best.v)) best = { to, v };
+        }
+        if (best) {
+          const r = movePiece(s, kind, best.to);
+          if (r.ok) s = r.state;
+        }
+      }
+      // 3. Ring the hatched, unanswered places a piece holds (never an arrow's target that is not hatched).
+      const want = pressedRegions(s)
+        .filter((r) => !isAnswered(s, r) && !promiseAt(s, r) && holdInfo(s, r).ok && canPromise(s, r).ok && !avoidPromise.has(r))
+        .sort((a, b) => urgency(b) - urgency(a));
+      for (const r of want) {
+        if (s.promises.length >= RULES.maxPromises) {
+          const idle = s.promises.find((p) => s.regions[p.region].state === 'calm' && !arrows.includes(p.region) && p.region !== s.pendingTest);
+          if (!idle) break;
+          const w = withdraw(s, idle.region);
+          if (w.ok) s = w.state;
+          else break;
+        }
+        if (s.influence - RULES.promiseCost < 4) break;
+        const res = promise(s, r);
+        if (res.ok) s = res.state;
+      }
+      // 3b. Rings on calm places nobody heads for cost upkeep and draw tests: they go.
+      for (const p of [...s.promises]) {
+        if (p.region === s.pendingTest) continue;
+        if (s.regions[p.region].state === 'calm' && !arrows.includes(p.region)) {
+          const r = withdraw(s, p.region);
+          if (r.ok) s = r.state;
+        }
+      }
+      // 4. The summit, from week 3, after every quiet week.
+      if (!s.offer && s.fed.will < RULES.willSign && quietLastWeek(s) && canOfferWayOut(s, 'summit').ok) {
+        const wouldSign = s.fed.will + RULES.willWayOut >= RULES.willSign;
+        if (s.influence - RULES.wayOutPrice.summit >= (wouldSign ? 0 : RULES.backCostBelieved)) {
+          const r = offerWayOut(s, 'summit');
+          if (r.ok) s = r.state;
+        }
+      }
+      return s;
+    },
+    answer(_c, s) {
+      const p = s.phone!;
+      if (isTestKind(p.kind)) {
+        const solid = !!p.region && holdInfo(s, p.region).ok;
+        if (solid && canAnswer(s, 'back').ok) return 'back';
+        return p.round < 3 ? 'wait' : 'down';
+      }
+      switch (p.kind) {
+        case 'summit':
+          return canAnswer(s, 'back').ok ? 'back' : 'wait';
+        case 'false-alarm':
+        case 'trawler':
+          return 'down';
+        case 'bluff-crossed':
+          return 'back';
+        case 'fall-unpromised':
+          return canAnswer(s, 'back').ok && s.influence - answerCost(s, 'back') >= RULES.backCostBelieved ? 'back' : 'wait';
+      }
+      return 'down';
+    },
+  };
+}
+
+/**
+ * One rule only (SPEC-SMALL "No formula wins": no one-rule bot signs more than 45%): every promise withdrawn, nothing
+ * moved, BACK DOWN on every test, a summit offered every week it can be (from week 3), and their summit taken.
+ */
+export const summitOnlyBot: Bot = {
+  name: 'summit-only',
+  act(_c, s0) {
+    let s = s0;
+    for (const p of [...s.promises]) {
+      if (p.region === s.pendingTest) continue;
+      const r = withdraw(s, p.region);
+      if (r.ok) s = r.state;
+    }
+    if (!s.offer && canOfferWayOut(s, 'summit').ok) {
+      const r = offerWayOut(s, 'summit');
+      if (r.ok) s = r.state;
+    }
+    return s;
+  },
+  answer(_c, s) {
+    const p = s.phone!;
+    if (isTestKind(p.kind)) return 'down';
+    if (p.kind === 'summit') return canAnswer(s, 'back').ok ? 'back' : 'wait';
+    if (p.kind === 'bluff-crossed') return 'back';
+    return 'down';
+  },
+};
+
 export const BOTS: Record<BotName, Bot> = {
   passive: passiveBot,
   'promise-everything': promiseEverythingBot,
@@ -450,4 +614,7 @@ export const BOTS: Record<BotName, Bot> = {
   'no-orders': noOrdersBot,
   seller: sellerBot,
   careful: carefulBot,
+  shark: sharkBot('shark'),
+  'summit-only': summitOnlyBot,
+  'shark-still': sharkBot('shark-still', { move: false }),
 };

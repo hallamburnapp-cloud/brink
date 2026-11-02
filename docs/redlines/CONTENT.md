@@ -83,10 +83,15 @@ promise to Lintel against `sound-forces`: keeping the promise puts the brigade i
     hawk: "Move now. Or never promise anything again."
     dove: "Keeping it puts {piece} on their doorstep. Think how that looks from Wintermast."
     intel: "Two brigades at {region}. Lights on since dusk. Their radio went quiet at midnight."
+  againAdvisers:          # test kinds: the slips on rounds 2 and 3 (a week on: never the first round's words)
+    hawk: "A week gone and they are still there. Every day we wait, the promise is worth less."
+    dove: "Waiting has not made it smaller. Decide what we are, and say it."
+    intel: "The armour at {region} has not moved. Fuel trucks came up in the night. The lights are still on."
+  intelDoubted: "Two brigades at {region}. Their papers stopped printing our warnings last week."   # test kinds: the Director's slip while they doubt you
   options:
-    back: { label: BACK IT,   cost: "move {piece} up · costs {cost} influence · we keep our word" }
-    down: { label: BACK DOWN, cost: "protest and hold · they'll believe us less · {region} will likely fall" }
-    wait: { label: WAIT,      cost: "a week · {region} may fall · a second source may arrive" }
+    back: { label: BACK IT,   cost: "we stand by it in public · costs {cost} influence · we keep our word" }
+    down: { label: BACK DOWN, cost: "protest and hold · they'll believe us less · {region} may fall" }
+    wait: { label: WAIT,      cost: "a week · {region} may fall · we see whether the armour stays" }
 ```
 
 - `text` is the 3am call: forty words or fewer **once the slots are filled** (the validator counts `{region}`,
@@ -96,7 +101,17 @@ promise to Lintel against `sound-forces`: keeping the promise puts the brigade i
   Director's observations must be true of a real push and of a feint ("Their fuel trucks have not been found";
   "I count one regiment, their radio says two"). The Hawk is confident in every template and wrong whenever the
   push was for show; the debrief says which it was. `again` is the message when the same call comes back after
-  WAIT; on round 3 the engine replaces the WAIT cost with `words.waitIsBackDown`.
+  WAIT, and `againAdvisers` its three slips (a week on: the validator refuses a slip that repeats the first round's
+  words); on round 3 the engine replaces the WAIT cost with `words.waitIsBackDown`. `intelDoubted` is the Director's
+  slip while they do not believe your promises (belief under 40, when BACK IT costs its higher price: SPEC-SMALL
+  "Doubt is visible where it matters"); she says what she has seen of it ("Their staff have stopped asking about our
+  rings"), never what it means.
+- **Every word on a form is true of what the engine does** (SPEC-SMALL "The bluff is not a free read" and the
+  second review): BACK IT moves no piece, so no form says "move {piece} up" or "send {piece}" (`load.test.ts` refuses
+  it); BACK DOWN's place "may fall"; a WAIT says what a week shows ("we see whether the armour stays"), never "they
+  may move first" or "the stakes go up" for a call that carries none; a form that costs influence names the number
+  (`{cost}` under BACK IT, `{waitCost}` under the third word: LEAN ON THEM costs 3). The `bluff-crossed` call rings
+  for a real line crossed as well as for the bluff (no tell), so its words are true of both.
 - `options` is a map `back · down · wait`. `label` is the word on the typed form (capitals, letters only, at most
   three words); `cost` the line under it: plain words, clauses joined by ` · `, what it costs and what may follow,
   never a full stop. On a test the labels are BACK IT / BACK DOWN / WAIT (`words.back/down/wait`); an event uses
@@ -111,14 +126,15 @@ promise to Lintel against `sound-forces`: keeping the promise puts the brigade i
 | `{region}` | the place the call is about | its name |
 | `{promise}` | the promised place (on a test, the same as `{region}`) | its name |
 | `{cost}` | what BACK IT costs this round | a number; **only meaningful in `back.cost` and in `text`** (the validator refuses it under the other two words) |
-| `{piece}` | your nearest piece, **with its article** | `strings.pieces`: "the brigade", "the fleet" (so write "move {piece} up", never "the {piece}") |
+| `{waitCost}` | what the third word costs (LEAN ON THEM: 3) | a number; only in `wait.cost` |
+| `{piece}` | the piece that holds the place, else the nearest by its own routes (the fleet for an island the brigade can never reach), **with its article** | `strings.pieces`: "the brigade", "the fleet" (so write "Send {piece}", never "the {piece}") |
 | `{from}` | the other heading's place | its name |
 | `{step}` | the ladder word | TESTING ... ALL-OUT |
 | `{line}` | a declared line's whole text | up to 30 words: quote it nowhere in a call (the validator warns) |
 
 The engine's `fill` does not capitalise, so no sentence may start with `{piece}` (the validator refuses it).
 Thoughts may also use `{why}` (a reason from `strings.why`) and `{n}`; strings may use any of these plus
-`{term} {bloc} {at} {week} {fighting} {because} {cause} {a} {b} {hold} {influence} {weeks} {limit}` (`{weeks}` and `{limit}` are
+`{term} {bloc} {at} {week} {fighting} {because} {cause} {a} {b} {hold} {influence} {weeks} {limit} {places}` (`{places}` a listed phrase of names, "Shoal and Lintel"; `{weeks}` and `{limit}` are
 the rules' count of weeks and world war's place, `RULES.weeks` and `RULES.warLimit`, filled by the screens). A kind's required slot: every kind but
 `summit` names `{region}`.
 
@@ -126,10 +142,10 @@ the rules' count of weeks and world war's place, `RULES.weeks` and `RULES.warLim
 
 | kind | when it rings | back | down | wait |
 | --- | --- | --- | --- | --- |
-| `test` / `test-inherited` / `feint` | their forces have arrived at a promised place and not moved | BACK IT: move the piece up, costs `{cost}` (12; 6 once believed; 24 from too far, and it may fail; +6 a round) | BACK DOWN: belief falls, the place likely falls | WAIT: the call comes back next week, stakes up; the third WAIT is backing down |
+| `test` / `test-inherited` / `feint` | their forces have arrived at a promised place and not moved | BACK IT: stand by it in public, costs `{cost}` (12; 6 from belief 40; 24 from too far, and it may fail; +6 a round) | BACK DOWN: belief falls, the place may fall | WAIT: the call comes back next week, stakes up; the third WAIT is backing down |
 | `false-alarm` | early warning at `{region}` (PUSHING and above; never an instant loss) | go on alert: force they can see | stand down | a second source |
-| `trawler` | an allied island (`{region}`, a Scatter port) has seized a Federation trawler: one under a ring of yours when there is one (`when: promised`), else one you never promised (`when: unpromised`); the engine picks the template that fits | back the ally (the island counts as answered this week) | disown them | lean on them privately |
-| `bluff-crossed` | you crossed a declared line at `{region}` and Wintermast has said nothing | hold your ground | pull back | wait and see |
+| `trawler` | an allied island (`{region}`, a Scatter port) has seized a Federation trawler: one under a ring of yours when there is one (`when: promised`), else one you never promised (`when: unpromised`); the engine picks the template that fits | back the ally (the island counts as answered this week) | disown them | lean on them privately (costs `{waitCost}`) |
+| `bluff-crossed` | you crossed a declared line at `{region}`, the bluff or a real one (a real one also climbs a step on the tape; the call itself is no tell) | hold your ground | pull back | wait and see |
 | `summit` | Wintermast proposes a summit (never in a week you have a way out on the table; two templates, so the second offer reads differently) | accept (costs influence; counts as a way out) | refuse (−10 on the bar: their public offer refused in public) | ask for terms (the offer lapses) |
 | `fall-unpromised` | a place nobody promised will fall this week and `{piece}` could reach it | send what you have | let it go | protest |
 
@@ -141,16 +157,24 @@ the rules' count of weeks and world war's place, `RULES.weeks` and `RULES.warLim
     - "They were bluffing at {region}. Backing it would have cost nothing."
 ```
 
-One entry per hidden event kind (all 39 of `HIDDEN_KINDS` are required), variants to pick from (the engine picks
+One entry per hidden event kind (all 45 of `HIDDEN_KINDS` are required), variants to pick from (the engine picks
 by seed), each in the past tense, addressed to the player, 30 words or fewer. The engine writes one filled thought
 into that week's `WeekLog.hidden` for every hidden decision it makes; the ending screen replays them under the
 player's own orders (`strings.acts`). The kinds: `heading feint bothReal notTested feintBacked feintBackedDown
 feintWaited realBacked realBackFailed realBackedDown realBackedDownEased realWaited waitedFell lineReal lineBluff
 fall fallOutOfReach spread wayOutAccepted wayOutRefused accident jumpy jumpyQuiet believed doubted falseAlarm
-trawler summit unpromised bluffPhone`, and the closing card's lessons `lessonFeintBacked lessonBackedDown
-lessonFarDrop lessonNoMoves lessonNoOrders lessonDashedTested lessonOutOfReach lessonKeptWord
-lessonStoppedThenTalked` (the engine writes up to three a game, from what happened, as the last hidden lines of
-the final week before the dials and as `Ending.lessons`). SPEC-SMALL "The debrief teaches": `heading` is written
+trawler summit unpromised bluffPhone bothRealTimetable jumpyWary`, and the closing card's lessons `lessonFeintBacked
+lessonBackedDown lessonBackedDownHeld lessonBackedDownFeint lessonBackedDownEased lessonJumpy lessonFarDrop
+lessonNoMoves lessonNoOrders lessonDashedTested lessonOutOfReach lessonKeptWord lessonStoppedThenTalked` (the engine
+draws up to three a game, from what happened, as `Ending.lessons`; SPEC-SMALL "The debrief reads motives when they
+were formed": a lesson prints once, on the closing card, never on a week's page). Each lesson is true of the game by
+construction: `lessonBackedDown` ("the place fell anyway") only for a place that fell after the back-down and stayed
+fallen; `lessonBackedDownHeld` (a step climbed, no fall claimed), `lessonBackedDownFeint` (a column only for show) and
+`lessonBackedDownEased` (a scared Federation stood down too, once) otherwise; `lessonNoOrders` only when a place a
+piece could have reached fell unanswered, counting the idle weeks in which a piece could have answered a hatched
+place with one move; `lessonJumpy` names the piece whose doorstep climbed the ladder. `bothReal` is said of two real
+arrows before the timetable ("neither column was for show"), `bothRealTimetable` from it ("by their timetable"), and
+`heading`'s reason is the one recorded when the heading was planned. SPEC-SMALL "The debrief teaches": `heading` is written
 at most once a week and only for a test or a new front; `feint` only when the player acted on the feint's place;
 the answer kinds (`feintBacked` ...) say "they were bluffing" themselves. `{why}` is filled from `strings.why`
 ("They went for Lintel because nobody had promised it."); the dials are named by `strings.dials` ("They were {a}
@@ -167,17 +191,17 @@ sections from `title` on are the screens'. Every section of `strings.yaml` and w
 | --- | --- | --- |
 | `words` | WE DEFEND, TESTED, FIGHTING, BACK IT, BACK DOWN, WAIT, `steps` (TESTING PUSHING MASSING FIGHTING ALL-OUT), `waitIsBackDown`, SEND ORDERS, A WAY OUT, THEY ARE, WAR, TREATY, WORLD WAR, FROZEN, WEEK, influence | engine, map, screens |
 | `explanation` | the three lines of SPEC-SMALL "The game in three sentences"; the first matches the sheet (SPEC-SMALL ruling): "The Federation is pushing. Where it pushes, the map is hatched; where it wins, it turns red." and the clock: "Ticks count the weeks before it wins." (HOW TO PLAY's first line says the same) | screens |
-| `collision` | the opening's dilemma by what collides: `alliance`, `forces`, `near` (slots `{region}`, `{line}`, `{piece}`), `heading` | engine (`GameState.collision`) |
+| `collision` | the opening's dilemma by what collides: `alliance`, `forces`, `near` (slots `{region}`, `{line}`, `{piece}`), `heading`; drawn from any of the three lines, the bluff included, and each is true of the sheet (`forces`'s "Nothing of ours can reach it" only when no piece can hold it by a route that crosses no declared line) | engine (`GameState.collision`) |
 | `blocs`, `pieces`, `terms`, `numbers`, `counts` | "the Sound"; "the brigade", "your alert", "your promise"; the way-out nouns; number words 0..12; "one place still fighting" | engine |
-| `endings`, `because`, `causes` | the two typed lines of each ending (`{week}`, `{fighting}`, `{because}`, `{region}`, `{cause}`); the treaty's reasons; the world war's "when ..." clauses | engine (`Ending.lines`) |
+| `endings`, `because`, `causes` | the two typed lines of each ending (`{week}`, `{fighting}`, `{because}`, `{region}`, `{cause}`); the treaty's reasons, and `because.leaves` ("They keep their forces at {places}.") after them when places are still hatched at the signing; the world war's "when ..." clauses | engine (`Ending.lines`) |
 | `dials` | the dial words, "They were {a} and {b}." and `lineOne` for a game that never showed jumpiness | engine (`Ending.dials`) |
-| `why` | the 16 reasons that fill `{why}` in the debrief | engine |
-| `wintermast` | Wintermast's own short quoted words for a refused way out (`noNeed gaining indifferent noThreat notAfraid hungry`), 34 characters once filled: the tape's "Wintermast: 'nothing to talk about yet'" after "Wintermast refuses: a summit" | engine (`headlines.wayOutRefusedWhy`) |
-| `headlines` | the 49 tape lines the engine writes, 46 characters once filled with the widest values each slot takes (the spread with every real pair of neighbours; `load.test.ts` "keeps every line the teleprinter prints within its width"). Every mover of the ladder says "· now {step}" (`lineCrossed`, `takenStepUp`, `jumpy`, `accident`, `backedDown`, `summitAccepted`); `lineCrossedAt` (what crossed a line and where), `fellOutOfReach` ("{region} out of reach · still {step}"), `takenStepUp` with `{n}` (the place, or "two places"), `feintGone`, `pushedAgain`, `wayOutRefusedWhy`, `backedDownEased`; `blocSigned` says what they sign ("{bloc} signs the call for a treaty"); an answer prints as the act it was on the tape too (PROTEST about a place nobody promised is `unpromisedProtested`, "You protested at {region}", not `unpromisedLet`'s "You let {region} go"); `frozen` "Week ten ends · nothing was signed". Round 13's `heldWeek` is gone with its rule (the +5 is paid whenever nothing was taken). The engine writes them cause before effect (`ENGINE.md` "A week") | engine (`headline`, `WeekLog.visible`, `WeekLog.beats`) |
+| `why` | the 18 reasons that fill `{why}` in the debrief (`noGain` for a summit over nothing taken, never "while they were ahead"; `tooSoon` for a way out the week after one was accepted) | engine |
+| `wintermast` | Wintermast's own short quoted words for a refused way out (`noNeed gaining indifferent noThreat notAfraid hungry tooSoon`), 34 characters once filled: the tape's "Wintermast: 'nothing to talk about yet'" after "Wintermast refuses: a summit" | engine (`headlines.wayOutRefusedWhy`) |
+| `headlines` | the 55 tape lines the engine writes (the engine starts each with a capital, whatever its first slot), 46 characters once filled with the widest values each slot takes (the spread with every real pair of neighbours; `load.test.ts` "keeps every line the teleprinter prints within its width"). Every mover of the ladder says "· now {step}" (`lineCrossed`, `takenStepUp`, `jumpy`, `accident`, `backedDown`, `summitAccepted`) only when the step changed: `lineCrossedSame`, `backedDownSame`, `summitAcceptedSame` say "· still {step}" (a jumpy step or an accident at ALL-OUT says nothing); `quietWeek` is "They took nothing this week" (never "a quiet week" beside their pushes); `worldWar` counts the places ("{n} places are fighting · WORLD WAR"); `wary` (a scared Federation holds a push back near your piece on its doorstep); `noSignTaken` / `noSignPressed` say why a bar at 100 did not sign; `lineCrossedAt` (what crossed a line and where), `fellOutOfReach` ("{region} out of reach · still {step}"), `takenStepUp` with `{n}` (the place, or "two places"), `feintGone`, `pushedAgain`, `wayOutRefusedWhy`, `backedDownEased`; `blocSigned` says what they sign ("{bloc} signs the call for a treaty"); an answer prints as the act it was on the tape too (PROTEST about a place nobody promised is `unpromisedProtested`, "You protested at {region}", not `unpromisedLet`'s "You let {region} go"); `frozen` "Week ten ends · nothing was signed". Round 13's `heldWeek` is gone with its rule (the +5 is paid whenever nothing was taken). The engine writes them cause before effect (`ENGINE.md` "A week") | engine (`headline`, `WeekLog.visible`, `WeekLog.beats`) |
 | `acts` | the player's orders as the log writes them | engine (`WeekLog.acts`, `actLine`) |
 | `answers` | the player's answer on the phone as the act it was, by the call (`test` for the three test kinds, `false-alarm`, `trawler`, `bluff-crossed`, `summit`, `fall-unpromised`) and the key (`back`, `down`, `wait`): "You backed your promise at {region}.", "You protested at {region}.", "You accepted their summit." (SPEC-SMALL: "What you did is printed as what you did"; never the form's forecast, which the validator refuses: no "will", "may", "likely"). A third WAIT on a test prints `test.down` | engine (`WeekLog.acts`, `actLine`), screens (the note) |
-| `refusals`, `hold` | the words for a refused order and for a solid or dashed ring (the engine returns codes) | screens |
-| `title`, `screen`, `act`, `note`, `phone`, `menu`, `debrief`, `howToPlay`, `flavour` | PLAY / CONTINUE / HOW TO PLAY and "Ten weeks. …", the calendar's "of {weeks}" and the WAR note's "world war at {limit}" (the numbers come from `RULES`, never from the pack), the notice over a phone held sideways (`screen.upright`, "Turn your phone upright"), PROMISE TO DEFEND / WITHDRAW / MOVE HERE, the way-out form, the handwritten situation note ("They are pushing {bloc}." "They have taken {region}." "Your promise at {region} is being tested now."), INCOMING and the call's influence (`phone.inHand` "{influence} influence in hand"; `phone.needs`, the end of a form you cannot afford, "needs {cost} · you have {influence}"), the menu, THE DEBRIEF's words ("The ten weeks again, …"), the seven rules a player can read, in-world headlines for a thin week | screens |
+| `refusals`, `hold` | the words for a refused order and for a solid or dashed ring (the engine returns codes; `too-early`, `too-soon` (the week after a way out was accepted: "they took a way out last week"), `piece-home`, `no-promises` are a way out that would fail, dimmed before you pay) | screens |
+| `title`, `screen`, `act`, `note`, `phone`, `menu`, `debrief`, `howToPlay`, `flavour` | PLAY / CONTINUE / HOW TO PLAY and "Ten weeks. …", the one question PLAY asks over a game in progress (`title.newGameSure`, answered with the menu's YES and NO), the calendar's "of {weeks}" and the WAR note's "world war at {limit}" (the numbers come from `RULES`, never from the pack), the notice over a phone held sideways (`screen.upright`, "Turn your phone upright"), PROMISE TO DEFEND / WITHDRAW / MOVE HERE, the way-out form, the handwritten situation note ("They are pushing {bloc}." "They have taken {region}." "Your promise at {region} is being tested now."), INCOMING and the call's influence (`phone.inHand` "{influence} influence in hand"; `phone.needs`, the end of a form you cannot afford, "needs {cost} · you have {influence}"), the menu, THE DEBRIEF's words ("The weeks again, …": a game can end before week 10), the eight rules a player can read (the pins and arrows, the clock and what stops it, how to promise and to move, solid and dashed, the three lines, influence, the treaty and when it is not signed, the ways out from week three), in-world headlines for a thin week. The second review's words for the slips and the note (the screens wire them): `act.moveHint`, `act.crosses` ({line}: a declared line's tape words), `act.leavesDashed`, `act.promiseCall`, `act.promiseProvokes` ("a provocation here · they may test it first", on the slip of a hatched place nothing of ours stands in: the engine's `isProvocation`); `note.fallsOne` / `fallsMany` / `worldWarEve` (the eve of a fall, the engine's `fallsThisWeek` and `fallsEndTheGame`), `note.movedDashed`; `screen.north` (the compass letter); `screen.warOne` / `warMany` say "places" | screens |
 
 The validator holds the fixed words to the spec: the ladder words, WE DEFEND, WORLD WAR, SEND ORDERS, BACK IT /
 BACK DOWN / WAIT, PROMISE TO DEFEND, the slots each sentence needs, thirteen number words, tape lines within 46
@@ -185,9 +209,9 @@ characters once filled, capitals on every word that sits on a form or a stamp, a
 
 **Number words follow the rules.** `load.test.ts` "binds every number word about a rule to RULES": every
 sentence that names a rule's number ("Ten weeks", "Week ten ends", "Eight is world
-war", "The eighth place is fighting", "At 100 they sign", "three promises is the most", "costs 1 influence a week",
-"costs 3 influence · one move a week") is read back and compared with `RULES` (`weeks`, `warLimit`, `willSign`,
-`maxPromises`, `upkeep`, `moveCost`), and any other number word in `strings.yaml` must be bound or listed as free
+war", "At 100 they sign", "three promises is the most", "costs 2 now, then 1 a week", "You gain 8 a week",
+"costs 3 influence · one move a week", "From week three") is read back and compared with `RULES` (`weeks`, `warLimit`,
+`willSign`, `maxPromises`, `promiseCost`, `upkeep`, `income`, `moveCost`, `wayOut.fromWeek`), and any other number word in `strings.yaml` must be bound or listed as free
 (a count, the call's second and third week, a flavour line). A rule change fails the test until the words follow.
 The two numbers the screens print beside a rule are not words at all: the calendar's `screen.weekOf` is "of {weeks}"
 and the WAR note's `screen.warNone` / `warOne` / `warMany` end "world war at {limit}", filled from `RULES.weeks` and
@@ -254,7 +278,8 @@ DOWN / WAIT, a why or cause clause that does not continue its sentence. The ship
 - Node (engine tests, the simulator, tools): `loadRedlinesContent(root?)` from `src/redlines/content/load.ts`
   returns `{ content: RedlinesPack | null, issues }` (`content` is null only when strings.yaml did not compile).
 - Types: `src/redlines/content/types.ts` re-exports the engine's (`RedlinesContent`, `Strings`, `PhoneTemplate`,
-  `LineDef`, `HiddenKind` ...) and adds `RedlinesPack`, `PackLine` (`+ tape`), `PackPhone` (`+ again?`),
+  `LineDef`, `HiddenKind` ...) and adds `RedlinesPack`, `PackLine` (`+ tape`), `PackPhone` (`+ again?`; the engine's
+  `PhoneTemplate` carries `againAdvisers?` and `intelDoubted?`),
   `ScreenStrings` / `PackStrings` (the screens' sections) and `ContentIssue`. The compiler asserts at compile time
   that the strings schema and the engine's `Strings` agree, so a change to `content.ts` fails `tsc` here until the
   schema and the YAML follow.
@@ -276,6 +301,6 @@ DOWN / WAIT, a why or cause clause that does not continue its sentence. The ship
 
 4 advisers · 8 lines (2 proximity, 3 sea, 2 alliance, 1 missiles) · 13 phone templates (2 `test-inherited`,
 2 `test`, 2 `feint`, 2 `trawler` (promised and unpromised), 2 `summit`, 1 each of `false-alarm`, `bluff-crossed`,
-`fall-unpromised`) · 47 thoughts across the 39 hidden event kinds (nine of them the closing card's lessons) · 285
-strings (49 headlines, 18 answers, 16 reasons, 6 of Wintermast's words, 14 refusals, 10 flavour lines). Strict-clean,
+`fall-unpromised`) · 53 thoughts across the 45 hidden event kinds (thirteen of them the closing card's lessons) · 311
+strings (55 headlines, 18 answers, 18 reasons, 7 of Wintermast's words, 18 refusals, 10 flavour lines, eight rules). Strict-clean,
 and the engine's `checkContent` returns nothing.

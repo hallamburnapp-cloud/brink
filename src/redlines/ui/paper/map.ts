@@ -45,8 +45,9 @@ export function createPaperMap(host: HTMLElement, opts: PaperMapOptions = {}): P
     hw: layer('hw'),
     stamp: layer('stamp'),
   };
-  const names: Record<RegionId, SVGTextElement | null> = {};
-  for (const id of Object.keys(sheet.geom.shape)) names[id] = svg.querySelector(`#${p}-nm-${id}`);
+  // Each printed name twice: under the marks (the sheet's own) and over the rings and arrows (pp-names-over); both go red.
+  const names: Record<RegionId, Array<SVGTextElement | null>> = {};
+  for (const id of Object.keys(sheet.geom.shape)) names[id] = [svg.querySelector(`#${p}-nm-${id}`), svg.querySelector(`#${p}-no-${id}`)];
   let red = new Set<RegionId>();
 
   const systemReduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -82,8 +83,8 @@ export function createPaperMap(host: HTMLElement, opts: PaperMapOptions = {}): P
     any = layers.test.set(m.test, animate) || any;
     any = layers.hw.set(m.hw, animate) || any;
     any = layers.stamp.set(m.stamp, animate) || any;
-    for (const id of red) if (!m.redNames.has(id)) names[id]?.classList.remove('pp-red');
-    for (const id of m.redNames) if (!red.has(id)) names[id]?.classList.add('pp-red');
+    for (const id of red) if (!m.redNames.has(id)) for (const n of names[id] ?? []) n?.classList.remove('pp-red');
+    for (const id of m.redNames) if (!red.has(id)) for (const n of names[id] ?? []) n?.classList.add('pp-red');
     red = m.redNames;
     return any ? new Promise((r) => setTimeout(r, SETTLE_MS)) : Promise.resolve();
   }

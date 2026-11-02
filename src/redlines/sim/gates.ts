@@ -10,7 +10,9 @@
  * - G7 no game stalls;
  * - G8 the no-orders bot (sitting still) wins at most half as often as sensible;
  * - G9 the seller (a far promise sold back) wins at least ten points less often than sensible;
- * - G10 no line reaches the player with a slot unfilled.
+ * - G10 no line reaches the player with a slot unfilled;
+ * - G11 the shark (SPEC-SMALL "No formula wins": the strongest visible-information line the second review found) signs
+ *   at most 60%; G12 no one-rule bot (summits only; never move a piece) signs more than 45%.
  * The careful hand is reported beside them, never gated (SPEC-SMALL "Hand play is reported, not gated"), and
  * every game's invariants (invariants.ts) are counted apart: any broken one fails --strict.
  */
@@ -131,6 +133,9 @@ export const GATES = {
   noOrdersShare: 0.5,
   /** The seller sits at least this many points of treaty share under sensible. */
   sellerGap: 0.1,
+  /** SPEC-SMALL "No formula wins": the shark signs at most 60%; no one-rule bot (summits only; never move a piece) more than 45%. */
+  sharkMax: 0.6,
+  oneRuleMax: 0.45,
 } as const;
 
 /** Judge the gates on the batch; a gate whose bot was not played is left out. */
@@ -182,6 +187,17 @@ export function evaluateGates(stats: Partial<Record<BotName, BotStats>>): Gate[]
   if (all.length) {
     const unfilled = all.reduce((a, x) => a + x.unfilled, 0);
     out.push({ id: 'G10', text: 'No line reaches the player with a slot unfilled', value: String(unfilled), pass: unfilled === 0 });
+  }
+  const shark = stats.shark;
+  if (shark) {
+    const a = share(shark.treaty, shark.games);
+    out.push({ id: 'G11', text: 'The shark (the strongest visible line found) signs at most 60%', value: pct(a), pass: a <= GATES.sharkMax });
+  }
+  const oneRule = (['summit-only', 'shark-still'] as BotName[]).map((b) => stats[b]).filter((x): x is BotStats => !!x);
+  if (oneRule.length) {
+    const best = oneRule.reduce((a, b) => (share(b.treaty, b.games) > share(a.treaty, a.games) ? b : a));
+    const a = share(best.treaty, best.games);
+    out.push({ id: 'G12', text: 'No one-rule bot (summits only; never move a piece) signs more than 45%', value: `${pct(a)} (${best.bot})`, pass: a <= GATES.oneRuleMax });
   }
   return out;
 }

@@ -21,14 +21,19 @@ export const ISLAND_DRAW_R = 16.5 * FRAME.sy;
 /** Printed-name positions that differ from the pin (map points), as the sheet sets them. */
 const LABEL_POS: Record<string, [number, number]> = {
   WMS: [246, 31],
-  EDV: [84, 191],
+  // Names that ran together on one line (QUILLONEDDA VALE, LINTELTALLOWMERE, DUNMARROWORRINTH) set apart: Edda Vale a
+  // word-space right of Quillon (still under its flag), Dunmarrow and Orrinth a word-space apart on their line,
+  // Tallowmere a line above Lintel and inside the neat line (the second review).
+  EDV: [92, 191],
+  TLM: [345, 183],
+  DNM: [296, 253.8],
+  ORN: [359, 256.9],
   GUL: [176, 126],
   DRF: [226, 121],
   TRN: [166, 221],
   LNK: [226, 231],
   PBB: [176, 273],
   SHL: [228, 273],
-  TLM: [349, 189],
   KLM: [316, 72],
   MRD: [110, 248],
   BRK: [357, 150],
@@ -151,7 +156,10 @@ export function buildSheet(words: MapWords, p = 'pp', frame: FrameTransform = FR
     centre[r.id] = T(r.x, r.y);
     const lp = LABEL_POS[r.id] ?? [r.x, r.y];
     label[r.id] = T(lp[0], lp[1]);
-    const spec = r.island ? TEXT.isle : SMALL_NAMES.has(r.id) ? TEXT.small : r.capital ? TEXT.capital : TEXT.name;
+    // The spec in the order paper.css's cascade applies it: .pp-cap after .pp-isle, so an island capital (Lantern Key)
+    // is set at the capital's size and weight with the island's letter-spacing (the second review: modelled at the
+    // island's size, its ink ran 10 px past the model on each side and the marks wrote on it).
+    const spec = r.island ? (r.capital ? TEXT.isleCapital : TEXT.isle) : SMALL_NAMES.has(r.id) ? TEXT.small : r.capital ? TEXT.capital : TEXT.name;
     const b = geo.bounds[r.id];
     const [x0, y0] = T(b.x0, b.y0);
     const [x1, y1] = T(b.x1, b.y1);
@@ -236,8 +244,10 @@ export function buildSheet(words: MapWords, p = 'pp', frame: FrameTransform = FR
   // The held finger lifts a region, above the ink and under the names.
   o.push('<g class="pp-l pp-l-hold"></g>');
 
-  // Printed names, with the ringed dot of a capital (the two powers' capitals carry flags instead).
+  // Printed names, with the ringed dot of a capital (the two powers' capitals carry flags instead). Each name is set a
+  // second time over the rings and arrows (pp-names-over): its paper halo breaks the pencil under it.
   o.push('<g class="pp-names">');
+  const nameOver: string[] = [];
   for (const r of REGIONS) {
     const [fx, fy] = label[r.id];
     let cls = 'pp-nm';
@@ -245,6 +255,7 @@ export function buildSheet(words: MapWords, p = 'pp', frame: FrameTransform = FR
     if (r.capital) cls += ' pp-cap';
     if (SMALL_NAMES.has(r.id)) cls += ' pp-sm';
     o.push(`<text class="${cls}" id="${p}-nm-${r.id}" x="${fx.toFixed(1)}" y="${fy.toFixed(1)}" text-anchor="middle">${esc(r.name)}</text>`);
+    nameOver.push(`<text class="${cls} pp-over" id="${p}-no-${r.id}" x="${fx.toFixed(1)}" y="${fy.toFixed(1)}" text-anchor="middle">${esc(r.name)}</text>`);
     if (r.capital && r.id !== 'EDV' && r.id !== 'WMS') {
       o.push(`<g transform="translate(${fx.toFixed(1)} ${(fy + (r.id === 'LNK' ? 7 : 6)).toFixed(1)})"><circle r="2.3" fill="none" stroke="${INK}" stroke-width="0.7"/><circle r="0.9" fill="${INK}"/></g>`);
     }
@@ -254,7 +265,10 @@ export function buildSheet(words: MapWords, p = 'pp', frame: FrameTransform = FR
   o.push('<g class="pp-blocs">');
   for (const [bloc, x, y, small] of BLOC_POS) {
     const [fx, fy] = T(x, y);
-    o.push(`<text x="${fx.toFixed(1)}" y="${fy.toFixed(1)}" text-anchor="middle"${small ? ' class="pp-bloc-sm"' : ''}>${esc(words.blocs[bloc])}</text>`);
+    const t = `<text x="${fx.toFixed(1)}" y="${fy.toFixed(1)}" text-anchor="middle"${small ? ' class="pp-bloc-sm"' : ''}>${esc(words.blocs[bloc])}</text>`;
+    o.push(t);
+    // The bloc titles are set over the rings and arrows too, with the names.
+    nameOver.push(`<g class="pp-blocs pp-over">${t}</g>`);
   }
   o.push('</g>');
 
@@ -265,12 +279,15 @@ export function buildSheet(words: MapWords, p = 'pp', frame: FrameTransform = FR
   }
   o.push('</g>');
 
-  // The marks over the ink, in z-order: the weeks-left ticks in graphite, the pins and arrows, the counters, the rings, the words, the stamps.
+  // The marks over the ink, in z-order: the weeks-left ticks in graphite, the pins and arrows, the rings; then the
+  // printed names again over them (a printed map breaks a line for its label: the second review found rings and arrows
+  // striking the names); then the counters, the words, the stamps.
   o.push('<g class="pp-l pp-l-clock" fill="none" stroke="#2b2418" stroke-linecap="round"></g>');
   o.push('<g class="pp-l pp-l-head"></g>');
-  o.push('<g class="pp-l pp-l-piece"></g>');
   o.push(`<g class="pp-l pp-l-prom" fill="none" stroke="#17120e" stroke-width="3.1" stroke-opacity="0.78" stroke-linecap="round" stroke-linejoin="round" filter="url(#${p}-rough)"></g>`);
   o.push(`<g class="pp-l pp-l-test" fill="none" stroke="#c0271a" stroke-width="2.1" stroke-opacity="0.85" stroke-linecap="round" filter="url(#${p}-rough)"></g>`);
+  o.push(`<g class="pp-names-over" aria-hidden="true">${nameOver.join('')}</g>`);
+  o.push('<g class="pp-l pp-l-piece"></g>');
   o.push('<g class="pp-l pp-l-hw"></g>');
   o.push('<g class="pp-l pp-l-stamp"></g>');
   o.push(desk(p, words.north));

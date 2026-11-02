@@ -93,6 +93,17 @@ export interface PhoneTemplate {
   again?: string;
   /** One line each, in character. Intel reports what she has seen, never what it means. */
   advisers: { hawk: string; dove: string; intel: string };
+  /**
+   * Test kinds, optional: the three slips on the second and third round of the same call (after WAIT), so a week's
+   * wait reads as a week gone by (the first round's slips are not repeated word for word).
+   */
+  againAdvisers?: { hawk: string; dove: string; intel: string };
+  /**
+   * Test kinds, optional: the Director's slip when they do not believe your promises (belief under RULES.beliefTest,
+   * the price on BACK IT is the higher one). SPEC-SMALL "Doubt is visible where it matters": she says what she has
+   * seen of it, in character, never what it means.
+   */
+  intelDoubted?: string;
   options: { back: PhoneOptionDef; down: PhoneOptionDef; wait: PhoneOptionDef };
 }
 
@@ -104,7 +115,8 @@ export interface PhoneTemplate {
 export const HIDDEN_KINDS = [
   'heading', // They went for {region} because {why}.
   'feint', // Their column at {region} was a feint. The real push was at {from}.
-  'bothReal', // Both arrows were real.
+  'bothReal', // Both arrows were real (a hungry Federation's second push, before the timetable).
+  'bothRealTimetable', // Both arrows were real by their timetable (from RULES.bothRealFromWeek), not by appetite.
   'notTested', // They left {region} alone because they believed you.
   'feintBacked', // They were bluffing at {region}. You backed it anyway; it cost {cost} and they took note.
   'feintBackedDown', // They were bluffing at {region}. Backing it would have cost nothing.
@@ -123,6 +135,7 @@ export const HIDDEN_KINDS = [
   'accident', // The accident at {region} was nobody's plan.
   'jumpy', // Your {piece} at {region} looked like an invasion to them.
   'jumpyQuiet', // Your {piece} at {region} worried them, but they held their nerve.
+  'jumpyWary', // Your {piece} at {region} was too close for them: they held back a push (a scared Federation slowed).
   'believed', // By now they believed you would keep your word.
   'doubted', // By now they thought you would back down.
   'falseAlarm', // The alarm at {region} was nothing.
@@ -134,7 +147,11 @@ export const HIDDEN_KINDS = [
   'realBackedDownEased', // They meant it at {region}, but a fight scared them too. When you stepped back, so did they.
   // The closing card's lessons (two or three a game, drawn from the game's own events; SPEC-SMALL "The debrief teaches").
   'lessonFeintBacked', // You backed {region}, where they were bluffing ...
-  'lessonBackedDown', // You backed down at {region} ...
+  'lessonBackedDown', // You backed down at {region} ... (the place fell, and stayed fallen)
+  'lessonBackedDownHeld', // You backed down at {region} ... (it climbed a step; the place did not fall, or came back)
+  'lessonBackedDownFeint', // You backed down at {region}, from a column that was only for show ...
+  'lessonBackedDownEased', // You backed down at {region} and they stood down too ... (a scared Federation, once)
+  'lessonJumpy', // Your {piece} at {region} sat on their doorstep ... (a step up it provoked)
   'lessonFarDrop', // You offered to drop your promise at {region}; it was nowhere near their front ...
   'lessonNoMoves', // Your fleet and brigade never moved ...
   'lessonNoOrders', // You gave no orders in {n} weeks ...
@@ -162,12 +179,14 @@ export const WHY_KINDS = [
   'notAfraid', // they were not afraid enough yet
   'noNeed', // they saw no need to talk yet
   'hungry', // they were hungry
-  'wantedToStop', // they wanted to stop while they were ahead
+  'wantedToStop', // they wanted to stop while they were ahead (only when they held a place they had taken)
+  'noGain', // they had taken nothing and saw nothing cheap left to take
+  'tooSoon', // they had taken a way out the week before and could not sell another at home yet
 ] as const;
 export type WhyKind = (typeof WHY_KINDS)[number];
 
 /** strings.yaml › wintermast: Wintermast's own short words for a refused way out, printed on the tape after "Wintermast refuses: {term}". Quoted, 34 characters or fewer. */
-export const REFUSE_WHYS = ['noNeed', 'gaining', 'indifferent', 'noThreat', 'notAfraid', 'hungry'] as const;
+export const REFUSE_WHYS = ['noNeed', 'gaining', 'indifferent', 'noThreat', 'notAfraid', 'hungry', 'tooSoon'] as const;
 export type RefuseWhy = (typeof REFUSE_WHYS)[number];
 
 /** strings.yaml › headlines: the tape. One line each, plain. Slots {region}, {from}, {line}, {step}, {n}, {piece}, {term}, {bloc}. */
@@ -182,6 +201,7 @@ export const HEADLINE_KINDS = [
   'backedFar', // You backed {region} from far away, and it held. They are {step}.
   'backFailed', // You backed {region} from too far away. It failed.
   'backedDown', // Backed down at {region} · now {step}
+  'backedDownSame', // Backed down at {region} · still {step} (the ladder already at its top)
   'backedDownEased', // Backed down at {region} · they stand down (a scared Federation eases a step)
   'waited', // You waited at {region}.
   'waitedFell', // You waited too long. {region} has fallen.
@@ -194,7 +214,11 @@ export const HEADLINE_KINDS = [
   'calmed', // {region} is calm again.
   'lineCrossedAt', // {piece} at {region} crosses a line (what crossed it, and where)
   'lineCrossed', // Wintermast: 'a line crossed' · now {step}
+  'lineCrossedSame', // Wintermast: 'our line' · still {step} (the ladder already at its top)
   'jumpy', // Wintermast: 'Republic forces at {region} are a provocation.' They are {step}.
+  'wary', // Their forces hold back near {region} (a scared Federation slowed by a piece on its doorstep)
+  'noSignTaken', // The bar is at 100 but they took a place this week: no treaty yet
+  'noSignPressed', // The bar is at 100 but {n} stands hatched and unanswered: no treaty yet
   'accident', // An accident at {region}. Nobody ordered it. They are {step}.
   'wayOutAccepted', // Wintermast accepted the way out: {term}. They are {step}.
   'wayOutRefused', // Wintermast refuses: {term}
@@ -212,6 +236,7 @@ export const HEADLINE_KINDS = [
   'trawlerDisowned', // You disowned {region} over the trawler.
   'trawlerLeaned', // You leaned on {region} privately.
   'summitAccepted', // You accepted the summit. They are {step}.
+  'summitAcceptedSame', // You accepted the summit · still {step} (the ladder already at its foot)
   'summitRefused', // You refused the summit.
   'summitWaited', // You asked for terms. The offer lapsed.
   'bluffHeld', // You held your ground at {region}.
@@ -256,6 +281,11 @@ export const REFUSAL_CODES = [
   'offered-already',
   'bad-term',
   'no-such-phone',
+  // A way out they cannot accept yet says so before you pay (SPEC-SMALL "A form that will fail says so before you pay").
+  'too-early',
+  'too-soon',
+  'piece-home',
+  'no-promises',
 ] as const;
 export type RefusalCode = (typeof REFUSAL_CODES)[number];
 
@@ -315,8 +345,12 @@ export interface Strings {
   };
   /** The two typed lines of each ending. Slots {week}, {fighting} (a counts phrase), {because}, {region}, {cause}. */
   endings: { treaty: [string, string]; frozen: [string, string]; war: [string, string] };
-  /** The treaty's reason. Slots {region}. */
-  because: { heldAndWayOut: string; held: string; wayOut: string; quiet: string };
+  /**
+   * The treaty's reason. Slots {region}. `leaves` follows it when places are still hatched at the signing (answered:
+   * a piece or a solid ring on each), slot {places}: SPEC-SMALL "the TREATY card names the places they still hold
+   * under pressure".
+   */
+  because: { heldAndWayOut: string; held: string; wayOut: string; quiet: string; leaves: string };
   /** The world war's "when ...". */
   causes: Record<FallCause, string>;
   /**

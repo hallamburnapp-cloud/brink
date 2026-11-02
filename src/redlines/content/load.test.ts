@@ -71,8 +71,18 @@ describe('the shipped pack', () => {
     // The MOMENT.md call fills to its forty words, with the engine's slot values.
     const moment = content!.phones.find((p) => p.id === 'test-inherited-armour')!;
     expect(fill(moment.text, { region: 'Lintel' })).toBe('Federation armour is at Lintel, the promise you inherited. Two brigades, lights on, not moving. They want to see what you do.');
-    expect(fill(moment.options.back.cost, { piece: 'the brigade', cost: 12 })).toBe('move the brigade up · costs 12 influence · we keep our word');
-    expect(fill(moment.options.down.cost, { region: 'Lintel' })).toBe("protest and hold · they'll believe us less · Lintel will likely fall");
+    // SPEC-SMALL "every word on a form or a slip is true of what the engine does": BACK IT moves no piece, so no form says it does.
+    expect(fill(moment.options.back.cost, { piece: 'the brigade', cost: 12 })).toBe('we stand by it in public · costs 12 influence · we keep our word');
+    expect(fill(moment.options.down.cost, { region: 'Lintel' })).toBe("protest and hold · they'll believe us less · Lintel may fall");
+    for (const p of content!.phones) for (const key of ['back', 'down', 'wait'] as const) expect(p.options[key].cost, `${p.id}.${key}`).not.toMatch(/\b(move|send) \{piece\}|\{piece\} (up|in)\b|they may move first|the stakes go up/);
+    // A form that costs influence names the number (the trawler's LEAN ON THEM: {waitCost}).
+    for (const p of content!.phones.filter((x) => x.kind === 'trawler')) expect(p.options.wait.cost).toContain('{waitCost}');
+    // A carried call's slips are a week on, never the first round's word for word; the Director says what doubt looks like.
+    for (const p of content!.phones.filter((x) => ['test', 'test-inherited', 'feint'].includes(x.kind))) {
+      expect(p.againAdvisers, p.id).toBeDefined();
+      for (const r of ['hawk', 'dove', 'intel'] as const) expect(p.againAdvisers![r]).not.toBe(p.advisers[r]);
+      expect(p.intelDoubted, p.id).toBeDefined();
+    }
   });
 
   it('has a thought for every hidden event the engine logs', () => {
@@ -116,9 +126,14 @@ describe('the shipped pack', () => {
       [/\b(\w+) promises is the most\b/gi, RULES.maxPromises, 'maxPromises'],
       [/\bcosts (\d+) influence a week\b/gi, RULES.upkeep, 'upkeep'],
       [/\bcosts (\d+) influence · one move a week\b/gi, RULES.moveCost, 'moveCost'],
+      [/\bcosts (\d+) now\b/gi, RULES.promiseCost, 'promiseCost'],
+      [/\bthen (\d+) a week\b/gi, RULES.upkeep, 'upkeep'],
+      [/\bpromise costs (\d+) a week\b/gi, RULES.upkeep, 'upkeep'],
+      [/\bgain (\d+) a week\b/gi, RULES.income, 'income'],
+      [/\bfrom week (\w+)\b/gi, RULES.wayOut.fromWeek, 'wayOut.fromWeek'],
     ];
     /** Numbers that are not a rule's (a count, a round of the call, a flavour line). */
-    const FREE = [/\bsecond source\b/i, /\b(second|third) week of this\b/i, /\bthree ways out\b/i, /^1 region fighting\b/];
+    const FREE = [/\bsecond source\b/i, /\b(second|third) week of this\b/i, /\bthree ways out\b/i, /^1 place fighting\b/, /\bthree lines\b/i, /\bin two places a week\b/i];
     const NUMBER = /\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|[2-9]|\d{2,})\b/gi;
     const all: Array<[string, string]> = [];
     const walk = (node: unknown, path: string) => {
@@ -233,6 +248,27 @@ describe('the shipped pack', () => {
     expect(S.explanation[0]).toMatch(/\bticks\b/i);
     expect(S.howToPlay.lines[0]).toMatch(/\bticks\b/i);
     expect(JSON.stringify(S)).not.toMatch(/amber/i);
+  });
+
+  it('HOW TO PLAY says what a watcher sees first and how to act (the second review): pins and arrows, the clock, press and hold, tap a counter then a place, the three lines, influence, and when 100 does not sign', () => {
+    const S = content!.strings;
+    const all = S.howToPlay.lines.join(' ');
+    expect(all).toMatch(/pins and pencil arrows/i);
+    expect(all).toMatch(/feint/);
+    expect(all).toMatch(/press and hold/i);
+    expect(all).toMatch(/tap your fleet or brigade, then a place/i);
+    expect(all).toMatch(/three lines/);
+    expect(all).toMatch(new RegExp(`gain ${RULES.income} a week`));
+    expect(all).toMatch(/unless they took a place that week or a hatched place stands unanswered/);
+    expect(all).toMatch(/provocation/);
+    expect(S.explanation[1]).toMatch(/press and hold/i);
+    // The slips' and the note's words for what an order would do (the screens wire them; SPEC-SMALL "A form that will fail says so").
+    for (const k of ['moveHint', 'crosses', 'leavesDashed', 'promiseCall', 'promiseProvokes'] as const) expect(S.act[k].length).toBeGreaterThan(5);
+    expect(S.act.crosses).toContain('{line}');
+    expect(S.note.fallsMany).toContain('{places}');
+    expect(S.refusals['too-early']).toBeTruthy();
+    expect(S.screen.warOne).toMatch(/place/);
+    expect(S.screen.north).toBe('N');
   });
 
   it('says what another bloc signs, and prints an answer as the act, never the forecast', () => {

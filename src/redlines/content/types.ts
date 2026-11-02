@@ -70,7 +70,15 @@ export interface PackPhone extends PhoneTemplate {
 
 /** The screen-only words (the screens builder's); the engine's `Strings` sections are the rest. */
 export interface ScreenStrings {
-  title: { subtitle: string; play: string; continue: string; howToPlay: string; blurb: string };
+  title: {
+    subtitle: string;
+    play: string;
+    continue: string;
+    howToPlay: string;
+    blurb: string;
+    /** PLAY with a game in progress saved asks once (as QUIT TO TITLE does): YES and NO are the menu's. */
+    newGameSure: string;
+  };
   screen: {
     pressed: string;
     /** After the week's number on the calendar: slot {weeks} (RULES.weeks). */
@@ -88,6 +96,8 @@ export interface ScreenStrings {
     begin: string;
     /** The notice over a phone held sideways. */
     upright: string;
+    /** The compass letter on the sheet. */
+    north: string;
   };
   act: {
     promise: string;
@@ -104,9 +114,33 @@ export interface ScreenStrings {
     wayOutOffered: string;
     termLabels: Record<WayOutTerm, string>;
     termCosts: Record<WayOutTerm, string>;
+    /** The MOVE slip's hint while a counter is lifted. */
+    moveHint: string;
+    /** SPEC-SMALL "The three lines stay on the sheet": a MOVE or PROMISE slip names a declared line the order would cross, in the line's tape words (slot {line}). */
+    crosses: string;
+    /** SPEC-SMALL "A form that will fail says so": a move that leaves a ring dashed names it (slot {region}). */
+    leavesDashed: string;
+    /** A ring on an arrow's target will be a call (the PROMISE slip). */
+    promiseCall: string;
+    /** A ring on a hatched place is a provocation (the engine's `isProvocation`): they may test it first (the PROMISE slip). */
+    promiseProvokes: string;
   };
   /** The handwritten note when no orders have been given this week: the world in a sentence. Slots {bloc} {a} {b} {region} {n}. */
-  note: { pushing: string; pushingTwo: string; taken: string; takenMany: string; tested: string; heading: string };
+  note: {
+    pushing: string;
+    pushingTwo: string;
+    taken: string;
+    takenMany: string;
+    tested: string;
+    heading: string;
+    /** The eve of a fall (the engine's `fallsThisWeek`): one place (slot {region}) or several (slot {places}, a listed phrase). */
+    fallsOne: string;
+    fallsMany: string;
+    /** After fallsOne / fallsMany when those falls would make the eighth place fighting (the engine's `fallsEndTheGame`). */
+    worldWarEve: string;
+    /** After a move that left a ring dashed (slot {region}). */
+    movedDashed: string;
+  };
   /**
    * The call's words. `inHand` is the influence in hand beside the three forms (slot {influence}); `needs` is what a
    * form you cannot afford adds to its own typed line (slots {cost}, {influence}: "needs 12 · you have 5").

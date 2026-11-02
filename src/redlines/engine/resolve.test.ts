@@ -53,8 +53,10 @@ function promised(s: GameState, region: RegionId): GameState {
 }
 
 describe('a test of a promise', () => {
-  it('rings the phone when their real push lands on a promise; a solid promise costs 12, a dashed one 24', () => {
-    const solid = endWeek(c, promised(staged(toVsy), 'VSY'));
+  it('rings the phone when their real push lands on a promise; a solid promise costs 12 while they doubt you, a dashed one 24', () => {
+    const doubted = promised(staged(toVsy), 'VSY');
+    doubted.fed.belief = RULES.beliefTest - 5;
+    const solid = endWeek(c, doubted);
     expect(solid.phase).toBe('phone');
     expect(TEST_KINDS).toContain(solid.phone!.kind);
     expect(solid.phone!.region).toBe('VSY');
@@ -75,7 +77,8 @@ describe('a test of a promise', () => {
     expect(s.phase).toBe('act');
     expect(s.week).toBe(2);
     expect(s.fed.belief).toBe(RULES.beliefStart + RULES.backedBelief);
-    expect(s.influence).toBe(RULES.influenceStart - RULES.promiseCost - RULES.backCost + RULES.income - RULES.upkeep);
+    // Belief starts at 50, over the 40 at which BACK IT's price steps down (SPEC-SMALL "Doubt is visible where it matters").
+    expect(s.influence).toBe(RULES.influenceStart - RULES.promiseCost - RULES.backCostBelieved + RULES.income - RULES.upkeep);
     expect(s.regions.VSY.state).toBe('calm');
     expect(s.promises.map((p) => p.region)).toEqual(['VSY']);
     expect(s.turnedAway.VSY).toBe(1);
@@ -118,7 +121,7 @@ describe('a test of a promise', () => {
     expect(rang2.phase).toBe('phone');
     expect(rang2.phone!.round).toBe(2);
     expect(rang2.phone!.region).toBe('VSY');
-    expect(rang2.phone!.options[0].cost).toContain(String(RULES.backCost + RULES.waitStakes));
+    expect(rang2.phone!.options[0].cost).toContain(String((rang2.fed.belief >= RULES.believedAt ? RULES.backCostBelieved : RULES.backCost) + RULES.waitStakes));
     const w2 = answerPhone(c, rang2, 'wait');
     const rang3 = endWeek(c, w2);
     expect(rang3.phone!.round).toBe(3);
@@ -190,7 +193,7 @@ describe('a feint at a promised place', () => {
     expect(backed.fed.step).toBe(2); // no step down for a feint
     expect(backed.turnedAway.VSY).toBeUndefined();
     expect(backed.lastBacked).toBeNull();
-    expect(backed.influence).toBe(RULES.influenceStart - RULES.promiseCost - RULES.backCost + RULES.income - RULES.upkeep);
+    expect(backed.influence).toBe(RULES.influenceStart - RULES.promiseCost - RULES.backCostBelieved + RULES.income - RULES.upkeep);
     expect(backed.log[0].hidden.some((h) => h.includes('They were bluffing at Vessary'))).toBe(true);
     expect(backed.tally!.feintsBacked).toBe(1);
   });
@@ -283,7 +286,8 @@ describe('places', () => {
     expect(s.regions.VSY.state).toBe('fighting');
     expect(s.regions.RMH.state).toBe('fighting');
     expect(s.fed.step).toBe(2);
-    expect(s.log[0].visible).toContain('two places taken and nobody came. They are PUSHING.');
+    // A tape line starts with a capital, whatever its first slot is.
+    expect(s.log[0].visible).toContain('Two places taken and nobody came. They are PUSHING.');
     expect(s.log[0].visible.filter((v) => v.includes('nobody came'))).toHaveLength(1);
   });
   it('the fall clock reads the step the week started at, not a step climbed inside the week', () => {
@@ -418,9 +422,9 @@ describe('their lines', () => {
     expect(n.fed.step).toBe(2);
     expect(n.crossed['sound-forces']).toBe(1);
     // The tape names what crossed it and where, then Wintermast's word with the step.
-    expect(n.log[0].visible).toContain('the fleet at Lintel crosses a line they drew.');
+    expect(n.log[0].visible).toContain('The fleet at Lintel crosses a line they drew.');
     expect(n.log[0].visible).toContain("Wintermast: 'You have crossed our line.' They are PUSHING.");
-    expect(n.log[0].visible.indexOf('the fleet at Lintel crosses a line they drew.')).toBeLessThan(n.log[0].visible.findIndex((v) => v.includes('crossed our line')));
+    expect(n.log[0].visible.indexOf('The fleet at Lintel crosses a line they drew.')).toBeLessThan(n.log[0].visible.findIndex((v) => v.includes('crossed our line')));
     expect(n.log[0].hidden.some((h) => h.includes('That line was real'))).toBe(true);
     // Crossed once; staying across it costs nothing more.
     let m = endWeek(c, n);
@@ -453,7 +457,7 @@ describe('their lines', () => {
     let n = endWeek(c, s);
     while (n.phase === 'phone') n = answerPhone(c, n, 'down');
     expect(n.fed.step).toBe(2);
-    expect(n.log[0].visible).toContain('your promise at Brindle Coast crosses a line they drew.');
+    expect(n.log[0].visible).toContain('Your promise at Brindle Coast crosses a line they drew.');
     expect(n.log[0].hidden.some((h) => h.includes('your promise at Brindle Coast'))).toBe(true);
   });
 });
@@ -651,8 +655,12 @@ describe('the bars and the endings', () => {
     expect(n.ending!.lines[0]).toBe('Week 5.');
     expect(n.ending!.lines[1]).toBe('It began at Gullrest, when the promise you inherited was tested and you backed down.');
     expect(n.ending!.dials).toMatch(/^They were .*\.$/);
-    expect(n.log[n.log.length - 1].hidden[n.log[n.log.length - 1].hidden.length - 1]).toBe(n.ending!.dials);
+    // The lessons and the dials print once, on the closing card, not on the last week's page; no pins for a week that never comes.
+    expect(n.log[n.log.length - 1].hidden).not.toContain(n.ending!.dials);
     expect(Array.isArray(n.ending!.lessons)).toBe(true);
+    expect(n.fed.headings).toEqual([]);
+    // More than eight can be fighting: the line says how many, never "the eighth".
+    expect(n.log[n.log.length - 1].visible.at(-1)).toBe(`${n.war === 8 ? 'Eight' : n.war === 9 ? 'Nine' : 'Ten'} places are fighting. World war.`);
   });
   it('WORLD WAR names the first place that fell on the tape, by the order of the falls, not the map', () => {
     const s = staged(quiet);

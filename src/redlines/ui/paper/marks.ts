@@ -9,7 +9,7 @@
  */
 import type { MapWords, PaperView, PieceKind, RegionId } from './contract';
 import type { Bounds } from './geometry';
-import { arrange, arrowFor, LABEL_AT, ringGeom, testRingGeom, TICK_GAP, type Arrangement } from './arrange';
+import { arrange, arrowFor, LABEL_AT, LEADER_GAP, leaderSegment, ringGeom, testRingGeom, TICK_GAP, type Arrangement } from './arrange';
 import { rnd, seedOf } from './rand';
 import type { SheetGeom } from './sheet';
 import { counterGlyph, greaseRing, pencilArrow, pencilLine, pushpin, type P } from './strokes';
@@ -93,8 +93,9 @@ function ticks(x: number, y: number, n: number, seed: string): string {
   const out: string[] = [];
   const g = seedOf(seed);
   if (n <= 1) {
-    out.push(`<path class="pp-tick" d="${pencilLine(x + 0.6, y - 3.6, x - 0.6, y + 3.6, g, 0.25, 3)}"/>`);
-    out.push(`<path class="pp-tick pp-tick-ring" d="${greaseRing(x, y, 6, 6, g + 1, 1.08, -1.2, 0.5, 18)}"/>`);
+    // An upright tick well inside a wider ring reads as one week ringed, not as a struck-through nought (the second review).
+    out.push(`<path class="pp-tick" d="${pencilLine(x + 0.2, y - 3.1, x - 0.2, y + 3.1, g, 0.2, 3)}"/>`);
+    out.push(`<path class="pp-tick pp-tick-ring" d="${greaseRing(x, y, 7.2, 7.2, g + 1, 1.08, -1.2, 0.5, 18)}"/>`);
   } else {
     const x0 = x - ((n - 1) * TICK_GAP) / 2;
     for (let i = 0; i < n; i++) {
@@ -105,6 +106,17 @@ function ticks(x: number, y: number, n: number, seed: string): string {
   return out.join('');
 }
 
+/** How far a WE DEFEND may stand off its ring before a leader ties it there. */
+export const LEADER_FROM = LEADER_GAP;
+
+/**
+ * The pencil leader from a word to its ring: from the word's box edge nearest the ring to the ring's line, when the
+ * gap is more than LEADER_FROM; null when the word touches its ring. The same segment the placement judged.
+ */
+export function leaderFor(at: Arrangement, key: string, ring: { cx: number; cy: number; rx: number; ry: number }): [P, P] | null {
+  return leaderSegment(at.placed.filter((p) => p.key === key).map((p) => p.box), ring);
+}
+
 /** The last arrangement, kept: a held finger or a lifted counter changes the view but not where anything goes. */
 let lastKey = '';
 let lastGeom: SheetGeom | null = null;
@@ -113,7 +125,8 @@ let last: Arrangement | null = null;
 function arranged(view: PaperView, geom: SheetGeom, words: MapWords): Arrangement {
   const key = JSON.stringify([view.states, view.promises, view.headings, view.pieces, view.tested, view.clocks ?? {}]);
   if (last && key === lastKey && geom === lastGeom && words === lastWords) return last;
-  last = arrange(view, geom, words);
+  // The last arrangement is passed in: a mark whose spot is still clear stays put (a pencil mark does not walk).
+  last = arrange(view, geom, words, undefined, geom === lastGeom && words === lastWords ? last : null);
   lastKey = key;
   lastGeom = geom;
   lastWords = words;
@@ -121,9 +134,34 @@ function arranged(view: PaperView, geom: SheetGeom, words: MapWords): Arrangemen
 }
 
 /** The marks for a view. `p` is the id prefix of the sheet's defs. */
-export function marksOf(view: PaperView, geom: SheetGeom, words: MapWords, p: string): MarkSet {
+/**
+ * The view with the explanation's ghost marks folded in (a ghost of hatching with its ticks, a ghost of the red
+ * wash), so they are placed like any other mark; `ghosts` names the places whose marks are only ghosts.
+ */
+function withGhost(view: PaperView): { view: PaperView; ghosts: Set<RegionId> } {
+  const g = view.ghost;
+  const ghosts = new Set<RegionId>();
+  if (!g) return { view, ghosts };
+  const states = { ...view.states };
+  const clocks = { ...(view.clocks ?? {}) };
+  if (g.pressed && !states[g.pressed]) {
+    states[g.pressed] = 'pressed';
+    if (g.ticks) clocks[g.pressed] = g.ticks;
+    ghosts.add(g.pressed);
+  }
+  if (g.fighting && !states[g.fighting]) {
+    states[g.fighting] = 'fighting';
+    ghosts.add(g.fighting);
+  }
+  return { view: { ...view, states, clocks }, ghosts };
+}
+
+export function marksOf(given: PaperView, geom: SheetGeom, words: MapWords, p: string): MarkSet {
   const m: MarkSet = { press: [], fight: [], hold: [], clock: [], head: [], piece: [], prom: [], test: [], hw: [], stamp: [], redNames: new Set() };
   const known = (id: RegionId) => id in geom.shape;
+  const { view, ghosts } = withGhost(given);
+  const ghostCls = (id: RegionId) => (ghosts.has(id) ? ' pp-ghost' : '');
+  const ghostKey = (id: RegionId) => (ghosts.has(id) ? ':ghost' : '');
   const at: Arrangement = arranged(view, geom, words);
 
   for (const [id, state] of Object.entries(view.states)) {
@@ -131,23 +169,26 @@ export function marksOf(view: PaperView, geom: SheetGeom, words: MapWords, p: st
     const d = geom.shape[id];
     if (state === 'pressed') {
       m.press.push({
-        key: `press:${id}`,
+        key: `press:${id}${ghostKey(id)}`,
         enter: 'fade',
-        html: `<g class="pp-mk"><path d="${d}" fill="url(#${p}-hatch)" fill-opacity="0.95"/><path d="${d}" fill="none" stroke="#b5261b" stroke-width="1.1" stroke-opacity="0.55"/></g>`,
+        html: `<g class="pp-mk${ghostCls(id)}"><path d="${d}" fill="url(#${p}-hatch)" fill-opacity="0.95"/><path d="${d}" fill="none" stroke="#b5261b" stroke-width="1.1" stroke-opacity="0.55"/></g>`,
       });
     } else if (state === 'fighting') {
       m.fight.push({
-        key: `fight:${id}`,
+        key: `fight:${id}${ghostKey(id)}`,
         enter: 'fade',
-        html: `<g class="pp-mk"><path d="${d}" fill="#b3261e" fill-opacity="0.5" filter="url(#${p}-wash)"/><path d="${d}" fill="none" stroke="#8e1a12" stroke-width="1.4" stroke-opacity="0.7"/></g>`,
+        html: `<g class="pp-mk${ghostCls(id)}"><path d="${d}" fill="#b3261e" fill-opacity="0.5" filter="url(#${p}-wash)"/><path d="${d}" fill="none" stroke="#8e1a12" stroke-width="1.4" stroke-opacity="0.7"/></g>`,
       });
-      m.redNames.add(id);
+      if (!ghosts.has(id)) m.redNames.add(id);
       const st = at.stamps.get(id)!;
+      // An island's stamp is wider than the island: a paper knock-out under its letters keeps the coastline out of them.
+      const knock = geom.island[id] ? `<rect x="-25" y="-6" width="50" height="12" fill="#efe2bf" fill-opacity="0.82"/>` : '';
       m.stamp.push({
-        key: `stamp:${id}`,
+        key: `stamp:${id}${ghostKey(id)}`,
         enter: 'slam',
         html:
-          `<g class="pp-mk" transform="translate(${f1(st.x)} ${f1(st.y)}) rotate(${st.rot}) scale(${st.scale})" filter="url(#${p}-ink)" opacity="0.9"><g class="pp-slam">` +
+          `<g class="pp-mk${ghostCls(id)}" transform="translate(${f1(st.x)} ${f1(st.y)}) rotate(${st.rot}) scale(${st.scale})" filter="url(#${p}-ink)" opacity="0.9"><g class="pp-slam">` +
+          knock +
           `<rect x="-26" y="-7" width="52" height="14" fill="none" stroke="#a51d12" stroke-width="1.2"/>` +
           `<text class="pp-stamp-sm" x="0" y="3.6" text-anchor="middle">${esc(words.fighting)}</text></g></g>`,
       });
@@ -156,9 +197,22 @@ export function marksOf(view: PaperView, geom: SheetGeom, words: MapWords, p: st
 
   for (const [id, c] of at.clocks) {
     m.clock.push({
-      key: `clock:${id}:${c.n}`,
+      key: `clock:${id}:${c.n}${ghostKey(id)}`,
       enter: 'fade',
-      html: `<g class="pp-mk pp-clockmk" data-n="${c.n}">${ticks(c.x, c.y, c.n, 'clock' + id)}</g>`,
+      html: `<g class="pp-mk pp-clockmk${ghostCls(id)}" data-n="${c.n}">${ticks(c.x, c.y, c.n, 'clock' + id)}</g>`,
+    });
+  }
+
+  // A lifted counter: the places it can reach this week, pencilled round lightly (the second review: reach was learned one refusal at a time).
+  // A dotted pencil circle inside each (round the island at sea), lighter than any promise ring and dotted, not dashed.
+  for (const id of view.reach ?? []) {
+    if (!known(id)) continue;
+    const r = ringGeom(geom, id);
+    const k = geom.island[id] ? 0.86 : 0.72;
+    m.hold.push({
+      key: `reach:${id}`,
+      enter: 'fade',
+      html: `<g class="pp-mk pp-reach"><path d="${geom.shape[id]}" fill="#2b2418" fill-opacity="0.07"/><ellipse cx="${f1(r.cx)}" cy="${f1(r.cy)}" rx="${f1(r.rx * k)}" ry="${f1(r.ry * k)}" fill="none" stroke="#2b2418" stroke-width="1.7" stroke-opacity="0.62" stroke-dasharray="0.1 3.4" stroke-linecap="round"/></g>`,
     });
   }
 
@@ -170,6 +224,26 @@ export function marksOf(view: PaperView, geom: SheetGeom, words: MapWords, p: st
       html: `<g class="pp-mk pp-hold"><path d="${d}" fill="#2b2418" fill-opacity="0.09" stroke="#2b2418" stroke-width="2.2" stroke-opacity="0.5" stroke-linejoin="round"/></g>`,
     });
   }
+
+  // The WORLD WAR chain: each place that fell numbered in red pencil in the order it fell, the first ringed.
+  const chain = (view.chain ?? []).filter((id) => known(id) && view.states[id] === 'fighting');
+  chain.forEach((id, i) => {
+    const st = at.stamps.get(id);
+    if (!st) return;
+    const a = (st.rot * Math.PI) / 180;
+    const hx = -27 * st.scale - 5;
+    const x = st.x + hx * Math.cos(a) + 3 * Math.sin(a);
+    const y = st.y + hx * Math.sin(a) - 3 * Math.cos(a);
+    m.stamp.push({
+      key: `chain:${id}:${i + 1}`,
+      enter: 'fade',
+      html: `<g class="pp-mk pp-chain"><text class="pp-hw pp-hwred pp-chain-n" x="${f1(x)}" y="${f1(y + 4)}" text-anchor="middle">${i + 1}</text></g>`,
+    });
+    if (i === 0) {
+      const r = testRingGeom(geom, id);
+      m.test.push({ key: `chain-first:${id}`, enter: 'draw', html: `<g class="pp-mk"><path class="pp-ring pp-solid" pathLength="1" d="${greaseRing(r.cx, r.cy, r.rx, r.ry, seedOf('chain' + id), 1.45, 0.2, 1.2)}"/></g>` });
+    }
+  });
 
   for (const [key, a] of at.arrows) {
     const [from, to] = key.split(':');
@@ -222,10 +296,16 @@ export function marksOf(view: PaperView, geom: SheetGeom, words: MapWords, p: st
         : `<g class="pp-mk"><path class="pp-ring pp-dashed" pathLength="1" stroke-dasharray="${dashFor(r.rx, r.ry, turns)}" d="${d}"/></g>`,
     });
     const t = at.defend.get(pr.region)!;
+    // A WE DEFEND that could not be written against its ring (the Scatter is crowded) is tied to it by a short pencil
+    // leader, as a printed map ties a label to a small place, so it never reads as the island beside it.
+    const lead = leaderFor(at, `defend:${pr.region}`, view.tested === pr.region ? testRingGeom(geom, pr.region) : r);
     m.hw.push({
       key: `hw:defend:${pr.region}`,
       enter: 'fade',
-      html: `<g class="pp-mk"><text class="pp-hw" transform="translate(${f1(t.x)} ${f1(t.y)}) rotate(${t.rot.toFixed(1)})" text-anchor="middle">${esc(words.defend)}</text></g>`,
+      html:
+        `<g class="pp-mk">` +
+        (lead ? `<path class="pp-leader" d="${pencilLine(lead[0][0], lead[0][1], lead[1][0], lead[1][1], seedOf('lead' + pr.region), 0.3)}"/>` : '') +
+        `<text class="pp-hw" transform="translate(${f1(t.x)} ${f1(t.y)}) rotate(${t.rot.toFixed(1)})" text-anchor="middle">${esc(words.defend)}</text></g>`,
     });
   }
 

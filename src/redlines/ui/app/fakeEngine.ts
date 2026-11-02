@@ -9,6 +9,23 @@ import { RULES as REAL_RULES, scoreOf } from '../../engine/rules';
 
 /** The engine's own pure pieces the screens share with it: the orders net of cancelled pairs, an act in words, a pressed place's clock. */
 export { actLine, netActs, weeksLeft } from '../../engine';
+export { fallOrder } from '../../engine/board';
+/** The engine's own forecast (pure questions about a state: what an order would cross or leave dashed, what falls this week). */
+export { declaredTapes, fallsEndTheGame, fallsThisWeek, isProvocation, linesCrossedByMove, linesCrossedByPromise, listNames, promiseWillRing, ringsLeftDashed } from '../../engine';
+
+/** Where a piece starts the fake game. */
+const HOME: Record<PieceKind, RegionId> = { fleet: 'SHL', brigade: 'EDV' };
+/** The fake's way out: one a week, the price in hand, a promise to drop, a piece away from home. */
+export function canOfferWayOut(s: GameState, term: WayOutTerm, detail?: RegionId | PieceKind): { ok: boolean; reason?: RefusalCode } {
+  if (s.offer) return { ok: false, reason: 'offered-already' };
+  if (term === 'drop-promise' && !s.promises.length) return { ok: false, reason: 'no-promises' };
+  if (term === 'pull-back' && !s.pieces.some((p) => p.at !== HOME[p.kind] && (detail === undefined || p.kind === detail))) return { ok: false, reason: 'piece-home' };
+  if (s.influence < RULES.wayOutPrice[term]) return { ok: false, reason: 'no-influence' };
+  return { ok: true };
+}
+export function pullBackPieces(s: GameState): PieceKind[] {
+  return s.pieces.filter((p) => p.at !== HOME[p.kind]).map((p) => p.kind);
+}
 
 export const SAVE_KEY = 'brink.redlines.v1.save';
 /** The real numbers the screens read (the weeks, the WAR line, the bar's movers, the way-out prices, the promises allowed). */
@@ -115,7 +132,7 @@ export const content = {
       'no-such-phone': 'the phone is not ringing',
     },
     hold: { 'piece-there': '{piece} is there', 'piece-near': '{piece} is at {at}, within reach', 'inside-the-cap': "that is the Federation's own ground", 'out-of-reach': 'nothing of ours is within reach' },
-    title: { subtitle: 'Red Lines', play: 'PLAY', continue: 'CONTINUE', howToPlay: 'HOW TO PLAY', blurb: 'Ten weeks.' },
+    title: { subtitle: 'Red Lines', play: 'PLAY', continue: 'CONTINUE', howToPlay: 'HOW TO PLAY', blurb: 'Ten weeks.', newGameSure: 'New game?' },
     screen: { pressed: 'PRESSED', weekOf: 'of {weeks}', warNone: 'nothing fighting · world war at {limit}', warOne: '1 region fighting · world war at {limit}', warMany: '{n} regions fighting · world war at {limit}', treatySub: 'the Federation\'s willingness to sign', ordersSent: 'ORDERS SENT', heading: 'heading here', inherited: 'inherited', skip: 'SKIP', next: 'NEXT', begin: 'BEGIN', upright: 'Turn your phone upright' },
     act: {
       promise: 'PROMISE TO DEFEND',

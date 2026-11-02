@@ -17,7 +17,11 @@
 
 - kind: bothReal
   thoughts:
-    - "Both arrows were real that week. They had the appetite for two."
+    - "Both arrows were real that week: neither column they showed you was for show."
+
+- kind: bothRealTimetable
+  thoughts:
+    - "Both arrows were real that week, by their timetable: by then they pushed in two places a week, whatever you did."
 
 - kind: notTested
   thoughts:
@@ -105,6 +109,10 @@
   thoughts:
     - "To them, {piece} at {region} was a worry. They held their nerve."
 
+- kind: jumpyWary
+  thoughts:
+    - "To them, {piece} at {region} was too close. They held back a push for it rather than risk the fight."
+
 - kind: believed
   thoughts:
     - "By now they believed you would keep your word."
@@ -144,6 +152,22 @@
   thoughts:
     - "You backed down at {region}. The promise went, the place fell anyway, and they wrote it down: backing down costs more than backing."
 
+- kind: lessonBackedDownHeld
+  thoughts:
+    - "You backed down at {region}. The promise went and they climbed a step for it: backing down costs more than backing."
+
+- kind: lessonBackedDownFeint
+  thoughts:
+    - "You backed down at {region}, from a column that was only for show. They climbed a step all the same: a week's wait would have shown it leave."
+
+- kind: lessonBackedDownEased
+  thoughts:
+    - "You backed down at {region} and they stood down too. It works once: the promise is gone, and they believe you less."
+
+- kind: lessonJumpy
+  thoughts:
+    - "You kept {piece} at {region}, on their doorstep. To them it looked like an invasion, and they climbed the ladder for it."
+
 - kind: lessonFarDrop
   thoughts:
     - "You offered to drop your promise at {region}. It was nowhere near their front, so it moved them nothing. They pay for what is in their way."
@@ -154,7 +178,7 @@
 
 - kind: lessonNoOrders
   thoughts:
-    - "You gave no orders in {n} weeks. The war came to the places you never answered."
+    - "You gave no orders in {n} weeks when a piece of yours could have answered a hatched place. They took what nobody answered."
 
 - kind: lessonDashedTested
   thoughts:

@@ -160,6 +160,11 @@ describe('orders on the sheet', () => {
     act.armRegion('VSY');
     act.tapSheet('VSY', null);
     expect(armed.value).toBeNull();
+    act.armRegion('VSY');
+    act.tapSheet(null, 'fleet');
+    expect(armed.value).toBeNull();
+    expect(lifted.value).toBe('fleet');
+    act.tapSheet(null, 'fleet');
     expect(run.value?.promises.length).toBe(1);
     act.tapSheet(null, 'fleet');
     act.tapSheet(null, 'fleet');
@@ -176,6 +181,38 @@ describe('orders on the sheet', () => {
     expect(run.value?.influence).toBe(30 - RULES.wayOutPrice.summit);
     expect(act.offer('summit')).toBe(false);
     expect(refusal.value?.text).toBe('one way out a week');
+  });
+
+  it('a plain tap on a place puts down the slip a hold would (the second review: a first tap got no answer)', () => {
+    act.tapSheet('VSY', null);
+    expect(armed.value).toEqual({ region: 'VSY', act: 'promise' });
+    // A tap on another place moves the slip there; on the same place or the sea it goes away.
+    act.tapSheet('LTL', null);
+    expect(armed.value?.region).toBe('LTL');
+    act.tapSheet('LTL', null);
+    expect(armed.value).toBeNull();
+    act.tapSheet(null, null);
+    expect(armed.value).toBeNull();
+  });
+
+  it('a lifted counter marks the places it can reach on the sheet, and stops when it is put down', () => {
+    act.tapSheet(null, 'brigade');
+    expect(mapView.value.reach).toEqual(['VSY', 'ASK']);
+    act.tapSheet(null, 'brigade');
+    expect(mapView.value.reach).toBeUndefined();
+  });
+
+  it('HOW TO PLAY opened from the menu closes back to the menu; from the title, to the title', () => {
+    act.openMenu();
+    act.howToPlay();
+    expect(sheet.value).toBe('how');
+    act.closeSheet();
+    expect(sheet.value).toBe('menu');
+    act.closeSheet();
+    expect(sheet.value).toBeNull();
+    act.howToPlay();
+    act.closeSheet();
+    expect(sheet.value).toBeNull();
   });
 
   it('nothing is accepted while the explanation is up or a sheet is open', () => {

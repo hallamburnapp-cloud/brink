@@ -12,6 +12,7 @@ import {
   endWeek,
   movePiece,
   newGame,
+  ringsLeftDashed,
   offerWayOut,
   promise,
   promiseAt,
@@ -24,7 +25,8 @@ import {
 } from './engine';
 import { cancelPlayback, playResolve, skipPlayback } from './playback';
 import { clearSave, hasSave, readSave, writeSave } from './storage';
-import { armed, busy, debriefPage, explain, held, lifted, play as playing, prefs, refusal, run, saved, screen, setPrefs, sheet, shown, titleWorld, wayOutTerm, type ExplainStep } from './store';
+import { moveNeedsAsk, tryMove } from './orders';
+import { armed, busy, debriefPage, explain, held, lifted, moveAsk, movedDashed, play as playing, prefs, refusal, run, saved, screen, setPrefs, sheet, shown, titleWorld, wayOutTerm, type ExplainStep } from './store';
 import { randomSeed } from './words';
 
 export { cancelPlayback, randomSeed, skipPlayback };
@@ -45,6 +47,7 @@ function clearFinger(): void {
   held.value = null;
   armed.value = null;
   lifted.value = null;
+  moveAsk.value = null;
   wayOutTerm.value = null;
 }
 
@@ -110,8 +113,12 @@ export function newGameNow(): void {
   startGame(randomSeed());
 }
 
+/** Where HOW TO PLAY was opened from: DONE goes back to the menu when it was the menu. */
+let howFromMenu = false;
+
 /** HOW TO PLAY: the typed card of the rules, from the title or the menu. */
 export function howToPlay(): void {
+  howFromMenu = sheet.value === 'menu';
   sheet.value = 'how';
 }
 
@@ -154,6 +161,7 @@ export function armRegion(region: RegionId): void {
   const s = canAct();
   if (!s) return;
   lifted.value = null;
+  moveAsk.value = null;
   const R = content.strings.refusals;
   if (promiseAt(s, region)) {
     armed.value = s.pendingTest === region ? { region, act: 'refused', reason: R['under-test'] } : { region, act: 'withdraw' };
@@ -209,7 +217,7 @@ export function doWithdraw(region: RegionId): boolean {
   return true;
 }
 
-/** Tap a counter, then a place: the move. */
+/** The move itself (MOVE HERE, a tap on a place with nothing to warn of, the hook). */
 export function moveTo(kind: PieceKind, region: RegionId): boolean {
   const s = canAct();
   if (!s) return false;
@@ -219,32 +227,71 @@ export function moveTo(kind: PieceKind, region: RegionId): boolean {
     return false;
   }
   lifted.value = null;
+  moveAsk.value = null;
+  const dashed = ringsLeftDashed(s, kind, region);
+  const kept = movedDashed.value.week === s.week ? movedDashed.value.regions : [];
+  movedDashed.value = { week: s.week, regions: [...kept.filter((r) => !dashed.includes(r)), ...dashed] };
   commit(res.state);
   return true;
 }
 
-/** A plain tap on the sheet: on a counter (pick it up or put it down), on a place (move the lifted counter there), or on nothing. */
-export function tapSheet(region: RegionId | null, counter: PieceKind | null): void {
-  if (!canAct()) return;
-  if (armed.value) {
-    armed.value = null;
+/**
+ * Tap a counter, then a place. A move that would cross a declared line or leave a ring dashed is not paid for yet:
+ * the MOVE HERE slip is put down at the place and says so first (SPEC-SMALL "A form that will fail says so before
+ * you pay"); any other move is made at once, and one the engine refuses says why.
+ */
+export function askMove(kind: PieceKind, region: RegionId): void {
+  const s = canAct();
+  if (!s) return;
+  const o = tryMove(s, kind, region);
+  if (!o.ok) {
+    moveAsk.value = null;
+    refuse(o.reason as RefusalCode);
     return;
   }
+  if (moveNeedsAsk(o)) {
+    moveAsk.value = { kind, region };
+    return;
+  }
+  moveTo(kind, region);
+}
+
+/**
+ * A plain tap on the sheet: on a counter (pick it up or put it down); on a place with a counter lifted (move it
+ * there); on a place with nothing lifted (the slip a hold puts down: a first-time player's tap is answered, the
+ * second review); on nothing (put everything down).
+ */
+export function tapSheet(region: RegionId | null, counter: PieceKind | null): void {
+  if (!canAct()) return;
   if (counter) {
+    armed.value = null;
+    moveAsk.value = null;
     lifted.value = lifted.value === counter ? null : counter;
     return;
   }
   if (lifted.value && region) {
-    moveTo(lifted.value, region);
+    askMove(lifted.value, region);
     return;
   }
-  if (!region) lifted.value = null;
+  if (armed.value) {
+    // A tap on another place moves the slip there; a tap on the same place or the sea puts it away.
+    if (region && region !== armed.value.region) armRegion(region);
+    else armed.value = null;
+    return;
+  }
+  if (region) {
+    armRegion(region);
+    return;
+  }
+  lifted.value = null;
+  moveAsk.value = null;
 }
 
 /** Pick a counter up by its name (the hook, a tap on a counter). */
 export function liftPiece(kind: PieceKind | null): void {
   if (!canAct()) return;
   armed.value = null;
+  moveAsk.value = null;
   lifted.value = kind;
 }
 
@@ -308,6 +355,13 @@ export function openMenu(): void {
 
 export function closeSheet(): void {
   if (sheet.value === 'wayout') wayOutTerm.value = null;
+  // HOW TO PLAY opened from the menu closes back to the menu (the second review), not to the game.
+  if (sheet.value === 'how' && howFromMenu) {
+    howFromMenu = false;
+    sheet.value = 'menu';
+    return;
+  }
+  howFromMenu = false;
   sheet.value = null;
 }
 

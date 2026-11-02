@@ -15,14 +15,14 @@
  * but only a place that fell in an earlier week comes back (board.ts recoverOne).
  */
 import { Rng } from '../../engine/rng.ts';
-import { acceptWayOut, blockedLastWeek, crossesLine, crossingThing, planHeadings, targetWhy } from './agent.ts';
-import { believe, canRecover, currentLog, fall, fellIn, fightingRegions, holdInfo, isAnswered, isSpared, netActs, note, pieceAt, pieceOf, press, pressedRegions, promiseAt, recover, recoverOne, removePromise, say, stepAtWeekStart, stepDown, stepUp, tally, think, willing } from './board.ts';
-import type { RedlinesContent } from './content.ts';
-import { closingLines, endingOf } from './debrief.ts';
+import { acceptWayOut, blockedLastWeek, crossesLine, crossingThing, planHeadings, summitWhy, targetWhy } from './agent.ts';
+import { believe, canRecover, provocationBelieved, currentLog, fall, fellIn, fightingRegions, holdDistance, holdInfo, isAnswered, isSpared, nearestPiece, netActs, note, pieceAt, pieceOf, press, pressedRegions, promiseAt, recover, recoverOne, removePromise, say, stepAtWeekStart, stepDown, stepUp, tally, think, unansweredRegions, willing } from './board.ts';
+import type { RedlinesContent, WhyKind } from './content.ts';
+import { endingOf } from './debrief.ts';
 import { answerCost, makePhone, pickEvent, type PhoneContext } from './phone.ts';
 import { RULES, fallWeeksAt, isScared, spreadAt } from './rules.ts';
-import type { Act, EndingKind, GameState, Line, PieceKind, RegionId } from './types.ts';
-import { actLine, fill, numberWord, placesPhrase } from './words.ts';
+import type { Act, EndingKind, GameState, Heading, Line, PieceKind, RegionId } from './types.ts';
+import { actLine, fill, listNames, numberWord, placesPhrase } from './words.ts';
 import { NEAR_CAP, NEIGHBOURS, isCap, mapOrder, regionName } from './world.ts';
 
 /** SPEC-SMALL ruling: the fleet starts at Tern Isle (the Scatter), within reach of the war; the brigade at Edda Vale. */
@@ -32,12 +32,7 @@ export function homeOf(kind: PieceKind): RegionId {
   return kind === 'fleet' ? FLEET_START : BRIGADE_START;
 }
 
-/** "Saltwhite", "Saltwhite and Hearth", "Saltwhite, Hearth and Iceward" (names, so the slot filler leaves them as they are). */
-export function listNames(ids: readonly RegionId[]): string {
-  const names = ids.map(regionName);
-  if (names.length <= 1) return names[0] ?? '';
-  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-}
+export { listNames };
 
 /** One place's name, or "two places": the {n} slot of a tape line about several places. */
 function placesSlot(c: RedlinesContent, ids: readonly RegionId[]): string {
@@ -64,10 +59,47 @@ export function isFeintTest(s: GameState, region: RegionId, round: number): bool
   return round === 1 && s.fed.headings.some((h) => h.to === region && !h.real);
 }
 
-/** Why they chose a place, with the {piece} slot filled (the thought "they wanted to see whether the brigade would fight"). */
-function whyFor(c: RedlinesContent, s: GameState, region: RegionId): string {
-  const piece = pieceAt(s, region)?.kind ?? holdInfo(s, region).piece?.kind ?? 'brigade';
-  return fill(c.strings.why[targetWhy(s, region)], { piece: c.strings.pieces[piece] });
+/**
+ * Why they chose a place, with the {piece} slot filled (the thought "they wanted to see whether the brigade would
+ * fight"). SPEC-SMALL "The debrief reads motives when they were formed": the reason recorded when the heading was
+ * planned; a heading from an old save without one is read now.
+ */
+function whyFor(c: RedlinesContent, s: GameState, h: Heading): string {
+  const code = (h.why && h.why in c.strings.why ? h.why : targetWhy(s, h.to)) as WhyKind;
+  const piece = h.whyPiece ?? pieceAt(s, h.to)?.kind ?? holdInfo(s, h.to).piece?.kind ?? nearestPiece(s, h.to).kind;
+  return fill(c.strings.why[code], { piece: c.strings.pieces[piece] });
+}
+
+/**
+ * The other columns land: a real push presses its place ("Federation forces push into X", or "More Federation forces
+ * into X"), a feint stops short. The debrief's "they went for X" for a new front, and a feint's thought only when you
+ * acted on it. SPEC-SMALL "The feint keeps its mystery": in a week with a test call these land after the answer.
+ */
+function landPushes(c: RedlinesContent, s: GameState, hs: readonly Heading[], sayHeading: (h: Heading) => void): void {
+  const real = s.fed.headings.filter((h) => h.real).map((h) => h.to);
+  const actedOn = (r: RegionId) => s.acts.some((a) => (a.kind === 'promise' && a.region === r) || (a.kind === 'move' && a.to === r));
+  for (const h of hs) {
+    if (h.real) {
+      const was = s.regions[h.to].state;
+      if (was === 'calm') sayHeading(h);
+      if (was !== 'fighting') {
+        press(s, h.to);
+        say(c, s, was === 'pressed' ? 'pushedAgain' : 'pushed', { region: h.to });
+      }
+    } else {
+      say(c, s, 'stoppedShort', { region: h.to });
+      if (actedOn(h.to)) think(c, s, 'feint', { region: h.to, from: real.find((r) => r !== h.to) ?? h.to });
+    }
+  }
+}
+
+/** The debrief's one "they went for X" a week (a test, or a new front), with the reason recorded when it was planned. */
+function headingThought(c: RedlinesContent, s: GameState): (h: Heading) => void {
+  return (h) => {
+    if (s.headingSaid === s.week) return;
+    s.headingSaid = s.week;
+    think(c, s, 'heading', { region: h.to, why: whyFor(c, s, h) });
+  };
 }
 
 /** The first half of the resolve. `s` is a draft. */
@@ -83,9 +115,20 @@ export function beginWeek(c: RedlinesContent, s: GameState): GameState {
     note(s, actLine(c, a));
     if (a.kind === 'move') T.moves++;
   }
+  // A believed ring their plan for this week left alone (chosen when the week was planned): said once a game per place,
+  // and only if the ring still stands, solid, with no arrow of this week's at it.
+  const quiet = s.quietRing;
+  s.quietRing = null;
+  if (quiet && promiseAt(s, quiet) && holdInfo(s, quiet).ok && !s.fed.headings.some((h) => h.to === quiet)) {
+    // Any of the thought's wordings counts (the pack has two, and think() may say either).
+    const said = (c.debrief.notTested ?? []).some((t) => s.log.some((w) => w.hidden.includes(fill(t, { region: regionName(quiet) }))));
+    if (!said) think(c, s, 'notTested', { region: quiet });
+  }
   if (!log.acts.length) {
     note(s, c.strings.acts.none);
     T.idleWeeks++;
+    // An idle week the closing card may count: a hatched, unanswered place a piece could have held with one move.
+    if (pressedRegions(s).some((r) => !isAnswered(s, r) && s.pieces.some((p) => holdDistance(s, p, r) <= 1))) T.idleAnswerable = (T.idleAnswerable ?? 0) + 1;
   }
 
   // 1. The clocks: a pressed place unanswered counts another week towards its fall; an answered one
@@ -99,8 +142,9 @@ export function beginWeek(c: RedlinesContent, s: GameState): GameState {
     }
   }
 
-  // 2. Their lines. The tape names what crossed it and where, then Wintermast's word and the step.
-  let bluff: { line: Line; region: RegionId } | null = null;
+  // 2. Their lines. The tape names what crossed it and where, then Wintermast's word and the step. SPEC-SMALL "The bluff
+  //    is not a free read": a real line crossed rings the same call as the bluff (below), so the call is no tell.
+  let crossed: { line: Line; region: RegionId } | null = null;
   for (const line of s.fed.lines) {
     if (s.crossed[line.id] !== undefined) continue;
     const def = c.lines.find((l) => l.id === line.id);
@@ -112,14 +156,14 @@ export function beginWeek(c: RedlinesContent, s: GameState): GameState {
     const piece = c.strings.pieces[thing];
     if (line.real) {
       say(c, s, 'lineCrossedAt', { piece, region: at });
-      stepUp(s);
-      say(c, s, 'lineCrossed', { line: line.text });
+      const stepped = stepUp(s);
+      say(c, s, stepped ? 'lineCrossed' : 'lineCrossedSame', { line: line.text });
       think(c, s, 'lineReal', { line: line.text, piece, region: at });
     } else {
       believe(s, RULES.bluffBelief);
       think(c, s, 'lineBluff', { line: line.text, piece, region: at });
-      bluff = { line, region: at };
     }
+    if (!crossed || (!line.real && crossed.line.real)) crossed = { line, region: at };
   }
 
   // 3. WAIT bought information: the column you waited on last week was for show, and it has gone home.
@@ -141,51 +185,45 @@ export function beginWeek(c: RedlinesContent, s: GameState): GameState {
     } else carried = r;
   }
 
-  // 4. Their pushes land. The debrief gets at most one "they went for X" line a week, and only when it
-  //    changed something: a test, or a new front (a calm place pressed; the pressure kept on says nothing new).
-  const real = s.fed.headings.filter((h) => h.real).map((h) => h.to);
+  // 4. Their pushes land. The debrief gets at most one "they went for X" line a week, and only when it changed
+  //    something: a test, or a new front (a calm place pressed; the pressure kept on says nothing new), with the reason
+  //    recorded when the heading was planned. SPEC-SMALL "The feint keeps its mystery": when a test call rings, it rings
+  //    before the other column's line prints; that column lands after the answer (finishWeek).
+  const sayHeading = headingThought(c, s);
   let newTest: RegionId | null = null;
-  let headingSaid = false;
-  const sayHeading = (to: RegionId) => {
-    if (headingSaid) return;
-    headingSaid = true;
-    think(c, s, 'heading', { region: to, why: whyFor(c, s, to) });
-  };
-  const actedOn = (r: RegionId) => s.acts.some((a) => (a.kind === 'promise' && a.region === r) || (a.kind === 'move' && a.to === r));
+  const others: Heading[] = [];
   for (const h of s.fed.headings) {
-    const pm = promiseAt(s, h.to);
-    if (pm && !carried && !newTest && s.regions[h.to].state !== 'fighting') {
+    if (promiseAt(s, h.to) && !carried && !newTest && s.regions[h.to].state !== 'fighting') {
       newTest = h.to;
       say(c, s, 'tested', { region: h.to });
-      if (h.real) sayHeading(h.to);
+      if (h.real) sayHeading(h);
       if (holdInfo(s, h.to).ok) T.testsSolid++;
       else T.testsDashed++;
-    } else if (h.real) {
-      const was = s.regions[h.to].state;
-      if (was === 'calm') sayHeading(h.to);
-      if (was !== 'fighting') {
-        press(s, h.to);
-        say(c, s, was === 'pressed' ? 'pushedAgain' : 'pushed', { region: h.to });
-      }
-    } else {
-      say(c, s, 'stoppedShort', { region: h.to });
-      if (actedOn(h.to)) think(c, s, 'feint', { region: h.to, from: real[0] ?? h.to });
-    }
+    } else others.push(h);
   }
-  if (s.fed.headings.length === 2 && s.fed.headings.every((h) => h.real)) think(c, s, 'bothReal');
+  if (s.fed.headings.length === 2 && s.fed.headings.every((h) => h.real)) think(c, s, s.fed.headings.some((h) => h.timetable) ? 'bothRealTimetable' : 'bothReal');
 
   // 5. The phone: the carried test first, then a new test, then an event.
+  const testCall = (region: RegionId, round: 1 | 2 | 3): boolean => {
+    s.afterCall = others;
+    if (ring(c, s, rng, { kind: 'test', region, round })) return true;
+    s.afterCall = null;
+    return false;
+  };
   if (carried) {
-    if (ring(c, s, rng, { kind: 'test', region: carried, round: s.pendingRound })) return s;
+    // The carried test is still on: the tape says so before the call rings again (its other columns land after the answer).
+    say(c, s, 'tested', { region: carried });
+    if (testCall(carried, s.pendingRound)) return s;
     s.pendingTest = null;
   }
   if (newTest) {
     s.pendingTest = newTest;
     s.pendingRound = 1;
-    if (ring(c, s, rng, { kind: 'test', region: newTest, round: 1 })) return s;
+    if (testCall(newTest, 1)) return s;
     s.pendingTest = null;
   }
-  const ev = pickEvent(c, s, rng, bluff);
+  landPushes(c, s, others, sayHeading);
+  const ev = pickEvent(c, s, rng, crossed);
   if (ev) {
     s.events++;
     if (ring(c, s, rng, { kind: ev.kind, region: ev.region, round: 1, line: ev.line })) return s;
@@ -233,6 +271,9 @@ export function applyAnswer(c: RedlinesContent, s: GameState, key: 'back' | 'dow
           s.lastBacked = region;
         }
         s.pendingTest = null;
+        // A provocation backed on its call is answered from now on (it cost a call, as the ruling says).
+        const pm = promiseAt(s, region);
+        if (pm?.provocation) delete pm.provocation;
         // It held: the place is answered this week, so a clock already running there starts again ("it held", then never "has fallen").
         if (s.regions[region].state === 'pressed') s.regions[region].pressedWeeks = 0;
         // Cause, then effect: the backing, then the place the step down quiets.
@@ -252,6 +293,7 @@ export function applyAnswer(c: RedlinesContent, s: GameState, key: 'back' | 'dow
       believe(s, -RULES.backDownBelief);
       removePromise(s, region);
       s.pendingTest = null;
+      if (s.lastBacked === region) s.lastBacked = null;
       T.backedDown++;
       if (!T.backedDownFirst) T.backedDownFirst = region;
       const cause = inherited ? 'back-down-inherited' : 'back-down';
@@ -259,26 +301,29 @@ export function applyAnswer(c: RedlinesContent, s: GameState, key: 'back' | 'dow
         press(s, region);
         s.regions[region].fellBy = cause;
       }
-      // SPEC-SMALL ruling: BACK DOWN near a scared Federation is a step down (they wanted the fight no more than you did).
-      const eased = !feint && RULES.backDownEasesWhenScared && isScared(s.fed.jumpiness);
+      // SPEC-SMALL ruling: BACK DOWN near a scared Federation is a step down (they wanted the fight no more than you did);
+      // "Backing down is never the best answer": at most once a game, it returns no place, and it needs a step to come down.
+      const eased = !feint && RULES.backDownEasesWhenScared && isScared(s.fed.jumpiness) && (T.eased ?? 0) < RULES.easedPerGame && s.fed.step > 1;
       T.jumpinessSeen = true;
-      let stepped = false;
+      let climbed = false;
       if (eased) {
-        stepped = stepDown(s);
+        stepDown(s);
+        T.eased = (T.eased ?? 0) + 1;
         say(c, s, 'backedDownEased', { region });
         think(c, s, 'realBackedDownEased', { region });
       } else {
-        stepUp(s);
-        say(c, s, 'backedDown', { region });
+        climbed = stepUp(s);
+        say(c, s, climbed ? 'backedDown' : 'backedDownSame', { region });
         think(c, s, feint ? 'feintBackedDown' : 'realBackedDown', { region });
       }
+      // A back-down at the top of the ladder climbed nothing: the closing card never says it did (`top`).
+      (T.backDowns ??= []).push({ region, week: s.week, feint, eased, ...(eased || climbed ? {} : { top: true }) });
       // Round 14: a promise nothing of yours could hold, backed down from, loses the place at once. Cause before
       // effect: the back-down's line first, then "X has fallen" (and no second step for it: the back-down's step was its step).
       if (!feint && RULES.backDownFarTakes && !hold.ok && s.regions[region].state !== 'fighting') {
         fall(s, region, cause);
         say(c, s, 'fell', { region });
       }
-      if (stepped) quietOne(c, s);
     } else {
       believe(s, -RULES.waitBelief);
       say(c, s, 'waited', { region });
@@ -322,7 +367,8 @@ export function applyAnswer(c: RedlinesContent, s: GameState, key: 'back' | 'dow
         believe(s, -RULES.disownBelief);
         say(c, s, 'trawlerDisowned', { region });
       } else say(c, s, 'trawlerLeaned', { region });
-      think(c, s, 'trawler', { region, why: c.strings.why.curious });
+      // Their excuse, as it was: a promised island tests your word; an island nobody promised was simply unguarded.
+      think(c, s, 'trawler', { region, why: c.strings.why[region && promiseAt(s, region) ? 'curious' : 'unguarded'] });
       return;
     }
     case 'bluff-crossed': {
@@ -331,17 +377,19 @@ export function applyAnswer(c: RedlinesContent, s: GameState, key: 'back' | 'dow
         uncross(s, region);
         say(c, s, 'bluffPulled', { region });
       } else say(c, s, key === 'back' ? 'bluffHeld' : 'bluffWaited', { region });
-      think(c, s, 'bluffPhone', { region });
+      // The call rings for a real line too (no tell); its silence is a bluff's only when the line crossed was the bluff.
+      if (s.fed.lines.some((l) => !l.real && s.crossed[l.id] === s.week)) think(c, s, 'bluffPhone', { region });
       return;
     }
     case 'summit': {
-      const why = c.strings.why[s.fed.step >= 3 ? 'afraid' : 'wantedToStop'];
+      const why = c.strings.why[summitWhy(s)];
       if (key === 'back') {
         const stepped = stepDown(s);
         willing(s, RULES.willWayOut);
         s.waysOut++;
+        s.wayOutWeek = s.week;
         if (blockedLastWeek(s)) T.stoppedThenTalked++;
-        say(c, s, 'summitAccepted');
+        say(c, s, stepped ? 'summitAccepted' : 'summitAcceptedSame');
         if (stepped) quietOne(c, s);
       } else if (key === 'down') {
         // Their public offer refused in public: the one humiliation in the first build (spec: −10).
@@ -386,6 +434,13 @@ export function finishWeek(c: RedlinesContent, s: GameState): GameState {
   s.phone = null;
   s.phase = 'act';
 
+  // 6b. SPEC-SMALL "The feint keeps its mystery": the other columns of a week with a test call land after the answer.
+  if (s.afterCall) {
+    const hs = s.afterCall;
+    s.afterCall = null;
+    landPushes(c, s, hs, headingThought(c, s));
+  }
+
   // 7. Places fall: pressed, unanswered, the clock (read at the step the week started at) run down. A place
   //    nothing of yours could have reached falls without a step, and the tape says so.
   for (const r of pressedRegions(s)) {
@@ -410,9 +465,11 @@ export function finishWeek(c: RedlinesContent, s: GameState): GameState {
   // and so does a place that came back this week (no place falls and recovers inside one week, in either order).
   const n = spreadAt(s.fed.step);
   if (n > 0) {
+    // A promise backed this week that held is answered this week ("it held" is never followed by its fall, spread or not).
+    const heldNow = (r: RegionId) => !!promiseAt(s, r) && s.acts.some((a) => a.kind === 'answer' && a.key === 'back' && a.region === r && (a.phone === 'test' || a.phone === 'test-inherited' || a.phone === 'feint'));
     const pool: Array<{ region: RegionId; from: RegionId }> = [];
     for (const f of fightingRegions(s))
-      for (const r of NEIGHBOURS[f]) if (!isCap(r) && s.regions[r].state !== 'fighting' && s.regions[r].recoveredWeek !== week && !isSpared(s, r) && !pool.some((p) => p.region === r)) pool.push({ region: r, from: f });
+      for (const r of NEIGHBOURS[f]) if (!isCap(r) && s.regions[r].state !== 'fighting' && s.regions[r].recoveredWeek !== week && !isSpared(s, r) && !heldNow(r) && !pool.some((p) => p.region === r)) pool.push({ region: r, from: f });
     const ordered = mapOrder(pool.map((p) => p.region)).map((r) => pool.find((p) => p.region === r)!);
     rng.shuffle(ordered);
     const spread = ordered.slice(0, n);
@@ -451,6 +508,7 @@ export function finishWeek(c: RedlinesContent, s: GameState): GameState {
       const stepped = stepDown(s);
       willing(s, RULES.willWayOut);
       s.waysOut++;
+      s.wayOutWeek = week;
       if (gained.length === 0 && blockedLastWeek(s)) T.stoppedThenTalked++;
       // Cause, then effect: their acceptance, then any place it returns (only a place that fell in an earlier week).
       say(c, s, 'wayOutAccepted', { term });
@@ -477,17 +535,29 @@ export function finishWeek(c: RedlinesContent, s: GameState): GameState {
   const answeredThisWeek = (r: RegionId) => s.acts.some((a) => a.kind === 'answer' && a.region === r && (a.phone === 'test' || a.phone === 'test-inherited' || a.phone === 'feint'));
   const unansweredFalls = gained.filter((r) => s.regions[r].fellReach && s.regions[r].fellBy !== 'spread' && s.regions[r].fellBy !== 'failed' && !answeredThisWeek(r));
   if (unansweredFalls.length && stepUp(s)) say(c, s, 'takenStepUp', { n: placesSlot(c, unansweredFalls) });
+  // SPEC-SMALL "Backing down is never the best answer": jumpiness shows on the sheet in the main loop. A piece of yours
+  // next to their door slows a scared Federation (one push held back next week, its arrow stopping short) and provokes
+  // a bold one (a step up).
   const near = s.pieces.find((p) => NEAR_CAP.includes(p.at));
+  let slow = false;
   if (near) {
     T.jumpinessSeen = true;
-    if (rng.next() < s.fed.jumpiness * RULES.jumpyScale) {
-      stepUp(s);
+    const piece = c.strings.pieces[near.kind];
+    if (isScared(s.fed.jumpiness)) {
+      if (rng.next() < s.fed.jumpiness * RULES.jumpyScale) {
+        slow = true;
+        say(c, s, 'wary', { region: near.at });
+        think(c, s, 'jumpyWary', { piece, region: near.at });
+      } else think(c, s, 'jumpyQuiet', { piece, region: near.at });
+    } else if (rng.next() < (1 - s.fed.jumpiness) * RULES.jumpyScale && stepUp(s)) {
+      // At the top of the ladder a provocation has nowhere to climb: the tape says nothing it cannot show.
       say(c, s, 'jumpy', { region: near.at });
-      think(c, s, 'jumpy', { piece: c.strings.pieces[near.kind], region: near.at });
-    } else think(c, s, 'jumpyQuiet', { piece: c.strings.pieces[near.kind], region: near.at });
+      think(c, s, 'jumpy', { piece, region: near.at });
+      T.jumpySteps = (T.jumpySteps ?? 0) + 1;
+      if (!T.jumpyFirst) T.jumpyFirst = { piece: near.kind, region: near.at };
+    } else think(c, s, 'jumpyQuiet', { piece, region: near.at });
   }
-  if (s.fed.step >= RULES.accidentFrom && rng.next() < RULES.accidentChance) {
-    stepUp(s);
+  if (s.fed.step >= RULES.accidentFrom && rng.next() < RULES.accidentChance && stepUp(s)) {
     const where = s.fed.headings.find((h) => h.real)?.to ?? pressedRegions(s)[0] ?? NEAR_CAP[0];
     say(c, s, 'accident', { region: where });
     think(c, s, 'accident', { region: where });
@@ -525,17 +595,26 @@ export function finishWeek(c: RedlinesContent, s: GameState): GameState {
   else if (s.fed.belief < RULES.doubtedLine && s.beliefWas >= RULES.doubtedLine) think(c, s, 'doubted');
 
   // 12. The endings.
+  // SPEC-SMALL "The treaty is signed over a quiet map": at 100 they sign if nothing fell this week and no hatched place
+  // stands unanswered; when the bar is at 100 and they do not sign, the tape says why.
   let ending: EndingKind | null = null;
+  const open = unansweredRegions(s);
   if (s.war >= RULES.warLimit) ending = 'war';
-  else if (s.fed.will >= RULES.willSign && !gained.length) ending = 'treaty';
-  else if (week >= RULES.weeks) ending = 'frozen';
+  else if (s.fed.will >= RULES.willSign && !gained.length && (!open.length || !RULES.treatyNeedsQuietMap)) ending = 'treaty';
+  else {
+    if (s.fed.will >= RULES.willSign) say(c, s, gained.length ? 'noSignTaken' : 'noSignPressed', { n: placesSlot(c, open) });
+    if (week >= RULES.weeks) ending = 'frozen';
+  }
   const log = currentLog(s);
   log.danger = { war: s.war, treaty: s.treaty, step: s.fed.step };
   if (ending) {
-    say(c, s, ending === 'war' ? 'worldWar' : ending === 'treaty' ? 'treatySigned' : 'frozen');
+    say(c, s, ending === 'war' ? 'worldWar' : ending === 'treaty' ? 'treatySigned' : 'frozen', { n: numberWord(c, s.war) });
     s.ending = endingOf(c, s, ending);
-    // The closing card's lessons, then the dials, end the debrief's last page.
-    for (const line of closingLines(c, s)) log.hidden.push(line);
+    // SPEC-SMALL "The debrief reads motives when they were formed": the lessons print once, on the closing card (the
+    // ending carries them and the dials); the last week's page keeps only that week's thoughts. No week follows, so no
+    // heading is planned: the sheet under the card shows no pins for a week that never comes.
+    s.fed.headings = [];
+    s.afterCall = null;
     s.phase = 'ended';
     s.pendingTest = null;
     s.offer = null;
@@ -543,12 +622,11 @@ export function finishWeek(c: RedlinesContent, s: GameState): GameState {
   }
 
   // 13. Next week.
-  const plan = planHeadings(s, rng, null, week + 1);
-  if (plan.notTested) {
-    // Once a game per place: the thought is the same every week they leave it alone.
-    const text = fill(c.debrief.notTested[0] ?? '', { region: regionName(plan.notTested) });
-    if (!s.log.some((w) => w.hidden.includes(text))) think(c, s, 'notTested', { region: plan.notTested });
-  }
+  // A provocation ring they believe now is an ordinary ring: it pauses its clock from here on.
+  for (const p of s.promises) if (p.provocation && provocationBelieved(s, p.region)) delete p.provocation;
+  const plan = planHeadings(s, rng, null, week + 1, slow);
+  // The believed ring this plan leaves alone is said on the page of the week it is left alone (beginWeek), not this one's.
+  s.quietRing = plan.notTested;
   s.fed.headings = plan.headings;
   s.week = week + 1;
   s.influence = Math.max(0, s.influence + RULES.income - RULES.upkeep * s.promises.length);

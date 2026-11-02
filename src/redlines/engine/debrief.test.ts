@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Rng } from '../../engine/rng.ts';
 import { BOTS } from '../sim/bots.ts';
-import { debrief, dialsLine } from './debrief.ts';
+import { closingLines, debrief, dialsLine } from './debrief.ts';
 import { makePhone } from './phone.ts';
 import { RULES } from './rules.ts';
 import { answerPhone, endWeek, movePiece, movesFor, newGame, promise, withdraw } from './run.ts';
@@ -40,18 +40,18 @@ describe('the debrief', () => {
       }
     }
   });
-  it('writes its thoughts in week order and ends with the lessons, then the dials', () => {
+  it('writes its thoughts in week order; the lessons and the dials print once, on the closing card, never on a week\'s page', () => {
     const s = full('db-order');
     const weeks = debrief(s).map((e) => e.week);
     expect([...weeks]).toEqual([...weeks].sort((a, b) => a - b));
     expect(new Set(weeks).size).toBeLessThanOrEqual(s.log.length);
-    const last = debrief(s).pop()!;
-    expect(last.thought).toBe(s.ending!.dials);
-    expect(last.thought).toBe(dialsLine(c, s.fed, s.tally!.jumpinessSeen));
-    const lastWeek = s.log[s.log.length - 1].hidden;
+    expect(s.ending!.dials).toBe(dialsLine(c, s.fed, s.tally!.jumpinessSeen));
     const lessons = s.ending!.lessons!;
     expect(lessons.length).toBeLessThanOrEqual(3);
-    expect(lastWeek.slice(-1 - lessons.length, -1)).toEqual(lessons);
+    // SPEC-SMALL "The debrief reads motives when they were formed": a lesson prints once, on the closing card.
+    const pages = s.log.flatMap((w) => w.hidden);
+    for (const l of [...lessons, s.ending!.dials]) expect(pages).not.toContain(l);
+    expect(closingLines(c, s)).toEqual([...lessons, s.ending!.dials]);
   });
   it('writes at most one "they went for" and one feint line a week, and lessons drawn from the game', () => {
     let lessonsSeen = 0;

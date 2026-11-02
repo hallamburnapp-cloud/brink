@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { weeksLeft } from './board.ts';
 import { weeksLeft as fromIndex } from './index.ts';
 import { answerPhone, endWeek, movePiece, promise } from './run.ts';
+import { RULES } from './rules.ts';
 import { FIXTURE_CONTENT, fixtureGame } from './testkit.ts';
 import type { GameState, RegionId, Step } from './types.ts';
 
@@ -94,8 +95,13 @@ describe('weeksLeft: the pencil ticks beside a hatched place', () => {
     expect(weeksLeft(s, 'KLP')).toBeNull();
     s.regions.VSY = { state: 'pressed', pressedWeeks: 1, quietWeeks: 0 };
     expect(weeksLeft(s, 'VSY')).toBe(2);
-    // A solid promise (the brigade one move away) answers it: its clock pauses, no ticks.
-    const answered = promise(s, 'VSY');
+    // A ring drawn on a place already under siege is a provocation (SPEC-SMALL "No formula wins"): its clock runs on, the
+    // ticks stay, until they believe it or it is backed on its call.
+    const provoked = promise(s, 'VSY');
+    if (!provoked.ok) throw new Error(provoked.reason);
+    expect(weeksLeft(provoked.state, 'VSY')).toBe(2);
+    // Believed (RULES.provocationBelief), a solid promise answers it: its clock pauses, no ticks.
+    const answered = promise({ ...s, fed: { ...s.fed, belief: RULES.provocationBelief } }, 'VSY');
     if (!answered.ok) throw new Error(answered.reason);
     expect(weeksLeft(answered.state, 'VSY')).toBeNull();
     // Under test it is not answered: the ticks come back.

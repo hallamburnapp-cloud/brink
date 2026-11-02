@@ -144,7 +144,8 @@ export function playGame(content: RedlinesContent, bot: Bot, seed: string): Game
     step: s.fed.step,
     warPeak,
     stepPeak,
-    hidden: s.log.reduce((a, w) => a + w.hidden.length, 0),
+    // The debrief: every week's page and the closing card (its lessons and the dials), which print once, on the card.
+    hidden: s.log.reduce((a, w) => a + w.hidden.length, 0) + (s.ending ? (s.ending.lessons?.length ?? 0) + 1 : 0),
     phones,
     tests,
     backed,

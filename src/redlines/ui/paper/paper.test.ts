@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { REGION, REGIONS } from '../../../thirty/ui/map/data';
 import { EMPTY_VIEW, MAP_WORDS, type PaperView } from './contract';
 import { CALL_BAND, CALL_SHIFT, FRAME, boundsOf, callShiftFor, centreOf, computeGeometry, hitFrame, hitMap, regionAt, toFrame, toMap } from './geometry';
-import { arrowEnds, defendPos, marksOf, piecePos, pinPos, ringGeom, ringSize, SHEET_FOOT, stampPos, testedPos } from './marks';
+import { arrowEnds, defendPos, leaderFor, marksOf, piecePos, pinPos, ringGeom, ringSize, SHEET_FOOT, stampPos, testedPos } from './marks';
 import { arrange, testRingGeom, type Arrangement, type Placed } from './arrange';
 import { overlap } from './place';
 import { inkBox, TEXT } from './text';
@@ -103,8 +103,8 @@ describe('the sheet', () => {
     expect(sheet.markup).toContain(`>${MAP_WORDS.north}<`);
   });
 
-  it('leaves the mark layers empty, in z-order', () => {
-    const order = ['pp-l-press', 'pp-l-fight', 'pp-borders', 'pp-coasts', 'pp-l-hold', 'pp-names', 'pp-l-head', 'pp-l-piece', 'pp-l-prom', 'pp-l-test', 'pp-l-hw', 'pp-l-stamp'];
+  it('leaves the mark layers empty, in z-order: the printed names again over the rings and arrows, the counters over the rings', () => {
+    const order = ['pp-l-press', 'pp-l-fight', 'pp-borders', 'pp-coasts', 'pp-l-hold', 'pp-names', 'pp-l-head', 'pp-l-prom', 'pp-l-test', 'pp-names-over', 'pp-l-piece', 'pp-l-hw', 'pp-l-stamp'];
     let last = -1;
     for (const cls of order) {
       const i = sheet.markup.indexOf(cls);
@@ -214,11 +214,23 @@ describe('the marks for a view', () => {
       expect(s.ry).toBeGreaterThanOrEqual(20);
       expect(s.ry).toBeLessThanOrEqual(38);
     }
-    // Lantern Key's name is under the island, so WE DEFEND goes over it; Vessary's touches its own ring, in the sea above it rather than on Quillon's land.
+    // Lantern Key's name is under the island, so WE DEFEND goes over it; every place's WE DEFEND touches its own ring
+    // (its ink within a few px of the ring's line: the second review found words written 10 to 20 px off, by other names).
     expect(defendPos(sheet.geom, 'LNK').y).toBeLessThan(sheet.geom.centre.LNK[1]);
-    const v = defendPos(sheet.geom, 'VSY');
-    const r = ringGeom(sheet.geom, 'VSY');
-    expect(Math.hypot((v.x - r.cx) / r.rx, (v.y - 4 - r.cy) / r.ry)).toBeLessThan(1.8);
+    for (const r of REGIONS) {
+      if (r.bloc === 'CAP') continue; // no promise is drawn inside the Cap
+      const v = defendPos(sheet.geom, r.id);
+      const e = ringGeom(sheet.geom, r.id);
+      const b = inkBox(TEXT.hand, MAP_WORDS.defend, v.x, v.y, 'middle', v.rot);
+      let off = Infinity;
+      for (let i = 0; i <= 8; i++) {
+        for (let j = 0; j <= 4; j++) {
+          const q = Math.hypot((b.x0 + ((b.x1 - b.x0) * i) / 8 - e.cx) / e.rx, (b.y0 + ((b.y1 - b.y0) * j) / 4 - e.cy) / e.ry);
+          off = Math.min(off, Math.abs(q - 1) * Math.min(e.rx, e.ry));
+        }
+      }
+      expect(off, `${r.id}'s WE DEFEND off its ring`).toBeLessThan(10);
+    }
   });
 });
 
@@ -631,3 +643,116 @@ describe('every mark keeps clear (the recheck\'s findings: real glyph boxes, eve
     expect(t.ry - r.ry).toBe(5);
   });
 });
+
+describe('the second review\'s placement findings', () => {
+  it('models Lantern Key as the cascade sets it: an island capital, the capital\'s size and weight with the island\'s spacing', () => {
+    const lnk = sheet.geom.labelBox.LNK;
+    const asCapital = inkBox(TEXT.isleCapital, 'LANTERN KEY', sheet.geom.label.LNK[0], sheet.geom.label.LNK[1], 'middle', 0, 0.8);
+    expect(lnk.x0).toBeCloseTo(asCapital.x0, 5);
+    expect(lnk.x1 - lnk.x0).toBeGreaterThan(inkBox(TEXT.isle, 'LANTERN KEY', 0, 0).x1 - inkBox(TEXT.isle, 'LANTERN KEY', 0, 0).x0 + 15);
+  });
+
+  it('sets no two printed names on one line within a word-space, and none past the neat line', () => {
+    const ids = Object.keys(sheet.geom.labelBox);
+    for (const a of ids) {
+      const A = sheet.geom.labelBox[a];
+      expect(A.x1, a).toBeLessThan(386);
+      for (const b of ids) {
+        if (a >= b) continue;
+        const B = sheet.geom.labelBox[b];
+        if (Math.min(A.y1, B.y1) - Math.max(A.y0, B.y0) <= 0) continue;
+        const gap = Math.max(B.x0 - A.x1, A.x0 - B.x1);
+        // Two names on one line stand at least a few px apart (the pairs that ran together are set a line apart now).
+        expect(gap, `${a} and ${b}`).toBeGreaterThan(3);
+      }
+    }
+  });
+
+  it('a mark already on the sheet keeps its spot while the spot is clear (a pencil mark does not walk)', () => {
+    const before: PaperView = { ...EMPTY_VIEW, promises: [{ region: 'VSY', solid: true }, { region: 'DRF', solid: false }], pieces: [{ kind: 'fleet', at: 'TRN' }], headings: [{ from: 'GLS', to: 'DRF' }] };
+    const a = arrange(before, sheet.geom, MAP_WORDS);
+    // A test lands on Driftholm: its red ring and TESTED go down; Vessary's word, the fleet and the pin stay put.
+    const tested: PaperView = { ...before, tested: 'DRF' };
+    const b = arrange(tested, sheet.geom, MAP_WORDS, undefined, a);
+    expect(b.defend.get('VSY')).toEqual(a.defend.get('VSY'));
+    expect(b.pieces.get('fleet')).toEqual(a.pieces.get('fleet'));
+    expect(b.pins.get('GLS:DRF')).toEqual(a.pins.get('GLS:DRF'));
+    // And after the answer, with the test gone, nothing walks back.
+    const c = arrange(before, sheet.geom, MAP_WORDS, undefined, b);
+    expect(c.defend.get('VSY')).toEqual(b.defend.get('VSY'));
+    expect(c.defend.get('DRF')).toEqual(b.defend.get('DRF'));
+  });
+
+  it('never writes WE DEFEND as another place\'s caption (stacked on its name, or on its line within a word-space)', () => {
+    // The shoulder critic's QRG-VN7 week 1: rings on Kelpmouth and Brackwater, their words once sat over LINTEL and TALLOWMERE.
+    const v: PaperView = { ...EMPTY_VIEW, promises: [{ region: 'KLP', solid: false }, { region: 'BRK', solid: false }], pieces: [{ kind: 'fleet', at: 'TRN' }, { kind: 'brigade', at: 'EDV' }], headings: [{ from: 'NWK', to: 'VSY' }, { from: 'KLM', to: 'KLP' }] };
+    const a = arrange(v, sheet.geom, MAP_WORDS);
+    for (const [id, t] of a.defend) {
+      const w = inkBox(TEXT.hand, MAP_WORDS.defend, t.x, t.y, 'middle', t.rot);
+      for (const other of Object.keys(sheet.geom.labelBox)) {
+        if (other === id) continue;
+        const n = sheet.geom.labelBox[other];
+        const xo = Math.min(w.x1, n.x1) - Math.max(w.x0, n.x0);
+        const vgap = Math.max(n.y0 - w.y1, w.y0 - n.y1);
+        expect(xo > 0.35 * Math.min(w.x1 - w.x0, n.x1 - n.x0) && vgap < 6, `${id}'s WE DEFEND over ${other}`).toBe(false);
+      }
+    }
+  });
+
+  it('keeps a pushpin off a bloc title (Orrinth\'s pin on THE SOUND)', () => {
+    const p = pinPos(sheet.geom, 'ORN', 'FLE');
+    const pin = { x0: p[0] - 9, y0: p[1] - 6, x1: p[0] + 6, y1: p[1] + 8.4 };
+    for (const b of sheet.geom.blocBoxes) expect(overlap(pin, b)).toBe(0);
+  });
+
+  it('draws the names a second time over the rings and arrows, and the counters over the rings', () => {
+    expect(sheet.markup).toContain('pp-names-over');
+    expect(sheet.markup.indexOf('pp-names-over')).toBeGreaterThan(sheet.markup.indexOf('pp-l-test'));
+    expect(sheet.markup.indexOf('pp-l-piece')).toBeGreaterThan(sheet.markup.indexOf('pp-l-prom'));
+    expect(sheet.markup.match(/id="pp-no-/g)).toHaveLength(Object.keys(sheet.geom.labelBox).length);
+  });
+
+  it('marks the places a lifted counter can reach, ghosts the explanation\'s marks, and numbers the WORLD WAR chain', () => {
+    const m = marksOf({ ...EMPTY_VIEW, pieces: [{ kind: 'brigade', at: 'EDV' }], lifted: 'brigade', reach: ['VSY', 'ASK'] }, sheet.geom, MAP_WORDS, 'pp');
+    expect(m.hold.map((h) => h.key)).toEqual(['reach:VSY', 'reach:ASK']);
+    const g = marksOf({ ...EMPTY_VIEW, ghost: { pressed: 'DRF', ticks: 3, fighting: 'KLP' } }, sheet.geom, MAP_WORDS, 'pp');
+    expect(g.press.map((x) => x.key)).toEqual(['press:DRF:ghost']);
+    expect(g.fight.map((x) => x.key)).toEqual(['fight:KLP:ghost']);
+    expect(g.clock.map((x) => x.key)).toEqual(['clock:DRF:3:ghost']);
+    expect(g.redNames.size).toBe(0);
+    const w = marksOf({ ...EMPTY_VIEW, states: { DRF: 'fighting', SHL: 'fighting' }, chain: ['DRF', 'SHL'] }, sheet.geom, MAP_WORDS, 'pp');
+    expect(w.stamp.filter((x) => x.key.startsWith('chain:')).map((x) => x.key)).toEqual(['chain:DRF:1', 'chain:SHL:2']);
+    expect(w.test.map((x) => x.key)).toEqual(['chain-first:DRF']);
+  });
+
+  it('draws no pins or arrows once the game has ended (no advance under the TREATY card)', () => {
+    const s = JSON.parse(JSON.stringify(viewlessGame())) as GameState;
+    s.phase = 'ended';
+    expect(viewFromState(s, () => true).headings).toEqual([]);
+    s.phase = 'act';
+    expect(viewFromState(s, () => true).headings.length).toBeGreaterThan(0);
+  });
+
+  it('ties a WE DEFEND written off its ring to the ring with a pencil leader, and only then', () => {
+    const v: PaperView = { ...EMPTY_VIEW, promises: [{ region: 'DRF', solid: false }], pieces: [{ kind: 'fleet', at: 'TRN' }], headings: [{ from: 'GLS', to: 'DRF' }] };
+    const a = arrange(v, sheet.geom, MAP_WORDS);
+    const lead = leaderFor(a, 'defend:DRF', ringGeom(sheet.geom, 'DRF'));
+    const m = marksOf(v, sheet.geom, MAP_WORDS, 'pp');
+    expect(m.hw.find((x) => x.key === 'hw:defend:DRF')!.html.includes('pp-leader')).toBe(lead !== null);
+    const vsy = arrange({ ...EMPTY_VIEW, promises: [{ region: 'VSY', solid: true }] }, sheet.geom, MAP_WORDS);
+    expect(leaderFor(vsy, 'defend:VSY', ringGeom(sheet.geom, 'VSY'))).toBeNull();
+  });
+});
+
+/** A state with two headings, for the view tests. */
+function viewlessGame(): Pick<GameState, 'regions' | 'promises' | 'pieces' | 'fed' | 'phase' | 'phone' | 'pendingTest'> {
+  return {
+    regions: {},
+    promises: [],
+    pieces: [{ kind: 'fleet', at: 'TRN' }],
+    fed: { appetite: 0.5, jumpiness: 0.5, step: 1, belief: 50, will: 45, lines: [], headings: [{ from: 'KLM', to: 'KLP', real: true }, { from: 'GLS', to: 'DRF', real: false }] },
+    phase: 'act',
+    phone: null,
+    pendingTest: null,
+  };
+}

@@ -24,7 +24,7 @@ export const TEXT = {
   /** TESTED (.pp-hw.pp-hwred). */
   handRed: { face: 'hand', size: 13.5, spacing: 0.02 },
   /** A counter's label (.pp-ct). */
-  counter: { face: 'type', size: 5.4, spacing: 0.12 },
+  counter: { face: 'type', size: 6.6, spacing: 0.1 },
   /** FIGHTING on the small stamp (.pp-stamp-sm), before the stamp's own scale. */
   stamp: { face: 'type', size: 8.6, spacing: 0.14 },
   /** The printed names (.pp-nm; .pp-isle, .pp-sm, .pp-cap). */
@@ -32,6 +32,8 @@ export const TEXT = {
   isle: { face: 'print', size: 7.1, spacing: 0.09, upper: true },
   small: { face: 'print', size: 7.4, spacing: 0.08, upper: true },
   capital: { face: 'printBold', size: 8.9, spacing: 0.13, upper: true },
+  /** An island that is a capital (Lantern Key): .pp-isle.pp-cap, the capital's size and weight with the island's spacing, as the cascade sets it. */
+  isleCapital: { face: 'printBold', size: 8.9, spacing: 0.09, upper: true },
   /** The bloc titles (.pp-blocs text; .pp-bloc-sm). */
   bloc: { face: 'print', size: 9.4, spacing: 0.34 },
   blocSmall: { face: 'print', size: 7.6, spacing: 0.26 },

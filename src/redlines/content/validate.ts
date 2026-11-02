@@ -39,7 +39,7 @@ import type { ContentIssue, LineKind, PackPhone, PhoneKind, RedlinesPack } from 
  */
 export const SLOT_WIDTH: Readonly<Record<string, number>> = {
   region: 2, promise: 2, from: 2, at: 2, bloc: 2, piece: 2, n: 2, cost: 1, step: 1, week: 1,
-  line: 10, why: 10, term: 4, fighting: 4, because: 14, cause: 10, a: 3, b: 3, hold: 6, influence: 1, weeks: 1, limit: 1,
+  line: 10, why: 10, term: 4, fighting: 4, because: 14, cause: 10, a: 3, b: 3, hold: 6, influence: 1, weeks: 1, limit: 1, waitCost: 1, places: 6,
 };
 
 /** The widest values each slot takes, for the character limits; the pack's own longest strings where it has them. */
@@ -56,11 +56,12 @@ export function samplesFor(c: RedlinesPack | null): Record<string, string> {
     cause: longest(S ? Object.values(S.causes) : [], 'when the promise you inherited was tested and you backed down'),
     a: 'not very hungry', b: 'not easily scared', influence: '99', weeks: String(RULES.weeks), limit: String(RULES.warLimit),
     hold: longest(S ? Object.values(S.hold) : [], 'nothing of ours is within reach'),
+    waitCost: '9', places: 'Brindle Coast, Morrow Downs and Lantern Key',
   };
 }
 
 /** Slots each file may use (src/redlines/engine/content.ts). */
-export const PHONE_SLOTS: readonly string[] = ['region', 'promise', 'line', 'cost', 'piece', 'from', 'step'];
+export const PHONE_SLOTS: readonly string[] = ['region', 'promise', 'line', 'cost', 'waitCost', 'piece', 'from', 'step'];
 export const DEBRIEF_SLOTS: readonly string[] = [...PHONE_SLOTS, 'why', 'n'];
 export const STRING_SLOTS: readonly string[] = Object.keys(SLOT_WIDTH);
 
@@ -229,9 +230,14 @@ function validatePhone(content: RedlinesPack, p: PackPhone, issues: ContentIssue
   else if (isTest) warn(where, `a "${p.kind}" call reads better with "again": the message for the second week after WAIT`);
   if (!isTest && p.again) warn(where, '"again" is only read on a test (an event is answered once)');
 
-  for (const role of ['hawk', 'dove', 'intel'] as const) {
-    const t = p.advisers[role];
-    const label = `advisers.${role}`;
+  // The slips: the first round's, the carried rounds' (againAdvisers) and the Director's slip while they doubt you.
+  const slips: Array<[role: 'hawk' | 'dove' | 'intel', text: string, label: string]> = (['hawk', 'dove', 'intel'] as const).map((r) => [r, p.advisers[r], `advisers.${r}`]);
+  if (p.againAdvisers) for (const r of ['hawk', 'dove', 'intel'] as const) slips.push([r, p.againAdvisers[r], `againAdvisers.${r}`]);
+  if (p.intelDoubted) slips.push(['intel', p.intelDoubted, 'intelDoubted']);
+  if (!isTest && (p.againAdvisers || p.intelDoubted)) warn(where, '"againAdvisers" and "intelDoubted" are only read on a test');
+  if (isTest && p.again && !p.againAdvisers) warn(where, 'a carried call reads better with "againAdvisers": the slips a week on');
+  if (isTest && p.againAdvisers) for (const r of ['hawk', 'dove', 'intel'] as const) if (p.againAdvisers[r] === p.advisers[r]) err(where, `againAdvisers.${r}: the same words as the first round; a week on, the slip says what changed`);
+  for (const [role, t, label] of slips) {
     const n = wordsWithSlots(t);
     const filled = sampleFill(t);
     if (n > MAX_ADVISER_WORDS) err(where, `${label}: ${n} words; a slip is one line, at most ${MAX_ADVISER_WORDS}`);
@@ -262,6 +268,7 @@ function validatePhone(content: RedlinesPack, p: PackPhone, issues: ContentIssue
     if (!c.includes('·')) warn(where, `${label}.cost: a cost is clauses joined by " · " ("costs 12 influence · we keep our word")`);
     for (const slot of slotsOf(c)) if (!PHONE_SLOTS.includes(slot)) err(where, `${label}.cost: unknown slot {${slot}}`);
     if (key !== 'back' && /\{cost\}/.test(c)) err(where, `${label}.cost: {cost} is the BACK IT price; it means nothing under ${o.label}`);
+    if (key !== 'wait' && /\{waitCost\}/.test(c)) err(where, `${label}.cost: {waitCost} is the third form's price; it means nothing under ${o.label}`);
     if (CONDITIONAL.test(c)) err(where, `${label}.cost: "${CONDITIONAL.exec(c)?.[0]}" is a conditional annotation; the cost is in plain words`);
     else if (ANY_IF.test(c)) warn(where, `${label}.cost: an "if"; say what it costs and what may follow`);
     if (PROFILE.test(c)) err(where, `${label}.cost: names what the enemy is like`);

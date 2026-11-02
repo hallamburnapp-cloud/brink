@@ -15,6 +15,8 @@ export interface ViewExtras {
   tested?: RegionId | null;
   /** A pressed place's weeks left before it falls (the engine's weeksLeft), or null for no clock. */
   weeksLeft?: (region: RegionId) => number | null;
+  /** The places a lifted counter can move to this week. */
+  reach?: readonly RegionId[];
 }
 
 /** The phone kinds that are a test of a promise at `phone.region`. */
@@ -39,12 +41,14 @@ export function viewFromState(s: GameState, holdable: (region: RegionId) => bool
   return {
     states,
     promises: s.promises.map((p) => ({ region: p.region, solid: holdable(p.region) })),
-    headings: s.fed.headings.map((h) => ({ from: h.from, to: h.to })),
+    // Once the game has ended there is no next week: no pins, no arrows (the TREATY card is not signed over an advance).
+    headings: s.phase === 'ended' ? [] : s.fed.headings.map((h) => ({ from: h.from, to: h.to })),
     pieces: s.pieces.map((p) => ({ kind: p.kind, at: p.at })),
     tested: extra.tested !== undefined ? extra.tested : testedOf(s),
     pressed: extra.pressed ?? null,
     lifted: extra.lifted ?? null,
     clocks,
+    reach: extra.reach?.length ? [...extra.reach] : undefined,
   };
 }
 
@@ -58,6 +62,15 @@ export function sameView(a: PaperView, b: PaperView): boolean {
   for (let i = 0; i < a.pieces.length; i++) if (a.pieces[i].kind !== b.pieces[i].kind || a.pieces[i].at !== b.pieces[i].at) return false;
   const ids = new Set([...Object.keys(a.states), ...Object.keys(b.states)]);
   for (const id of ids) if ((a.states[id] ?? 'calm') !== (b.states[id] ?? 'calm')) return false;
+  const ra = a.reach ?? [];
+  const rb = b.reach ?? [];
+  if (ra.length !== rb.length || ra.some((r, i) => r !== rb[i])) return false;
+  const cha = a.chain ?? [];
+  const chb = b.chain ?? [];
+  if (cha.length !== chb.length || cha.some((r, i) => r !== chb[i])) return false;
+  const ga = a.ghost ?? null;
+  const gb = b.ghost ?? null;
+  if (JSON.stringify(ga) !== JSON.stringify(gb)) return false;
   const ca = a.clocks ?? {};
   const cb = b.clocks ?? {};
   for (const id of new Set([...Object.keys(ca), ...Object.keys(cb)])) if (ca[id] !== cb[id]) return false;

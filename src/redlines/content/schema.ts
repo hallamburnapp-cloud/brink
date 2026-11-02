@@ -102,6 +102,10 @@ export const phoneSchema = z.strictObject({
   text: line,
   again: line.optional(),
   advisers: z.strictObject({ hawk: line, dove: line, intel: line }),
+  /** Test kinds: the slips on the second and third round of a carried call (WAIT bought a week; the slips say what changed). */
+  againAdvisers: z.strictObject({ hawk: line, dove: line, intel: line }).optional(),
+  /** Test kinds: the Director's slip while they do not believe your promises (BACK IT at its higher price). */
+  intelDoubted: line.optional(),
   options: z.strictObject({ back: phoneOptionSchema, down: phoneOptionSchema, wait: phoneOptionSchema }),
 });
 
@@ -140,7 +144,7 @@ export const stringsSchema = z.strictObject({
   numbers: z.array(s).length(13, { message: 'number words for 0 to 12 (the WAR bar counts to twelve)' }),
   counts: z.strictObject({ none: s, one: s, many: s, sentenceNone: s, sentenceOne: s, sentenceMany: s, placesOne: s, placesMany: s }),
   endings: z.strictObject({ treaty: z.tuple([s, s]), frozen: z.tuple([s, s]), war: z.tuple([s, s]) }),
-  because: z.strictObject({ heldAndWayOut: s, held: s, wayOut: s, quiet: s }),
+  because: z.strictObject({ heldAndWayOut: s, held: s, wayOut: s, quiet: s, leaves: s }),
   causes: recordOf(FALL_CAUSES),
   dials: z.strictObject({
     appetite: z.strictObject({ low: s, mid: s, high: s }),
@@ -156,7 +160,7 @@ export const stringsSchema = z.strictObject({
   refusals: recordOf(REFUSAL_CODES),
   hold: recordOf(HOLD_CODES),
   // ---- the screens' sections (types.ts `ScreenStrings`) ----
-  title: z.strictObject({ subtitle: s, play: s, continue: s, howToPlay: s, blurb: s }),
+  title: z.strictObject({ subtitle: s, play: s, continue: s, howToPlay: s, blurb: s, newGameSure: s }),
   screen: z.strictObject({
     pressed: s,
     weekOf: s,
@@ -171,6 +175,7 @@ export const stringsSchema = z.strictObject({
     next: s,
     begin: s,
     upright: s,
+    north: s,
   }),
   act: z.strictObject({
     promise: s,
@@ -187,8 +192,13 @@ export const stringsSchema = z.strictObject({
     wayOutOffered: s,
     termLabels: recordOf(WAY_OUT_TERMS),
     termCosts: recordOf(WAY_OUT_TERMS),
+    moveHint: s,
+    crosses: s,
+    leavesDashed: s,
+    promiseCall: s,
+    promiseProvokes: s,
   }),
-  note: z.strictObject({ pushing: s, pushingTwo: s, taken: s, takenMany: s, tested: s, heading: s }),
+  note: z.strictObject({ pushing: s, pushingTwo: s, taken: s, takenMany: s, tested: s, heading: s, fallsOne: s, fallsMany: s, worldWarEve: s, movedDashed: s }),
   phone: z.strictObject({ ringing: s, round2: s, round3: s, answered: s, inHand: s, needs: s }),
   menu: z.strictObject({ menu: s, resume: s, howToPlay: s, sound: s, off: s, on: s, quit: s, quitSure: s, yes: s, no: s }),
   debrief: z.strictObject({ title: s, intro: s, week: s, youDid: s, theyThought: s, nothingHidden: s, next: s, back: s, done: s, score: s, again: s, toTitle: s }),
@@ -292,6 +302,8 @@ export function compileRedlines(raw: RawRedlines): { content: RedlinesPack | nul
       options: { back: opt(p.options.back), down: opt(p.options.down), wait: opt(p.options.wait) },
     };
     if (p.again) phone.again = p.again;
+    if (p.againAdvisers) phone.againAdvisers = { hawk: p.againAdvisers.hawk, dove: p.againAdvisers.dove, intel: p.againAdvisers.intel };
+    if (p.intelDoubted) phone.intelDoubted = p.intelDoubted;
     if (p.when) phone.when = p.when;
     phones.push(phone);
   });

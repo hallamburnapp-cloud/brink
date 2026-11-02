@@ -4,7 +4,7 @@
  * centre() and the call's shift; pointer gestures (tap and hold, tap a counter then a place) are the
  * screens' and read `map.hit(fx, fy)` with frame px.
  */
-import { useEffect, useRef } from 'preact/hooks';
+import { useLayoutEffect, useRef } from 'preact/hooks';
 import type { PaperMap, PaperMapOptions, PaperView, UpdateOptions } from './contract';
 import { createPaperMap } from './map';
 
@@ -31,7 +31,8 @@ export function PaperMapView({ view, options, mapRef, onSettled, update, class: 
   const latest = useRef({ onSettled, update });
   latest.current = { onSettled, update };
 
-  useEffect(() => {
+  // Made in a layout effect too, before the first view is drawn by the one below.
+  useLayoutEffect(() => {
     if (!host.current) return;
     const map = createPaperMap(host.current, options);
     ctrl.current = map;
@@ -45,7 +46,9 @@ export function PaperMapView({ view, options, mapRef, onSettled, update, class: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
+  // The sheet is drawn in the same frame as the papers beside it (a layout effect runs before the browser paints): on a
+  // fall the WAR boxes and the red wash appear together (the second review saw the boxes move up to 281 ms early).
+  useLayoutEffect(() => {
     const map = ctrl.current;
     if (!map) return;
     let live = true;

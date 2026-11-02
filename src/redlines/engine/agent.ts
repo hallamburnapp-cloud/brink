@@ -6,7 +6,7 @@
  */
 import type { Rng } from '../../engine/rng.ts';
 import type { LineDef, WhyKind } from './content.ts';
-import { fightingRegions, holdInfo, isAnswered, pieceAt, pieceOf, promiseAt } from './board.ts';
+import { believedRing, fightingRegions, provocationBelieved, holdInfo, isAnswered, pieceAt, pieceOf, pressedRegions, promiseAt, unansweredRegions } from './board.ts';
 import { RULES, fallWeeksAt, pushesAt } from './rules.ts';
 import type { GameState, Heading, PieceKind, RegionId, WayOutOffer } from './types.ts';
 import { CAP_REGIONS, NEAR_CAP, NEIGHBOURS, REGION_IDS, blocOf, distance, isCap, isHome, mapOrder } from './world.ts';
@@ -105,16 +105,23 @@ export interface Plan {
  * the first push RULES.weight.dashedFirst of the time ("dashed outlines get tested"). `force` makes the first real
  * target that place (the opening's collision).
  */
-export function planHeadings(s: GameState, rng: Rng, force: RegionId | null = null, forWeek: number = s.week): Plan {
+export function planHeadings(s: GameState, rng: Rng, force: RegionId | null = null, forWeek: number = s.week, slow = false): Plan {
   const pool = candidates(s);
-  const believedLeft = pool.filter((c) => promiseAt(s, c.region) && holdInfo(s, c.region).ok && s.fed.belief >= RULES.beliefTest).map((c) => c.region);
-  const notTested = believedLeft.length ? mapOrder(believedLeft)[0] : null;
-  if (!pool.length) return { headings: [], notTested };
+  if (!pool.length) return { headings: [], notTested: null };
   let pushes = pushesAt(s.fed.step);
   let feint: boolean;
+  // The pushes their timetable adds from RULES.bothRealFromWeek (the debrief blames the timetable for these, not appetite).
+  let timetable = 0;
   if (forWeek >= RULES.bothRealFromWeek) {
+    timetable = Math.max(0, 2 - pushes);
     pushes = Math.max(2, pushes);
     feint = false;
+    // SPEC-SMALL "The feint keeps its mystery": feints continue after the timetable's week, rarer.
+    if (rng.next() < RULES.lateFeintChance) {
+      pushes -= 1;
+      timetable = Math.max(0, timetable - 1);
+      feint = true;
+    }
   } else {
     if (pushes < 2 && rng.next() < (s.fed.appetite - RULES.appetitePushOver) * RULES.appetitePushScale) pushes = 2;
     feint = pushes <= 1;
@@ -122,6 +129,13 @@ export function planHeadings(s: GameState, rng: Rng, force: RegionId | null = nu
       pushes = 1;
       feint = true;
     }
+  }
+  // SPEC-SMALL "Backing down is never the best answer": a piece next to their door slows a scared Federation. One push
+  // is held back, and its arrow stops short (the sheet shows it).
+  if (slow && pushes > 0) {
+    pushes -= 1;
+    timetable = Math.max(0, timetable - 1);
+    feint = true;
   }
   // Each real push is a new front (an unguarded calm place) with chance = appetite; otherwise they
   // test a promise or keep the pressure on a place already pressed, the two weighed together by how
@@ -142,6 +156,14 @@ export function planHeadings(s: GameState, rng: Rng, force: RegionId | null = nu
   if (force) {
     const i = pool.findIndex((c) => c.region === force);
     if (i >= 0) take(i);
+  }
+  // SPEC-SMALL "No formula wins": a ring drawn on a place already under siege is a provocation; they test it unless they believe it.
+  if (!testTaken && real.length < pushes) {
+    const provoked = pool.map((c, i) => (RULES.provocationRings && promiseAt(s, c.region)?.provocation && !provocationBelieved(s, c.region) && !(s.pendingTest && promised(c.region)) ? Math.max(base[i], 1) : 0));
+    if (provoked.some((w) => w > 0)) {
+      const i = rng.weightedIndex(provoked);
+      if (i >= 0) take(i);
+    }
   }
   // SPEC-SMALL: "It tests promises it does not believe ... dashed outlines get tested". A ring in their reach they do
   // not believe (dashed, or solid while belief is under RULES.beliefTest) draws the first push this often, before
@@ -166,7 +188,13 @@ export function planHeadings(s: GameState, rng: Rng, force: RegionId | null = nu
     if (i < 0) break;
     take(i);
   }
-  const headings: Heading[] = real.map((to) => ({ from: headingFrom(s, to), to, real: true }));
+  // SPEC-SMALL "The debrief reads motives when they were formed": each heading carries its reason as it is planned.
+  const motive = (to: RegionId): Pick<Heading, 'why' | 'whyPiece'> => {
+    const why = targetWhy(s, to);
+    const piece = why === 'piece' ? pieceAt(s, to)?.kind : undefined;
+    return piece ? { why, whyPiece: piece } : { why };
+  };
+  const headings: Heading[] = real.map((to, i) => ({ from: headingFrom(s, to), to, real: true, ...motive(to), ...(i >= real.length - timetable ? { timetable: true } : {}) }));
   if (feint) {
     const left = pool.filter((c) => !real.includes(c.region));
     const promised = left.filter((c) => promiseAt(s, c.region) && !s.pendingTest);
@@ -179,8 +207,12 @@ export function planHeadings(s: GameState, rng: Rng, force: RegionId | null = nu
       const i = rng.weightedIndex(from.map((c) => c.weight));
       pick = from[i < 0 ? 0 : i].region;
     }
-    if (pick) headings.push({ from: headingFrom(s, pick), to: pick, real: false });
+    if (pick) headings.push({ from: headingFrom(s, pick), to: pick, real: false, ...motive(pick) });
   }
+  // A believed, solid ring in their reach that the plan does not point at (SPEC-SMALL: said only of rings they did not target).
+  const targeted = new Set(headings.map((h) => h.to));
+  const believedLeft = pool.filter((c) => !targeted.has(c.region) && promiseAt(s, c.region) && holdInfo(s, c.region).ok && s.fed.belief >= RULES.beliefTest).map((c) => c.region);
+  const notTested = believedLeft.length ? mapOrder(believedLeft)[0] : null;
   return { headings, notTested };
 }
 
@@ -230,6 +262,25 @@ export function promiseMinded(s: GameState, region: RegionId, lines: readonly Li
   return candidates(s).some((c) => c.region === region);
 }
 
+/**
+ * Why they offered or took a summit, as it was: both sides afraid from MASSING; else stopping while ahead only when
+ * they held a place they had taken; else they had gained nothing (never "while they were ahead" over nothing).
+ */
+export function summitWhy(s: GameState): WhyKind {
+  if (s.fed.step >= 3) return 'afraid';
+  return fightingRegions(s).length > 0 ? 'wantedToStop' : 'noGain';
+}
+
+/** A way out (yours or their summit) was accepted last week: they will not take another yet (at most one in any two weeks). */
+export function wayOutTooSoon(s: GameState): boolean {
+  return s.wayOutWeek !== undefined && s.wayOutWeek !== null && s.week - s.wayOutWeek < RULES.wayOut.spacing;
+}
+
+/** Whether a line already crossed is drawn around this place (its regions from the state, else the pack). */
+export function crossedLineAt(s: GameState, region: RegionId, lines: readonly LineDef[] = []): boolean {
+  return s.fed.lines.some((l) => s.crossed[l.id] !== undefined && (l.regions ?? lines.find((d) => d.id === l.id)?.regions ?? []).includes(region));
+}
+
 export interface WayOutAnswer {
   accept: boolean;
   why: WhyKind;
@@ -247,6 +298,8 @@ export function acceptWayOut(s: GameState, offer: WayOutOffer, gained: number, r
   const R = RULES.wayOut;
   if (s.week < R.fromWeek) return { accept: false, why: 'noNeed', chance: 0 };
   if (gained >= R.gainedRefuse) return { accept: false, why: 'gaining', chance: 0 };
+  // SPEC-SMALL "No formula wins": at most one way out accepted in any two weeks (they must sell it at home).
+  if (wayOutTooSoon(s)) return { accept: false, why: 'tooSoon', chance: 0 };
   let p: number;
   let yes: WhyKind;
   let no: WhyKind;
@@ -254,25 +307,34 @@ export function acceptWayOut(s: GameState, offer: WayOutOffer, gained: number, r
     const region = offer.detail as RegionId;
     // A promise drawn this week and offered up the same week is seen through: they minded a standing promise.
     const standing = (promiseAt(s, region)?.since ?? s.week) < s.week;
-    p = standing && promiseMinded(s, region, lines) ? R.dropGrievance : R.dropIndifferent;
+    // SPEC-SMALL "A far promise cannot be sold": a dropped promise moves them only when they minded it; otherwise the
+    // offer is indifferent to them (refused, and the tape says so). It is never "the thing in their way".
+    if (!(standing && promiseMinded(s, region, lines))) return { accept: false, why: 'indifferent', chance: 0 };
+    p = R.dropGrievance;
     yes = 'grievance';
     no = 'indifferent';
   } else if (offer.term === 'pull-back') {
     const piece = pieceOf(s, offer.detail as PieceKind);
-    const near = !!piece && (NEAR_CAP.includes(piece.at) || Object.keys(s.crossed).length > 0);
+    // "Near" is read from the piece itself: on their doorstep, or standing where a line it crossed is drawn.
+    const near = !!piece && (NEAR_CAP.includes(piece.at) || crossedLineAt(s, piece.at, lines));
     p = near ? R.pullNearBase + R.pullNearJumpy * s.fed.jumpiness : R.pullFar;
     yes = 'threat';
     no = 'noThreat';
   } else {
     p = R.summitByStep[s.fed.step] + (s.fed.will - 50) / R.summitWill;
-    if (gained === 0 && blockedLastWeek(s)) p += R.blocked;
-    yes = s.fed.step >= 3 ? 'afraid' : 'wantedToStop';
+    // "They have been stopped" pulls only when nothing is hatched (SPEC-SMALL "They do not talk while they are winning").
+    const hatched = R.blockedUnlessHatched === 'any' ? pressedRegions(s).length > 0 : R.blockedUnlessHatched === 'standing' ? unansweredRegions(s).length > 0 : false;
+    if (gained === 0 && blockedLastWeek(s) && !hatched) p += R.blocked;
+    yes = summitWhy(s);
     no = s.fed.step <= 1 ? 'noNeed' : 'notAfraid';
   }
   p -= (s.fed.appetite - 0.5) * R.appetite;
   if (gained > 0) p *= R.gainedScale;
+  // A way out is accepted less while places they press stand unanswered: they do not talk while they are winning.
+  const open = unansweredRegions(s, RULES.wayOutReachOnly && RULES.standingReach).length;
+  p *= Math.pow(R.unansweredScale, open);
   const chance = Math.min(R.max, Math.max(R.min, p));
   const accept = rng.next() < chance;
-  const refusedWhy: WhyKind = gained > 0 ? 'gaining' : s.fed.appetite >= RULES.dialHigh && offer.term === 'summit' ? 'hungry' : no;
+  const refusedWhy: WhyKind = gained > 0 || open > 0 ? 'gaining' : s.fed.appetite >= RULES.dialHigh && offer.term === 'summit' ? 'hungry' : no;
   return { accept, why: accept ? yes : refusedWhy, chance };
 }

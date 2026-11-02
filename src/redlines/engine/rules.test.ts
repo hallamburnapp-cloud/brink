@@ -27,10 +27,11 @@ describe('the numbers the spec fixes', () => {
     expect(fallWeeksAt(FIGHTING)).toBe(1);
     expect(fallWeeksAt(ALL_OUT)).toBe(1);
   });
-  it('backing: 12, 6 once believed, 24 from too far, one failure in three', () => {
+  it('backing: 12, 6 once believed (at the 40 that changes their targeting), 24 from too far, one failure in three', () => {
     expect(RULES.backCost).toBe(12);
     expect(RULES.backCostBelieved).toBe(6);
-    expect(RULES.believedAt).toBe(60);
+    expect(RULES.believedAt).toBe(RULES.beliefTest);
+    expect(RULES.beliefTest).toBe(40);
     expect(RULES.backFarCost).toBe(24);
     expect(RULES.farFail).toBeCloseTo(1 / 3);
   });
