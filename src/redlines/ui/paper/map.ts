@@ -37,6 +37,7 @@ export function createPaperMap(host: HTMLElement, opts: PaperMapOptions = {}): P
     press: layer('press'),
     fight: layer('fight'),
     hold: layer('hold'),
+    clock: layer('clock'),
     head: layer('head'),
     piece: layer('piece'),
     prom: layer('prom'),
@@ -74,6 +75,7 @@ export function createPaperMap(host: HTMLElement, opts: PaperMapOptions = {}): P
     any = layers.press.set(m.press, animate) || any;
     any = layers.fight.set(m.fight, animate) || any;
     layers.hold.set(m.hold, false);
+    any = layers.clock.set(m.clock, animate) || any;
     any = layers.head.set(m.head, animate) || any;
     any = layers.piece.set(m.piece, animate) || any;
     any = layers.prom.set(m.prom, animate) || any;

@@ -5,37 +5,43 @@
 # missiles = the brigade there; alliance = a WE DEFEND ring there. `text` is Wintermast's own words,
 # as the opening quotes them (30 words or fewer). `tape` is the headline form for the teleprinter
 # (46 characters or fewer; it prints in capitals). Regions are the map's ids, never in the Cap.
+# SPEC-SMALL ("Every declared line's tape form is true on the sheet"): the tape names exactly what crosses
+# the line (forces, the fleet, the brigade, a promise) and exactly where (the places, or a bloc whose every
+# place is listed), so the sheet can never show it crossed or uncrossed against its words.
 - id: sound-forces
   kind: proximity
   regions: [KLP, BRK, LTL, TLM, DNM, ORN]
   text: "Republic forces in the Sound would be a grave matter. We say it once, and we say it plainly."
   tape: "Wintermast: no Republic forces in the Sound"
 
-# Tern Isle is left out: the fleet starts there (SPEC-SMALL: "you start within reach of the war"), and a line the
-# player crosses by doing nothing in week 1 is a trap, not a line.
+# The outer islands are the Scatter's seaward column, out from the Republic's coast: Driftholm (its lane runs to
+# Glassmoor in the Cap), Lantern Key and Shoal (its lane runs to Lintel in the Sound). Gullrest, Tern Isle and
+# Pebbleby lie on the Republic's side, with their lanes to Rimeholt, Morrow Downs and Marram. The fleet starts at
+# Tern Isle (SPEC-SMALL: "you start within reach of the war"), so it starts outside this line, and so do its
+# moves to Gullrest and Pebbleby.
 - id: scatter-forces
   kind: proximity
-  regions: [GUL, DRF, LNK, PBB, SHL]
-  text: "Republic forces on the outer islands of the Scatter would be a step we could not ignore. The islands are nobody's barracks."
-  tape: "Wintermast: no Republic forces in the Scatter"
+  regions: [DRF, LNK, SHL]
+  text: "Republic forces on the outer islands of the Scatter, Driftholm, Lantern Key and Shoal, would be a step we could not ignore. The islands are nobody's barracks."
+  tape: "Wintermast: no forces on the outer islands"
 
 - id: cap-lanes
   kind: sea
   regions: [DRF, KLP]
   text: "The sea lanes to the Cap stay open. A Republic fleet off Driftholm or Kelpmouth closes them. We will not allow that."
-  tape: "Wintermast: the lanes to the Cap 'stay open'"
+  tape: "Wintermast: no fleet at Driftholm or Kelpmouth"
 
 - id: shoal-strait
   kind: sea
   regions: [SHL, LTL]
-  text: "The Shoal strait is Federation water in all but name. Republic warships in it are a provocation, and we answer provocations."
-  tape: "Wintermast: the Shoal strait 'is our water'"
+  text: "The strait from Shoal to Lintel is Federation water in all but name. Republic warships at either end are a provocation, and we answer provocations."
+  tape: "Wintermast: no warships at Shoal or Lintel"
 
 - id: farsouth-alliance
   kind: alliance
   regions: [BRN, MRM, FLE, ICW, SLW, HRT]
   text: "A Republic guarantee to any town of Farsouth is an alliance against the Federation, and we will answer it as one."
-  tape: "Wintermast warns the Republic off Farsouth"
+  tape: "Wintermast: no promises to Farsouth"
 
 - id: scatter-promises
   kind: alliance
@@ -47,10 +53,10 @@
   kind: missiles
   regions: [VSY, RMH]
   text: "Missiles north of Edda Vale we will treat as aimed at Wintermast. A Republic brigade carries missiles. Keep it south of your capital."
-  tape: "Wintermast: no missiles north of Edda Vale"
+  tape: "Wintermast: no brigade north of Edda Vale"
 
 - id: south-ports
   kind: sea
   regions: [BRN, MRM, FLE]
   text: "Farsouth's ports stay neutral. A Republic fleet in them makes them something else, and we would have to act on that."
-  tape: "Wintermast: Farsouth's ports 'stay neutral'"
+  tape: "Wintermast: no fleet in Farsouth's ports"

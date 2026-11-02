@@ -7,6 +7,7 @@
  * engine's own `checkContent` finds nothing missing. Pure: takes content, returns issues.
  */
 import { checkContent } from '../engine/content.ts';
+import { RULES } from '../engine/rules.ts';
 import { fill, slotsOf } from './fill.ts';
 import { CAP_BLOC, REGION_INFO, isRegionId, regionName } from './regions.ts';
 import {
@@ -38,7 +39,7 @@ import type { ContentIssue, LineKind, PackPhone, PhoneKind, RedlinesPack } from 
  */
 export const SLOT_WIDTH: Readonly<Record<string, number>> = {
   region: 2, promise: 2, from: 2, at: 2, bloc: 2, piece: 2, n: 2, cost: 1, step: 1, week: 1,
-  line: 10, why: 10, term: 4, fighting: 4, because: 14, cause: 10, a: 3, b: 3, hold: 6,
+  line: 10, why: 10, term: 4, fighting: 4, because: 14, cause: 10, a: 3, b: 3, hold: 6, influence: 1, weeks: 1, limit: 1,
 };
 
 /** The widest values each slot takes, for the character limits; the pack's own longest strings where it has them. */
@@ -47,13 +48,13 @@ export function samplesFor(c: RedlinesPack | null): Record<string, string> {
   const S = c?.strings;
   return {
     region: 'Brindle Coast', promise: 'Brindle Coast', from: 'Morrow Downs', at: 'Morrow Downs', bloc: 'the Scatter', piece: 'the brigade',
-    n: 'eleven places', cost: '24', step: 'FIGHTING', week: '8', fighting: 'eleven places still fighting',
+    n: 'eleven places', cost: '24', step: 'FIGHTING', week: '10', fighting: 'eleven places still fighting',
     line: longest(c?.lines.map((l) => l.text) ?? [], 'Republic forces in the Sound would be a grave matter. We say it once, and we say it plainly.'),
     why: longest(S ? Object.values(S.why) : [], 'your promise at Brindle Coast was the thing in their way'),
     term: longest(S ? Object.values(S.terms) : [], 'a dropped promise'),
     because: longest(S ? Object.values(S.because) : [], 'They stopped because they could not take Brindle Coast and you gave them a way out.'),
     cause: longest(S ? Object.values(S.causes) : [], 'when the promise you inherited was tested and you backed down'),
-    a: 'not very hungry', b: 'not easily scared',
+    a: 'not very hungry', b: 'not easily scared', influence: '99', weeks: String(RULES.weeks), limit: String(RULES.warLimit),
     hold: longest(S ? Object.values(S.hold) : [], 'nothing of ours is within reach'),
   };
 }
@@ -330,8 +331,12 @@ function validateStrings(content: RedlinesPack, issues: ContentIssue[], samples:
   needs('endings.war[1]', S.endings.war[1], ['region', 'cause']);
   needs('dials.line', S.dials.line, ['a', 'b']);
   for (const k of ['many', 'sentenceMany', 'placesMany'] as const) needs(`counts.${k}`, S.counts[k], ['n']);
+  needs('screen.weekOf', S.screen.weekOf, ['weeks']);
+  for (const k of ['warNone', 'warOne', 'warMany'] as const) needs(`screen.${k}`, S.screen[k], ['limit']);
   needs('screen.warMany', S.screen.warMany, ['n']);
   needs('debrief.week', S.debrief.week, ['week']);
+  needs('phone.inHand', S.phone.inHand, ['influence']);
+  needs('phone.needs', S.phone.needs, ['cost', 'influence']);
   for (const k of ['heldAndWayOut', 'held'] as const) needs(`because.${k}`, S.because[k], ['region']);
   for (const k of ['piece-there', 'piece-near'] as const) needs(`hold.${k}`, S.hold[k], ['piece']);
   for (const [k, t] of Object.entries(S.causes)) if (/^[A-Z]/.test(t) || /[.!?]$/.test(t)) warn(where(`causes.${k}`), 'a cause continues "It began at X, ..." in lower case, no full stop');
@@ -366,6 +371,15 @@ function validateStrings(content: RedlinesPack, issues: ContentIssue[], samples:
   });
   for (const [k, t] of Object.entries(S.why)) if (/^[A-Z]/.test(t) || /[.!?]$/.test(t)) warn(where(`why.${k}`), 'a reason continues "... because" in lower case, no full stop');
   for (const [k, t] of Object.entries(S.acts)) if (!/[.!?]$/.test(t)) warn(where(`acts.${k}`), 'an act is a sentence in the log; it ends with a full stop');
+  // SPEC-SMALL ruling: an answer is printed as what you did ("You protested at Vessary"), never the form's forecast.
+  for (const [g, set] of Object.entries(S.answers)) {
+    for (const [k, t] of Object.entries(set)) {
+      const at = where(`answers.${g}.${k}`);
+      if (/\b(will|would|may|might|likely|could)\b/i.test(t)) err(at, 'an answer is the act you took, never a forecast of what follows');
+      if (!/^You\b/.test(t)) warn(at, 'an answer says what you did: "You ..."');
+      if (!/[.!?]$/.test(t)) warn(at, 'an answer is a sentence in the log; it ends with a full stop');
+    }
+  }
 }
 
 /** A one-line count for the validator's banner. */

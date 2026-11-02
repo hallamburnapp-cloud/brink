@@ -9,9 +9,57 @@ import type { Bounds } from './geometry';
 export type Box = Bounds;
 
 export interface Obstacle {
+  /** The obstacle's bounds (for a ring: the ellipse's, grown by the band). */
   box: Box;
   /** How much an overlap with this costs per px² (a printed name more than a neighbour's plate). */
   weight: number;
+  /** A ring instead of a box: the whole ellipse, or (with `band`) only its stroke, `band` px either side of the line. */
+  ellipse?: Ellipse;
+  band?: number;
+}
+
+export interface Ellipse {
+  cx: number;
+  cy: number;
+  rx: number;
+  ry: number;
+}
+
+/** A ring as an obstacle: the whole of it (nothing may sit inside), or only its stroke (`band` px either side). */
+export function ringObstacle(e: Ellipse, weight: number, band?: number): Obstacle {
+  const g = band ?? 0;
+  return { box: { x0: e.cx - e.rx - g, y0: e.cy - e.ry - g, x1: e.cx + e.rx + g, y1: e.cy + e.ry + g }, weight, ellipse: e, band };
+}
+
+/** How much of box `b` an obstacle covers (px²): the boxes' overlap, or for a ring the part of `b` inside it (sampled every 1.5 px). */
+export function covers(b: Box, o: Obstacle): number {
+  const a = overlap(b, o.box);
+  if (!a || !o.ellipse) return a;
+  const { cx, cy, rx, ry } = o.ellipse;
+  const x0 = Math.max(b.x0, o.box.x0);
+  const x1 = Math.min(b.x1, o.box.x1);
+  const y0 = Math.max(b.y0, o.box.y0);
+  const y1 = Math.min(b.y1, o.box.y1);
+  const nx = Math.max(1, Math.round((x1 - x0) / 1.5));
+  const ny = Math.max(1, Math.round((y1 - y0) / 1.5));
+  let inside = 0;
+  for (let i = 0; i < nx; i++) {
+    const x = x0 + ((i + 0.5) * (x1 - x0)) / nx;
+    for (let j = 0; j < ny; j++) {
+      const y = y0 + ((j + 0.5) * (y1 - y0)) / ny;
+      const dx = x - cx;
+      const dy = y - cy;
+      const q = (dx / rx) ** 2 + (dy / ry) ** 2;
+      if (o.band === undefined) {
+        if (q <= 1) inside++;
+      } else {
+        // The distance to the line along the ray from the centre.
+        const d = q > 0 ? Math.hypot(dx, dy) * (1 - 1 / Math.sqrt(q)) : -Math.min(rx, ry);
+        if (Math.abs(d) <= o.band) inside++;
+      }
+    }
+  }
+  return (inside / (nx * ny)) * a;
 }
 
 export interface Spot {
@@ -55,7 +103,7 @@ function outside(b: Box, frame: Box): number {
 /** The cost of a box at a spot: what it covers, weighted, and what it leaves the frame by. */
 export function costOf(b: Box, obstacles: readonly Obstacle[], frame: Box = FRAME_BOX): number {
   let c = outside(b, frame) * 4;
-  for (const o of obstacles) c += overlap(b, o.box) * o.weight;
+  for (const o of obstacles) c += covers(b, o) * o.weight;
   return c;
 }
 

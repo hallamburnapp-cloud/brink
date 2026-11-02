@@ -336,7 +336,7 @@ describe('places', () => {
     expect(n.regions.VSY.pressedWeeks).toBe(0);
     expect(n.regions.TLM.pressedWeeks).toBe(1);
   });
-  it('the fighting spreads only at FIGHTING (one place) and ALL-OUT (two), never at MASSING; a piece or a solid promise spares a place', () => {
+  it('the fighting spreads only at FIGHTING and ALL-OUT (one or two places, RULES.spreadByStep), never at MASSING; a piece or a solid promise spares a place', () => {
     const massing = staged(quiet);
     massing.fed.step = 3;
     massing.regions.KLP = { state: 'fighting', pressedWeeks: 0, quietWeeks: 0, fellWeek: 0 };
@@ -345,10 +345,11 @@ describe('places', () => {
     const s = staged(quiet);
     s.fed.step = 4;
     s.regions.KLP = { state: 'fighting', pressedWeeks: 0, quietWeeks: 0, fellWeek: 0 };
+    s.war = 1;
     s.fed.headings = [{ from: 'KLP', to: 'LTL', real: true }];
     const n = week(s);
-    expect(n.log[0].visible.filter((v) => v.includes('spread to'))).toHaveLength(1);
-    expect(n.war).toBe(2);
+    expect(n.log[0].visible.filter((v) => v.includes('spread to'))).toHaveLength(RULES.spreadByStep[4]);
+    expect(n.war).toBe(1 + RULES.spreadByStep[4]);
     const all = staged(quiet);
     all.fed.step = 5;
     all.regions.KLP = { state: 'fighting', pressedWeeks: 0, quietWeeks: 0, fellWeek: 0 };
@@ -374,17 +375,27 @@ describe('places', () => {
     const q = week(solid);
     expect(q.regions.LTL.state).not.toBe('fighting'); // a solid promise (the fleet one move away) spares it
   });
-  it('a step down quiets the place that fell most recently', () => {
+  it('a step down quiets the place that fell most recently in an earlier week; one that fell this week stays fallen', () => {
     const s = promised(staged(toVsy), 'VSY');
+    s.week = 2;
     s.fed.step = 3;
-    s.regions.KLP = { state: 'fighting', pressedWeeks: 0, quietWeeks: 0, fellWeek: 0 };
-    s.regions.LTL = { state: 'fighting', pressedWeeks: 0, quietWeeks: 0, fellWeek: 1 };
+    s.regions.KLP = { state: 'fighting', pressedWeeks: 0, quietWeeks: 0, fellWeek: 1, fellSeq: 1 };
+    s.regions.LTL = { state: 'fighting', pressedWeeks: 0, quietWeeks: 0, fellWeek: 1, fellSeq: 2 };
+    s.regions.DNM = { state: 'fighting', pressedWeeks: 0, quietWeeks: 0, fellWeek: 2, fellSeq: 3 };
+    s.war = 3;
+    s.log = [{ week: 1, visible: [], hidden: [], acts: [], danger: { war: 2, treaty: 50, step: 3 } }];
     const rang = endWeek(c, s);
+    expect(rang.war).toBe(3);
     const n = answerPhone(c, rang, 'back');
     expect(n.fed.step).toBe(2);
+    // Dunmarrow fell this week (the state says so): it stays fallen. Lintel fell last week, after Kelpmouth: it comes back.
+    expect(n.regions.DNM.state).toBe('fighting');
     expect(n.regions.LTL.state).toBe('pressed');
     expect(n.regions.KLP.state).toBe('fighting');
-    expect(n.log[0].visible).toContain('Guns quiet at Lintel.');
+    const v = n.log[1].visible;
+    // Cause, then effect: the backing first, then the place it quiets.
+    expect(v.findIndex((x) => x.startsWith('You backed Vessary'))).toBeLessThan(v.indexOf('Guns quiet at Lintel.'));
+    expect(n.war).toBe(2);
   });
 });
 
@@ -553,26 +564,29 @@ describe('a way out', () => {
 });
 
 describe('the bars and the endings', () => {
-  it('a quiet week is +5 only when no place you could answer stands pressed and unanswered; a place taken is −5', () => {
-    // Kelpmouth pressed: beyond both pieces (nothing of yours can answer it), so the week still counts as quiet.
+  it('a quiet week is +5 whenever they gained nothing, pressed places or not; a place taken is −5', () => {
+    // Kelpmouth pressed: beyond both pieces; still a quiet week.
     const s = staged(quiet);
     const n = endWeek(c, s);
     expect(n.treaty).toBe(RULES.willStart + RULES.willQuiet);
     expect(n.log[0].visible).toContain('A quiet week. They gained nothing.');
-    // Vessary pressed and unanswered, one move from the brigade: no +5, and the tape says what is unanswered.
-    const held = staged([
+    // Vessary pressed and unanswered, one move from the brigade: the plain spec rule pays the +5 all the same.
+    const pressed = staged([
       { from: 'NWK', to: 'VSY', real: true },
       { from: 'GLM', to: 'DRF', real: false },
     ]);
-    const h = endWeek(c, held);
-    expect(h.treaty).toBe(RULES.willStart);
-    expect(h.log[0].visible).toContain('Nothing taken. Vessary unanswered.');
-    expect(h.log[0].visible.some((v) => v.startsWith('A quiet week'))).toBe(false);
-    // Answer it with a solid promise and the +5 is back.
-    const answered = promised(held, 'VSY');
-    let a = endWeek(c, answered);
-    while (a.phase === 'phone') a = answerPhone(c, a, 'back');
-    expect(a.log[0].visible).toContain('A quiet week. They gained nothing.');
+    const h = endWeek(c, pressed);
+    expect(h.regions.VSY.state).toBe('pressed');
+    expect(h.treaty).toBe(RULES.willStart + RULES.willQuiet);
+    expect(h.log[0].visible).toContain('A quiet week. They gained nothing.');
+    // A place taken: −5 and no quiet week.
+    const taken = staged(quiet);
+    taken.regions.TLM = { state: 'pressed', pressedWeeks: 2, quietWeeks: 0 };
+    let t = endWeek(c, taken);
+    while (t.phase === 'phone') t = answerPhone(c, t, 'down');
+    expect(t.regions.TLM.state).toBe('fighting');
+    expect(t.treaty).toBe(RULES.willStart - RULES.willPerGain);
+    expect(t.log[0].visible.some((v) => v.startsWith('A quiet week'))).toBe(false);
   });
   it('their summit refused is the one humiliation: −10; accepted it is a way out', () => {
     const s = staged(quiet);
@@ -666,7 +680,7 @@ describe('the bars and the endings', () => {
     s.fed.headings = [];
     const n = endWeek(c, s);
     expect(n.phase).toBe('ended');
-    expect(n.ending).toMatchObject({ kind: 'treaty', week: 6, fighting: 0, score: 100 - 60 });
+    expect(n.ending).toMatchObject({ kind: 'treaty', week: 6, fighting: 0, score: 100 - 8 * 6 });
     expect(n.ending!.lines[0]).toBe('Signed in week 6 with no place fighting.');
     expect(n.ending!.lines[1]).toBe('They stopped because they could not take Vessary and you gave them a way out.');
     const held = staged(quiet);
@@ -680,14 +694,20 @@ describe('the bars and the endings', () => {
     expect(m.ending).toBeNull();
     expect(m.week).toBe(7);
   });
-  it('FROZEN when week 8 ends with neither', () => {
+  it('FROZEN when week 10 ends with neither; week 8 no longer ends the game', () => {
+    const eight = staged(quiet);
+    eight.week = 8;
+    let e = endWeek(c, eight);
+    while (e.phase === 'phone') e = answerPhone(c, e, 'down');
+    expect(e.ending).toBeNull();
+    expect(e.week).toBe(9);
     const s = staged(quiet);
-    s.week = 8;
+    s.week = 10;
     s.regions.KLP = { state: 'fighting', pressedWeeks: 0, quietWeeks: 0, fellWeek: 5 };
     s.war = 1;
     let n = endWeek(c, s);
     while (n.phase === 'phone') n = answerPhone(c, n, 'down');
-    expect(n.ending).toMatchObject({ kind: 'frozen', week: 8 });
+    expect(n.ending).toMatchObject({ kind: 'frozen', week: 10 });
     expect(n.ending!.lines[0]).toBe('Nothing was signed.');
     expect(n.ending!.lines[1]).toMatch(/still fighting\.$/);
     expect(n.ending!.score).toBe(9 - n.ending!.fighting);
@@ -730,14 +750,14 @@ describe('a scared Federation and a backed-down promise', () => {
   });
   it('the dials line names jumpiness only when something let it show', () => {
     const s = staged([], 'dials');
-    s.week = 8;
+    s.week = RULES.weeks;
     s.fed.headings = [];
     let n = endWeek(c, s);
     while (n.phase === 'phone') n = answerPhone(c, n, 'down');
     expect(n.ending?.kind).toBe('frozen');
     expect(n.ending!.dials).toMatch(/^They were \w[\w ]*\. You never came close enough/);
     const seen = staged([], 'dials-seen');
-    seen.week = 8;
+    seen.week = RULES.weeks;
     seen.fed.headings = [];
     seen.fed.lines = []; // no line to cross, so nothing pulls the brigade back
     seen.pieces = [

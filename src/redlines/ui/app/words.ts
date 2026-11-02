@@ -3,9 +3,10 @@
  * tape's tagged lines, the handwritten note (this week's orders, or the opening's collision, or how
  * many places are fighting), the WAR line on the index card, the cost lines on the slips, the
  * caller card's lines, and the reading of a headline back to its kind (for the playback's beats).
- * Pure: no DOM, no signals, no engine import, so every line has a test.
+ * Pure: no DOM, no signals; the engine's own pieces (netActs, actLine) come through the seam, which the
+ * tests replace with the fake engine as the store's tests do.
  */
-import type { Act, GameState, HoldInfo, Phone, PieceKind, PackStrings, WayOutTerm } from './engine';
+import { actLine, netActs, type Act, type GameState, type HoldInfo, type Phone, type PieceKind, type PackStrings, type WayOutTerm } from './engine';
 
 export interface TapeLine {
   tag?: string;
@@ -51,36 +52,19 @@ export function tapeOf(s: GameState, weekWord: string, shown = TAPE_SHOWN): Tape
 // ---------------------------------------------------------------- the note and the card
 
 /**
- * The week's orders with the cancelled ones taken out: a promise withdrawn the same week (or a
- * withdrawal promised over again) is no order at all, so the note never reads "You promised to
- * defend Vessary. You withdrew your promise to Vessary. You promised to defend Vessary."
+ * The week's orders with the cancelled ones taken out (a promise withdrawn the same week is no order at
+ * all): the engine's own netActs, re-exported, so the note and the debrief's WHAT YOU DID read the same orders.
  */
-export function netActs(acts: readonly Act[]): Act[] {
-  const out: Act[] = [];
-  for (const a of acts) {
-    if (a.kind === 'promise' || a.kind === 'withdraw') {
-      const opposite = a.kind === 'promise' ? 'withdraw' : 'promise';
-      const i = out.findIndex((b) => b.kind === opposite && b.region === a.region);
-      if (i >= 0) {
-        out.splice(i, 1);
-        continue;
-      }
-    }
-    out.push(a);
-  }
-  return out;
+export { netActs };
+
+/** This week's orders so far, in the log's own words ("You promised to defend Lintel."), cancelled pairs left out: the engine's actLine. */
+export function actLines(acts: readonly Act[], S: PackStrings): string[] {
+  return netActs(acts).map((a) => actLine({ strings: S }, a));
 }
 
-/** This week's orders so far, in the log's own words ("You promised to defend Lintel."), cancelled pairs left out. */
-export function actLines(acts: readonly Act[], S: PackStrings, name: Namer): string[] {
-  const out: string[] = [];
-  for (const a of netActs(acts)) {
-    if (a.kind === 'promise') out.push(fill(S.acts.promise, { region: name(a.region) }));
-    else if (a.kind === 'withdraw') out.push(fill(S.acts.withdraw, { region: name(a.region) }));
-    else if (a.kind === 'move') out.push(fill(S.acts.move, { piece: S.pieces[a.piece], region: name(a.to) }));
-    else if (a.kind === 'way-out') out.push(fill(S.acts.wayOut, { term: S.terms[a.term] }));
-  }
-  return out;
+/** The note in the hand starts with a capital, whatever filled its first slot ("Two places taken unanswered"). */
+export function capitalised(text: string): string {
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : text;
 }
 
 /** "No place is fighting." "One place is still fighting." "Three places are still fighting." */
@@ -99,7 +83,7 @@ export function fightingSentence(S: PackStrings, n: number): string {
  * (`situation`). `bloc` names a place's bloc ("the Sound").
  */
 export function noteFor(s: GameState, S: PackStrings, name: Namer, bloc: Namer): string {
-  const acts = actLines(s.acts, S, name);
+  const acts = actLines(s.acts, S);
   if (acts.length) return acts.join(' ');
   if (s.week === 1 && s.collision) return s.collision;
   return situation(s, S, name, bloc);
@@ -129,15 +113,25 @@ export function situation(s: GameState, S: PackStrings, name: Namer, bloc: Namer
   return S.counts.sentenceNone;
 }
 
+/** The places fighting on the sheet: what the WAR boxes count. */
+export function fightingCount(s: Pick<GameState, 'regions'>): number {
+  return Object.values(s.regions).filter((r) => r.state === 'fighting').length;
+}
+
+/** The calendar's small words after the week's number: the pack's "of {weeks}", filled with the rules' count of weeks. */
+export function weekOfLine(S: PackStrings, weeks: number): string {
+  return fill(S.screen.weekOf, { weeks });
+}
+
 /**
- * The small line under WAR on the index card. With two or more fighting the line would run into the
- * WORLD WAR label at its right, so it keeps its first clause only ("2 regions fighting"): the boxes and
- * the label already say where world war is.
+ * The small line under WAR on the index card, with the rules' world-war place in its {limit} slot. With two or
+ * more fighting the line would run into the WORLD WAR label at its right, so it keeps its first clause only
+ * ("2 regions fighting"): the boxes and the label already say where world war is.
  */
-export function warSub(S: PackStrings, n: number): string {
-  if (n === 0) return S.screen.warNone;
-  if (n === 1) return S.screen.warOne;
-  return fill(S.screen.warMany, { n }).split(' · ')[0];
+export function warSub(S: PackStrings, n: number, limit: number): string {
+  if (n === 0) return fill(S.screen.warNone, { limit });
+  if (n === 1) return fill(S.screen.warOne, { limit });
+  return fill(S.screen.warMany, { n, limit }).split(' · ')[0];
 }
 
 export function stepWord(S: PackStrings, step: number): string {
@@ -190,6 +184,27 @@ export function adviserWho(id: string, role: string): string {
   let ROLE = role.toUpperCase();
   if (ROLE.startsWith(ID + ' ')) ROLE = ROLE.slice(ID.length + 1);
   return `${ID} · ${ROLE}`;
+}
+
+/** The influence in hand, scribbled beside the call's forms: the pack's phone.inHand ("5 influence in hand"). */
+export function inHandLine(S: PackStrings, influence: number): string {
+  return fill(S.phone.inHand, { influence });
+}
+
+/** The same line in three parts around its number, so the hand can write the number larger: ["", "5", " influence in hand"]. */
+export function inHandParts(S: PackStrings, influence: number): [string, string, string] {
+  const [lead, ...rest] = S.phone.inHand.split('{influence}');
+  if (!rest.length) return [lead, '', ''];
+  return [lead, String(influence), fill(rest.join(String(influence)), { influence })];
+}
+
+/**
+ * A call form's typed line: its cost, and, when the influence in hand is short of it, why it cannot be had in the
+ * same line, from the pack's phone.needs ("… · needs 12 · you have 5").
+ */
+export function formLine(S: PackStrings, cost: string, short: { needs: number; influence: number } | null): string {
+  if (!short) return cost;
+  return `${cost} · ${fill(S.phone.needs, { cost: short.needs, influence: short.influence })}`;
 }
 
 /** The round line on the clock: INCOMING, or the second or third week of this. */

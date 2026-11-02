@@ -1,13 +1,15 @@
 /**
  * The bots of BUILD.md "The simulator" and SPEC-SMALL's rulings: passive (never promises, never backs),
- * promise-everything (three promises wherever, backs every test), far-promise opening (the sensible bot
- * with the solved opening forced on it: one far promise in week 1, backed once), sensible (promises
- * holdable places near their headings, moves its pieces to hold them, backs tests it can hold, offers a
- * way out whenever they have been stopped), no-orders (withdraws everything in week 1 and sits still,
- * taking their summit when it comes: the "sitting still" line the spec gates at half of sensible) and
- * seller (one far dashed promise at a time, offered up as a dropped promise the next week: the sold far
- * promise the second review found). Each bot draws its own randomness from an Rng the simulator gives
- * it, so a game is reproducible from (seed, bot).
+ * promise-everything (three promises wherever, backs every test), far-promise opening (the review's opening:
+ * one promise two or more moves from both pieces, never walked to, its far price kept in hand and backed from
+ * afar whenever tested), sensible (promises holdable places near their headings, moves its pieces to hold
+ * them, backs tests it can hold, offers a way out whenever they have been stopped), no-orders (withdraws
+ * everything in week 1 and sits still, taking their summit when it comes: the "sitting still" line the spec
+ * gates at half of sensible), seller (one far dashed promise at a time, offered up as a dropped promise the
+ * next week: the sold far promise the second review found) and careful (the hand the recheck's critic played:
+ * withdraw the far inherited rings, walk a piece to the front, promise only what a piece holds, back every
+ * solid test, take their summit; reported beside the gates, never gated). Each bot draws its own randomness
+ * from an Rng the simulator gives it, so a game is reproducible from (seed, bot).
  */
 import type { Rng } from '../../engine/rng.ts';
 import { promiseMinded } from '../engine/agent.ts';
@@ -17,10 +19,12 @@ import { answerCost } from '../engine/phone.ts';
 import { RULES } from '../engine/rules.ts';
 import { canAnswer, canPromise, movePiece, movesFor, offerWayOut, promise, withdraw } from '../engine/run.ts';
 import type { GameState, PieceKind, RegionId, WayOutTerm } from '../engine/types.ts';
-import { CAP_REGIONS, NEAR_CAP, REGION_IDS, distance, isCap, isHome, reachOf } from '../engine/world.ts';
+import { CAP_REGIONS, NEAR_CAP, REGION_IDS, distance, isCap, isHome, pieceDistance, reachOf } from '../engine/world.ts';
 
-export type BotName = 'passive' | 'promise-everything' | 'far-promise' | 'sensible' | 'no-orders' | 'seller';
-export const BOT_NAMES: readonly BotName[] = ['passive', 'promise-everything', 'far-promise', 'sensible', 'no-orders', 'seller'];
+export type BotName = 'passive' | 'promise-everything' | 'far-promise' | 'sensible' | 'no-orders' | 'seller' | 'careful';
+export const BOT_NAMES: readonly BotName[] = ['passive', 'promise-everything', 'far-promise', 'sensible', 'no-orders', 'seller', 'careful'];
+/** The bots the gates judge (the careful hand is reported beside them, not gated: SPEC-SMALL "Hand play is reported"). */
+export const GATED_BOTS: readonly BotName[] = ['passive', 'promise-everything', 'far-promise', 'sensible', 'no-orders', 'seller'];
 export function isBotName(x: string): x is BotName {
   return (BOT_NAMES as readonly string[]).includes(x);
 }
@@ -87,11 +91,14 @@ function worth(s: GameState, r: RegionId): number {
   return v;
 }
 
-/** The sensible bot's week. `keep` is a promise it must not withdraw (the far-promise opening). */
+/**
+ * The sensible bot's week. `keep` is the far-promise opening's promise: never withdrawn, never offered up, never
+ * walked to (no move brings a piece nearer it), and its far price (24) kept in hand while it stands.
+ */
 export function sensibleAct(c: RedlinesContent, s0: GameState, keep: RegionId | null = null): GameState {
   let s = s0;
-  // The influence to keep in hand for a test: 12, or 6 once they believe you (BACK IT then costs 6).
-  const reserve = s.fed.belief >= RULES.believedAt ? RULES.backCostBelieved : RULES.backCost;
+  // The influence to keep in hand for a test: 12, or 6 once they believe you (BACK IT then costs 6); the far price while a far promise is kept.
+  const reserve = keep && promiseAt(s, keep) ? RULES.backFarCost : s.fed.belief >= RULES.believedAt ? RULES.backCostBelieved : RULES.backCost;
   const avoid = lineRegions(c, s, ['proximity', 'sea', 'missiles']);
   const avoidPromise = lineRegions(c, s, ['alliance']);
   // One accepted way out would sign the treaty: save for it (no moves, no new promises this week) once week 3 is here.
@@ -111,10 +118,12 @@ export function sensibleAct(c: RedlinesContent, s0: GameState, keep: RegionId | 
   //    worth, with distance decaying the worth (it walks toward trouble, and towards the three doors
   //    their pushes come through). Not onto a declared line (two of the three are real) unless a
   //    cluster is at stake, and not onto their doorstep.
-  const concerns = unique([...threatened(s), ...s.promises.map((p) => p.region), ...NEAR_CAP]);
+  const concerns = unique([...threatened(s), ...s.promises.map((p) => p.region), ...NEAR_CAP]).filter((r) => r !== keep);
   for (const kind of ['fleet', 'brigade'] as PieceKind[]) {
     const piece = pieceOf(s, kind);
     if (!piece || saving || s.influence - RULES.moveCost < reserve) continue;
+    // The far-promise opening never walks a piece towards its far promise.
+    const towardsKeep = (to: RegionId) => !!keep && pieceDistance(kind, to, keep) < pieceDistance(kind, piece.at, keep);
     const score = (at: RegionId) => {
       const reach = reachOf({ kind, at });
       let v = 0;
@@ -129,6 +138,7 @@ export function sensibleAct(c: RedlinesContent, s0: GameState, keep: RegionId | 
     const here = score(piece.at);
     let best: { to: RegionId; v: number } | null = null;
     for (const to of movesFor(s, kind)) {
+      if (towardsKeep(to)) continue;
       const v = score(to);
       if (v > here + 0.25 && (!best || v > best.v)) best = { to, v };
     }
@@ -171,7 +181,7 @@ export function sensibleAct(c: RedlinesContent, s0: GameState, keep: RegionId | 
     const near = s.pieces.find((p) => NEAR_CAP.includes(p.at) || avoid.has(p.at));
     // A promise they mind: within their reach, under test or in their arrows (SPEC-SMALL: a far promise cannot be
     // sold); at least a week old (a promise drawn and offered up the same week is seen through: ENGINE.md ruling 11).
-    const minded = s.promises.find((p) => p.since < s.week && promiseMinded(s, p.region, c.lines));
+    const minded = s.promises.find((p) => p.region !== keep && p.since < s.week && promiseMinded(s, p.region, c.lines));
     const tries: Array<[WayOutTerm, RegionId | PieceKind | undefined]> = [];
     if (minded) tries.push(['drop-promise', minded.region]);
     if (near) tries.push(['pull-back', near.kind]);
@@ -179,7 +189,9 @@ export function sensibleAct(c: RedlinesContent, s0: GameState, keep: RegionId | 
     for (const [term, detail] of tries) {
       // A way out that would sign is worth the whole purse; otherwise keep a believed test's price in hand.
       const wouldSign = s.fed.will + RULES.willWayOut >= RULES.willSign;
-      if (s.influence - RULES.wayOutPrice[term] < (wouldSign ? 0 : RULES.backCostBelieved)) continue;
+      // The far-promise opening keeps its far price in hand whatever it offers.
+      const floor = keep && promiseAt(s, keep) ? RULES.backFarCost : wouldSign ? 0 : RULES.backCostBelieved;
+      if (s.influence - RULES.wayOutPrice[term] < floor) continue;
       const res = offerWayOut(s, term, detail);
       if (res.ok) {
         s = res.state;
@@ -219,9 +231,12 @@ export const sensibleBot: Bot = {
   answer: sensibleAnswer,
 };
 
-/** A place far from both pieces (not holdable), nearest their arrows: the "one cheap far promise". */
+/**
+ * The review's "one cheap far promise": a place two or more moves from both pieces (no single move makes it
+ * solid), not in the Cap, not fighting, nearest their arrows (on one when it can be).
+ */
 export function farPromiseTarget(s: GameState): RegionId | null {
-  const far = REGION_IDS.filter((r) => !isCap(r) && s.regions[r].state !== 'fighting' && !promiseAt(s, r) && !holdInfo(s, r).ok);
+  const far = REGION_IDS.filter((r) => !isCap(r) && s.regions[r].state !== 'fighting' && !promiseAt(s, r) && s.pieces.every((p) => pieceDistance(p.kind, p.at, r) >= 2) && canPromise(s, r).ok);
   if (!far.length) return null;
   const targets = s.fed.headings.map((h) => h.to);
   const onArrow = far.filter((r) => targets.includes(r));
@@ -230,9 +245,15 @@ export function farPromiseTarget(s: GameState): RegionId | null {
   return [...far].sort((a, b) => nearest(a) - nearest(b))[0];
 }
 
+/** The far-promise opening's own promise while it stands: drawn by the bot in week 1, not inherited. */
+function farKept(s: GameState): RegionId | null {
+  return s.promises.find((p) => !p.inherited && p.since === 1 && s.pieces.every((piece) => pieceDistance(piece.kind, piece.at, p.region) >= 2))?.region ?? null;
+}
+
 /**
- * The solved-opening check: the sensible bot, except that in week 1 it draws one promise it cannot
- * hold, keeps it, and backs it the first time it is tested (at the far price, with the far risk).
+ * The solved-opening check, as the review played it: in week 1 one promise two or more moves from both pieces;
+ * the pieces never walk towards it; the far price (24) kept in hand; backed from afar whenever it is tested,
+ * every round. Everything else is the sensible bot. SPEC-SMALL gates it at half the sensible bot's treaties.
  */
 export const farPromiseBot: Bot = {
   name: 'far-promise',
@@ -245,16 +266,12 @@ export const farPromiseBot: Bot = {
         if (res.ok) s = res.state;
       }
     }
-    const kept = s.promises.find((p) => !p.inherited && p.since === 1 && !holdInfo(s, p.region).ok)?.region ?? null;
-    return sensibleAct(c, s, kept);
+    return sensibleAct(c, s, farKept(s));
   },
   answer: (c, s) => {
     const p = s.phone!;
     const isTest = p.kind === 'test' || p.kind === 'test-inherited' || p.kind === 'feint';
-    const mine = p.region ? promiseAt(s, p.region) : undefined;
-    if (isTest && mine && !mine.inherited && mine.since === 1 && !holdInfo(s, p.region!).ok && p.round === 1 && !s.lastBacked) {
-      if (canAnswer(s, 'back').ok) return 'back';
-    }
+    if (isTest && p.region && p.region === farKept(s) && canAnswer(s, 'back').ok) return 'back';
     return sensibleAnswer(c, s);
   },
 };
@@ -354,6 +371,77 @@ export const sellerBot: Bot = {
   },
 };
 
+/** Where the war is: their arrows and every pressed place (not fighting). */
+function front(s: GameState): RegionId[] {
+  return unique([...s.fed.headings.map((h) => h.to), ...pressedRegions(s)]).filter((r) => s.regions[r].state !== 'fighting' && !isCap(r));
+}
+
+/**
+ * The careful hand (SPEC-SMALL "Hand play is reported, not gated"): the way the recheck's critic played six games.
+ * Week 1: withdraw the inherited rings nothing of yours can reach. Every week: walk one piece a move towards the
+ * front (their arrows and the pressed places), never onto a line they declared for it; promise only what a piece
+ * holds, the front first, keeping BACK IT's price in hand; withdraw a ring a piece no longer holds. Back every
+ * solid test it can pay for (else back down), take their summit, offer no way out of its own.
+ */
+export const carefulBot: Bot = {
+  name: 'careful',
+  act: (c, s0) => {
+    let s = s0;
+    const reserve = s.fed.belief >= RULES.believedAt ? RULES.backCostBelieved : RULES.backCost;
+    // 1. The far inherited rings go.
+    for (const p of [...s.promises]) {
+      if (!p.inherited || p.region === s.pendingTest || holdInfo(s, p.region).ok) continue;
+      const r = withdraw(s, p.region);
+      if (r.ok) s = r.state;
+    }
+    // 2. One piece walks a move towards the front, unless a piece already holds every front place it can.
+    const places = front(s);
+    const holdDist = (kind: PieceKind, at: RegionId) => Math.min(...places.map((f) => Math.max(0, pieceDistance(kind, at, f) - 1)), Infinity);
+    const steps: Array<{ kind: PieceKind; to: RegionId; gain: number; d: number }> = [];
+    for (const kind of ['fleet', 'brigade'] as PieceKind[]) {
+      const piece = pieceOf(s, kind);
+      if (!piece || !places.length) continue;
+      const here = holdDist(kind, piece.at);
+      if (here === 0 || !Number.isFinite(here)) continue;
+      const avoid = lineRegions(c, s, kind === 'fleet' ? ['proximity', 'sea'] : ['proximity', 'missiles']);
+      for (const to of movesFor(s, kind)) {
+        if (avoid.has(to) || NEAR_CAP.includes(to)) continue;
+        const d = holdDist(kind, to);
+        if (d < here) steps.push({ kind, to, gain: here - d, d });
+      }
+    }
+    steps.sort((a, b) => a.d - b.d || b.gain - a.gain);
+    if (steps.length && s.influence - RULES.moveCost >= reserve) {
+      const r = movePiece(s, steps[0].kind, steps[0].to);
+      if (r.ok) s = r.state;
+    }
+    // 3. Promise only what a piece holds, the arrows first; never on a declared alliance line.
+    const avoidPromise = lineRegions(c, s, ['alliance']);
+    const arrows = s.fed.headings.map((h) => h.to);
+    const want = front(s)
+      .filter((r) => !promiseAt(s, r) && holdInfo(s, r).ok && !avoidPromise.has(r) && canPromise(s, r).ok)
+      .sort((a, b) => (arrows.includes(b) ? 1 : 0) - (arrows.includes(a) ? 1 : 0));
+    for (const r of want) {
+      if (s.promises.length >= RULES.maxPromises || s.influence - RULES.promiseCost < reserve) break;
+      const res = promise(s, r);
+      if (res.ok) s = res.state;
+    }
+    // 4. A ring no piece holds any more is withdrawn (not the one under test: that is answered on the phone).
+    for (const p of [...s.promises]) {
+      if (p.region === s.pendingTest || holdInfo(s, p.region).ok) continue;
+      const r = withdraw(s, p.region);
+      if (r.ok) s = r.state;
+    }
+    return s;
+  },
+  answer: (_c, s) => {
+    const p = s.phone!;
+    if (isTestKind(p.kind)) return p.region && holdInfo(s, p.region).ok && canAnswer(s, 'back').ok ? 'back' : 'down';
+    if (p.kind === 'fall-unpromised') return 'down';
+    return eventAnswer(s);
+  },
+};
+
 export const BOTS: Record<BotName, Bot> = {
   passive: passiveBot,
   'promise-everything': promiseEverythingBot,
@@ -361,4 +449,5 @@ export const BOTS: Record<BotName, Bot> = {
   sensible: sensibleBot,
   'no-orders': noOrdersBot,
   seller: sellerBot,
+  careful: carefulBot,
 };

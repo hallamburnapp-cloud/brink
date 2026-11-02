@@ -4,10 +4,10 @@
  * two kinds of line a week writes: what the tape shows and what the Federation thought.
  */
 import type { HiddenKind, HoldCode, RedlinesContent, HeadlineKind } from './content.ts';
-import { RULES, clamp100, clampStep } from './rules.ts';
-import type { Act, FallCause, GameState, Piece, PieceKind, PromiseMark, RegionId, Tally, WeekLog } from './types.ts';
+import { RULES, clamp100, clampStep, fallWeeksAt } from './rules.ts';
+import type { Act, FallCause, GameState, Piece, PieceKind, PromiseMark, RegionId, Step, Tally, WeekLog } from './types.ts';
 import { fill, type Slots } from './words.ts';
-import { isCap, mapOrder, pieceDistance, reachOf, regionName } from './world.ts';
+import { REGION, isCap, mapOrder, pieceDistance, reachOf, regionName } from './world.ts';
 
 /** A copy safe to change. */
 export function draft(s: GameState): GameState {
@@ -18,7 +18,11 @@ export function draft(s: GameState): GameState {
     pieces: s.pieces.map((p) => ({ ...p })),
     fed: { ...s.fed, lines: s.fed.lines.map((l) => ({ ...l })), headings: s.fed.headings.map((h) => ({ ...h })) },
     phone: s.phone ? { ...s.phone, caller: { ...s.phone.caller }, advisers: { ...s.phone.advisers }, options: s.phone.options.map((o) => ({ ...o })) } : null,
-    log: s.log.map((w) => ({ ...w, visible: [...w.visible], hidden: [...w.hidden], acts: [...w.acts], danger: { ...w.danger } })),
+    log: s.log.map((w) => {
+      const copy: WeekLog = { ...w, visible: [...w.visible], hidden: [...w.hidden], acts: [...w.acts], danger: { ...w.danger } };
+      if (w.beats) copy.beats = w.beats.map((b) => ({ ...b }));
+      return copy;
+    }),
     ending: s.ending ? { ...s.ending, lines: [s.ending.lines[0], s.ending.lines[1]] } : null,
     headline: [...s.headline],
     offer: s.offer ? { ...s.offer } : null,
@@ -126,6 +130,12 @@ export function fall(s: GameState, region: RegionId, by: FallCause): void {
   if (!rec.fellBy || by === 'spread') rec.fellBy = by;
   removePromise(s, region);
   if (s.pendingTest === region) s.pendingTest = null;
+  countWar(s);
+}
+/** SPEC-SMALL ruling ("The WAR boxes always match the sheet"): the count of places fighting, kept current by every fall and recovery. */
+export function countWar(s: GameState): number {
+  s.war = Object.values(s.regions).filter((r) => r.state === 'fighting').length;
+  return s.war;
 }
 /**
  * SPEC-SMALL: "a place taken unanswered that something of yours could have reached" is a step up; one no piece
@@ -156,9 +166,27 @@ export function isSpared(s: GameState, region: RegionId): boolean {
   if (pieceAt(s, region)) return true;
   return !!promiseAt(s, region) && holdInfo(s, region).ok;
 }
-/** Pressed places nobody has answered (the bar pays no +5 while one stands; RULES.quietBlockedBy says whether places beyond reach count). */
-export function unansweredRegions(s: GameState): RegionId[] {
-  return pressedRegions(s).filter((r) => !isAnswered(s, r) && (RULES.quietBlockedBy === 'any' || holdInfo(s, r).ok));
+/** The step the week started at: the log entry `beginWeek` opens records it before anything moves (SPEC-SMALL ruling: the fall clock reads that step). */
+export function stepAtWeekStart(s: GameState): Step {
+  const log = s.log[s.log.length - 1];
+  return log && log.week === s.week ? log.danger.step : s.fed.step;
+}
+
+/**
+ * SPEC-SMALL ruling ("A pressed place shows its clock"): the week-ends left before a pressed, unanswered place
+ * falls on the fall clock, as the engine counts it: 3, 2 or 1 by the step the week starts at (1: it falls when
+ * this week resolves, unless something of yours answers it first). Null for a place that is not pressed, is
+ * already fighting, or is answered now (a piece of yours stands in it, or a solid promise covers it and is not
+ * the one under test: its clock is paused), and once the game has ended. In the act phase it reads the clock the
+ * coming resolve will read; on the phone (this week's tick already counted) it counts this week's end as one.
+ */
+export function weeksLeft(s: GameState, region: RegionId): number | null {
+  const rec = s.regions[region];
+  if (!rec || rec.state !== 'pressed' || s.phase === 'ended') return null;
+  if (isAnswered(s, region)) return null;
+  const clock = fallWeeksAt(stepAtWeekStart(s));
+  const left = clock - rec.pressedWeeks + (s.phase === 'phone' ? 1 : 0);
+  return Math.min(clock, Math.max(1, left));
 }
 
 export function removePromise(s: GameState, region: RegionId): void {
@@ -172,33 +200,45 @@ export function stepUp(s: GameState): boolean {
 }
 
 /**
- * A step down (a promise backed and held, a way out accepted). Ruling: it also quiets the fighting
- * place that fell most recently (fighting → pressed), one place per step down. Returns that place.
+ * A step down (a promise backed and held, a way out accepted): the ladder word eases at once. Ruling: a step down
+ * also quiets one fighting place (`recoverOne`), which the resolve does after it has printed the step's cause.
+ * Returns whether the step changed.
  */
-export function stepDown(s: GameState): RegionId | null {
+export function stepDown(s: GameState): boolean {
   const before = s.fed.step;
   s.fed.step = clampStep(before - 1);
-  if (s.fed.step === before) return null;
-  return recoverLatest(s);
+  return s.fed.step !== before;
 }
 
-/** The most recently fallen fighting place becomes pressed again ("Guns quiet at X"). */
-export function recoverLatest(s: GameState): RegionId | null {
-  const fighting = fightingRegions(s);
-  if (!fighting.length) return null;
-  let best = fighting[0];
-  for (const r of fighting) if ((s.regions[r].fellWeek ?? 0) > (s.regions[best].fellWeek ?? 0)) best = r;
+/**
+ * SPEC-SMALL ruling ("a place that falls stays fallen that week"): only a place that fell in an earlier week can
+ * come back. The most recently fallen of those becomes pressed again ("Guns quiet at X"); null when there is none.
+ */
+export function recoverOne(s: GameState): RegionId | null {
+  const pool = fightingRegions(s).filter((r) => canRecover(s, r));
+  if (!pool.length) return null;
+  const order = (r: RegionId) => fallOrder(s.regions[r]) ?? 0;
+  let best = pool[0];
+  for (const r of pool) if (order(r) > order(best)) best = r;
   recover(s, best);
   return best;
 }
-export function recover(s: GameState, region: RegionId): void {
+/** A fighting place that fell before this week (one that fell this week stays fallen until the week is over). */
+export function canRecover(s: GameState, region: RegionId): boolean {
   const rec = s.regions[region];
-  if (rec.state !== 'fighting') return;
+  return rec.state === 'fighting' && (rec.fellWeek === undefined || rec.fellWeek < s.week);
+}
+/** The place becomes pressed again, its clock restarted. Only a place that fell before this week (see canRecover). */
+export function recover(s: GameState, region: RegionId): boolean {
+  if (!canRecover(s, region)) return false;
+  const rec = s.regions[region];
   rec.state = 'pressed';
   rec.recoveredWeek = s.week;
   rec.pressedWeeks = 0;
   rec.quietWeeks = 0;
   delete rec.fellBy;
+  countWar(s);
+  return true;
 }
 
 export function believe(s: GameState, delta: number): void {
@@ -228,10 +268,17 @@ function baseSlots(c: RedlinesContent, s: GameState, slots: Slots): Slots {
   return out;
 }
 
-/** A line on the tape (and in the week's visible log). */
+/**
+ * A line on the tape (and in the week's visible log), with its facts beside it (`WeekLog.beats`: the kind, the
+ * place, and the sheet right after it). The resolve says a line after the change it reports, so the facts are the
+ * sheet the line describes.
+ */
 export function say(c: RedlinesContent, s: GameState, kind: HeadlineKind, slots: Slots = {}): string {
   const text = fill(c.strings.headlines[kind], baseSlots(c, s, slots));
-  currentLog(s).visible.push(text);
+  const log = currentLog(s);
+  log.visible.push(text);
+  const region = typeof slots.region === 'string' && REGION[slots.region] ? slots.region : null;
+  (log.beats ??= []).push({ kind, region, war: s.war, step: s.fed.step, treaty: s.fed.will });
   s.headline = [...s.headline, text].slice(-RULES.tapeLines);
   return text;
 }

@@ -6,7 +6,7 @@
  */
 import type { Rng } from '../../engine/rng.ts';
 import type { LineDef, WhyKind } from './content.ts';
-import { holdInfo, isAnswered, pieceAt, pieceOf, promiseAt } from './board.ts';
+import { fightingRegions, holdInfo, isAnswered, pieceAt, pieceOf, promiseAt } from './board.ts';
 import { RULES, fallWeeksAt, pushesAt } from './rules.ts';
 import type { GameState, Heading, PieceKind, RegionId, WayOutOffer } from './types.ts';
 import { CAP_REGIONS, NEAR_CAP, NEIGHBOURS, REGION_IDS, blocOf, distance, isCap, isHome, mapOrder } from './world.ts';
@@ -98,22 +98,30 @@ export interface Plan {
 }
 
 /**
- * Next week's headings: two places. The real pushes number RULES.pushesByStep[step]; when that is one,
- * the second arrow is a feint; when it is two, one week in three (RULES.feintChance) the second is a
- * feint instead. At most one promised place is targeted a week (one test at a time), and none while a
- * test is pending. `force` makes the first real target that place (the opening's collision).
+ * The headings for week `forWeek`: two places. The real pushes number RULES.pushesByStep[step]; when that is
+ * one, the second arrow is a feint; when it is two, one week in three (RULES.feintChance) the second is a
+ * feint instead; from RULES.bothRealFromWeek both arrows are real. At most one promised place is targeted a
+ * week (one test at a time), and none while a test is pending; a ring in their reach they do not believe draws
+ * the first push RULES.weight.dashedFirst of the time ("dashed outlines get tested"). `force` makes the first real
+ * target that place (the opening's collision).
  */
-export function planHeadings(s: GameState, rng: Rng, force: RegionId | null = null): Plan {
+export function planHeadings(s: GameState, rng: Rng, force: RegionId | null = null, forWeek: number = s.week): Plan {
   const pool = candidates(s);
   const believedLeft = pool.filter((c) => promiseAt(s, c.region) && holdInfo(s, c.region).ok && s.fed.belief >= RULES.beliefTest).map((c) => c.region);
   const notTested = believedLeft.length ? mapOrder(believedLeft)[0] : null;
   if (!pool.length) return { headings: [], notTested };
   let pushes = pushesAt(s.fed.step);
-  if (pushes < 2 && rng.next() < (s.fed.appetite - RULES.appetitePushOver) * RULES.appetitePushScale) pushes = 2;
-  let feint = pushes <= 1;
-  if (pushes >= 2 && rng.next() < RULES.feintChance) {
-    pushes = 1;
-    feint = true;
+  let feint: boolean;
+  if (forWeek >= RULES.bothRealFromWeek) {
+    pushes = Math.max(2, pushes);
+    feint = false;
+  } else {
+    if (pushes < 2 && rng.next() < (s.fed.appetite - RULES.appetitePushOver) * RULES.appetitePushScale) pushes = 2;
+    feint = pushes <= 1;
+    if (pushes >= 2 && rng.next() < RULES.feintChance) {
+      pushes = 1;
+      feint = true;
+    }
   }
   // Each real push is a new front (an unguarded calm place) with chance = appetite; otherwise they
   // test a promise or keep the pressure on a place already pressed, the two weighed together by how
@@ -135,8 +143,20 @@ export function planHeadings(s: GameState, rng: Rng, force: RegionId | null = nu
     const i = pool.findIndex((c) => c.region === force);
     if (i >= 0) take(i);
   }
+  // SPEC-SMALL: "It tests promises it does not believe ... dashed outlines get tested". A ring in their reach they do
+  // not believe (dashed, or solid while belief is under RULES.beliefTest) draws the first push this often, before
+  // anything else is weighed (so even a collapse, which otherwise opens new fronts, still tests a ring it doubts).
+  if (!testTaken && real.length < pushes) {
+    const doubted = pool.map((c, i) => (base[i] > 0 && promised(c.region) && (!holdInfo(s, c.region).ok || s.fed.belief < RULES.beliefTest) ? base[i] : 0));
+    if (doubted.some((w) => w > 0) && rng.next() < RULES.weight.dashedFirst) {
+      const i = rng.weightedIndex(doubted);
+      if (i >= 0) take(i);
+    }
+  }
+  // With RULES.newFrontsFromFighting places fighting, every push opens a new front (a collapse runs on instead of stalling).
+  const collapsing = fightingRegions(s).length >= RULES.newFrontsFromFighting;
   while (real.length < pushes) {
-    const newFront = rng.next() < s.fed.appetite;
+    const newFront = collapsing || rng.next() < s.fed.appetite;
     const pick = (keep: (c: Candidate, i: number) => boolean) => rng.weightedIndex(pool.map((c, i) => (base[i] > 0 && keep(c, i) ? base[i] : 0)));
     let i = -1;
     if (newFront) i = pick(isNew);

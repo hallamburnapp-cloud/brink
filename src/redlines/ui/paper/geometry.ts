@@ -323,9 +323,10 @@ export const CALL_SHIFT = -170;
 /**
  * The band of the call frame where the sheet shows between the handset and the clock above and the
  * caller card below (frame px): a tested place is slid into it so the watcher sees the place the call
- * is about. The handset's lower cup hangs over the band's left end, so a place is kept right of it.
+ * is about. The handset's bar and its shadow cross the band's upper left, so a place is kept right of
+ * x 205 and its ring's top below them (y 116: the biggest red ring still ends above the caller card).
  */
-export const CALL_BAND = { x0: 170, x1: 330, y: 108 } as const;
+export const CALL_BAND = { x0: 205, x1: 330, y: 116 } as const;
 
 /** The sheet's shift for a call about `centre` (a place's centre in the day frame), or the mock's when no place is named. */
 export function callShiftFor(centre: { x: number; y: number } | null): { x: number; y: number } {

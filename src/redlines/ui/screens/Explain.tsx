@@ -7,9 +7,10 @@ import type { JSX } from 'preact';
 import { Calendar, PencilUnderline, Tape } from '../paper';
 import { seedOf } from '../paper/rand';
 import { explainNext, explainSkip } from '../app/actions';
-import { content } from '../app/engine';
+import { content, RULES } from '../app/engine';
 import { explain, shown } from '../app/store';
 import { tapeFor } from '../app/tape';
+import { weekOfLine } from '../app/words';
 
 export function Explain(): JSX.Element | null {
   const S = content.strings;
@@ -20,7 +21,7 @@ export function Explain(): JSX.Element | null {
   const last = step === 4;
   return (
     <>
-      <Calendar head={S.words.week} n={s.week} of={S.screen.weekOf} note={S.words.influence} value={s.influence} />
+      <Calendar head={S.words.week} n={s.week} of={weekOfLine(S, RULES.weeks)} note={S.words.influence} value={s.influence} />
       <Tape lines={tapeFor(s)} />
       <div class={`rl-explain pp-obj pp-ty${last ? ' rl-collision' : ''}`} key={step}>
         <div class="n pp-hand">{step}</div>

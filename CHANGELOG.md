@@ -2,6 +2,42 @@
 
 All notable changes to BRINK. Dates are UTC.
 
+## 0.8.0 — 2026-11-02 (Red Lines)
+
+A new game on the same brand after the owner's verdict on 0.7.0 (D-113): "I think we need a wholesale redesign. It looks crap, doesn't make sense, and certainly doesn't do what we want it to do." Two design drafts were read by the owner's reviewer and by three critics before anything was built (D-113 to D-116); the owner chose the paper situation room, weekly turns and a deep strategy game for a niche. This is the first build, the small game of `docs/redlines/SPEC-SMALL.md`, selected with `VITE_GAME=redlines`; the earlier games are untouched and dormant.
+
+### The game
+- The Federation is pushing. You lead the Republic for ten weeks, one turn a week, and the Federation is an agent: two hidden dials (appetite, jumpiness) chosen from the seed, three declared lines of which one is a bluff, two headings a week shown as red pushpins with pencil arrows, one of which may be a feint until week 4.
+- Promises are the main verb: press and hold a place to ring it WE DEFEND. The ring is solid where your fleet or brigade can reach it and dashed where nothing of yours can, and the Federation reads the difference: a ring it does not believe draws the push six times in ten. At most three promises, one influence a week each; withdraw quietly, or offer a way out (drop a promise, pull a piece back, a summit).
+- When they test a promise the phone rings: the room goes dark, a caller's forty words, three advisers in character on torn slips (nobody annotates), three typed forms: BACK IT, BACK DOWN, WAIT, up to three rounds. The call shows the influence in hand, and a form you cannot afford says why ("needs 12 · you have 5"). Backing a feint earns nothing; WAIT buys the second week's words; backing down near a scared Federation is a step down the ladder.
+- Two bars, a stamp and a clock. WAR counts the places fighting on eight pencil boxes (the eighth is WORLD WAR). TREATY is their willingness to sign, 0 to 100, moved only by five things that each print their own line on the tape (+5 a week they gained nothing, +15 a way out accepted, +10 a bloc signing the call for a treaty, −5 a place gained, −10 humiliated; a refused way out costs nothing). THEY ARE TESTING, PUSHING, MASSING, FIGHTING or ALL-OUT under a red rubber stamp. Each hatched place carries its weeks left as pencil ticks, the last one ringed.
+- Cause before effect, always: the tape and the sheet print what you or they did before what it caused, a place that falls stays fallen that week, and the WAR boxes match the sheet on every beat. A checker runs on every simulated game and fails the build if any of this breaks.
+- Three endings on a typed card over the map as it was left: TREATY (100 − 8w − 5f, never below 10), WORLD WAR (0, naming the first place that fell and stayed fallen), FROZEN at the end of week 10 (9 − f). Then the debrief lifts the fog: the ten weeks replayed one typed page each, what you did printed as what you did, what they were thinking in red beneath it, the two dials named in words, and a closing card with two or three lessons drawn from the game's own events.
+
+### Teaching
+- Three typed lines over the live map ("The Federation is pushing. Where it pushes, the map is hatched; where it wins, it turns red. Ticks count the weeks before it wins."), the opening's collision on its own slip (the promise you inherited against a line they drew), HOW TO PLAY from the menu in the same words.
+- A save after every week and after every debrief page; CONTINUE on the title; the menu (RESUME, HOW TO PLAY, SOUND, QUIT TO TITLE) from the tag, Esc or the phone's back button.
+
+### The look
+- The paper situation room throughout (`docs/redlines/looks/paper/`): a printed map under a lamp with its grain and vignette, grease-pencil rings, red pencil hatching where they press and a red wash where they win, pushpins and arrows, the fleet and brigade as counters, the desk calendar, the paper-clipped index card, the teleprinter tape, the handset and the typed forms, the debrief as typed notes under a red ribbon. Three self-hosted Open Font License faces (Special Elite, Caveat, Gelasio); colour means three things only.
+- Every word, counter, pin, stamp and tick is placed with the fonts' real measurements and treated as an obstacle for what comes after it, so marks do not land on printed names or on each other.
+
+### Content
+- `content-redlines/`: four advisers, eight declared lines whose tape forms are true on the sheet, thirteen phone templates, 47 debrief thoughts and 285 strings in YAML, under a strict schema and a validator that also keeps every teleprinter line within the tape's width and binds every number word to the rules.
+
+### Engine and checks
+- `src/redlines/engine`: pure TypeScript rules, deterministic from the seed, with a week log whose beats drive the playback, the tape, the debrief and the tests; a versioned save. `src/redlines/sim`: six gated bots (passive, promise-everything, far-promise opening, sensible, no-orders, seller) against ten gates that encode SPEC-SMALL's rulings, passing on three seed sets at 2,000 games a bot (the sensible bot signs a treaty in about 41%, loses to WORLD WAR in about 51%, ends FROZEN in about 8%), plus a careful-hand bot reported beside them (about 21% treaties). The tuning log in `docs/redlines/ENGINE.md` records fourteen rounds with what was tried and rejected.
+- 258 unit tests for Red Lines (1,232 across the project); 15 end-to-end tests with real taps on a phone viewport and a desktop window, each failing on any console error or any request that leaves the page.
+- Reviewed by four critics on a phone-sized screen with real taps (over the shoulder, the deep-strategy niche, the art director against the reference frames, robustness), fixed by two fixers and an integrator, rechecked by two critics, and rebuilt with the recheck's findings after the container holding the work was reclaimed (D-117).
+
+### Known limits (in the README)
+- A careful hand signs a treaty about one game in five and is short of influence for a solid test in about one game in seven; this is reported for the owner and the cold testers to judge before any retune.
+- About one random sheet in sixty still has a small clash between marks in the crowded Scatter; a promise ring round an island crosses that island's own printed name.
+- Not built, by the brief: sound (the SOUND setting is a stored preference), the cabinet draft, the Coalition and private warnings of `SPEC.md` v5.1 (the second and third builds), BACK IT priced by distance.
+
+### Docs
+- `docs/redlines/`: SPEC-SMALL.md (the game and its rulings), SPEC.md (the full v5.1 design the later builds draw on), BUILD.md, ENGINE.md, CONTENT.md, README.md, REVIEW.md and REVIEW-2.md (the owner's two reviews), CRITICS.md, the three looks and the release screenshots.
+
 ## 0.7.0 — 2026-10-16 (Thirty Days)
 
 A new game on the same brand after the owner's verdict on 0.6.0 (D-108): "Too many visuals, my partner has no clue what is going on. You've not understood the brief." Back to the brief's story and to one decision a day. It is selected with `VITE_GAME=thirty`; the war room and the hotel are untouched and dormant.

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { ALL_OUT, FIGHTING, MASSING, PUSHING, RULES, TESTING, clampStep, fallWeeksAt, pushesAt, scoreOf, spreadAt } from './rules.ts';
 
 describe('the numbers the spec fixes', () => {
-  it('eight weeks, three promises, eight ticks', () => {
-    expect(RULES.weeks).toBe(8);
+  it('ten weeks (SPEC-SMALL ruling), three promises, eight ticks', () => {
+    expect(RULES.weeks).toBe(10);
     expect(RULES.maxPromises).toBe(3);
     expect(RULES.warLimit).toBe(8);
   });
@@ -48,21 +48,23 @@ describe('the numbers the spec fixes', () => {
 });
 
 describe('scoreOf', () => {
-  it('treaty: 100 − 10w − 5f, never below 10', () => {
-    expect(scoreOf({ kind: 'treaty', week: 6, fighting: 1 })).toBe(35);
-    expect(scoreOf({ kind: 'treaty', week: 3, fighting: 0 })).toBe(70);
-    expect(scoreOf({ kind: 'treaty', week: 8, fighting: 11 })).toBe(10);
+  it('treaty: 100 − 8w − 5f, never below 10', () => {
+    expect(RULES.score.treatyPerWeek).toBe(8);
+    expect(scoreOf({ kind: 'treaty', week: 6, fighting: 1 })).toBe(47);
+    expect(scoreOf({ kind: 'treaty', week: 3, fighting: 0 })).toBe(76);
+    expect(scoreOf({ kind: 'treaty', week: 10, fighting: 0 })).toBe(20);
+    expect(scoreOf({ kind: 'treaty', week: 10, fighting: 11 })).toBe(10);
   });
   it('frozen: 9 − f, never below 1', () => {
-    expect(scoreOf({ kind: 'frozen', week: 8, fighting: 0 })).toBe(9);
-    expect(scoreOf({ kind: 'frozen', week: 8, fighting: 3 })).toBe(6);
-    expect(scoreOf({ kind: 'frozen', week: 8, fighting: 11 })).toBe(1);
+    expect(scoreOf({ kind: 'frozen', week: 10, fighting: 0 })).toBe(9);
+    expect(scoreOf({ kind: 'frozen', week: 10, fighting: 3 })).toBe(6);
+    expect(scoreOf({ kind: 'frozen', week: 10, fighting: 11 })).toBe(1);
   });
   it('war: 0', () => {
     expect(scoreOf({ kind: 'war', week: 5, fighting: 12 })).toBe(0);
   });
   it('every frozen score is below every treaty score', () => {
-    expect(scoreOf({ kind: 'frozen', week: 8, fighting: 0 })).toBeLessThan(scoreOf({ kind: 'treaty', week: 8, fighting: 11 }));
+    expect(scoreOf({ kind: 'frozen', week: RULES.weeks, fighting: 0 })).toBeLessThan(scoreOf({ kind: 'treaty', week: RULES.weeks, fighting: 11 }));
   });
 });
 
@@ -72,11 +74,14 @@ describe('the ladder helpers', () => {
     expect(clampStep(6)).toBe(5);
     expect(clampStep(3)).toBe(3);
   });
-  it('pushes and spread grow with the step', () => {
+  it('pushes grow with the step; the fighting spreads only at FIGHTING and ALL-OUT, one or two places a week', () => {
     expect(pushesAt(TESTING)).toBe(1);
     expect(pushesAt(ALL_OUT)).toBe(2);
-    expect(spreadAt(TESTING)).toBe(0);
-    expect(spreadAt(FIGHTING)).toBeGreaterThan(0);
-    expect(spreadAt(ALL_OUT)).toBeGreaterThan(spreadAt(FIGHTING));
+    for (const step of [TESTING, PUSHING, MASSING]) expect(spreadAt(step)).toBe(0);
+    for (const step of [FIGHTING, ALL_OUT]) {
+      expect(spreadAt(step)).toBeGreaterThanOrEqual(1);
+      expect(spreadAt(step)).toBeLessThanOrEqual(2);
+    }
+    expect(spreadAt(ALL_OUT)).toBeGreaterThanOrEqual(spreadAt(FIGHTING));
   });
 });

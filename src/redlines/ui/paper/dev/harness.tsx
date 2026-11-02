@@ -62,7 +62,7 @@ function Day() {
       <NeatLine />
       <PaperMapView view={view} mapRef={mapRef} options={{ reducedMotion: REDUCED, label: 'Situation map, week 3' }} />
       <SheetTitle text={BRAND.name} />
-      <Calendar head="WEEK" n={3} of="of 8" note="influence" value={31} />
+      <Calendar head="WEEK" n={3} of="of 10" note="influence" value={31} />
       <Note text="They are pushing the Sound and have taken Driftholm. Your promise at Lintel is being tested now." />
       <IntelSlip head="INTEL" text="They think you'll back down. We are fairly sure." />
       <IndexCard

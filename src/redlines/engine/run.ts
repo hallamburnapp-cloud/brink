@@ -13,7 +13,7 @@ import { BRIGADE_START, FLEET_START, applyAnswer, beginWeek, finishWeek } from '
 import { RULES } from './rules.ts';
 import type { GameState, Line, PieceKind, PromiseMark, RegionId, RegionRec, Result, WayOutTerm } from './types.ts';
 import { fill } from './words.ts';
-import { REGION_IDS, blocOf, distanceFromCap, isCap, kindMoves, regionName } from './world.ts';
+import { HOME_CAPITAL, REGION_IDS, blocOf, distanceFromCap, isCap, kindMoves, regionName } from './world.ts';
 
 const ok = (state: GameState): Result => ({ ok: true, state });
 const no = (reason: RefusalCode): Result => ({ ok: false, reason });
@@ -124,9 +124,10 @@ export function newGame(content: RedlinesContent, seed: string): GameState {
     const piece = content.strings.pieces[collision.def.kind === 'sea' ? 'fleet' : collision.def.kind === 'missiles' ? 'brigade' : 'brigade'];
     s.collision = fill(collision.kind === 'alliance' ? C.alliance : collision.kind === 'forces' ? C.forces : C.near, { region: regionName(collision.region), line: collision.def.text, piece });
   }
-  // A second inherited promise, half the time, somewhere else outside the Cap and not fighting.
+  // A second inherited promise, half the time, somewhere else outside the Cap and not fighting; never Edda Vale,
+  // the Republic's own capital (nobody inherits a promise to defend their own capital).
   if (rng.next() < 0.5) {
-    const pool = REGION_IDS.filter((r) => !isCap(r) && !inherited.some((p) => p.region === r) && distanceFromCap(r) <= RULES.reach + 1);
+    const pool = REGION_IDS.filter((r) => !isCap(r) && r !== HOME_CAPITAL && !inherited.some((p) => p.region === r) && distanceFromCap(r) <= RULES.reach + 1);
     if (pool.length) inherited.push({ region: rng.pick(pool), since: 0, inherited: true });
   }
   s.promises = inherited;
@@ -135,7 +136,7 @@ export function newGame(content: RedlinesContent, seed: string): GameState {
 
   // Their first headings: at the collision when it is dashed (the inherited promise is tested), else by appetite.
   const force = collision && !holdInfo(s, collision.region).ok ? collision.region : null;
-  const plan = planHeadings(s, rng, force);
+  const plan = planHeadings(s, rng, force, 1);
   s.fed.headings = plan.headings;
   if (!s.collision) {
     const first = plan.headings.find((h) => h.real && promiseAt(s, h.to)) ?? plan.headings[0];

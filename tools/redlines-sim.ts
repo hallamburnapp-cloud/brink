@@ -11,11 +11,11 @@ import { writeFileSync } from 'node:fs';
 import { BRAND } from '../src/config.ts';
 import { checkContent, type RedlinesContent } from '../src/redlines/engine/content.ts';
 import { FIXTURE_CONTENT } from '../src/redlines/engine/testkit.ts';
-import { BOT_NAMES, dialsTable, gatesTable, isBotName, ladderTable, outcomesTable, phonesTable, simulate, treatyWeeksTable, type BotName, type Format } from '../src/redlines/sim/index.ts';
+import { BOT_NAMES, dialsTable, gatesTable, handTable, invariantsLine, isBotName, ladderTable, outcomesTable, phonesTable, simulate, treatyWeeksTable, type BotName, type Format } from '../src/redlines/sim/index.ts';
 
 const USAGE = `usage: npx tsx tools/redlines-sim.ts [options]
   --games N     games per bot (default 2000)
-  --bots LIST   passive, promise-everything, far-promise, sensible, no-orders, seller (default all six; the gates need passive, far-promise, sensible, no-orders and seller)
+  --bots LIST   passive, promise-everything, far-promise, sensible, no-orders, seller, careful (default all seven; the gates need passive, far-promise, sensible, no-orders and seller; careful is reported, not gated)
   --seed P      seed prefix: games are P0 ... P{N-1} for every bot (default R)
   --pack DIR    a content-redlines directory to load through src/redlines/content/load.ts (default: the engine's fixture pack)
   --md          tables as Markdown
@@ -141,6 +141,8 @@ async function main(): Promise<void> {
     gatesTable(res.gates, fmt),
     res.gates.every((g) => g.pass) ? '=> ALL GATES PASS' : `=> ${res.gates.filter((g) => !g.pass).length} GATE(S) FAIL`,
     '',
+    `INVARIANTS: ${invariantsLine(res.stats)}`,
+    '',
     'OUTCOMES',
     outcomesTable(res.stats, fmt),
     '',
@@ -150,11 +152,14 @@ async function main(): Promise<void> {
     'THE LADDER (games by the highest step reached)',
     ladderTable(res.stats, fmt),
   ];
+  const hand = res.stats.careful;
+  if (hand) out.splice(out.indexOf('OUTCOMES'), 0, 'HAND PLAY (SPEC-SMALL: reported beside the gates, not gated)', handTable(hand, fmt), '');
   const s = res.stats.sensible;
   if (s) out.push('', 'TREATIES BY WEEK (sensible)', treatyWeeksTable(s, fmt), '', 'WHAT THEY WERE LIKE (sensible)', dialsTable(s, fmt));
   console.log(out.join('\n'));
   if (args.json) writeFileSync(args.json, JSON.stringify({ options: res.options, stats: res.stats, gates: res.gates, games: res.games }, null, 2));
-  if (args.strict && !res.gates.every((g) => g.pass)) process.exit(1);
+  const broken = Object.values(res.stats).reduce((a, x) => a + (x?.broken ?? 0), 0);
+  if (args.strict && (!res.gates.every((g) => g.pass) || broken > 0)) process.exit(1);
 }
 
 main();

@@ -1,6 +1,6 @@
 /** Slot filling and the few number words the engine needs. Every string comes from the content. */
-import type { RedlinesContent } from './content.ts';
-import { STEP_WORDS, type PieceKind, type Step } from './types.ts';
+import { answerGroup, type RedlinesContent, type Strings } from './content.ts';
+import { STEP_WORDS, type Act, type PieceKind, type Step } from './types.ts';
 import { regionName } from './world.ts';
 
 export type Slots = Record<string, string | number | null | undefined>;
@@ -49,4 +49,28 @@ export function cap(text: string): string {
 
 export function name(id: string | null | undefined): string {
   return id ? regionName(id) : '';
+}
+
+/**
+ * One act of the player's in the log's words: an order ("You promised to defend Lintel.") or an answer on the phone
+ * as the act it was ("You protested at Vessary.", never the form's forecast). A third WAIT on a test is backing
+ * down, and prints as one. The debrief's "what you did" and the screens' note both read this.
+ */
+export function actLine(c: { strings: Pick<Strings, 'acts' | 'answers' | 'pieces' | 'terms'> }, a: Act): string {
+  const S = c.strings;
+  switch (a.kind) {
+    case 'promise':
+      return fill(S.acts.promise, { region: regionName(a.region) });
+    case 'withdraw':
+      return fill(S.acts.withdraw, { region: regionName(a.region) });
+    case 'move':
+      return fill(S.acts.move, { piece: S.pieces[a.piece], region: regionName(a.to) });
+    case 'way-out':
+      return fill(S.acts.wayOut, { term: S.terms[a.term] });
+    case 'answer': {
+      const group = answerGroup(a.phone);
+      const key = group === 'test' && a.key === 'wait' && (a.round ?? 1) >= 3 ? 'down' : a.key;
+      return fill(S.answers[group][key], { region: a.region ? regionName(a.region) : '' });
+    }
+  }
 }

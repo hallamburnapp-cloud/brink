@@ -9,6 +9,7 @@ import { z } from 'zod';
 import {
   ACT_KINDS,
   ADVISER_IDS,
+  ANSWER_GROUPS,
   FALL_CAUSES,
   HEADLINE_KINDS,
   HIDDEN_KINDS,
@@ -20,9 +21,10 @@ import {
   WAY_OUT_TERMS,
   WHY_KINDS,
 } from '../engine/content.ts';
+import { RULES } from '../engine/rules.ts';
 import type { Adviser, AdviserId, ContentIssue, HiddenKind, PackLine, PackPhone, PackStrings, PhoneKind, PhoneOptionDef, RedlinesPack } from './types.ts';
 
-export { ACT_KINDS, ADVISER_IDS, FALL_CAUSES, HEADLINE_KINDS, HIDDEN_KINDS, HOLD_CODES, LINE_KINDS, PHONE_KINDS, REFUSAL_CODES, REFUSE_WHYS, WAY_OUT_TERMS, WHY_KINDS };
+export { ACT_KINDS, ADVISER_IDS, ANSWER_GROUPS, FALL_CAUSES, HEADLINE_KINDS, HIDDEN_KINDS, HOLD_CODES, LINE_KINDS, PHONE_KINDS, REFUSAL_CODES, REFUSE_WHYS, WAY_OUT_TERMS, WHY_KINDS };
 /** Wintermast's short words on the tape after a refused way out: quoted, this many characters once filled ("Wintermast: " takes the rest of the 46). */
 export const MAX_WINTERMAST_CHARS = 34;
 
@@ -43,7 +45,8 @@ export const SOFT_COST_CHARS = 92;
 export const MAX_THOUGHT_WORDS = 30;
 /** A choice's word on the typed form. */
 export const MAX_LABEL_WORDS = 3;
-export const WEEKS = 8;
+/** The weeks a game lasts: the engine's rule (RULES.weeks), so a number word in the pack can be checked against it. */
+export const WEEKS = RULES.weeks;
 export const DECLARED_LINES = 8;
 /** The kinds that are a test of a promise (one pool: a real push and a feint draw from it alike). */
 export const TEST_KINDS: readonly PhoneKind[] = ['test', 'test-inherited', 'feint'];
@@ -64,6 +67,12 @@ const s = line;
 /** A strict object with one string per key of a list, typed by the list. */
 function recordOf<K extends string>(keys: readonly K[]) {
   return z.strictObject(Object.fromEntries(keys.map((k) => [k, s])) as Record<K, typeof s>);
+}
+/** The three answers of a call: back, down, wait. */
+const answerSet = z.strictObject({ back: s, down: s, wait: s });
+/** A strict object with the three answers per key of a list. */
+function answersOf<K extends string>(keys: readonly K[]) {
+  return z.strictObject(Object.fromEntries(keys.map((k) => [k, answerSet])) as Record<K, typeof answerSet>);
 }
 
 export const adviserSchema = z.strictObject({
@@ -143,6 +152,7 @@ export const stringsSchema = z.strictObject({
   wintermast: recordOf(REFUSE_WHYS),
   headlines: recordOf(HEADLINE_KINDS),
   acts: recordOf(ACT_KINDS),
+  answers: answersOf(ANSWER_GROUPS),
   refusals: recordOf(REFUSAL_CODES),
   hold: recordOf(HOLD_CODES),
   // ---- the screens' sections (types.ts `ScreenStrings`) ----
@@ -160,6 +170,7 @@ export const stringsSchema = z.strictObject({
     skip: s,
     next: s,
     begin: s,
+    upright: s,
   }),
   act: z.strictObject({
     promise: s,
@@ -178,7 +189,7 @@ export const stringsSchema = z.strictObject({
     termCosts: recordOf(WAY_OUT_TERMS),
   }),
   note: z.strictObject({ pushing: s, pushingTwo: s, taken: s, takenMany: s, tested: s, heading: s }),
-  phone: z.strictObject({ ringing: s, round2: s, round3: s, answered: s }),
+  phone: z.strictObject({ ringing: s, round2: s, round3: s, answered: s, inHand: s, needs: s }),
   menu: z.strictObject({ menu: s, resume: s, howToPlay: s, sound: s, off: s, on: s, quit: s, quitSure: s, yes: s, no: s }),
   debrief: z.strictObject({ title: s, intro: s, week: s, youDid: s, theyThought: s, nothingHidden: s, next: s, back: s, done: s, score: s, again: s, toTitle: s }),
   howToPlay: z.strictObject({ title: s, lines: z.array(s).min(3).max(8) }),

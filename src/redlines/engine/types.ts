@@ -85,13 +85,28 @@ export interface Phone {
 export type PhoneKind = 'test' | 'test-inherited' | 'feint' | 'false-alarm' | 'trawler' | 'bluff-crossed' | 'summit' | 'fall-unpromised';
 export interface WeekLog {
   week: number;
-  /** What the tape showed: the resolve's lines, in order. */
+  /** What the tape showed: the resolve's lines, in order (cause before effect: what you or they did, then what it caused). */
   visible: string[];
   /** The Federation's hidden decisions, in plain past-tense lines addressed to the player. */
   hidden: string[];
   danger: { war: number; treaty: number; step: Step };
   /** Beyond BUILD.md: the player's own orders and answers that week, in plain words (the debrief's "what"). */
   acts: string[];
+  /**
+   * Beyond BUILD.md (after the recheck): one entry per `visible` line, in step with it: the headline kind the
+   * line was written from, the place it names (an id, or null), and the sheet right after it (places fighting,
+   * the ladder's step, the TREATY bar). A playback can set the WAR boxes, the stamp and the bar beat by beat
+   * from these and never disagree with the sheet. Missing in a save from before it.
+   */
+  beats?: LogBeat[];
+}
+/** One tape line's facts (WeekLog.beats). `kind` is a strings.headlines key (content.ts HEADLINE_KINDS). */
+export interface LogBeat {
+  kind: string;
+  region: RegionId | null;
+  war: number;
+  step: Step;
+  treaty: number;
 }
 export type EndingKind = 'treaty' | 'war' | 'frozen';
 export interface Ending {
@@ -119,7 +134,7 @@ export type Act =
   | { kind: 'withdraw'; region: RegionId }
   | { kind: 'move'; piece: PieceKind; to: RegionId }
   | { kind: 'way-out'; term: WayOutTerm; detail: RegionId | PieceKind | null }
-  | { kind: 'answer'; key: 'back' | 'down' | 'wait'; region: RegionId | null; phone: PhoneKind };
+  | { kind: 'answer'; key: 'back' | 'down' | 'wait'; region: RegionId | null; phone: PhoneKind; round?: 1 | 2 | 3 };
 export interface GameState {
   seed: string;
   week: number;
@@ -129,7 +144,7 @@ export interface GameState {
   promises: PromiseMark[];
   pieces: Piece[];
   fed: Federation;
-  /** Regions fighting. */
+  /** Regions fighting: kept current in every state the engine returns, mid-week included (SPEC-SMALL: the WAR boxes always match the sheet). */
   war: number;
   /** = fed.will. */
   treaty: number;

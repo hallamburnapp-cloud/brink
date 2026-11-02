@@ -73,7 +73,9 @@ export interface ScreenStrings {
   title: { subtitle: string; play: string; continue: string; howToPlay: string; blurb: string };
   screen: {
     pressed: string;
+    /** After the week's number on the calendar: slot {weeks} (RULES.weeks). */
     weekOf: string;
+    /** The small line under WAR: slot {limit} (RULES.warLimit), and {n} in warMany. */
     warNone: string;
     warOne: string;
     warMany: string;
@@ -84,6 +86,8 @@ export interface ScreenStrings {
     skip: string;
     next: string;
     begin: string;
+    /** The notice over a phone held sideways. */
+    upright: string;
   };
   act: {
     promise: string;
@@ -103,7 +107,11 @@ export interface ScreenStrings {
   };
   /** The handwritten note when no orders have been given this week: the world in a sentence. Slots {bloc} {a} {b} {region} {n}. */
   note: { pushing: string; pushingTwo: string; taken: string; takenMany: string; tested: string; heading: string };
-  phone: { ringing: string; round2: string; round3: string; answered: string };
+  /**
+   * The call's words. `inHand` is the influence in hand beside the three forms (slot {influence}); `needs` is what a
+   * form you cannot afford adds to its own typed line (slots {cost}, {influence}: "needs 12 · you have 5").
+   */
+  phone: { ringing: string; round2: string; round3: string; answered: string; inHand: string; needs: string };
   menu: { menu: string; resume: string; howToPlay: string; sound: string; off: string; on: string; quit: string; quitSure: string; yes: string; no: string };
   debrief: { title: string; intro: string; week: string; youDid: string; theyThought: string; nothingHidden: string; next: string; back: string; done: string; score: string; again: string; toTitle: string };
   howToPlay: { title: string; lines: string[] };

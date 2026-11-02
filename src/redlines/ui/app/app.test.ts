@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('./engine', async () => await import('./fakeEngine'));
 
 import * as act from './actions';
+import { RULES } from './fakeEngine';
 import { HOLD_MS, HoldGesture } from './gesture';
 import { TIMES, beatsFor } from './playback';
 import { clearSave, readSave } from './storage';
@@ -171,7 +172,8 @@ describe('orders on the sheet', () => {
     expect(act.offer('summit')).toBe(true);
     expect(sheet.value).toBeNull();
     expect(run.value?.offer?.term).toBe('summit');
-    expect(run.value?.influence).toBe(10);
+    // 30 in hand, the summit's price is the rules' own.
+    expect(run.value?.influence).toBe(30 - RULES.wayOutPrice.summit);
     expect(act.offer('summit')).toBe(false);
     expect(refusal.value?.text).toBe('one way out a week');
   });

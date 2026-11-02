@@ -2,11 +2,13 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { HIDDEN_KINDS, PHONE_KINDS, checkContent } from '../engine/content';
+import { HEADLINE_KINDS, HIDDEN_KINDS, PHONE_KINDS, checkContent } from '../engine/content';
+import { RULES } from '../engine/rules';
+import { REGIONS as MAP } from '../../thirty/ui/map/data';
 import { fill, missingSlots } from './fill';
 import { loadRedlinesContent, loadRedlinesRaw } from './load';
-import { REGION_IDS, REGION_INFO, isRegionId } from './regions';
-import { LADDER_WORDS } from './schema';
+import { REGION_IDS, REGION_INFO, REGION_INFOS, isRegionId } from './regions';
+import { LADDER_WORDS, MAX_TAPE_CHARS } from './schema';
 import { samplesFor, wordsWithSlots } from './validate';
 
 const PACK = join(process.cwd(), 'content-redlines');
@@ -91,6 +93,157 @@ describe('the shipped pack', () => {
     expect(fill(S.dials.line, { a: S.dials.appetite.high, b: S.dials.jumpiness.low })).toBe('They were hungry and not easily scared.');
     expect(S.numbers).toHaveLength(13);
     expect(JSON.stringify(S)).not.toMatch(/\bBRINK\b/);
+  });
+
+  it('binds every number word about a rule to RULES, so a rule change fails until the words follow', () => {
+    const S = content!.strings;
+    const ORDINALS = ['', 'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth'];
+    const value = (token: string): number => {
+      const t = token.toLowerCase();
+      if (/^\d+$/.test(t)) return Number(t);
+      const w = S.numbers.indexOf(t);
+      return w >= 0 ? w : ORDINALS.indexOf(t);
+    };
+    // Where a sentence names a rule's number, and the rule it must equal.
+    const BINDINGS: Array<[RegExp, number, string]> = [
+      [/\b(\w+) weeks\b/gi, RULES.weeks, 'weeks'],
+      [/\bweek (\w+) ends\b/gi, RULES.weeks, 'weeks'],
+      [/^of (\d+)$/gi, RULES.weeks, 'weeks'],
+      [/\bworld war at (\d+)\b/gi, RULES.warLimit, 'warLimit'],
+      [/\b(\w+) is world war\b/gi, RULES.warLimit, 'warLimit'],
+      [/\bthe (\w+) place is fighting\b/gi, RULES.warLimit, 'warLimit'],
+      [/\bat (\d+) they sign\b/gi, RULES.willSign, 'willSign'],
+      [/\b(\w+) promises is the most\b/gi, RULES.maxPromises, 'maxPromises'],
+      [/\bcosts (\d+) influence a week\b/gi, RULES.upkeep, 'upkeep'],
+      [/\bcosts (\d+) influence · one move a week\b/gi, RULES.moveCost, 'moveCost'],
+    ];
+    /** Numbers that are not a rule's (a count, a round of the call, a flavour line). */
+    const FREE = [/\bsecond source\b/i, /\b(second|third) week of this\b/i, /\bthree ways out\b/i, /^1 region fighting\b/];
+    const NUMBER = /\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|[2-9]|\d{2,})\b/gi;
+    const all: Array<[string, string]> = [];
+    const walk = (node: unknown, path: string) => {
+      if (typeof node === 'string') all.push([path, node]);
+      else if (Array.isArray(node)) node.forEach((v, i) => walk(v, `${path}[${i}]`));
+      else if (node && typeof node === 'object') for (const [k, v] of Object.entries(node)) walk(v, path ? `${path}.${k}` : k);
+    };
+    walk({ ...S, numbers: [], flavour: [] }, '');
+    let bound = 0;
+    for (const [path, text] of all) {
+      const covered: Array<[number, number]> = [];
+      for (const [re, rule, name] of BINDINGS) {
+        for (const m of text.matchAll(re)) {
+          const n = value(m[1]);
+          if (n < 0) continue;
+          bound++;
+          expect(n, `${path}: "${text}" names ${m[1]}, but RULES.${name} is ${rule}`).toBe(rule);
+          covered.push([m.index!, m.index! + m[0].length]);
+        }
+      }
+      for (const re of FREE) {
+        const m = re.exec(text);
+        if (m) covered.push([m.index, m.index + m[0].length]);
+      }
+      for (const m of text.matchAll(NUMBER)) {
+        const inside = covered.some(([a, b]) => m.index! >= a && m.index! < b);
+        expect(inside, `${path}: "${text}" names "${m[0]}"; bind it to a rule in this test or list it as free`).toBe(true);
+      }
+    }
+    // Every rule the screens name is bound somewhere: the weeks, world war, the treaty line.
+    expect(bound).toBeGreaterThanOrEqual(10);
+    // The calendar and the WAR line read the numbers from the rules through their slots, never from the pack.
+    expect(fill(S.screen.weekOf, { weeks: RULES.weeks })).toBe(`of ${RULES.weeks}`);
+    for (const k of ['warNone', 'warOne', 'warMany'] as const) expect(S.screen[k]).toContain('world war at {limit}');
+    expect(S.headlines.frozen).toMatch(new RegExp(`^Week ${S.numbers[RULES.weeks]} ends`));
+    expect(S.endings.frozen[0]).toMatch(new RegExp(`^Week ${S.numbers[RULES.weeks]} ends`));
+  });
+
+  it('keeps every line the teleprinter prints within its width', () => {
+    const S = content!.strings;
+    const samples = samplesFor(content);
+    // The widest value each tape slot can take once the engine fills it.
+    const tape: Record<string, string> = {
+      ...samples,
+      n: 'two places',
+      why: Object.values(S.wintermast).map((w) => fill(w, samples)).reduce((a, b) => (b.length > a.length ? b : a), ''),
+      bloc: Object.values(S.blocs).reduce((a, b) => (b.length > a.length ? b : a), ''),
+      term: Object.values(S.terms).reduce((a, b) => (b.length > a.length ? b : a), ''),
+      step: S.words.steps.reduce((a, b) => (b.length > a.length ? b : a), ''),
+      piece: Object.values(S.pieces).reduce((a, b) => (b.length > a.length ? b : a), ''),
+      region: Object.values(REGION_INFO).map((r) => r.name).reduce((a, b) => (b.length > a.length ? b : a), ''),
+      from: Object.values(REGION_INFO).map((r) => r.name).reduce((a, b) => (b.length > a.length ? b : a), ''),
+    };
+    // The spread names two neighbours: every real pair (outside the Cap) is filled.
+    for (const r of REGION_INFOS) {
+      if (r.bloc === 'CAP') continue;
+      for (const n of r.neighbours) {
+        if (REGION_INFO[n].bloc === 'CAP') continue;
+        const line = fill(S.headlines.spread, { from: r.name, region: REGION_INFO[n].name });
+        expect(line.length, `headlines.spread: "${line}"`).toBeLessThanOrEqual(MAX_TAPE_CHARS);
+      }
+    }
+    for (const kind of HEADLINE_KINDS) {
+      if (kind === 'declared' || kind === 'spread') continue;
+      const line = fill(S.headlines[kind], tape);
+      expect(missingSlots(S.headlines[kind], tape), kind).toEqual([]);
+      expect(line.length, `headlines.${kind}: "${line}"`).toBeLessThanOrEqual(MAX_TAPE_CHARS);
+    }
+    for (const l of content!.lines) expect(fill(S.headlines.declared, { line: l.tape }).length, l.id).toBeLessThanOrEqual(MAX_TAPE_CHARS);
+    for (const f of S.flavour) expect(f.length, f).toBeLessThanOrEqual(MAX_TAPE_CHARS);
+    // The places' own names fit beside the longest fixed words too.
+    expect(MAX_TAPE_CHARS).toBe(46);
+  });
+
+  it('every declared line\'s tape form is true on the sheet: it names exactly what crosses it and exactly where', () => {
+    const name = (id: string) => REGION_INFO[id].name;
+    const scatter = REGION_INFOS.filter((r) => r.bloc === 'SCT').map((r) => r.id);
+    const x = (id: string) => MAP.find((r) => r.id === id)!.x;
+    const y = (id: string) => MAP.find((r) => r.id === id)!.y;
+    const middle = scatter.reduce((a, r) => a + x(r), 0) / scatter.length;
+    // The outer islands: the Scatter's seaward column, out from the Republic's coast (Tern Isle, where the fleet starts, is not one).
+    const outer = scatter.filter((r) => x(r) > middle);
+    expect(outer.sort()).toEqual(['DRF', 'LNK', 'SHL']);
+    expect(outer).not.toContain('TRN');
+    const PHRASES: Array<[RegExp, string[]]> = [
+      [/\bthe Sound\b/, REGION_INFOS.filter((r) => r.bloc === 'SND').map((r) => r.id)],
+      [/\bthe Scatter\b/, scatter],
+      [/\bthe outer islands\b/, outer],
+      [/\bFarsouth's ports\b/, REGION_INFOS.filter((r) => r.bloc === 'FRS' && r.port).map((r) => r.id)],
+      [/\bFarsouth\b(?!'s)/, REGION_INFOS.filter((r) => r.bloc === 'FRS').map((r) => r.id)],
+      [/\bnorth of Edda Vale\b/, REGION_INFOS.filter((r) => r.bloc === 'HMR' && y(r.id) < y('EDV') - 20).map((r) => r.id)],
+    ];
+    const WHAT: Record<string, RegExp> = { proximity: /\bforces\b/, sea: /\b(fleet|warships)\b/, missiles: /\bbrigade\b/, alliance: /\bpromises\b/ };
+    for (const l of content!.lines) {
+      expect(l.tape, l.id).toMatch(WHAT[l.kind]);
+      const named = new Set<string>();
+      let rest = l.tape.replace(/^Wintermast: /, '');
+      for (const [re, ids] of PHRASES) if (re.test(rest)) {
+        ids.forEach((r) => named.add(r));
+        rest = rest.replace(re, '');
+      }
+      for (const r of REGION_INFOS) if (r.bloc !== 'CAP' && rest.includes(r.name)) named.add(r.id);
+      expect([...named].sort(), `${l.id}: "${l.tape}" against ${l.regions.map(name).join(', ')}`).toEqual([...l.regions].sort());
+    }
+  });
+
+  it('the explanation and HOW TO PLAY open with the sheet as it is drawn: hatched, then red, with the clock\'s ticks', () => {
+    const S = content!.strings;
+    const first = 'The Federation is pushing. Where it pushes, the map is hatched; where it wins, it turns red.';
+    expect(S.explanation[0].startsWith(first)).toBe(true);
+    expect(S.howToPlay.lines[0].startsWith(first)).toBe(true);
+    expect(S.explanation[0]).toMatch(/\bticks\b/i);
+    expect(S.howToPlay.lines[0]).toMatch(/\bticks\b/i);
+    expect(JSON.stringify(S)).not.toMatch(/amber/i);
+  });
+
+  it('says what another bloc signs, and prints an answer as the act, never the forecast', () => {
+    const S = content!.strings;
+    expect(S.headlines.blocSigned).toMatch(/treaty/);
+    expect('heldWeek' in S.headlines).toBe(false);
+    for (const set of Object.values(S.answers)) for (const t of Object.values(set)) {
+      expect(t).toMatch(/^You /);
+      expect(t).not.toMatch(/\b(will|likely|may)\b/);
+    }
+    expect(fill(S.answers['fall-unpromised'].wait, { region: 'Vessary' })).toBe('You protested at Vessary.');
   });
 
   it('reads the thirty regions from the shared map', () => {

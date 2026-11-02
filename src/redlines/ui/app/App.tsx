@@ -8,6 +8,7 @@ import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { Room } from '../screens/Room';
 import { cancelAct, ensureTitleWorld, explainSkip, saveNow, skipPlayback } from './actions';
+import { content } from './engine';
 import { installBrowserGuards } from './guards';
 import { installBackButton } from './history';
 import { fitFrame, FRAME_H, FRAME_W, type FitMode, type Insets } from './layout';
@@ -99,7 +100,7 @@ export function App(): JSX.Element {
       </div>
       {sideways && (
         <div class="rl-upright" role="alert">
-          <span>Turn your phone upright</span>
+          <span>{content.strings.screen.upright}</span>
         </div>
       )}
     </div>

@@ -15,6 +15,7 @@
  *   are heading;
  * - pieces: the fleet and the brigade as paper counters beside the place they are at;
  * - the tested place: a hard red pencil ring over it with TESTED underlined;
+ * - a pressed place's clock: its weeks left as pencil ticks beside the hatching (three, two, one; one ringed);
  * - the finger: a region pressed and held is lifted in graphite while the hold lasts.
  */
 
@@ -52,6 +53,11 @@ export interface PaperView {
   pressed: RegionId | null;
   /** A counter the player has picked up to move (tap a counter, then a place), or null. */
   lifted?: PieceKind | null;
+  /**
+   * A pressed place's weeks left before it falls (1 to 3), drawn as pencil ticks beside its hatching; the
+   * last week's single tick is ringed. A place missing here draws no ticks.
+   */
+  clocks?: Record<RegionId, number>;
 }
 
 /** The words the map writes, from strings.yaml via the screens builder; the defaults are the mock's. */

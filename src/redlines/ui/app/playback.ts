@@ -8,8 +8,8 @@
  * short, even beats and no entrances.
  */
 import { viewFromState, type PaperView, type PieceView } from '../paper';
-import { weekBeats, type Beat } from './beats';
-import { content, holdable, REGION_IDS, regionName, RULES, type GameState, type RegionId } from './engine';
+import { barMover, weekBeats, type Beat } from './beats';
+import { content, holdable, REGION_IDS, regionName, RULES, weeksLeft, type GameState, type RegionId } from './engine';
 import { busy, play, reduced, shown } from './store';
 import { shorten } from './tape';
 import { allTapeLines, TAPE_SHOWN, type TapeLine } from './words';
@@ -77,7 +77,7 @@ function settle(after: GameState): void {
 }
 
 export function viewOf(s: GameState): PaperView {
-  return viewFromState(s, (r) => holdable(s, r).ok);
+  return viewFromState(s, (r) => holdable(s, r).ok, { weeksLeft: (r) => weeksLeft(s, r) });
 }
 
 let names: Map<string, RegionId> | null = null;
@@ -86,32 +86,9 @@ function idOf(name: string): RegionId | null {
   return names.get(name) ?? null;
 }
 
-/** How much a tape line of this kind moves the TREATY bar (SPEC-SMALL "The two bars"; RULES has the numbers). */
+/** How much a tape line of this kind moves the TREATY bar: the rules' numbers (beats.ts barMover). */
 export function barMoveOf(kind: string, slots: Record<string, string>): number | null {
-  const R = RULES as unknown as Record<string, number>;
-  switch (kind) {
-    case 'quietWeek':
-      return R.willQuiet ?? 5;
-    case 'blocSigned':
-      return R.willBloc ?? 10;
-    case 'wayOutAccepted':
-    case 'summitAccepted':
-      return R.willWayOut ?? 15;
-    // Their own summit offer refused in public is the one humiliation (−10); a way out of yours they refuse costs
-    // nothing on the bar (SPEC-SMALL ruling), and the trawler never touches it.
-    case 'summitRefused':
-      return -(R.willHumiliated ?? 10);
-    case 'gainedWeek': {
-      // "They took two places this week": the number word, or a digit, in the slot.
-      const words = content.strings.numbers;
-      const first = (slots.n ?? '').trim().split(/\s+/)[0] ?? '';
-      const idx = words.indexOf(first);
-      const n = idx >= 0 ? idx : parseInt(first, 10);
-      return -(R.willPerGain ?? 5) * (Number.isFinite(n) && n > 0 ? n : 1);
-    }
-    default:
-      return null;
-  }
+  return barMover(RULES, content.strings.numbers)(kind, slots);
 }
 
 /** The beats of a resolve, read from the engine's lines (beats.ts). */

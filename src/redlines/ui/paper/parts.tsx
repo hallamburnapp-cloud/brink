@@ -92,14 +92,14 @@ export interface CalendarProps {
   head: string;
   /** The big number. */
   n: number;
-  /** The small words after it ("of 8"). */
+  /** The small words after it ("of 10"). */
   of?: string;
   /** The scribbled note's word (influence) and value. */
   note: string;
   value: number | string;
 }
 
-/** The desk calendar: WEEK n of 8, influence scribbled under it. */
+/** The desk calendar: WEEK n of N, influence scribbled under it. */
 export function Calendar({ head, n, of, note, value }: CalendarProps) {
   return (
     <div class="pp-obj pp-cal">

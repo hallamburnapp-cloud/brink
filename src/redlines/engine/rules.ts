@@ -6,8 +6,8 @@
 import type { EndingKind, Step, WayOutTerm } from './types.ts';
 
 export const RULES = {
-  /** spec: eight weeks. */
-  weeks: 8,
+  /** SPEC-SMALL ruling ("Ten weeks, not eight"): ten turns; FROZEN at the end of week 10. */
+  weeks: 10,
   /** BUILD: influence 30 at start, +8 a week, −1 a week per promise. */
   influenceStart: 30,
   income: 8,
@@ -57,15 +57,10 @@ export const RULES = {
   doubtedLine: 40,
 
   // ---- the TREATY bar (fed.will, public) ----
-  /** Ruling: where the bar starts (tuning log, round 9). */
-  willStart: 50,
-  /** spec: +5 if they gained nothing this week. SPEC-SMALL ruling: only when no place is pressed and unanswered (see quietBlockedBy). */
+  /** Ruling: where the bar starts (tuning log: 55 until round 13, 50 in round 13, 45 in round 14 with the ten weeks). */
+  willStart: 45,
+  /** spec: +5 if they gained nothing this week. SPEC-SMALL ruling ("Ten weeks, not eight"): whenever they gained nothing, pressed places or not (the plain spec rule). */
   willQuiet: 5,
-  /**
-   * Which pressed, unanswered places hold the +5 back: 'any' (the ruling's words) or only those something of
-   * yours could reach ('reachable': a place beyond both pieces is nobody's failure). Tuning round 13 decides.
-   */
-  quietBlockedBy: 'reachable' as 'any' | 'reachable',
   /** spec: +15 when a way out is accepted. */
   willWayOut: 15,
   /** spec: +10 when another bloc signs (at most two). */
@@ -100,16 +95,22 @@ export const RULES = {
    * the clock reads the step the week STARTED at, never a step climbed inside the same week.
    */
   fallWeeks: [0, 3, 2, 1, 1, 1] as const,
-  /**
-   * Tuning knob (round 13): the fall clock of a pressed place nothing of yours could reach (nobody is there
-   * to slow them): null reads the step's clock like any other place; a number is the weeks it takes (0: taken
-   * the week it is pushed).
-   */
-  outOfReachFallWeeks: null as number | null,
   /** BUILD: pressed returns to calm after two quiet weeks. */
   quietToCalm: 2,
   /** Ruling: real pushes a week by step (one at TESTING and PUSHING, two from MASSING). */
   pushesByStep: [0, 1, 1, 2, 2, 2] as const,
+  /**
+   * Tuning round 14: from this week on both arrows are real (two pushes and no feint, whatever the step): the
+   * ten-week game needs the second half to press harder than the first, or a careful game runs out of weeks.
+   */
+  bothRealFromWeek: 4,
+  /**
+   * Tuning round 14: with this many places fighting, every real push opens a new front (an unguarded place)
+   * instead of keeping the pressure on or testing a ring: once they have taken a place they go for the next, so a
+   * collapse ends inside the ten weeks and a hand that lost a place early (the far promise, the sold promise,
+   * sitting still) pays for it.
+   */
+  newFrontsFromFighting: 1,
   /** BUILD: a feint one week in three (when two pushes were due, one of them is the feint instead). */
   feintChance: 1 / 3,
   /** Ruling: the feint points at a promised place (to make you jump) this often; otherwise at an unguarded one. */
@@ -118,7 +119,8 @@ export const RULES = {
    * SPEC-SMALL ("The other side", and the rulings after the first review): the fighting spreads only at
    * FIGHTING and ALL-OUT, one or two places a week, to neighbours of a fighting place; a piece standing in a
    * place or a solid promise on it spares it. (Round 12 had 3 / 5 / 8 from MASSING, which made the ladder a
-   * cliff: round 13.)
+   * cliff: round 13. Round 14 tried two at FIGHTING too, inside the ruling's "one or two", and it changed nothing
+   * measurable, so the gentler reading stays.)
    */
   spreadByStep: [0, 0, 0, 0, 1, 2] as const,
   /** SPEC-SMALL ruling: the Federation's first fronts touch the Scatter and Highmarch before the Sound (the Sound's weight is scaled down for these weeks). */
@@ -136,6 +138,12 @@ export const RULES = {
    * back-down at a real test eases them a step instead of climbing one (the place still falls to them).
    */
   backDownEasesWhenScared: true,
+  /**
+   * Tuning round 14: backing down from a promise nothing of yours could hold (a dashed ring) loses the place at
+   * once: the tape prints the back-down, then "X has fallen" (cause before effect). A solid ring backed down from
+   * leaves the place pressed, as before.
+   */
+  backDownFarTakes: true,
   /** spec: at MASSING and above, an accident one chance in twenty a week. */
   accidentFrom: 3 as Step,
   accidentChance: 1 / 20,
@@ -153,6 +161,12 @@ export const RULES = {
     piece: 0.15,
     /** A dashed promise (a test!). */
     dashed: 1.4,
+    /**
+     * Tuning round 14 (SPEC-SMALL: "It tests promises it does not believe ... dashed outlines get tested"): when a
+     * ring they do not believe (dashed, or solid with belief under beliefTest) is in their reach and no test is
+     * pending, their first real push goes to one this often, before anything else is weighed.
+     */
+    dashedFirst: 0.6,
     /** A solid promise when belief is under beliefTest. */
     doubted: 0.9,
     /** (see believedTestByStep) */
@@ -224,7 +238,7 @@ export const RULES = {
   },
 
   // ---- the score (spec) ----
-  score: { treatyBase: 100, treatyPerWeek: 10, treatyPerFighting: 5, treatyMin: 10, frozenBase: 9, frozenMin: 1 },
+  score: { treatyBase: 100, treatyPerWeek: 8, treatyPerFighting: 5, treatyMin: 10, frozenBase: 9, frozenMin: 1 },
 
   // ---- the dials ----
   dialMin: 0.2,
@@ -260,7 +274,7 @@ export function isScared(jumpiness: number): boolean {
   return jumpiness > RULES.dialHigh;
 }
 
-/** spec: treaty 100 − 10w − 5f (min 10); frozen 9 − f (min 1); war 0. */
+/** SPEC-SMALL: treaty 100 − 8w − 5f (min 10); frozen 9 − f (min 1); war 0. */
 export function scoreOf(ending: { kind: EndingKind; week: number; fighting: number }): number {
   const S = RULES.score;
   if (ending.kind === 'treaty') return Math.max(S.treatyMin, S.treatyBase - S.treatyPerWeek * ending.week - S.treatyPerFighting * ending.fighting);

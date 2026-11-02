@@ -7,16 +7,22 @@
  *              endings, next week's headings, the new week's influence.
  * Every hidden decision writes one line for the debrief as it is made; every mover of the bar and the
  * ladder prints its own line on the tape (SPEC-SMALL "Rulings after the first build's review").
+ *
+ * SPEC-SMALL "Rulings after the recheck": cause before effect. Every path prints what you or they did before what
+ * it caused ("Backed down at Shoal · they stand down", then "Shoal has fallen"; "Wintermast accepts: a summit",
+ * then "Guns quiet at X"), and each line is said right after the change it reports, so its beat (WeekLog.beats)
+ * is the sheet it describes. A place that falls stays fallen that week: a step down eases the ladder word at once,
+ * but only a place that fell in an earlier week comes back (board.ts recoverOne).
  */
 import { Rng } from '../../engine/rng.ts';
 import { acceptWayOut, blockedLastWeek, crossesLine, crossingThing, planHeadings, targetWhy } from './agent.ts';
-import { believe, currentLog, fall, fellIn, fightingRegions, holdInfo, isAnswered, isSpared, netActs, note, pieceAt, pieceOf, press, pressedRegions, promiseAt, recover, removePromise, say, stepDown, stepUp, tally, think, unansweredRegions, willing } from './board.ts';
+import { believe, canRecover, currentLog, fall, fellIn, fightingRegions, holdInfo, isAnswered, isSpared, netActs, note, pieceAt, pieceOf, press, pressedRegions, promiseAt, recover, recoverOne, removePromise, say, stepAtWeekStart, stepDown, stepUp, tally, think, willing } from './board.ts';
 import type { RedlinesContent } from './content.ts';
 import { closingLines, endingOf } from './debrief.ts';
-import { answerCost, makePhone, pickEvent, stepAtWeekStart, type PhoneContext } from './phone.ts';
+import { answerCost, makePhone, pickEvent, type PhoneContext } from './phone.ts';
 import { RULES, fallWeeksAt, isScared, spreadAt } from './rules.ts';
 import type { Act, EndingKind, GameState, Line, PieceKind, RegionId } from './types.ts';
-import { fill, numberWord, placesPhrase } from './words.ts';
+import { actLine, fill, numberWord, placesPhrase } from './words.ts';
 import { NEAR_CAP, NEIGHBOURS, isCap, mapOrder, regionName } from './world.ts';
 
 /** SPEC-SMALL ruling: the fleet starts at Tern Isle (the Scatter), within reach of the war; the brigade at Edda Vale. */
@@ -38,20 +44,10 @@ function placesSlot(c: RedlinesContent, ids: readonly RegionId[]): string {
   return ids.length === 1 ? regionName(ids[0]) : placesPhrase(c, ids.length);
 }
 
-function actLine(c: RedlinesContent, a: Act): string | null {
-  const A = c.strings.acts;
-  switch (a.kind) {
-    case 'promise':
-      return fill(A.promise, { region: regionName(a.region) });
-    case 'withdraw':
-      return fill(A.withdraw, { region: regionName(a.region) });
-    case 'move':
-      return fill(A.move, { piece: c.strings.pieces[a.piece], region: regionName(a.to) });
-    case 'way-out':
-      return fill(A.wayOut, { term: c.strings.terms[a.term] });
-    case 'answer':
-      return null;
-  }
+/** A step down quiets one place that fell in an earlier week; the tape says which, after the step's own line. */
+function quietOne(c: RedlinesContent, s: GameState): void {
+  const quiet = recoverOne(s);
+  if (quiet) say(c, s, 'recovered', { region: quiet });
 }
 
 function ring(c: RedlinesContent, s: GameState, rng: Rng, ctx: PhoneContext): boolean {
@@ -83,8 +79,8 @@ export function beginWeek(c: RedlinesContent, s: GameState): GameState {
   const T = tally(s);
   // The orders, with a promise and its same-week withdrawal cancelled out (the debrief's "what you did" reads the net).
   for (const a of netActs(s.acts)) {
-    const line = actLine(c, a);
-    if (line) note(s, line);
+    if (a.kind === 'answer') continue;
+    note(s, actLine(c, a));
     if (a.kind === 'move') T.moves++;
   }
   if (!log.acts.length) {
@@ -165,19 +161,11 @@ export function beginWeek(c: RedlinesContent, s: GameState): GameState {
       if (holdInfo(s, h.to).ok) T.testsSolid++;
       else T.testsDashed++;
     } else if (h.real) {
-      if (s.regions[h.to].state === 'calm') sayHeading(h.to);
-      if (s.regions[h.to].state !== 'fighting') {
-        say(c, s, s.regions[h.to].state === 'pressed' ? 'pushedAgain' : 'pushed', { region: h.to });
-        const atOnce = RULES.outOfReachFallWeeks === 0 && s.regions[h.to].state === 'calm' && !holdInfo(s, h.to).ok;
+      const was = s.regions[h.to].state;
+      if (was === 'calm') sayHeading(h.to);
+      if (was !== 'fighting') {
         press(s, h.to);
-        if (atOnce) {
-          fall(s, h.to, 'unanswered');
-          say(c, s, 'fell', { region: h.to });
-          say(c, s, 'fellOutOfReach', { region: h.to });
-          think(c, s, 'fallOutOfReach', { region: h.to });
-          T.outOfReach++;
-          if (!T.outOfReachFirst) T.outOfReachFirst = h.to;
-        }
+        say(c, s, was === 'pressed' ? 'pushedAgain' : 'pushed', { region: h.to });
       }
     } else {
       say(c, s, 'stoppedShort', { region: h.to });
@@ -212,22 +200,24 @@ export function applyAnswer(c: RedlinesContent, s: GameState, key: 'back' | 'dow
   const rng = new Rng(`${s.seed}:w${s.week}:c`);
   const region = p.region;
   const T = tally(s);
-  s.acts.push({ kind: 'answer', key, region, phone: p.kind });
+  const act: Act = { kind: 'answer', key, region, phone: p.kind, round: p.round };
+  s.acts.push(act);
   const cost = answerCost(s, key);
   s.influence = Math.max(0, s.influence - cost);
-  const option = p.options.find((o) => o.key === key);
-  if (option) note(s, option.label + (option.cost ? ` · ${option.cost}` : ''));
+  // SPEC-SMALL ruling: what you did is printed as what you did ("You protested at Vessary"), never the form's forecast.
+  note(s, actLine(c, act));
 
   if (p.kind === 'test' || p.kind === 'test-inherited' || p.kind === 'feint') {
     if (!region) return;
     const feint = isFeintTest(s, region, p.round);
     const inherited = !!promiseAt(s, region)?.inherited;
     const k = key === 'wait' && p.round >= 3 ? 'down' : key;
+    const hold = holdInfo(s, region);
     if (k === 'back') {
-      const hold = holdInfo(s, region);
       // A column that was never coming cannot beat a far garrison: a backed feint always "holds".
       const held = feint || hold.ok || rng.next() >= RULES.farFail;
       if (held) {
+        let stepped = false;
         if (feint) {
           // SPEC-SMALL ruling: backing a feint earns nothing. They were not coming; the debrief says so.
           believe(s, RULES.backedFeintBelief);
@@ -235,8 +225,7 @@ export function applyAnswer(c: RedlinesContent, s: GameState, key: 'back' | 'dow
           if (!T.feintBackedFirst) T.feintBackedFirst = region;
         } else {
           believe(s, hold.ok ? RULES.backedBelief : RULES.backedFarBelief);
-          const quiet = stepDown(s);
-          if (quiet) say(c, s, 'recovered', { region: quiet });
+          stepped = stepDown(s);
           if (hold.ok) {
             s.turnedAway[region] = s.week;
             T.backed++;
@@ -244,7 +233,11 @@ export function applyAnswer(c: RedlinesContent, s: GameState, key: 'back' | 'dow
           s.lastBacked = region;
         }
         s.pendingTest = null;
+        // It held: the place is answered this week, so a clock already running there starts again ("it held", then never "has fallen").
+        if (s.regions[region].state === 'pressed') s.regions[region].pressedWeeks = 0;
+        // Cause, then effect: the backing, then the place the step down quiets.
         say(c, s, hold.ok ? 'backed' : 'backedFar', { region });
+        if (stepped) quietOne(c, s);
         think(c, s, feint ? 'feintBacked' : 'realBacked', { region, cost });
       } else {
         believe(s, -RULES.failedBelief);
@@ -261,16 +254,17 @@ export function applyAnswer(c: RedlinesContent, s: GameState, key: 'back' | 'dow
       s.pendingTest = null;
       T.backedDown++;
       if (!T.backedDownFirst) T.backedDownFirst = region;
+      const cause = inherited ? 'back-down-inherited' : 'back-down';
       if (!feint) {
         press(s, region);
-        s.regions[region].fellBy = inherited ? 'back-down-inherited' : 'back-down';
+        s.regions[region].fellBy = cause;
       }
       // SPEC-SMALL ruling: BACK DOWN near a scared Federation is a step down (they wanted the fight no more than you did).
       const eased = !feint && RULES.backDownEasesWhenScared && isScared(s.fed.jumpiness);
       T.jumpinessSeen = true;
+      let stepped = false;
       if (eased) {
-        const quiet = stepDown(s);
-        if (quiet) say(c, s, 'recovered', { region: quiet });
+        stepped = stepDown(s);
         say(c, s, 'backedDownEased', { region });
         think(c, s, 'realBackedDownEased', { region });
       } else {
@@ -278,6 +272,13 @@ export function applyAnswer(c: RedlinesContent, s: GameState, key: 'back' | 'dow
         say(c, s, 'backedDown', { region });
         think(c, s, feint ? 'feintBackedDown' : 'realBackedDown', { region });
       }
+      // Round 14: a promise nothing of yours could hold, backed down from, loses the place at once. Cause before
+      // effect: the back-down's line first, then "X has fallen" (and no second step for it: the back-down's step was its step).
+      if (!feint && RULES.backDownFarTakes && !hold.ok && s.regions[region].state !== 'fighting') {
+        fall(s, region, cause);
+        say(c, s, 'fell', { region });
+      }
+      if (stepped) quietOne(c, s);
     } else {
       believe(s, -RULES.waitBelief);
       say(c, s, 'waited', { region });
@@ -336,12 +337,12 @@ export function applyAnswer(c: RedlinesContent, s: GameState, key: 'back' | 'dow
     case 'summit': {
       const why = c.strings.why[s.fed.step >= 3 ? 'afraid' : 'wantedToStop'];
       if (key === 'back') {
-        const quiet = stepDown(s);
-        if (quiet) say(c, s, 'recovered', { region: quiet });
+        const stepped = stepDown(s);
         willing(s, RULES.willWayOut);
         s.waysOut++;
         if (blockedLastWeek(s)) T.stoppedThenTalked++;
         say(c, s, 'summitAccepted');
+        if (stepped) quietOne(c, s);
       } else if (key === 'down') {
         // Their public offer refused in public: the one humiliation in the first build (spec: −10).
         willing(s, -RULES.willHumiliated);
@@ -361,7 +362,7 @@ export function applyAnswer(c: RedlinesContent, s: GameState, key: 'back' | 'dow
           believe(s, RULES.unpromisedBelief);
           say(c, s, 'unpromisedHeld', { region });
         } else say(c, s, 'unpromisedFailed', { region });
-      } else say(c, s, 'unpromisedLet', { region });
+      } else say(c, s, key === 'down' ? 'unpromisedLet' : 'unpromisedProtested', { region });
       think(c, s, 'unpromised', { region });
       return;
     }
@@ -389,7 +390,7 @@ export function finishWeek(c: RedlinesContent, s: GameState): GameState {
   //    nothing of yours could have reached falls without a step, and the tape says so.
   for (const r of pressedRegions(s)) {
     const rec = s.regions[r];
-    const clock = RULES.outOfReachFallWeeks !== null && !holdInfo(s, r).ok ? RULES.outOfReachFallWeeks : fallWeeksAt(stepWas);
+    const clock = fallWeeksAt(stepWas);
     if (!isAnswered(s, r) && rec.pressedWeeks >= clock && s.pendingTest !== r) {
       const toldAlready = rec.fellBy === 'failed' || rec.fellBy === 'back-down' || rec.fellBy === 'back-down-inherited';
       fall(s, r, 'unanswered');
@@ -405,12 +406,13 @@ export function finishWeek(c: RedlinesContent, s: GameState): GameState {
       }
     }
   }
-  // At FIGHTING and ALL-OUT the fighting spreads on its own, one or two places a week; a piece or a solid promise spares a place.
+  // At FIGHTING and ALL-OUT the fighting spreads on its own, one or two places a week; a piece or a solid promise spares a place,
+  // and so does a place that came back this week (no place falls and recovers inside one week, in either order).
   const n = spreadAt(s.fed.step);
   if (n > 0) {
     const pool: Array<{ region: RegionId; from: RegionId }> = [];
     for (const f of fightingRegions(s))
-      for (const r of NEIGHBOURS[f]) if (!isCap(r) && s.regions[r].state !== 'fighting' && !isSpared(s, r) && !pool.some((p) => p.region === r)) pool.push({ region: r, from: f });
+      for (const r of NEIGHBOURS[f]) if (!isCap(r) && s.regions[r].state !== 'fighting' && s.regions[r].recoveredWeek !== week && !isSpared(s, r) && !pool.some((p) => p.region === r)) pool.push({ region: r, from: f });
     const ordered = mapOrder(pool.map((p) => p.region)).map((r) => pool.find((p) => p.region === r)!);
     rng.shuffle(ordered);
     const spread = ordered.slice(0, n);
@@ -446,16 +448,14 @@ export function finishWeek(c: RedlinesContent, s: GameState): GameState {
           piece.at = homeOf(piece.kind);
         }
       }
-      const quiet = stepDown(s);
-      if (quiet) say(c, s, 'recovered', { region: quiet });
-      if (named && s.regions[named].state === 'fighting') {
-        recover(s, named);
-        say(c, s, 'recovered', { region: named });
-      }
+      const stepped = stepDown(s);
       willing(s, RULES.willWayOut);
       s.waysOut++;
       if (gained.length === 0 && blockedLastWeek(s)) T.stoppedThenTalked++;
+      // Cause, then effect: their acceptance, then any place it returns (only a place that fell in an earlier week).
       say(c, s, 'wayOutAccepted', { term });
+      if (stepped) quietOne(c, s);
+      if (named && canRecover(s, named) && recover(s, named)) say(c, s, 'recovered', { region: named });
       think(c, s, 'wayOutAccepted', { why });
     } else {
       say(c, s, 'wayOutRefused', { term });
@@ -472,7 +472,10 @@ export function finishWeek(c: RedlinesContent, s: GameState): GameState {
 
   // 9. The ladder: at most one step a week for the places taken unanswered that something of yours could
   //    have reached; a jumpy neighbour; an accident.
-  const unansweredFalls = gained.filter((r) => s.regions[r].fellReach && s.regions[r].fellBy !== 'spread' && s.regions[r].fellBy !== 'failed');
+  // A place lost by an answer this week (backed down from, a failed back, the third WAIT) was answered, badly: its
+  // step was the back-down's, so it is not also "taken unanswered" (the WAIT-then-BACK DOWN path printed both).
+  const answeredThisWeek = (r: RegionId) => s.acts.some((a) => a.kind === 'answer' && a.region === r && (a.phone === 'test' || a.phone === 'test-inherited' || a.phone === 'feint'));
+  const unansweredFalls = gained.filter((r) => s.regions[r].fellReach && s.regions[r].fellBy !== 'spread' && s.regions[r].fellBy !== 'failed' && !answeredThisWeek(r));
   if (unansweredFalls.length && stepUp(s)) say(c, s, 'takenStepUp', { n: placesSlot(c, unansweredFalls) });
   const near = s.pieces.find((p) => NEAR_CAP.includes(p.at));
   if (near) {
@@ -503,15 +506,12 @@ export function finishWeek(c: RedlinesContent, s: GameState): GameState {
     }
   }
 
-  // 11. The bars. −5 a place taken; +5 only when nothing was taken AND no place stands pressed and
-  //     unanswered (SPEC-SMALL ruling: sitting still does not win); a bloc may sign in such a week.
-  s.war = fightingRegions(s).length;
-  const unanswered = unansweredRegions(s);
+  // 11. The bars. −5 a place taken; +5 whenever nothing was taken (SPEC-SMALL ruling "Ten weeks, not eight": the
+  //     plain spec rule); a bloc may sign in such a week. A place that fell this week is still fighting (nothing
+  //     recovers the week it fell), so a week with a fall is never a quiet week.
   if (gained.length) {
     willing(s, -RULES.willPerGain * gained.length);
     say(c, s, 'gainedWeek', { n: gained.length === 1 ? c.strings.counts.placesOne : fill(c.strings.counts.placesMany, { n: numberWord(c, gained.length) }) });
-  } else if (unanswered.length) {
-    say(c, s, 'heldWeek', { n: placesSlot(c, unanswered) });
   } else {
     willing(s, RULES.willQuiet);
     say(c, s, 'quietWeek');
@@ -543,7 +543,7 @@ export function finishWeek(c: RedlinesContent, s: GameState): GameState {
   }
 
   // 13. Next week.
-  const plan = planHeadings(s, rng);
+  const plan = planHeadings(s, rng, null, week + 1);
   if (plan.notTested) {
     // Once a game per place: the thought is the same every week they leave it alone.
     const text = fill(c.debrief.notTested[0] ?? '', { region: regionName(plan.notTested) });

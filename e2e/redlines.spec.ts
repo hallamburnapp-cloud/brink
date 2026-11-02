@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { loadRedlinesContent } from '../src/redlines/content/load';
-import { answerPhone, blocOf, endWeek, movesFor, newGame, regionName, RULES, type GameState, type RegionId } from '../src/redlines/engine';
+import { answerCost, answerPhone, blocOf, endWeek, HEADLINE_KINDS, loadGame, movesFor, NEIGHBOURS, newGame, offerWayOut, regionName, REGION_IDS, RULES, saveGame, weeksLeft, type GameState, type RegionId } from '../src/redlines/engine';
 import type { RedlinesHook } from '../src/redlines/ui/app/devHook';
 
 /**
@@ -55,18 +55,27 @@ if (!content) throw new Error('content-redlines did not compile');
 const S = content.strings;
 
 /**
- * Seeds found on this pack and engine (a scratch finder replays newGame/endWeek/answerPhone; re-run it when the rules change):
+ * Seeds found on this pack and engine by a seed finder that replays newGame/endWeek/answerPhone in Node with the
+ * properties each test needs (re-run it when the rules change):
  * - WEEK: the one inherited promise is at Driftholm (an island nothing of yours can reach: a dashed ring); their first
  *   heading points at it, so SEND ORDERS with no orders rings the inherited-promise test, BACK IT costs 24 (far) and
  *   holds, and WAIT carries the call to week 2 as round 2 at 30. Vessary is free and within the brigade's reach from
  *   Edda Vale; Shoal is out of reach.
  * - QUIET: week 1 resolves without a call (a push that lands, a column stopping short), for the playback.
+ * - RULING-A0 / RULING-B1: with backDownPatch / fallWeekPatch staged, the recheck's two paths (a back-down at a dashed
+ *   ring facing a scared Federation; a summit accepted in a week a place fell), each with a place fallen a week before.
  * What those weeks say and do is computed in Node from the same pack and seed, never written out here.
  */
 const SEED_WEEK = 'E2E-WEEK-18';
 const SEED_QUIET = 'E2E-QUIET-1';
+/** SUMMIT: with summitPatch staged, SEND ORDERS rings their own summit offer; ACCEPT steps them down to TESTING. With a way out of yours offered first, it never rings. */
+const SEED_SUMMIT = 'E2E-SUMMIT-1';
+/** TRAWLER: with trawlerPatch staged, SEND ORDERS rings the trawler about Gullrest under a ring of yours (promised), or in the words that claim no promise (not). */
+const SEED_TRAWLER = 'E2E-TRAWLER-3';
 const PREFS_KEY = 'brink.redlines.v1.prefs';
 const SAVE_KEY = 'brink.redlines.v1.save';
+/** A refusal's torn slip stays this long (actions.ts REFUSAL_MS) and a little more. */
+const REFUSAL_GONE = 2600;
 
 // ---------------------------------------------------------------- helpers
 
@@ -212,6 +221,26 @@ async function frameBox(page: Page, selector: string): Promise<{ x0: number; y0:
   return { x0: (box.x - f.left) / f.scale, y0: (box.y - f.top) / f.scale, x1: (box.x + box.width - f.left) / f.scale, y1: (box.y + box.height - f.top) / f.scale };
 }
 const slip = (page: Page) => page.locator('.rl-slip');
+/** The hook's set() in Node: the same patch through the save format, so the engine run here is the one the page runs. */
+const staged = (s: GameState, patch: Partial<GameState>): GameState => loadGame(saveGame({ ...s, ...patch } as GameState))!;
+const summitPatch = (s: GameState): Partial<GameState> => ({ regions: calm(s), promises: [], pendingTest: null, offer: null, events: 0, phonesUsed: [], phone: null, acts: [], moved: [], week: 6, war: 0, treaty: 60, fed: { ...s.fed, will: 60, step: 2, headings: [] } });
+const trawlerPatch = (s: GameState, promised: boolean): Partial<GameState> => ({
+  regions: calm(s),
+  promises: promised ? [{ region: 'GUL', since: 1, inherited: false }] : [],
+  pendingTest: null,
+  offer: null,
+  events: 0,
+  phonesUsed: [],
+  phone: null,
+  acts: [],
+  moved: [],
+  week: 3,
+  war: 0,
+  treaty: 50,
+  fed: { ...s.fed, will: 50, step: 1, headings: [] },
+});
+/** A headline template filled: what the engine prints. */
+const line = (kind: keyof typeof S.headlines, slots: Record<string, string> = {}) => S.headlines[kind].replace(/\{(\w+)\}/g, (m, k: string) => slots[k] ?? m);
 const calm = (s: GameState): GameState['regions'] => Object.fromEntries(Object.keys(s.regions).map((k) => [k, { state: 'calm' as const, pressedWeeks: 0, quietWeeks: 0 }]));
 
 // ---------------------------------------------------------------- the first minute
@@ -248,6 +277,9 @@ test('the title, the three lines of the explanation over the live map, the colli
   // Week 1: the calendar, the note (the collision), the index card's words, SEND ORDERS, the tape, the MENU tag. Nothing else.
   await expect(page.locator('.pp-cal .hd')).toContainText(S.words.week);
   await expect(page.locator('.pp-cal .num')).toContainText('1');
+  // Ten weeks: the calendar's "of 10" is the rules' count of weeks.
+  expect(RULES.weeks).toBe(10);
+  await expect(page.locator('.pp-cal .num small')).toHaveText(`of ${RULES.weeks}`);
   await expect(page.locator('.pp-cal .nt')).toContainText(`${S.words.influence} ${s.influence}`);
   await expect(page.locator('.pp-note')).toHaveText(s.collision);
   await expect(page.locator('.pp-card .lab').nth(0)).toHaveText(S.words.war);
@@ -344,6 +376,17 @@ test('a promise by tap-and-hold (solid, WE DEFEND), a withdraw, a counter moved,
   await tapPlace(page, 'QLN');
   await expect(page.locator('.rl-refusal')).toHaveText(S.refusals['moved-already']);
   expect((await state(page)).pieces.find((p) => p.kind === 'brigade')?.at).toBe('VSY');
+  // A tap on the MOVE slip itself (not its CANCEL) goes through to the sheet under it: it is not swallowed.
+  await page.waitForTimeout(REFUSAL_GONE);
+  await tapCounter(page, 'fleet');
+  await expect(page.locator('.pp-piece[data-kind="fleet"]')).toHaveClass(/pp-lift/);
+  const moveSlip = await page.locator('.rl-slip').boundingBox();
+  if (!moveSlip) throw new Error('no MOVE slip');
+  await page.touchscreen.tap(moveSlip.x + moveSlip.width * 0.4, moveSlip.y + moveSlip.height * 0.6);
+  // Under the slip is a place the fleet cannot reach (refused in the content's words) or the open sea (put down): either way the tap was heard.
+  await expect
+    .poll(async () => (await page.locator('.rl-refusal').count()) > 0 || !(await page.locator('.pp-piece[data-kind="fleet"]').getAttribute('class'))?.includes('pp-lift'))
+    .toBe(true);
   // The game is saved after every order.
   const saved = await page.evaluate((k) => localStorage.getItem(k), SAVE_KEY);
   expect(saved && JSON.parse(saved).state.pieces.find((p: { kind: string }) => p.kind === 'brigade').at).toBe('VSY');
@@ -414,6 +457,17 @@ test('SEND ORDERS plays the week back a beat at a time: the tape feeds, the note
   await expect(page.locator('.pp-note')).toContainText(`They are pushing ${S.blocs[blocOf(pressed[0])]}`);
   // Week 2's headings are the new pins and arrows.
   for (const h of s2.fed.headings) await expect(page.locator(`.pp-l-head [data-key="pin:${h.from}:${h.to}"]`)).toBeAttached();
+  // A pressed place shows its clock: its weeks left as pencil ticks beside the hatching (the engine's weeksLeft).
+  for (const r of pressed) {
+    const n = weeksLeft(s2, r);
+    if (n === null) await expect(page.locator(`.pp-l-clock [data-key^="clock:${r}:"]`)).toHaveCount(0);
+    else {
+      await expect(page.locator(`.pp-l-clock [data-key="clock:${r}:${n}"]`)).toBeAttached();
+      await expect(page.locator(`.pp-l-clock [data-key="clock:${r}:${n}"] .pp-tick`)).toHaveCount(n === 1 ? 2 : n);
+    }
+  }
+  // The WAR boxes are the sheet's own count.
+  await expect(page.locator('.pp-card .row').first().locator('svg.bar g')).toHaveCount(Object.values(s2.regions).filter((r) => r.state === 'fighting').length);
   expect(s2.influence).toBe(expected.influence);
   expect(s1.week).toBe(1);
 });
@@ -485,7 +539,8 @@ test('the phone: the inherited promise is tested, the room goes dark, forty word
   // The week on the sheet is the week the engine computed in Node, line for line; and on this seed the far promise held.
   expect(after.log[0].visible).toEqual(backed.log[0].visible);
   expect(said(after.log[0].visible, S.headlines.backedFar, { region: regionName('DRF') })).toBe(true);
-  expect(after.log[0].acts.some((a) => a.startsWith(S.words.back))).toBe(true);
+  // What you did is printed as what you did: the answer as the act, never the form's forecast.
+  expect(after.log[0].acts).toContain(S.answers.test.back.replace('{region}', regionName('DRF')));
   await expect(page.locator('.pp-room')).not.toHaveClass(/pp-room-call/);
   await expect(page.locator('.pp-cal .num')).toContainText('2');
   await expect(page.locator('.pp-l-hw text', { hasText: S.words.tested })).toHaveCount(0);
@@ -531,6 +586,311 @@ test('WAIT carries the test into next week with the stakes up: the second week o
   await expect(page.locator(s.regions.DRF.state === 'fighting' ? '.pp-l-fight [data-key="fight:DRF"]' : '.pp-l-press [data-key="press:DRF"]')).toBeAttached();
 });
 
+test('influence is on the call: the influence in hand beside the forms, and a form you cannot afford says why in its own line', async ({ page }) => {
+  await open(page);
+  await seed(page, SEED_WEEK);
+  let s = await sendOrders(page);
+  expect(s.phase).toBe('phone');
+  await expect(page.locator('.rl-purse')).toHaveText(S.phone.inHand.replace('{influence}', String(s.influence)));
+  await expect(page.locator('.pp-ch').nth(0)).toBeEnabled();
+  // Five influence left: BACK IT is dimmed, and its typed line says what it needs and what is in hand.
+  s = await set(page, { influence: 5 });
+  const need = answerCost(s, 'back');
+  expect(need).toBeGreaterThan(5);
+  await expect(page.locator('.rl-purse')).toHaveText(S.phone.inHand.replace('{influence}', '5'));
+  await expect(page.locator('.pp-ch').nth(0)).toBeDisabled();
+  const back = page.locator('.pp-ch').nth(0).locator('.c');
+  await expect(back).toContainText(s.phone!.options[0].cost);
+  await expect(back).toContainText(`${s.phone!.options[0].cost} · ${S.phone.needs.replace('{cost}', String(need)).replace('{influence}', '5')}`);
+  // The other two forms can still be had.
+  await expect(page.locator('.pp-ch').nth(1)).toBeEnabled();
+  await expect(page.locator('.pp-ch').nth(2)).toBeEnabled();
+});
+
+test('their summit: it rings when they have been stopped, ACCEPT moves the bar +15 beside its line and the stamp back to TESTING; never over a way out of yours', async ({ page }) => {
+  await open(page);
+  const g = await seed(page, SEED_SUMMIT);
+  const node = endWeek(content, staged(g, summitPatch(g)));
+  expect(node.phone?.kind).toBe('summit');
+  await set(page, summitPatch(g));
+  let s = await sendOrders(page);
+  expect(s.phase).toBe('phone');
+  expect(s.phone?.kind).toBe('summit');
+  await expect(page.locator('.pp-caller .msg')).toHaveText(node.phone!.text);
+  expect(s.fed.step).toBe(2);
+  const before = s.treaty;
+  // ACCEPT: the line prints, and beside it the bar has moved by the rules' +15 and the stamp reads TESTING.
+  const opt = s.phone!.options.find((o) => o.key === 'back')!;
+  await page.locator('.rl-forms.rl-armed').waitFor({ state: 'attached', timeout: 5_000 });
+  await page.locator('.pp-ch').filter({ hasText: opt.label }).tap();
+  const accepted = line('summitAccepted', { step: S.words.steps[0] });
+  await expect(page.locator('.pp-note')).toHaveText(new RegExp(`^${accepted.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'), { timeout: 15_000 });
+  await expect(page.locator('.pp-card .val')).toHaveText(`${before + RULES.willWayOut}%`);
+  await expect(page.getByRole('img', { name: S.words.steps[0] })).toBeVisible();
+  await settle(page);
+  s = await state(page);
+  expect(s.fed.step).toBe(1);
+  expect(s.log[s.log.length - 1].visible).toContain(accepted);
+
+  // The same week with a summit of yours on the table: theirs does not ring over it.
+  const h = await seed(page, SEED_SUMMIT);
+  const offered = offerWayOut(staged(h, summitPatch(h)), 'summit');
+  expect(offered.ok).toBe(true);
+  if (offered.ok) expect(endWeek(content, offered.state).phone?.kind).not.toBe('summit');
+  await set(page, summitPatch(h));
+  await page.getByRole('button', { name: new RegExp(`^${S.words.wayOut}`) }).tap();
+  await page.getByRole('dialog', { name: S.words.wayOut }).getByRole('button', { name: new RegExp(`^${S.act.termLabels.summit}`) }).tap();
+  s = await sendOrders(page);
+  expect(s.phone?.kind ?? null).not.toBe('summit');
+});
+
+test('the trawler rings about an island under a ring of yours, or in words that claim no promise; BACK THEM answers it', async ({ page }) => {
+  await open(page);
+  // Gullrest promised: the call is about Gullrest, and may speak of the promise.
+  const g = await seed(page, SEED_TRAWLER);
+  await set(page, trawlerPatch(g, true));
+  let s = await sendOrders(page);
+  expect(s.phone?.kind).toBe('trawler');
+  expect(s.phone?.region).toBe('GUL');
+  await expect(page.locator('.pp-caller .msg')).toContainText(regionName('GUL'));
+  const back = s.phone!.options.find((o) => o.key === 'back')!;
+  s = await answer(page, 'back');
+  expect(s.log[s.log.length - 1].visible).toContain(line('trawlerBacked', { region: regionName('GUL') }));
+  // Nothing promised: the call is in the words that claim no promise.
+  const h = await seed(page, SEED_TRAWLER);
+  await set(page, trawlerPatch(h, false));
+  s = await sendOrders(page);
+  expect(s.phone?.kind).toBe('trawler');
+  expect(s.phone?.template).toBe('trawler-unpromised');
+  const t = content.phones.find((p) => p.id === 'trawler-unpromised')!;
+  expect(t.when).toBe('unpromised');
+  expect(back.label).toBeTruthy();
+});
+
+/** What the screen shows at one beat of a playback: the tape's newest line, the WAR boxes, the places the sheet draws fighting (and its red stamps), the stamp, the bar. */
+interface BeatSeen {
+  tape: string;
+  war: number;
+  fighting: string[];
+  red: number;
+  stamp: string;
+  treaty: string;
+}
+/** Start writing down every beat: each time the tape's newest line changes, what the screen shows half a beat later. */
+async function recordBeats(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const w = window as unknown as { __beats: unknown[]; __rec: number };
+    const snap = () => {
+      const lines = [...document.querySelectorAll('.pp-tape .ln')];
+      const card = document.querySelector('.pp-card');
+      const v = window.__redlines!.view();
+      return {
+        tape: (lines[lines.length - 1]?.querySelector('i') ? lines[lines.length - 1].childNodes[1]?.textContent : lines[lines.length - 1]?.textContent) ?? '',
+        war: card?.querySelector('.row svg.bar')?.querySelectorAll('g').length ?? -1,
+        fighting: Object.entries(v.states).filter(([, st]) => st === 'fighting').map(([k]) => k).sort(),
+        red: document.querySelectorAll('.pp-l-fight .pp-mk').length,
+        stamp: card?.querySelector('.pp-stamp')?.getAttribute('aria-label') ?? '',
+        treaty: card?.querySelector('.val')?.textContent ?? '',
+      };
+    };
+    w.__beats = [];
+    let seen = '';
+    w.__rec = window.setInterval(() => {
+      const now = [...document.querySelectorAll('.pp-tape .ln')].map((l) => l.textContent).join('|');
+      if (now === seen) return;
+      seen = now;
+      window.setTimeout(() => w.__beats.push(snap()), 450);
+    }, 40);
+  });
+}
+async function beatsSeen(page: Page): Promise<BeatSeen[]> {
+  await page.waitForTimeout(600);
+  const all = await page.evaluate(() => {
+    const w = window as unknown as { __beats: BeatSeen[]; __rec: number };
+    window.clearInterval(w.__rec);
+    return w.__beats;
+  });
+  // One entry per line, the call's dark room left out (no index card under it).
+  return all.filter((b, i) => b.war >= 0 && (i === 0 || b.tape !== all[i - 1].tape));
+}
+/** A place that fell in an earlier week (the one a step down may quiet): Kelpmouth, fighting since week 2. */
+const fellEarlier = (s: GameState, week: number): GameState['regions'] => ({
+  ...calm(s),
+  KLP: { state: 'fighting', pressedWeeks: 0, quietWeeks: 0, fellWeek: week, fellSeq: 1, fellBy: 'unanswered', fellReach: true },
+});
+const weekLog = (week: number, war: number, step: 1 | 2 | 3 | 4 | 5, treaty: number) => ({ week, visible: [], hidden: [], acts: [], danger: { war, treaty, step }, beats: [] });
+/** RULING-A0: week 3, a dashed inherited ring at Driftholm their push tests, a scared Federation (jumpiness 0.8), Kelpmouth fallen in week 2. */
+const backDownPatch = (s: GameState): Partial<GameState> => ({
+  week: 3,
+  regions: fellEarlier(s, 2),
+  war: 1,
+  promises: [{ region: 'DRF', since: 1, inherited: true }],
+  pieces: [
+    { kind: 'fleet', at: 'TRN' },
+    { kind: 'brigade', at: 'EDV' },
+  ],
+  pendingTest: null,
+  offer: null,
+  phone: null,
+  acts: [],
+  moved: [],
+  events: 4,
+  phonesUsed: [],
+  log: [weekLog(1, 0, 1, 45), weekLog(2, 1, 2, 40), weekLog(3, 1, 2, 40)],
+  treaty: 40,
+  fed: { ...s.fed, jumpiness: 0.8, appetite: 0.5, step: 2, will: 40, belief: 30, headings: [{ from: 'GLM', to: 'DRF', real: true }] },
+});
+/** RULING-B1: week 5, Brackwater pressed with one week left and nothing of yours near it, Kelpmouth fallen in week 3, the bar at 85. */
+const fallWeekPatch = (s: GameState): Partial<GameState> => ({
+  week: 5,
+  regions: { ...fellEarlier(s, 3), BRK: { state: 'pressed', pressedWeeks: 1, quietWeeks: 0 } },
+  war: 1,
+  promises: [],
+  pieces: [
+    { kind: 'fleet', at: 'TRN' },
+    { kind: 'brigade', at: 'EDV' },
+  ],
+  pendingTest: null,
+  offer: null,
+  phone: null,
+  acts: [],
+  moved: [],
+  events: 4,
+  phonesUsed: [],
+  log: [weekLog(1, 0, 1, 45), weekLog(2, 0, 1, 50), weekLog(3, 1, 2, 75), weekLog(4, 1, 2, 80), weekLog(5, 1, 2, 85)],
+  treaty: 85,
+  fed: { ...s.fed, appetite: 0.2, step: 2, will: 85, headings: [] },
+});
+
+test('cause before effect on the sheet: a back-down at a dashed ring facing a scared Federation, and a way out accepted in a week a place fell, beat by beat', async ({ page }) => {
+  await open(page);
+  // A: the engine in Node says what the week prints; the page must play exactly that, one line a beat, the sheet with it.
+  const a = await seed(page, 'RULING-A0');
+  const nodeA = answerPhone(content, endWeek(content, staged(a, backDownPatch(a))), 'down');
+  const linesA = nodeA.log.find((w) => w.week === 3)!.visible;
+  const downAt = linesA.indexOf(line('backedDownEased', { region: regionName('DRF') }));
+  expect(downAt).toBeGreaterThanOrEqual(0);
+  expect(linesA[downAt + 1]).toBe(line('fell', { region: regionName('DRF') }));
+  expect(linesA[downAt + 2]).toBe(line('recovered', { region: regionName('KLP') }));
+  await set(page, backDownPatch(a));
+  // The dashed ring, Kelpmouth red, one WAR box.
+  await expect(page.locator('.pp-l-prom .pp-dashed')).toHaveCount(1);
+  await expect(page.locator('.pp-card .row').first().locator('svg.bar g')).toHaveCount(1);
+  let s = await sendOrders(page);
+  expect(s.phase).toBe('phone');
+  expect(s.phone?.region).toBe('DRF');
+  await recordBeats(page);
+  s = await answer(page, 'down');
+  // The answer's half of the week: every line from the back-down on, each on its own beat, in the engine's order.
+  const seenA = (await beatsSeen(page)).filter((b) => linesA.slice(downAt).includes(b.tape));
+  expect(seenA.map((b) => b.tape)).toEqual(linesA.slice(downAt));
+  const at = (text: string) => seenA.find((b) => b.tape === text)!;
+  // The back-down first: the ring goes, Driftholm is not yet red, the stamp eases a step, one WAR box.
+  const down = at(line('backedDownEased', { region: regionName('DRF') }));
+  expect(down.fighting).toEqual(['KLP']);
+  expect(down.war).toBe(1);
+  expect(down.stamp).toBe(S.words.steps[1]);
+  // Then what it cost: Driftholm falls, two boxes, two red stamps.
+  const fell = at(line('fell', { region: regionName('DRF') }));
+  expect(fell.fighting).toEqual(['DRF', 'KLP']);
+  expect(fell.war).toBe(2);
+  // Then the step down quiets the place that fell in an earlier week, never the one that fell just now.
+  const quiet = at(line('recovered', { region: regionName('KLP') }));
+  expect(quiet.fighting).toEqual(['DRF']);
+  expect(quiet.war).toBe(1);
+  // Every beat: the WAR boxes are the sheet's own count, and the sheet's red stamps agree.
+  for (const b of seenA) {
+    expect(b.war, b.tape).toBe(b.fighting.length);
+    expect(b.red, b.tape).toBe(b.fighting.length);
+  }
+  expect(s.regions.DRF.state).toBe('fighting');
+  expect(s.log.find((w) => w.week === 3)!.acts).toContain(S.answers.test.down.replace('{region}', regionName('DRF')));
+
+  // B: a summit offered by its typed form in a week Brackwater's clock runs out.
+  const b0 = await seed(page, 'RULING-B1');
+  const r = offerWayOut(staged(b0, fallWeekPatch(b0)), 'summit');
+  expect(r.ok).toBe(true);
+  const nodeB = endWeek(content, (r as { ok: true; state: GameState }).state);
+  const linesB = nodeB.log.find((w) => w.week === 5)!.visible;
+  expect(linesB).toContain(line('wayOutAccepted', { term: S.terms.summit }));
+  await set(page, fallWeekPatch(b0));
+  // The pressed place shows its clock: one tick, ringed.
+  await expect(page.locator('.pp-l-clock [data-key="clock:BRK:1"] .pp-tick')).toHaveCount(2);
+  await page.getByRole('button', { name: new RegExp(`^${S.words.wayOut}`) }).tap();
+  await page.getByRole('dialog', { name: S.words.wayOut }).getByRole('button', { name: new RegExp(`^${S.act.termLabels.summit}`) }).tap();
+  await recordBeats(page);
+  s = await sendOrders(page);
+  const seenB = (await beatsSeen(page)).filter((b) => linesB.includes(b.tape));
+  expect(seenB.map((b) => b.tape)).toEqual(linesB);
+  const fellB = linesB.indexOf(line('fell', { region: regionName('BRK') }));
+  const accepts = linesB.indexOf(line('wayOutAccepted', { term: S.terms.summit }));
+  const quietB = linesB.indexOf(line('recovered', { region: regionName('KLP') }));
+  // The week's fall, then their acceptance, then the place it returns: one that fell in an earlier week.
+  expect(fellB).toBeGreaterThanOrEqual(0);
+  expect(accepts).toBeGreaterThan(fellB);
+  expect(quietB).toBe(accepts + 1);
+  expect(linesB).not.toContain(line('recovered', { region: regionName('BRK') }));
+  // Brackwater stays red from its fall to the end of the week; the boxes follow the sheet every beat.
+  seenB.forEach((b, i) => {
+    expect(b.war, b.tape).toBe(b.fighting.length);
+    expect(b.red, b.tape).toBe(b.fighting.length);
+    if (i >= fellB) expect(b.fighting, b.tape).toContain('BRK');
+  });
+  expect(seenB[accepts].stamp).toBe(S.words.steps[0]);
+  expect(seenB[accepts].treaty).toBe(`${85 + RULES.willWayOut}%`);
+  expect(seenB[quietB].fighting).toEqual(['BRK']);
+  expect(s.regions.BRK.state).toBe('fighting');
+  expect(s.regions.KLP.state).toBe('pressed');
+});
+
+test('the tape: every line the engine can print fits the teleprinter after a WEEK 10 tag, in the real font, and the live tape never runs over', async ({ page }) => {
+  await open(page);
+  await seed(page, SEED_WEEK);
+  // The longest words each slot can take.
+  const longest = (xs: readonly string[]) => xs.reduce((a, b) => (b.length > a.length ? b : a), '');
+  const names = REGION_IDS.map((r) => regionName(r));
+  const numbers = S.numbers.slice(2, RULES.warLimit + 1);
+  const slots: Record<string, string> = {
+    region: longest(names),
+    from: longest(names),
+    step: longest(S.words.steps),
+    n: longest([longest(names), ...numbers.map((n) => S.counts.placesMany.replace('{n}', n))]),
+    term: longest(Object.values(S.terms)),
+    bloc: longest(Object.values(S.blocs)).replace(/^./, (c) => c.toUpperCase()),
+    piece: longest(Object.values(S.pieces)).replace(/^./, (c) => c.toUpperCase()),
+    why: longest(Object.values(S.wintermast).map((w) => w.replace('{region}', longest(names)).replace('{piece}', longest(Object.values(S.pieces))))),
+    line: longest(content.lines.map((l) => l.tape)),
+  };
+  // The spread names two places next door to each other: the longest such pair.
+  const pairs = REGION_IDS.flatMap((a) => (NEIGHBOURS[a] ?? []).map((b) => [regionName(a), regionName(b)] as const));
+  const spread = pairs.reduce((a, b) => (b[0].length + b[1].length > a[0].length + a[1].length ? b : a));
+  const lines = HEADLINE_KINDS.map((k) => (k === 'spread' ? line(k, { from: spread[0], region: spread[1] }) : line(k, slots))).concat(content.lines.map((l) => l.tape), S.flavour);
+  for (const l of lines) expect(l.length, l).toBeLessThanOrEqual(46);
+  const over = await page.evaluate(
+    ([all, tag]) => {
+      const tape = document.querySelector('.pp-tape')!;
+      const out: string[] = [];
+      for (const text of all) {
+        const ln = document.createElement('div');
+        ln.className = 'ln';
+        const i = document.createElement('i');
+        i.textContent = tag;
+        ln.append(i, text);
+        tape.appendChild(ln);
+        if (ln.scrollWidth > ln.clientWidth + 0.5) out.push(`${text} (${ln.scrollWidth} > ${ln.clientWidth})`);
+        ln.remove();
+      }
+      return out;
+    },
+    [lines, `${S.words.week} ${RULES.weeks}`] as const,
+  );
+  expect(over).toEqual([]);
+  // The live tape, after a week has resolved.
+  await sendOrders(page);
+  const live = await page.evaluate(() => [...document.querySelectorAll('.pp-tape .ln')].map((l) => l.scrollWidth - l.clientWidth));
+  for (const d of live) expect(d).toBeLessThanOrEqual(0.5);
+});
+
 // ---------------------------------------------------------------- the endings and the debrief
 
 test('the three endings through the hook: TREATY, WORLD WAR and FROZEN on their typed cards, then the debrief pages', async ({ page }) => {
@@ -538,8 +898,26 @@ test('the three endings through the hook: TREATY, WORLD WAR and FROZEN on their 
   const g = await seed(page, SEED_WEEK);
   const quiet = { regions: calm(g), promises: [], pendingTest: null, offer: null, events: 4, phone: null, acts: [], moved: [] } as Partial<GameState>;
 
-  // TREATY: the bar at 95 and a quiet week: +5 and they sign.
-  await set(page, { ...quiet, week: 5, fed: { ...g.fed, will: 95, step: 1, headings: [] }, treaty: 95 });
+  // TREATY: the bar at 95 and a quiet week: +5 and they sign. The game's tally is staged so the closing card has
+  // lessons to draw (a feint backed, a back-down, only dashed rings tested).
+  const tally = {
+    testsSolid: 0,
+    testsDashed: 2,
+    backed: 0,
+    backedDown: 1,
+    backedDownFirst: 'VSY',
+    feintsBacked: 1,
+    feintBackedFirst: 'SHL',
+    outOfReach: 0,
+    outOfReachFirst: null,
+    moves: 3,
+    idleWeeks: 0,
+    farDrops: 0,
+    farDropFirst: null,
+    stoppedThenTalked: 0,
+    jumpinessSeen: false,
+  };
+  await set(page, { ...quiet, week: 5, fed: { ...g.fed, will: 95, step: 1, headings: [] }, treaty: 95, tally });
   let s = await sendOrders(page);
   expect(s.phase).toBe('ended');
   expect(s.ending?.kind).toBe('treaty');
@@ -548,7 +926,9 @@ test('the three endings through the hook: TREATY, WORLD WAR and FROZEN on their 
   await expect(page.locator('.pp-typed .ln').nth(0)).toHaveText(s.ending!.lines[0]);
   await expect(page.locator('.pp-typed .ln').nth(1)).toHaveText(s.ending!.lines[1]);
   await expect(page.locator('.pp-typed .sc b')).toHaveText(String(s.ending!.score));
-  expect(s.ending!.score).toBe(100 - 10 * 5);
+  // Treaty in week w with f fighting: 100 − 8w − 5f (SPEC-SMALL, ten weeks), as the rules have it.
+  expect(RULES.score.treatyPerWeek).toBe(8);
+  expect(s.ending!.score).toBe(RULES.score.treatyBase - RULES.score.treatyPerWeek * 5 - RULES.score.treatyPerFighting * s.ending!.fighting);
   expect(s.log[s.log.length - 1].visible).toContain(S.headlines.treatySigned);
   // The teleprinter runs on under the card: its last line is the signing.
   await expect(page.locator('.pp-tape .ln').last()).toContainText(S.headlines.treatySigned);
@@ -583,8 +963,9 @@ test('the three endings through the hook: TREATY, WORLD WAR and FROZEN on their 
   await expect(page.locator('.pp-debrief .pg')).toHaveText(`${pages} / ${pages}`);
   await choice(page, S.debrief.done).tap();
   await expect(page.locator('.pp-typed .hd')).toHaveText(S.debrief.title);
-  // The closing card: the game's own lessons (up to three), then the dials in words as its last line.
+  // The closing card: the game's own lessons (two or three, from the staged tally), each on the card, then the dials in words last.
   const lessons = s.ending!.lessons ?? [];
+  expect(lessons.length).toBeGreaterThanOrEqual(2);
   await expect(page.locator('.pp-typed .ln')).toHaveCount(lessons.length + 1);
   for (let i = 0; i < lessons.length; i++) await expect(page.locator('.pp-typed .ln').nth(i)).toHaveText(lessons[i]);
   await expect(page.locator('.pp-typed .ln').last()).toHaveText(s.ending!.dials);
@@ -603,6 +984,8 @@ test('the three endings through the hook: TREATY, WORLD WAR and FROZEN on their 
   for (const r of ['KLP', 'BRK', 'LTL', 'TLM', 'DNM', 'ORN', 'SHL']) warRegions[r] = { state: 'fighting', pressedWeeks: 0, quietWeeks: 0, fellWeek: 3, fellBy: 'unanswered' };
   await set(page, { ...quiet, week: 5, regions: warRegions, war: 7, fed: { ...s.fed, step: 5, will: 30, headings: [] }, treaty: 30 });
   await expect(page.locator('.pp-l-fight .pp-mk')).toHaveCount(7);
+  // The WAR boxes count the places fighting on the sheet: seven hatched boxes for seven red places.
+  await expect(page.locator('.pp-card .row').first().locator('svg.bar g')).toHaveCount(7);
   s = await sendOrders(page);
   expect(s.ending?.kind).toBe('war');
   expect(s.war).toBeGreaterThanOrEqual(8);
@@ -622,11 +1005,17 @@ test('the three endings through the hook: TREATY, WORLD WAR and FROZEN on their 
   await expect(choice(page, S.title.play)).toBeVisible();
   await expect(page.getByRole('button', { name: /^CONTINUE/ })).toHaveCount(0);
 
-  // FROZEN: week 8 ends with neither.
+  // Week 8 no longer ends the game (ten weeks); FROZEN is the end of week 10 with neither.
   const h = await seed(page, SEED_QUIET);
   await set(page, { ...quiet, week: 8, fed: { ...h.fed, will: 50, step: 1, headings: [] }, treaty: 50 });
   s = await sendOrders(page);
+  expect(s.phase).not.toBe('ended');
+  expect(s.week).toBe(9);
+  await expect(page.locator('.pp-cal .num')).toContainText('9');
+  await set(page, { ...quiet, week: RULES.weeks, fed: { ...h.fed, will: 50, step: 1, headings: [] }, treaty: 50 });
+  s = await sendOrders(page);
   expect(s.ending?.kind).toBe('frozen');
+  expect(s.ending?.week).toBe(10);
   await expect(page.locator('.pp-typed .ti')).toHaveText(S.words.frozen);
   await expect(page.locator('.pp-typed .ln').nth(0)).toHaveText(S.endings.frozen[0]);
   await expect(page.locator('.pp-typed .sc b')).toHaveText('9');
@@ -646,7 +1035,7 @@ test('the game is saved after every order: a reload shows CONTINUE with the week
   await page.waitForFunction(() => !!window.__redlines);
   const cont = page.getByRole('button', { name: /^CONTINUE/ });
   await expect(cont).toBeVisible();
-  await expect(cont).toContainText(`${S.words.week} 1 ${S.screen.weekOf}`);
+  await expect(cont).toContainText(`${S.words.week} 1 ${S.screen.weekOf.replace('{weeks}', String(RULES.weeks))}`);
   await expect(choice(page, S.title.play)).toBeVisible();
   await cont.tap();
   await settle(page);

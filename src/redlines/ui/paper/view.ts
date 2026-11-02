@@ -13,6 +13,8 @@ export interface ViewExtras {
   lifted?: 'fleet' | 'brigade' | null;
   /** Override the tested place (the resolve playback may mark it before the phone rings). */
   tested?: RegionId | null;
+  /** A pressed place's weeks left before it falls (the engine's weeksLeft), or null for no clock. */
+  weeksLeft?: (region: RegionId) => number | null;
 }
 
 /** The phone kinds that are a test of a promise at `phone.region`. */
@@ -26,7 +28,14 @@ export function testedOf(s: GameState): RegionId | null {
 
 export function viewFromState(s: GameState, holdable: (region: RegionId) => boolean, extra: ViewExtras = {}): PaperView {
   const states: Record<RegionId, RegionState> = {};
-  for (const [id, rec] of Object.entries(s.regions)) if (rec.state !== 'calm') states[id] = rec.state;
+  const clocks: Record<RegionId, number> = {};
+  for (const [id, rec] of Object.entries(s.regions)) {
+    if (rec.state !== 'calm') states[id] = rec.state;
+    if (rec.state === 'pressed' && extra.weeksLeft) {
+      const n = extra.weeksLeft(id);
+      if (n !== null && n >= 1) clocks[id] = n;
+    }
+  }
   return {
     states,
     promises: s.promises.map((p) => ({ region: p.region, solid: holdable(p.region) })),
@@ -35,6 +44,7 @@ export function viewFromState(s: GameState, holdable: (region: RegionId) => bool
     tested: extra.tested !== undefined ? extra.tested : testedOf(s),
     pressed: extra.pressed ?? null,
     lifted: extra.lifted ?? null,
+    clocks,
   };
 }
 
@@ -48,5 +58,8 @@ export function sameView(a: PaperView, b: PaperView): boolean {
   for (let i = 0; i < a.pieces.length; i++) if (a.pieces[i].kind !== b.pieces[i].kind || a.pieces[i].at !== b.pieces[i].at) return false;
   const ids = new Set([...Object.keys(a.states), ...Object.keys(b.states)]);
   for (const id of ids) if ((a.states[id] ?? 'calm') !== (b.states[id] ?? 'calm')) return false;
+  const ca = a.clocks ?? {};
+  const cb = b.clocks ?? {};
+  for (const id of new Set([...Object.keys(ca), ...Object.keys(cb)])) if (ca[id] !== cb[id]) return false;
   return true;
 }

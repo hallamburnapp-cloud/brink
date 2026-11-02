@@ -5,10 +5,11 @@
  * borders, the ink coasts, the printed names, the bloc titles, the two flags, the compass. The
  * marks go into the empty layer groups this leaves in z-order (marks.ts fills them).
  */
-import { FRAME, ISLAND_R, MASSES, OUTLINES, REGION, REGIONS, getGeometry, toFrame, type Bounds, type FrameTransform, type Geometry, type RegionId } from './geometry';
+import { FRAME, ISLAND_R, MASSES, OUTLINES, REGION, REGIONS, getGeometry, regionAt, toFrame, toMap, type Bounds, type FrameTransform, type Geometry, type RegionId } from './geometry';
 import type { MapWords } from './contract';
 import { seedOf } from './rand';
 import { flagPin, fmt, island, pencilLine, polyPath, ridge, type P } from './strokes';
+import { inkBox, TEXT } from './text';
 
 export const INK = '#2b2418';
 const TINT: Record<string, string> = { CAP: '#d9dfd8', HMR: '#e6e0b6', SND: '#ead8a6', FRS: '#dce3c0', SCT: '#e8dcaf' };
@@ -77,6 +78,10 @@ export interface SheetGeom {
   /** The bloc titles' boxes (frame px), and which are set small (the Scatter's, in the water under its islands). */
   blocBoxes: Bounds[];
   blocSmall: boolean[];
+  /** The two flags' boxes (frame px). */
+  flagBoxes: Bounds[];
+  /** The region a frame point is on (land plate or island disc), or null for the sea and the desk. */
+  regionAt: (x: number, y: number) => RegionId | null;
 }
 
 export interface Sheet {
@@ -146,23 +151,26 @@ export function buildSheet(words: MapWords, p = 'pp', frame: FrameTransform = FR
     centre[r.id] = T(r.x, r.y);
     const lp = LABEL_POS[r.id] ?? [r.x, r.y];
     label[r.id] = T(lp[0], lp[1]);
-    const size = r.island ? 7.1 : SMALL_NAMES.has(r.id) ? 7.4 : r.capital ? 8.9 : 8.4;
-    nameHalf[r.id] = (r.name.length * size * 0.69) / 2;
+    const spec = r.island ? TEXT.isle : SMALL_NAMES.has(r.id) ? TEXT.small : r.capital ? TEXT.capital : TEXT.name;
     const b = geo.bounds[r.id];
     const [x0, y0] = T(b.x0, b.y0);
     const [x1, y1] = T(b.x1, b.y1);
     bounds[r.id] = r.island ? { x0: centre[r.id][0] - ISLAND_DRAW_R, y0: centre[r.id][1] - ISLAND_DRAW_R, x1: centre[r.id][0] + ISLAND_DRAW_R, y1: centre[r.id][1] + ISLAND_DRAW_R } : { x0, y0, x1, y1 };
     isl[r.id] = r.island;
     const [lx, ly] = label[r.id];
-    // Capitals: the glyphs stand about 0.8 em over the baseline and nothing hangs under it.
-    labelBox[r.id] = { x0: lx - nameHalf[r.id], y0: ly - size * 0.8, x1: lx + nameHalf[r.id], y1: ly + 1.5 };
+    // The name's ink as the sheet prints it (Gelasio, its letter-spacing, the paper-coloured halo of 0.8 px round it).
+    labelBox[r.id] = inkBox(spec, r.name, lx, ly, 'middle', 0, 0.8);
+    nameHalf[r.id] = (labelBox[r.id].x1 - labelBox[r.id].x0) / 2 - 0.8;
   }
-  // The bloc titles, set wide: about 0.9 em a letter at their size.
+  // The bloc titles, set wide.
   const blocBoxes: Bounds[] = BLOC_POS.map(([bloc, x, y, small]) => {
     const [fx, fy] = T(x, y);
-    const size = small ? 7.6 : 9.4;
-    const half = (words.blocs[bloc].length * size * 0.9) / 2;
-    return { x0: fx - half, y0: fy - size * 0.8, x1: fx + half, y1: fy + 1.5 };
+    return inkBox(small ? TEXT.blocSmall : TEXT.bloc, words.blocs[bloc], fx, fy, 'middle', 0, 0.5);
+  });
+  // The two flags on their pins: the pole and the cloth (frame px), which no mark may cover.
+  const flagBoxes: Bounds[] = FLAGS.map(([, x, y]) => {
+    const [fx, fy] = T(x, y);
+    return { x0: fx - 2.5, y0: fy - 14, x1: fx + 13.5, y1: fy + 2.5 };
   });
   const coasts: Record<string, string> = {};
   for (const m of MASSES) coasts[m] = polyPath(tp(OUTLINES[m]));
@@ -257,7 +265,8 @@ export function buildSheet(words: MapWords, p = 'pp', frame: FrameTransform = FR
   }
   o.push('</g>');
 
-  // The marks over the ink, in z-order.
+  // The marks over the ink, in z-order: the weeks-left ticks in graphite, the pins and arrows, the counters, the rings, the words, the stamps.
+  o.push('<g class="pp-l pp-l-clock" fill="none" stroke="#2b2418" stroke-linecap="round"></g>');
   o.push('<g class="pp-l pp-l-head"></g>');
   o.push('<g class="pp-l pp-l-piece"></g>');
   o.push(`<g class="pp-l pp-l-prom" fill="none" stroke="#17120e" stroke-width="3.1" stroke-opacity="0.78" stroke-linecap="round" stroke-linejoin="round" filter="url(#${p}-rough)"></g>`);
@@ -266,7 +275,7 @@ export function buildSheet(words: MapWords, p = 'pp', frame: FrameTransform = FR
   o.push('<g class="pp-l pp-l-stamp"></g>');
   o.push(desk(p, words.north));
 
-  return { markup: o.join('\n'), geom: { frame, shape, centre, label, nameHalf, bounds, island: isl, labelBox, blocBoxes, blocSmall: BLOC_POS.map(([, , , small]) => small) } };
+  return { markup: o.join('\n'), geom: { frame, shape, centre, label, nameHalf, bounds, island: isl, labelBox, blocBoxes, blocSmall: BLOC_POS.map(([, , , small]) => small), flagBoxes, regionAt: (x, y) => regionAt(geo, ...toMap(frame, x, y)) } };
 }
 
 export { fmt, ISLAND_R };

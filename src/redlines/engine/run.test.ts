@@ -5,6 +5,11 @@ import { isGameState, loadGame, saveGame } from './save.ts';
 import { FIXTURE_CONTENT, fixtureGame } from './testkit.ts';
 import type { GameState } from './types.ts';
 import { REGION_IDS, isCap, regionName } from './world.ts';
+import { loadRedlinesContent } from '../content/load.ts';
+import { crossesLine } from './agent.ts';
+
+/** The shipped pack's lines (the real ones the game draws from). */
+const LINES = loadRedlinesContent(`${process.cwd()}/content-redlines`).content!.lines;
 
 const c = FIXTURE_CONTENT;
 
@@ -69,6 +74,20 @@ describe('the opening', () => {
     expect(dashed).toBeGreaterThan(20);
     // A dashed inherited promise is tested in week 1 whenever their forces can reach it.
     expect(aimed / dashed).toBeGreaterThan(0.5);
+  });
+  it('never inherits a promise to defend Edda Vale, the Republic\'s own capital', () => {
+    let second = 0;
+    for (let i = 0; i < 400; i++) {
+      const s = newGame(c, `edv-${i}`);
+      if (s.promises.length === 2) second++;
+      expect(s.promises.some((p) => p.region === 'EDV')).toBe(false);
+    }
+    expect(second).toBeGreaterThan(100);
+  });
+  it('crosses no line by doing nothing: the pieces start outside every line of either pack', () => {
+    const s = { ...newGame(c, 'start'), promises: [] };
+    expect(s.pieces.map((p) => p.at)).toEqual(['TRN', 'EDV']);
+    for (const def of [...c.lines, ...LINES]) expect(crossesLine(s, def)).toBeNull();
   });
   it('puts the declared lines and the inherited promises on the tape', () => {
     const s = newGame(c, 'tape');
@@ -284,6 +303,15 @@ describe('determinism and the save', () => {
     const tampered = JSON.parse(saveGame(s0));
     tampered.state.fed.step = 9;
     expect(loadGame(JSON.stringify(tampered))).toBeNull();
+    // The beats beside the tape lines are checked too: one per line, a known place, a count the sheet can hold.
+    const played = play('save-beats');
+    const beats = JSON.parse(saveGame(played));
+    expect(loadGame(JSON.stringify(beats))).toEqual(played);
+    beats.state.log[0].beats.pop();
+    expect(loadGame(JSON.stringify(beats))).toBeNull();
+    const oldSave = JSON.parse(saveGame(played));
+    for (const w of oldSave.state.log) delete w.beats;
+    expect(loadGame(JSON.stringify(oldSave))).not.toBeNull();
     const missing = JSON.parse(saveGame(s0));
     delete missing.state.regions[REGION_IDS[0]];
     expect(loadGame(JSON.stringify(missing))).toBeNull();

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { Rng } from '../../engine/rng.ts';
 import { BOTS } from '../sim/bots.ts';
 import { debrief, dialsLine } from './debrief.ts';
+import { makePhone } from './phone.ts';
+import { RULES } from './rules.ts';
 import { answerPhone, endWeek, movePiece, movesFor, newGame, promise, withdraw } from './run.ts';
 import { regionName } from './world.ts';
 import { FIXTURE_CONTENT } from './testkit.ts';
@@ -30,7 +32,7 @@ describe('the debrief', () => {
         expect(entries.length).toBeGreaterThanOrEqual(6);
         for (const e of entries) {
           expect(e.week).toBeGreaterThanOrEqual(1);
-          expect(e.week).toBeLessThanOrEqual(8);
+          expect(e.week).toBeLessThanOrEqual(RULES.weeks);
           expect(e.what.length).toBeGreaterThan(0);
           expect(e.thought).not.toMatch(/\{\w+\}/);
           expect(e.thought).toMatch(/\.$/);
@@ -107,5 +109,46 @@ describe('the debrief', () => {
       const all = [...s.log.flatMap((w) => [...w.visible, ...w.hidden, ...w.acts]), ...s.ending!.lines, s.collision].join('\n');
       expect(/\bif they\b/i.test(all)).toBe(false);
     }
+  });
+  it('prints an answer as the act it was, never the form\'s forecast (the debrief\'s "what you did")', () => {
+    const base = (seed: string) => {
+      const s = newGame(c, seed);
+      s.promises = [];
+      s.pieces = [
+        { kind: 'fleet', at: 'ASK' },
+        { kind: 'brigade', at: 'EDV' },
+      ];
+      s.fed.lines = s.fed.lines.map((l) => ({ ...l, real: false }));
+      return s;
+    };
+    const ring = (s: GameState, kind: 'fall-unpromised' | 'test' | 'summit' | 'trawler' | 'false-alarm' | 'bluff-crossed', region: string | null, round: 1 | 2 | 3 = 1): GameState => {
+      const t = { ...s, phase: 'phone' as const, pendingTest: kind === 'test' ? region : null, pendingRound: round };
+      t.phone = makePhone(c, t, new Rng('ring'), { kind, region, round, line: 'x' });
+      return t;
+    };
+    const cases: Array<[GameState, 'back' | 'down' | 'wait', string]> = [
+      [ring(base('a1'), 'fall-unpromised', 'VSY'), 'wait', 'You protested at Vessary.'],
+      [ring(base('a2'), 'fall-unpromised', 'VSY'), 'down', 'You let Vessary go.'],
+      [ring({ ...base('a3'), promises: [{ region: 'VSY', since: 1, inherited: false }] }, 'test', 'VSY'), 'back', 'You backed your promise at Vessary.'],
+      [ring({ ...base('a4'), promises: [{ region: 'VSY', since: 1, inherited: false }] }, 'test', 'VSY'), 'down', 'You backed down at Vessary.'],
+      [ring({ ...base('a5'), promises: [{ region: 'VSY', since: 1, inherited: false }] }, 'test', 'VSY'), 'wait', 'You asked for a week at Vessary.'],
+      // The third WAIT is backing down, and prints as one.
+      [ring({ ...base('a6'), promises: [{ region: 'VSY', since: 1, inherited: false }] }, 'test', 'VSY', 3), 'wait', 'You backed down at Vessary.'],
+      [ring(base('a7'), 'summit', null), 'down', 'You refused their summit.'],
+      [ring(base('a8'), 'false-alarm', 'KLP'), 'back', 'You went on alert over Kelpmouth.'],
+    ];
+    for (const [s, key, line] of cases) {
+      const n = answerPhone(c, s, key);
+      const w = n.log.find((x) => x.week === s.week)!;
+      expect(w.acts).toContain(line);
+      expect(w.acts.join(' ')).not.toMatch(/will likely|may fall|·/);
+      expect(debrief(n).some((e) => e.what.includes(line))).toBe(n.log.some((x) => x.hidden.length > 0));
+    }
+    // The tape says the same act: PROTEST about a place nobody promised is a protest there, not "You let it go".
+    const tapeOf = (s: GameState, key: 'down' | 'wait') => answerPhone(c, s, key).log.find((x) => x.week === s.week)!.visible;
+    const protested = tapeOf(ring(base('t1'), 'fall-unpromised', 'VSY'), 'wait');
+    expect(protested).toContain(c.strings.headlines.unpromisedProtested.replace('{region}', 'Vessary'));
+    expect(protested).not.toContain(c.strings.headlines.unpromisedLet.replace('{region}', 'Vessary'));
+    expect(tapeOf(ring(base('t2'), 'fall-unpromised', 'VSY'), 'down')).toContain(c.strings.headlines.unpromisedLet.replace('{region}', 'Vessary'));
   });
 });

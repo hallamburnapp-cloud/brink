@@ -5,9 +5,25 @@
  * ends in a treaty. Nothing here is imported by the game.
  */
 import type { GameState, HoldInfo, Phone, PieceKind, RefusalCode, RegionId, Result, WayOutTerm } from '../../engine';
+import { RULES as REAL_RULES, scoreOf } from '../../engine/rules';
+
+/** The engine's own pure pieces the screens share with it: the orders net of cancelled pairs, an act in words, a pressed place's clock. */
+export { actLine, netActs, weeksLeft } from '../../engine';
 
 export const SAVE_KEY = 'brink.redlines.v1.save';
-export const RULES = { warLimit: 8, wayOutPrice: { 'drop-promise': 10, 'pull-back': 15, summit: 20 } as Record<WayOutTerm, number>, maxPromises: 3 } as const;
+/** The real numbers the screens read (the weeks, the WAR line, the bar's movers, the way-out prices, the promises allowed). */
+export const RULES = {
+  weeks: REAL_RULES.weeks,
+  warLimit: REAL_RULES.warLimit,
+  willQuiet: REAL_RULES.willQuiet,
+  willBloc: REAL_RULES.willBloc,
+  willWayOut: REAL_RULES.willWayOut,
+  willPerGain: REAL_RULES.willPerGain,
+  willHumiliated: REAL_RULES.willHumiliated,
+  score: REAL_RULES.score,
+  wayOutPrice: REAL_RULES.wayOutPrice as Record<WayOutTerm, number>,
+  maxPromises: REAL_RULES.maxPromises,
+} as const;
 export const STEP_WORDS = ['', 'TESTING', 'PUSHING', 'MASSING', 'FIGHTING', 'ALL-OUT'] as const;
 
 export const REGION_IDS: RegionId[] = ['WMS', 'KLM', 'EDV', 'VSY', 'ASK', 'LTL', 'KLP', 'SHL'];
@@ -74,6 +90,14 @@ export const content = {
       recovered: 'Guns quiet at {region}',
     },
     acts: { promise: 'You promised to defend {region}.', withdraw: 'You withdrew your promise to {region}.', move: 'You moved {piece} to {region}.', wayOut: 'You offered a way out: {term}.', none: 'You gave no orders.' },
+    answers: {
+      test: { back: 'You backed {region}.', down: 'You backed down at {region}.', wait: 'You asked for time at {region}.' },
+      'false-alarm': { back: 'You went on alert over {region}.', down: 'You stood down over {region}.', wait: 'You waited for a second source on {region}.' },
+      trawler: { back: 'You backed {region} over the trawler.', down: 'You disowned {region} over the trawler.', wait: 'You leaned on {region} privately.' },
+      'bluff-crossed': { back: 'You held your ground at {region}.', down: 'You pulled back from {region}.', wait: 'You waited at {region}.' },
+      summit: { back: 'You accepted their summit.', down: 'You refused their summit.', wait: 'You asked for terms.' },
+      'fall-unpromised': { back: 'You sent what you had to {region}.', down: 'You let {region} go.', wait: 'You protested at {region}.' },
+    },
     refusals: {
       'not-this-phase': 'not now',
       'inside-the-cap': "that is the Federation's own ground",
@@ -91,8 +115,8 @@ export const content = {
       'no-such-phone': 'the phone is not ringing',
     },
     hold: { 'piece-there': '{piece} is there', 'piece-near': '{piece} is at {at}, within reach', 'inside-the-cap': "that is the Federation's own ground", 'out-of-reach': 'nothing of ours is within reach' },
-    title: { subtitle: 'Red Lines', play: 'PLAY', continue: 'CONTINUE', howToPlay: 'HOW TO PLAY', blurb: 'Eight weeks.' },
-    screen: { pressed: 'PRESSED', weekOf: 'of 8', warNone: 'nothing fighting · world war at 8', warOne: '1 region fighting · world war at 8', warMany: '{n} regions fighting · world war at 8', treatySub: 'the Federation\'s willingness to sign', ordersSent: 'ORDERS SENT', heading: 'heading here', inherited: 'inherited', skip: 'SKIP', next: 'NEXT', begin: 'BEGIN' },
+    title: { subtitle: 'Red Lines', play: 'PLAY', continue: 'CONTINUE', howToPlay: 'HOW TO PLAY', blurb: 'Ten weeks.' },
+    screen: { pressed: 'PRESSED', weekOf: 'of {weeks}', warNone: 'nothing fighting · world war at {limit}', warOne: '1 region fighting · world war at {limit}', warMany: '{n} regions fighting · world war at {limit}', treatySub: 'the Federation\'s willingness to sign', ordersSent: 'ORDERS SENT', heading: 'heading here', inherited: 'inherited', skip: 'SKIP', next: 'NEXT', begin: 'BEGIN', upright: 'Turn your phone upright' },
     act: {
       promise: 'PROMISE TO DEFEND',
       withdraw: 'WITHDRAW',
@@ -110,7 +134,7 @@ export const content = {
       termCosts: { 'drop-promise': 'costs {cost} influence', 'pull-back': '{piece} goes home · costs {cost} influence', summit: 'no preconditions · costs {cost} influence' },
     },
     note: { pushing: 'They are pushing {bloc}.', pushingTwo: 'They are pushing {a} and {b}.', taken: 'They have taken {region}.', takenMany: 'They have taken {n} places.', tested: 'Your promise at {region} is being tested now.', heading: 'Their forces are heading for {region}.' },
-    phone: { ringing: 'INCOMING', round2: 'the second week of this', round3: 'the third week of this', answered: 'ANSWERED' },
+    phone: { ringing: 'INCOMING', round2: 'the second week of this', round3: 'the third week of this', answered: 'ANSWERED', inHand: '{influence} influence in hand', needs: 'needs {cost} · you have {influence}' },
     menu: { menu: 'MENU', resume: 'RESUME', howToPlay: 'HOW TO PLAY', sound: 'SOUND', off: 'OFF', on: 'ON', quit: 'QUIT TO TITLE', quitSure: 'Quit?', yes: 'YES', no: 'NO' },
     debrief: { title: 'THE DEBRIEF', intro: 'again', week: 'Week {week}', youDid: 'what you did', theyThought: 'what they were thinking', nothingHidden: 'Nothing hidden.', next: 'NEXT', back: 'BACK', done: 'DONE', score: 'SCORE', again: 'PLAY AGAIN', toTitle: 'TITLE' },
     howToPlay: { title: 'HOW TO PLAY', lines: ['a', 'b'] },
@@ -291,7 +315,7 @@ function finish(n: GameState, say: (t: string) => void): GameState {
   if (n.treaty >= 100) {
     say('TREATY SIGNED');
     n.phase = 'ended';
-    n.ending = { kind: 'treaty', week: n.week, fighting: n.war, score: 100 - 10 * n.week, lines: [`Signed in week ${n.week}.`, 'They stopped.'], because: 'They stopped.', dials: 'They were patient and watchful.' };
+    n.ending = { kind: 'treaty', week: n.week, fighting: n.war, score: scoreOf({ kind: 'treaty', week: n.week, fighting: n.war }), lines: [`Signed in week ${n.week}.`, 'They stopped.'], because: 'They stopped.', dials: 'They were patient and watchful.' };
     return n;
   }
   n.week++;
@@ -345,7 +369,7 @@ export function answerPhone(_c: unknown, s: GameState, key: 'back' | 'down' | 'w
 export function debrief(s: GameState) {
   return s.log.flatMap((w) => w.hidden.map((thought) => ({ week: w.week, what: w.acts.join(' '), thought })));
 }
-export const scoreOf = (e: { kind: string; week: number; fighting: number }): number => (e.kind === 'treaty' ? 100 - 10 * e.week - 5 * e.fighting : e.kind === 'frozen' ? 9 - e.fighting : 0);
+export { scoreOf };
 
 export function saveGame(s: GameState): string {
   return JSON.stringify({ format: 'fake', state: s });

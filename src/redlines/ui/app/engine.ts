@@ -5,6 +5,7 @@
  * tests replace this module with a fake engine (vi.mock) and the paper map never reads it at all.
  */
 export {
+  actLine,
   answerCost,
   answerPhone,
   backCost,
@@ -19,6 +20,7 @@ export {
   loadGame,
   movePiece,
   movesFor,
+  netActs,
   newGame,
   offerWayOut,
   pieceAt,
@@ -32,6 +34,7 @@ export {
   saveGame,
   scoreOf,
   STEP_WORDS,
+  weeksLeft,
   withdraw,
 } from '../../engine';
 export type {
@@ -43,6 +46,7 @@ export type {
   HeadlineKind,
   HoldCode,
   HoldInfo,
+  LogBeat,
   Phase,
   Phone,
   PhoneKind,

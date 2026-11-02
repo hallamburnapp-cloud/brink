@@ -3,6 +3,10 @@ import { REGION, REGIONS } from '../../../thirty/ui/map/data';
 import { EMPTY_VIEW, MAP_WORDS, type PaperView } from './contract';
 import { CALL_BAND, CALL_SHIFT, FRAME, boundsOf, callShiftFor, centreOf, computeGeometry, hitFrame, hitMap, regionAt, toFrame, toMap } from './geometry';
 import { arrowEnds, defendPos, marksOf, piecePos, pinPos, ringGeom, ringSize, SHEET_FOOT, stampPos, testedPos } from './marks';
+import { arrange, testRingGeom, type Arrangement, type Placed } from './arrange';
+import { overlap } from './place';
+import { inkBox, TEXT } from './text';
+import { GLYPHS } from './metrics';
 import { rnd, seedOf } from './rand';
 import { buildSheet } from './sheet';
 import { greaseRing, island, pencilArrow, pencilLine } from './strokes';
@@ -210,9 +214,11 @@ describe('the marks for a view', () => {
       expect(s.ry).toBeGreaterThanOrEqual(20);
       expect(s.ry).toBeLessThanOrEqual(38);
     }
-    // Lantern Key's name is under the island, so WE DEFEND goes over it; Vessary's goes under the ring.
+    // Lantern Key's name is under the island, so WE DEFEND goes over it; Vessary's touches its own ring, in the sea above it rather than on Quillon's land.
     expect(defendPos(sheet.geom, 'LNK').y).toBeLessThan(sheet.geom.centre.LNK[1]);
-    expect(defendPos(sheet.geom, 'VSY').y).toBeGreaterThan(sheet.geom.centre.VSY[1]);
+    const v = defendPos(sheet.geom, 'VSY');
+    const r = ringGeom(sheet.geom, 'VSY');
+    expect(Math.hypot((v.x - r.cx) / r.rx, (v.y - 4 - r.cy) / r.ry)).toBeLessThan(1.8);
   });
 });
 
@@ -402,15 +408,16 @@ describe('the marks keep clear of the sheet (the critics\' collisions)', () => {
 
   it('puts a counter where the printed name is not: under Morrow Downs, beside Pebbleby clear of PEBBLEBY', () => {
     const chit = (x: number, y: number) => ({ x0: x - 9, y0: y - 9, x1: x + 9, y1: y + 17 });
-    const [mx, my] = piecePos(G, 'MRD', 0);
+    const [mx, my] = piecePos(G, 'MRD');
     expect(overlapBox(chit(mx, my), G.labelBox.MRD)).toBe(0);
-    const [px, py] = piecePos(G, 'PBB', 0);
+    const [px, py] = piecePos(G, 'PBB');
     expect(overlapBox(chit(px, py), G.labelBox.PBB)).toBe(0);
     expect(overlapBox(chit(px, py), G.labelBox.SHL)).toBe(0);
-    // The brigade at Edda Vale still sits beside its name, as it did.
-    const [ex, ey] = piecePos(G, 'EDV', 0);
-    expect(ex).toBeGreaterThan(G.centre.EDV[0]);
-    expect(Math.abs(ey - G.centre.EDV[1])).toBeLessThan(12);
+    // The brigade at Edda Vale stands on its own plate, beside its name.
+    const [ex, ey] = piecePos(G, 'EDV', 'brigade');
+    expect(G.regionAt(ex, ey)).toBe('EDV');
+    expect(overlapBox(chit(ex, ey), G.labelBox.EDV)).toBe(0);
+    expect(Math.hypot(ex - G.centre.EDV[0], ey - G.centre.EDV[1])).toBeLessThan(36);
   });
 
   it('steps a pin round an offset name (Northwake) and gives a heading to a next-door place a visible arrow', () => {
@@ -452,5 +459,175 @@ describe('the marks keep clear of the sheet (the critics\' collisions)', () => {
       expect(x).toBeLessThanOrEqual(CALL_BAND.x1);
     }
     expect(callShiftFor(null)).toEqual({ x: 0, y: CALL_SHIFT });
+  });
+});
+
+describe('every mark keeps clear (the recheck\'s findings: real glyph boxes, every mark an obstacle for the next)', () => {
+  const G = sheet.geom;
+  const printed = (): Array<[string, { x0: number; y0: number; x1: number; y1: number }]> => [
+    ...Object.entries(G.labelBox).map(([id, b]) => [`name:${id}`, b] as [string, typeof b]),
+    ...G.blocBoxes.map((b, i) => [`bloc:${i}`, b] as [string, typeof b]),
+    ...G.flagBoxes.map((b, i) => [`flag:${i}`, b] as [string, typeof b]),
+  ];
+  /** Every overlap in an arrangement: placed mark on printed word, and placed mark on placed mark (of another key). */
+  function clashes(a: Arrangement, tolerance = 0.5): string[] {
+    const out: string[] = [];
+    const P: Placed[] = a.placed;
+    for (let i = 0; i < P.length; i++) {
+      for (const [n, b] of printed()) if (overlap(P[i].box, b) > tolerance) out.push(`${P[i].key} on ${n}`);
+      for (let j = i + 1; j < P.length; j++) if (P[i].key !== P[j].key && overlap(P[i].box, P[j].box) > tolerance) out.push(`${P[i].key} on ${P[j].key}`);
+    }
+    return out;
+  }
+  const view = (v: Partial<PaperView>): PaperView => ({ ...EMPTY_VIEW, ...v });
+  const insideRing = (r: { cx: number; cy: number; rx: number; ry: number }, b: { x0: number; y0: number; x1: number; y1: number }, grow = 3) => {
+    for (const x of [b.x0, (b.x0 + b.x1) / 2, b.x1]) for (const y of [b.y0, (b.y0 + b.y1) / 2, b.y1]) if (Math.hypot((x - r.cx) / (r.rx + grow), (y - r.cy) / (r.ry + grow)) <= 1) return true;
+    return false;
+  };
+
+  it('measures the faces from their real glyphs: the hand\'s capitals stand higher and hang lower than the print\'s', () => {
+    expect(GLYPHS.hand.W[0]).toBeGreaterThan(0.5);
+    const word = inkBox(TEXT.hand, 'WE DEFEND', 100, 100);
+    expect(word.y0).toBeLessThan(100 - 7.5);
+    expect(word.y1).toBeGreaterThan(100);
+    expect(word.x1 - word.x0).toBeGreaterThan(50);
+    const name = inkBox(TEXT.isle, 'Driftholm', 100, 100);
+    expect(name.x1 - name.x0).toBeGreaterThan(38);
+  });
+
+  it('keeps TESTED on its own island when their pins start from it (E2E-WEEK-18 week 2: Driftholm pressed, tested, a foothold)', () => {
+    const v = view({
+      states: { DRF: 'pressed' },
+      promises: [{ region: 'DRF', solid: false }, { region: 'VSY', solid: true }, { region: 'SHL', solid: false }],
+      headings: [{ from: 'DRF', to: 'LNK' }, { from: 'DRF', to: 'GUL' }],
+      pieces: [{ kind: 'fleet', at: 'TRN' }, { kind: 'brigade', at: 'EDV' }],
+      tested: 'DRF',
+      clocks: { DRF: 2 },
+    });
+    const a = arrange(v, G, MAP_WORDS);
+    const r = testRingGeom(G, 'DRF');
+    // The word's anchor inside its red ring (it was pushed out past Gullrest, two ring radii away), the pins still on the sheet.
+    expect(Math.hypot((a.tested!.x - r.cx) / r.rx, (a.tested!.y - 4 - r.cy) / r.ry)).toBeLessThan(1);
+    expect(a.pins.size).toBe(2);
+    expect(clashes(a)).toEqual([]);
+  });
+
+  it('writes the inherited Driftholm promise\'s WE DEFEND clear of DRIFTHOLM and every other name (E2E-WEEK-18 week 1)', () => {
+    const a = arrange(view({ promises: [{ region: 'DRF', solid: false }], headings: [{ from: 'GLM', to: 'DRF' }, { from: 'NWK', to: 'VSY' }], pieces: [{ kind: 'fleet', at: 'TRN' }, { kind: 'brigade', at: 'EDV' }] }), G, MAP_WORDS);
+    expect(clashes(a)).toEqual([]);
+    const words = a.placed.filter((p) => p.key === 'defend:DRF');
+    for (const w of words) expect(overlap(w.box, G.labelBox.DRF)).toBe(0);
+  });
+
+  it('keeps the brigade at Quillon off the Vessary ring: a counter never stands inside or on another place\'s ring', () => {
+    const a = arrange(view({ promises: [{ region: 'VSY', solid: true }, { region: 'DRF', solid: false }], pieces: [{ kind: 'fleet', at: 'TRN' }, { kind: 'brigade', at: 'QLN' }] }), G, MAP_WORDS);
+    expect(clashes(a)).toEqual([]);
+    const ring = ringGeom(G, 'VSY');
+    for (const p of a.placed.filter((x) => x.key === 'piece:brigade')) expect(insideRing(ring, p.box, 0), `${p.kind} in the Vessary ring`).toBe(false);
+    const at = a.pieces.get('brigade')!;
+    expect(G.regionAt(at.x, at.y)).toBe('QLN');
+  });
+
+  it('writes TESTED off the fleet at a tested Pebbleby, and WE DEFEND off the brigade\'s label and THE SCATTER', () => {
+    const a = arrange(
+      view({
+        states: { PBB: 'pressed', SHL: 'pressed', LNK: 'pressed' },
+        promises: [{ region: 'PBB', solid: true }, { region: 'LNK', solid: true }, { region: 'DRF', solid: false }],
+        pieces: [{ kind: 'fleet', at: 'PBB' }, { kind: 'brigade', at: 'MRD' }],
+        headings: [{ from: 'SHL', to: 'TRN' }, { from: 'SHL', to: 'PBB' }],
+        tested: 'PBB',
+        clocks: { SHL: 1 },
+      }),
+      G,
+      MAP_WORDS,
+    );
+    // The most crowded sheet the Scatter can hold: every box clear but for a graze inside a word's 1.4 px margin.
+    expect(clashes(a, 2)).toEqual([]);
+    expect(a.tested?.id).toBe('PBB');
+    const tested = a.placed.filter((p) => p.key === 'tested:PBB');
+    for (const p of a.placed.filter((x) => x.key === 'piece:fleet')) for (const t of tested) expect(overlap(p.box, t.box)).toBe(0);
+    for (const p of a.placed.filter((x) => x.key === 'defend:PBB')) {
+      for (const b of a.placed.filter((x) => x.key === 'piece:brigade')) expect(overlap(p.box, b.box)).toBe(0);
+      expect(overlap(p.box, G.blocBoxes[4])).toBeLessThan(2);
+    }
+    // Each counter reads as standing at its own place, and the fleet is off every other place's ring.
+    const fleet = a.pieces.get('fleet')!;
+    expect(Math.hypot(fleet.x - G.centre.PBB[0], fleet.y - G.centre.PBB[1])).toBeLessThan(46);
+    for (const id of ['LNK', 'DRF']) for (const p of a.placed.filter((x) => x.key === 'piece:fleet')) expect(insideRing(ringGeom(G, id), p.box, 0)).toBe(false);
+  });
+
+  it('stamps a collapsed Sound off its names and off THE SOUND, each stamp clear of the next', () => {
+    const states: PaperView['states'] = { KLP: 'fighting', BRK: 'fighting', LTL: 'fighting', TLM: 'fighting', DNM: 'fighting', ORN: 'fighting' };
+    const a = arrange(view({ states }), G, MAP_WORDS);
+    expect(clashes(a)).toEqual([]);
+    expect(a.stamps.size).toBe(6);
+  });
+
+  it('stands two pins from one place apart, each with its own arrow, and draws a hop between islands as a bowed arrow', () => {
+    const a = arrange(view({ headings: [{ from: 'SHL', to: 'TRN' }, { from: 'SHL', to: 'PBB' }] }), G, MAP_WORDS);
+    const [p, q] = [a.pins.get('SHL:TRN')!, a.pins.get('SHL:PBB')!];
+    expect(Math.hypot(p[0] - q[0], p[1] - q[1])).toBeGreaterThanOrEqual(12);
+    expect(clashes(a)).toEqual([]);
+    for (const [from, to] of [
+      ['TRN', 'LNK'],
+      ['PBB', 'SHL'],
+      ['GUL', 'DRF'],
+      ['LTL', 'TLM'],
+    ] as const) {
+      const { start, mid, end } = arrowEnds(G, from, to);
+      const length = Math.hypot(mid[0] - start[0], mid[1] - start[1]) + Math.hypot(end[0] - mid[0], end[1] - mid[1]);
+      expect(length, `${from} to ${to}`).toBeGreaterThanOrEqual(24);
+    }
+  });
+
+  it('draws a pressed place\'s weeks left as ticks beside its hatching: three, two, one (ringed), clear of the names', () => {
+    const v = view({ states: { VSY: 'pressed', KLP: 'pressed', GUL: 'pressed', DNM: 'fighting' }, clocks: { VSY: 3, KLP: 2, GUL: 1 } });
+    const m = marksOf(v, G, MAP_WORDS, 'pp');
+    expect(m.clock.map((i) => i.key).sort()).toEqual(['clock:GUL:1', 'clock:KLP:2', 'clock:VSY:3']);
+    const ticks = (key: string) => (m.clock.find((i) => i.key === key)!.html.match(/class="pp-tick"/g) ?? []).length;
+    expect(ticks('clock:VSY:3')).toBe(3);
+    expect(ticks('clock:KLP:2')).toBe(2);
+    expect(ticks('clock:GUL:1')).toBe(1);
+    expect(m.clock.find((i) => i.key === 'clock:GUL:1')!.html).toContain('pp-tick-ring');
+    const a = arrange(v, G, MAP_WORDS);
+    expect(clashes(a)).toEqual([]);
+    // A land place's ticks are on its own hatched plate; an island's in the water beside it.
+    const vsy = a.clocks.get('VSY')!;
+    expect(G.regionAt(vsy.x, vsy.y)).toBe('VSY');
+    const gul = a.clocks.get('GUL')!;
+    expect([null, 'GUL']).toContain(G.regionAt(gul.x, gul.y));
+    // A place that is not pressed, or has no clock, draws none.
+    expect(marksOf(view({ states: { VSY: 'fighting' }, clocks: { VSY: 2 } }), G, MAP_WORDS, 'pp').clock).toHaveLength(0);
+  });
+
+  it('keeps every mark clear on many seeded sheets (words, counters, pins, stamps and ticks; a counter on a fighting place aside)', () => {
+    const g = rnd('arrange-fuzz');
+    const ids = REGIONS.map((r) => r.id);
+    const open = REGIONS.filter((r) => r.bloc !== 'CAP').map((r) => r.id);
+    const pick = <T,>(xs: readonly T[]) => xs[Math.floor(g.random() * xs.length)];
+    let bad = 0;
+    const runs = 60;
+    for (let i = 0; i < runs; i++) {
+      const states: PaperView['states'] = {};
+      for (let k = 0; k < Math.floor(g.random() * 8); k++) states[pick(open)] = g.random() < 0.5 ? 'pressed' : 'fighting';
+      const promises = [...new Set(Array.from({ length: Math.floor(g.random() * 4) }, () => pick(open)))].filter((r) => states[r] !== 'fighting').map((region) => ({ region, solid: g.random() < 0.5 }));
+      const free = open.filter((r) => states[r] !== 'fighting');
+      const pieces = [
+        { kind: 'fleet' as const, at: pick(free) },
+        { kind: 'brigade' as const, at: pick(free.filter((r) => !REGION[r].island)) },
+      ];
+      const clocks: Record<string, number> = {};
+      for (const [r, st] of Object.entries(states)) if (st === 'pressed') clocks[r] = 1 + Math.floor(g.random() * 3);
+      const v = view({ states, promises, pieces, headings: [{ from: pick(ids), to: pick(open) }, { from: pick(ids), to: pick(open) }].filter((h) => h.from !== h.to), tested: promises.length && g.random() < 0.5 ? promises[0].region : null, clocks });
+      if (clashes(arrange(v, G, MAP_WORDS), 1.5).length) bad++;
+    }
+    expect(bad).toBeLessThanOrEqual(1);
+  });
+
+  it('rings the tested place five px wider than its promise', () => {
+    const r = ringGeom(G, 'LTL');
+    const t = testRingGeom(G, 'LTL');
+    expect(t.rx - r.rx).toBe(5);
+    expect(t.ry - r.ry).toBe(5);
   });
 });

@@ -7,14 +7,15 @@ import type { JSX } from 'preact';
 import { BRAND } from '../../../config';
 import { Dim, Paperclip, PencilUnderline } from '../paper';
 import { continueGame, howToPlay, newGameNow, play } from '../app/actions';
-import { content } from '../app/engine';
+import { content, RULES } from '../app/engine';
 import { saved, titleWorld } from '../app/store';
 import { seedOf } from '../paper/rand';
+import { weekOfLine } from '../app/words';
 
 export function Title({ lifting }: { lifting: boolean }): JSX.Element {
   const S = content.strings;
   const save = saved.value ? titleWorld.value : null;
-  const sub = save && save.phase !== 'ended' ? `${S.words.week} ${save.week} ${S.screen.weekOf}` : null;
+  const sub = save && save.phase !== 'ended' ? `${S.words.week} ${save.week} ${weekOfLine(S, RULES.weeks)}` : null;
   return (
     <div class={`rl-layer rl-title${lifting ? ' rl-lifting' : ''}`}>
       <Dim />

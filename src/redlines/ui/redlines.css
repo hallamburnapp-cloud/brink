@@ -396,10 +396,16 @@ body {
   color: #6d5f49;
   margin-bottom: 3px;
 }
+/* The header wraps rather than cutting its tags short ("DRIFTHOLM · heading here · inherited"). */
 .rl-slip .hd span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 11px;
+}
+/* The MOVE slip lets taps through to the places under it; only CANCEL takes them. */
+.rl-slip.rl-through {
+  pointer-events: none;
+}
+.rl-slip.rl-through .rl-x {
+  pointer-events: auto;
 }
 .rl-slip .w,
 .rl-slip .rl-word {
@@ -562,14 +568,27 @@ body {
 .rl-ending .pp-typed .rl-row {
   margin-top: 4px;
 }
-.rl-nav {
+/* The debrief: the week's page with BACK and NEXT right under it (no dead desk between them). */
+.rl-debrief {
   position: absolute;
   left: 24px;
+  top: 118px;
   width: 342px;
-  top: 728px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.rl-debrief .pp-debrief {
+  position: relative;
+  left: 0;
+  top: 0;
+  width: auto;
+}
+.rl-nav {
   display: flex;
   gap: 12px;
   align-items: flex-end;
+  padding: 0 2px;
 }
 .rl-nav .rl-choice {
   flex: 1;
@@ -579,8 +598,8 @@ body {
 }
 .pp-debrief {
   animation: rl-in 220ms ease-out both;
-  /* A crowded week scrolls inside the page; the page never runs under BACK and NEXT. */
-  max-height: 598px;
+  /* A crowded week scrolls inside the page; BACK and NEXT stay on the frame under it. */
+  max-height: 560px;
   overflow-y: auto;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
@@ -614,4 +633,22 @@ body {
 .pp-reduced .pp-debrief {
   animation: none;
   transition: none;
+}
+
+/* The call: the influence in hand, scribbled on a scrap beside the three forms (the calendar is under the call). */
+.rl-purse {
+  right: 22px;
+  top: 486px;
+  padding: 2px 10px 1px 9px;
+  background: #efe5cc;
+  color: #2b2418;
+  font-size: 15px;
+  line-height: 20px;
+  transform: rotate(1.6deg);
+  clip-path: polygon(0 6%, 30% 0, 70% 5%, 100% 0, 98% 94%, 60% 100%, 25% 95%, 1% 100%);
+  box-shadow: -1px 2px 3px rgba(0, 0, 0, 0.25);
+}
+.rl-purse b {
+  font-weight: 700;
+  font-size: 17px;
 }

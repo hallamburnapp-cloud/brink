@@ -1,8 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { PaperView, PieceView } from '../paper/contract';
 import type { GameState } from '../../engine/types';
-import { newLines, weekBeats } from './beats';
-import { content, newGame, regionName, REGION_IDS } from './fakeEngine';
+import { BAR, barMover, countFighting, newLines, STEP_DOWN, STEP_UP, weekBeats } from './beats';
+import { content, newGame, regionName, REGION_IDS, RULES } from './fakeEngine';
+
+// words.ts and beats.ts read the engine's own netActs and actLine through the seam; the tests give them the fake engine, as the store's tests do.
+vi.mock('./engine', async () => await import('./fakeEngine'));
 
 const H = content.strings.headlines;
 const idOf = (name: string) => REGION_IDS.find((id) => regionName(id) === name) ?? null;
@@ -151,5 +154,82 @@ describe('a week in beats', () => {
     const beats = weekBeats({ before, after, headlines: H, idOf, holdable, startView: viewOf(before), endView: viewOf(after) });
     expect(beats.length).toBe(1);
     expect(beats[0].text).toBe('');
+  });
+});
+
+describe('the rules the beats read (one source: the engine\'s kinds and RULES)', () => {
+  const R = RULES;
+  const move = barMover(R, content.strings.numbers);
+
+  it('moves the bar by the rules\' own numbers, and never for a refused way out or the trawler', () => {
+    expect(move('quietWeek', {})).toBe(R.willQuiet);
+    expect(move('blocSigned', { bloc: 'the Scatter' })).toBe(R.willBloc);
+    expect(move('wayOutAccepted', { term: 'a summit' })).toBe(R.willWayOut);
+    expect(move('summitAccepted', {})).toBe(R.willWayOut);
+    expect(move('summitRefused', {})).toBe(-R.willHumiliated);
+    expect(move('gainedWeek', { n: 'one place' })).toBe(-R.willPerGain);
+    expect(move('gainedWeek', { n: 'two places' })).toBe(-2 * R.willPerGain);
+    for (const k of ['wayOutRefused', 'wayOutRefusedWhy', 'trawlerBacked', 'trawlerDisowned', 'trawlerLeaned', 'backed', 'fell']) expect(move(k, { region: 'Shoal' }), k).toBeNull();
+    // The spec's numbers, as the engine keeps them.
+    expect([R.willQuiet, R.willBloc, R.willWayOut, R.willPerGain, R.willHumiliated]).toEqual([5, 10, 15, 5, 10]);
+  });
+
+  it('steps the ladder for the kinds the rules step, and only those', () => {
+    expect([...STEP_UP].sort()).toEqual(['accident', 'backedDown', 'jumpy', 'lineCrossed', 'takenStepUp']);
+    expect([...STEP_DOWN].sort()).toEqual(['backedDownEased', 'summitAccepted', 'wayOutAccepted']);
+    expect(BAR.has('wayOutRefused')).toBe(false);
+    expect(BAR.has('trawlerBacked')).toBe(false);
+  });
+
+  it('takes the bar 55 → 65 → 55: a bloc signs (+10), then two places are taken (−10) beside their own lines', () => {
+    const before = newGame(null, 'B');
+    const start: GameState = JSON.parse(JSON.stringify(before));
+    start.treaty = 55;
+    start.fed.will = 55;
+    const after: GameState = JSON.parse(JSON.stringify(start));
+    after.log = [log(1, ['the Scatter signs the call for a treaty', 'Shoal has fallen', 'Lintel has fallen', 'They took two places this week'])];
+    after.regions.SHL.state = 'fighting';
+    after.regions.LTL.state = 'fighting';
+    after.war = 2;
+    after.treaty = 55;
+    after.fed.will = 55;
+    const H5 = { ...H, blocSigned: '{bloc} signs the call for a treaty' };
+    const beats = weekBeats({ before: start, after, headlines: H5, idOf, holdable, startView: viewOf(start), endView: viewOf(after), barMove: move });
+    expect(beats.map((b) => b.kind)).toEqual(['blocSigned', 'fell', 'fell', 'gainedWeek']);
+    expect(beats.map((b) => b.treaty)).toEqual([65, 65, 65, 55]);
+  });
+
+  it('counts the WAR boxes from the sheet each beat draws, the last beat before the phone too', () => {
+    const start: GameState = JSON.parse(JSON.stringify(newGame(null, 'B')));
+    start.regions.SHL = { state: 'fighting', pressedWeeks: 0, quietWeeks: 0, fellWeek: 1 };
+    start.war = 1;
+    const after: GameState = JSON.parse(JSON.stringify(start));
+    after.log = [log(1, ['You waited too long · Lintel has fallen', 'Federation forces push into Vessary', 'Their column near Kelpmouth stops short'])];
+    after.regions.LTL.state = 'fighting';
+    after.regions.VSY.state = 'pressed';
+    after.promises = [];
+    // A state whose own count lags (the recheck's case: the phone's state said 0 while two places stood red).
+    after.war = 0;
+    after.phase = 'phone';
+    const H6 = { ...H, stoppedShort: 'Their column near {region} stops short' };
+    const beats = weekBeats({ before: start, after, headlines: H6, idOf, holdable, startView: viewOf(start), endView: viewOf(after) });
+    for (const b of beats) expect(b.war, b.text).toBe(Object.values(b.view.states).filter((x) => x === 'fighting').length);
+    expect(beats.map((b) => b.war)).toEqual([2, 2, 2]);
+    expect(countFighting(beats[2].view)).toBe(2);
+  });
+
+  it('keeps each pressed place\'s weeks-left clock on the sheet through the beats, and drops it when the place falls', () => {
+    const start: GameState = JSON.parse(JSON.stringify(newGame(null, 'B')));
+    start.regions.SHL = { state: 'pressed', pressedWeeks: 2, quietWeeks: 0 };
+    const after: GameState = JSON.parse(JSON.stringify(start));
+    after.log = [log(1, ['Federation forces push into Kelpmouth', 'Shoal has fallen'])];
+    after.regions.KLP.state = 'pressed';
+    after.regions.SHL.state = 'fighting';
+    after.war = 1;
+    const sv = { ...viewOf(start), clocks: { SHL: 1 } };
+    const ev = { ...viewOf(after), clocks: { KLP: 3 } };
+    const beats = weekBeats({ before: start, after, headlines: H, idOf, holdable, startView: sv, endView: ev });
+    expect(beats[0].view.clocks).toEqual({ SHL: 1, KLP: 3 });
+    expect(beats[1].view.clocks).toEqual({ KLP: 3 });
   });
 });

@@ -199,13 +199,12 @@ export const HEADLINE_KINDS = [
   'wayOutAccepted', // Wintermast accepted the way out: {term}. They are {step}.
   'wayOutRefused', // Wintermast refuses: {term}
   'wayOutRefusedWhy', // Wintermast: {why} (their short words, strings.wintermast)
-  'blocSigned', // {bloc} has signed. Wintermast feels the pull.
-  'quietWeek', // A quiet week. They gained nothing. (+5: nothing taken and no place pressed and unanswered)
-  'heldWeek', // Nothing taken · {n} unanswered (no +5: a pressed place nobody has answered; {n}: the place, or "two places")
+  'blocSigned', // {bloc} signs the call for a treaty (says what they sign: the treaty call; +10)
+  'quietWeek', // A quiet week. They gained nothing. (+5 whenever nothing was taken)
   'gainedWeek', // They took {n} this week.
   'treatySigned', // They signed.
-  'worldWar', // The eighth place is fighting. World war.
-  'frozen', // Week eight ends. Nothing was signed.
+  'worldWar', // The eighth place is fighting. World war. (the number word follows RULES.warLimit)
+  'frozen', // Week ten ends. Nothing was signed. (the number word follows RULES.weeks)
   'alertOn', // You went on alert over {region}.
   'alertOff', // You stood down over {region}. It was nothing.
   'alertWaited', // You waited for a second source on {region}. None came.
@@ -221,12 +220,25 @@ export const HEADLINE_KINDS = [
   'unpromisedHeld', // You sent what you had to {region}. It held.
   'unpromisedFailed', // You sent what you had to {region}. It was too far.
   'unpromisedLet', // You let {region} go.
+  'unpromisedProtested', // You protested at {region} (PROTEST: the act as it was, not "let it go")
 ] as const;
 export type HeadlineKind = (typeof HEADLINE_KINDS)[number];
 
 /** strings.yaml › acts: the player's own acts as the log writes them ('none': a week with no orders). Slots {region}, {piece}, {term}. */
 export const ACT_KINDS = ['promise', 'withdraw', 'move', 'wayOut', 'none'] as const;
 export type ActKind = (typeof ACT_KINDS)[number];
+
+/**
+ * strings.yaml › answers: the player's answer on the phone, as the debrief and the note print it: the act ("You
+ * protested at Vessary."), never the form's forecast ("Vessary will likely fall"). By the call (the three test
+ * kinds share `test`), then the key. A third WAIT on a test is backing down and prints `test.down`. Slot {region}.
+ */
+export const ANSWER_GROUPS = ['test', 'false-alarm', 'trawler', 'bluff-crossed', 'summit', 'fall-unpromised'] as const;
+export type AnswerGroup = (typeof ANSWER_GROUPS)[number];
+/** The answer group a call belongs to. */
+export function answerGroup(kind: PhoneKind): AnswerGroup {
+  return kind === 'test' || kind === 'test-inherited' || kind === 'feint' ? 'test' : kind;
+}
 
 /** strings.yaml › refusals: why an act was refused (the engine returns the code; the UI shows the words). */
 export const REFUSAL_CODES = [
@@ -317,6 +329,8 @@ export interface Strings {
   wintermast: Record<RefuseWhy, string>;
   headlines: Record<HeadlineKind, string>;
   acts: Record<ActKind, string>;
+  /** The answers as acts, by call and key (see ANSWER_GROUPS). */
+  answers: Record<AnswerGroup, { back: string; down: string; wait: string }>;
   refusals: Record<RefusalCode, string>;
   hold: Record<HoldCode, string>;
 }
@@ -365,6 +379,7 @@ export function checkContent(c: RedlinesContent): string[] {
   if (!s.dials?.lineOne) out.push('strings › dials: missing lineOne');
   for (const p of c.phones ?? []) if (p.when && p.kind !== 'trawler') out.push(`phones › ${p.id}: "when" is only read on a trawler template`);
   for (const k of ACT_KINDS) if (!s.acts?.[k]) out.push(`strings › acts: missing ${k}`);
+  for (const g of ANSWER_GROUPS) for (const key of ['back', 'down', 'wait'] as const) if (!s.answers?.[g]?.[key]) out.push(`strings › answers: missing ${g}.${key}`);
   for (const k of REFUSAL_CODES) if (!s.refusals?.[k]) out.push(`strings › refusals: missing ${k}`);
   for (const k of HOLD_CODES) if (!s.hold?.[k]) out.push(`strings › hold: missing ${k}`);
   for (const k of FALL_CAUSES) if (!s.causes?.[k]) out.push(`strings › causes: missing ${k}`);

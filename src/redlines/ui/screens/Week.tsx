@@ -18,20 +18,21 @@ import { getMap } from '../app/mapRef';
 import { placeSlip, type Pt } from '../app/slips';
 import { armed, busy, frameFit, lifted, play, refusal, shown } from '../app/store';
 import { tapeFor } from '../app/tape';
-import { noteFor, promiseLine, stepWord, warSub } from '../app/words';
+import { capitalised, fightingCount, noteFor, promiseLine, stepWord, warSub, weekOfLine } from '../app/words';
 
 export function Week(): JSX.Element | null {
   const S = content.strings;
   const s = shown.value;
   if (!s) return null;
   const p = play.value;
-  const note = p ? p.note : noteFor(s, S, regionName, (r) => S.blocs[blocOf(r)]);
-  const frame = p ?? { step: s.fed.step, war: s.war, treaty: s.treaty, tape: tapeFor(s) };
+  const note = capitalised(p ? p.note : noteFor(s, S, regionName, (r) => S.blocs[blocOf(r)]));
+  // The WAR boxes count the places fighting on the sheet, as the playback's beats do: the two never disagree.
+  const frame = p ?? { step: s.fed.step, war: fightingCount(s), treaty: s.treaty, tape: tapeFor(s) };
   const offerLabel = s.offer ? S.act.termLabels[s.offer.term] : null;
   return (
     <>
       <TouchSheet />
-      <Calendar head={S.words.week} n={s.week} of={S.screen.weekOf} note={S.words.influence} value={s.influence} />
+      <Calendar head={S.words.week} n={s.week} of={weekOfLine(S, RULES.weeks)} note={S.words.influence} value={s.influence} />
       <button type="button" class="rl-tag pp-obj pp-ty" onClick={openMenu} disabled={!!p}>
         {S.menu.menu}
       </button>
@@ -48,7 +49,7 @@ export function Week(): JSX.Element | null {
         ) : null}
       </button>
       <IndexCard
-        war={{ label: S.words.war, count: frame.war, max: RULES.warLimit, sub: warSub(S, frame.war), last: S.words.worldWar }}
+        war={{ label: S.words.war, count: frame.war, max: RULES.warLimit, sub: warSub(S, frame.war, RULES.warLimit), last: S.words.worldWar }}
         treaty={{ label: S.words.treaty, value: frame.treaty, sub: S.screen.treatySub }}
         they={{ label: S.words.theyAre, word: stepWord(S, frame.step) }}
         slip={{ text: p ? S.screen.ordersSent : S.words.sendOrders, onTap: () => void sendOrders(), disabled: !!p || busy.value }}
@@ -138,12 +139,13 @@ function ActSlip(): JSX.Element | null {
   if (!a || !s) return null;
   const S = content.strings;
   const pos = slipPlace(a.region, SLIP_W, SLIP_H);
+  // What a watcher wants first: their forces heading here; then the place's state; then whose promise it is.
   const tags: string[] = [];
   const rec = s.regions[a.region];
+  if (s.fed.headings.some((h) => h.to === a.region)) tags.push(S.screen.heading);
   if (rec?.state === 'pressed') tags.push(S.screen.pressed);
   if (rec?.state === 'fighting') tags.push(S.words.fighting);
   if (promiseAt(s, a.region)?.inherited) tags.push(S.screen.inherited);
-  if (s.fed.headings.some((h) => h.to === a.region)) tags.push(S.screen.heading);
   const head = [regionName(a.region).toUpperCase(), ...tags].join(' · ');
   const cost = a.act === 'promise' ? promiseLine(S, holdable(s, a.region), regionName) : a.act === 'withdraw' ? S.act.withdrawCost : a.reason ?? '';
   const word = a.act === 'promise' ? S.act.promise : a.act === 'withdraw' ? S.act.withdraw : null;
@@ -177,7 +179,8 @@ function MoveSlip(): JSX.Element | null {
   // The slip leaves every place the counter could move to clear for the tap that moves it (or is refused: one move a week).
   const pos = slipPlace(piece.at, MOVE_W, MOVE_H, kindMoves(kind, piece.at, pieceOf(s, 'fleet')?.at ?? null));
   return (
-    <div class="rl-slip rl-move pp-obj pp-ty" style={{ left: `${pos.left}px`, top: `${pos.top}px`, width: `${MOVE_W}px` }}>
+    // The slip lets a tap through to the sheet under it (a place it covers can still be tapped); only CANCEL takes taps.
+    <div class="rl-slip rl-move rl-through pp-obj pp-ty" style={{ left: `${pos.left}px`, top: `${pos.top}px`, width: `${MOVE_W}px` }}>
       <div class="hd">
         <span>{S.pieces[kind].toUpperCase()}</span>
         <button type="button" class="rl-x" onClick={cancelAct}>

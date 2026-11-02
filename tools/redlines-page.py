@@ -17,12 +17,15 @@ body = re.search(r"<body[^>]*>(.*?)</body>", html, re.S).group(1)
 # The skeleton supplies charset and viewport; the title must come first (only the first 8 KB is scanned).
 head = re.sub(r'<meta charset="[^"]*"\s*/?>', "", head)
 head = re.sub(r'<meta name="viewport"[^>]*>', "", head)
-title = re.search(r"<title>.*?</title>", head, re.S).group(0)
-head = head.replace(title, "")
-# A service worker cannot run in an embedded page; drop the plugin's injected registration and the manifest.
+title = re.search(r"<title>(.*?)</title>", head, re.S)
+# The product name comes from the build (BRAND.name in src/config.ts, one constant), never from here.
+brand = title.group(1).strip()
+head = head.replace(title.group(0), "")
+# A service worker cannot run in an embedded page: build:redlines-page builds with VITE_PWA=off, so there is none;
+# drop a registration or a manifest all the same if a PWA build is packed by mistake.
 head = re.sub(r'<script[^>]*registerSW\.js[^>]*></script>', "", head)
 head = re.sub(r'<link rel="manifest"[^>]*>', "", head)
-title = "<title>BRINK: Red Lines</title>"
+title = f"<title>{brand}: Red Lines</title>"
 head = head.replace("<style>", "<style>:root{color-scheme:dark}", 1)
 page = "\n".join([title, head.strip(), body.strip()]) + "\n"
 (out / "red-lines.html").write_text(page)

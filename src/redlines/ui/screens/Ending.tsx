@@ -64,10 +64,11 @@ export function Ending(): JSX.Element | null {
 
   const w = weeks[page];
   const dense = w.hidden.length + w.acts.length > 7;
+  // The page and BACK / NEXT stand together: the buttons follow the page down, however long the week was.
   return (
     <div class="rl-layer rl-ending">
       <Dim />
-      <div class={dense ? 'rl-dense' : undefined}>
+      <div class={`rl-debrief${dense ? ' rl-dense' : ''}`}>
         <DebriefPage
           key={page}
           week={fill(S.debrief.week, { week: w.week }).toUpperCase()}
@@ -78,10 +79,10 @@ export function Ending(): JSX.Element | null {
           thoughts={w.hidden.length ? w.hidden : [S.debrief.nothingHidden]}
           page={`${page + 1} / ${n}`}
         />
-      </div>
-      <div class="rl-nav">
-        <Choice word={S.debrief.back} onTap={() => debriefGo(page === 0 ? null : page - 1)} seed="back" small />
-        <Choice word={page === n - 1 ? S.debrief.done : S.debrief.next} onTap={() => debriefGo(page + 1)} seed={'next' + page} />
+        <div class="rl-nav">
+          <Choice word={S.debrief.back} onTap={() => debriefGo(page === 0 ? null : page - 1)} seed="back" small />
+          <Choice word={page === n - 1 ? S.debrief.done : S.debrief.next} onTap={() => debriefGo(page + 1)} seed={'next' + page} />
+        </div>
       </div>
     </div>
   );

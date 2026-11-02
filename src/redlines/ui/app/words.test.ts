@@ -1,7 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { GameState } from '../../engine/types';
-import { blocOf, content, newGame, regionName } from './fakeEngine';
-import { actLines, adviserWho, allTapeLines, callerLines, counterLabel, fightingSentence, holdWords, matchHeadline, noteFor, promiseLine, randomSeed, situation, tapeOf, termLine, warSub } from './words';
+import { blocOf, content, newGame, regionName, RULES } from './fakeEngine';
+import { actLines, adviserWho, capitalised, fightingCount, formLine, inHandLine, inHandParts, weekOfLine, allTapeLines, callerLines, counterLabel, fightingSentence, holdWords, matchHeadline, noteFor, promiseLine, randomSeed, situation, tapeOf, termLine, warSub } from './words';
+
+// words.ts and beats.ts read the engine's own netActs and actLine through the seam; the tests give them the fake engine, as the store's tests do.
+vi.mock('./engine', async () => await import('./fakeEngine'));
 
 const S = content.strings as unknown as Parameters<typeof noteFor>[1];
 
@@ -44,7 +47,7 @@ describe('the note and the card', () => {
     expect(noteFor(undone, S, regionName, bloc)).toBe('You moved the fleet to Ashkettle. You promised to defend Vessary.');
     const inherited: GameState = { ...s, acts: [{ kind: 'withdraw', region: 'LTL' }, { kind: 'promise', region: 'LTL' }] };
     expect(noteFor(inherited, S, regionName, bloc)).toBe('You inherited a promise to Lintel.');
-    expect(actLines([{ kind: 'way-out', term: 'summit', detail: null }], S, regionName)).toEqual(['You offered a way out: a summit.']);
+    expect(actLines([{ kind: 'way-out', term: 'summit', detail: null }], S)).toEqual(['You offered a way out: a summit.']);
     // Nothing pressed, nothing taken, no test: where their forces are heading.
     expect(noteFor({ ...s, week: 3, war: 0 }, S, regionName, bloc)).toBe('Their forces are heading for Kelpmouth.');
     expect(fightingSentence(S, 1)).toBe('One place is still fighting.');
@@ -62,10 +65,10 @@ describe('the note and the card', () => {
   });
 
   it('says how many regions are fighting under WAR', () => {
-    expect(warSub(S, 0)).toBe('nothing fighting · world war at 8');
-    expect(warSub(S, 1)).toBe('1 region fighting · world war at 8');
+    expect(warSub(S, 0, RULES.warLimit)).toBe(`nothing fighting · world war at ${RULES.warLimit}`);
+    expect(warSub(S, 1, RULES.warLimit)).toBe(`1 region fighting · world war at ${RULES.warLimit}`);
     // From two up the line would run into the WORLD WAR label at the card's right: the first clause only.
-    expect(warSub(S, 4)).toBe('4 regions fighting');
+    expect(warSub(S, 4, RULES.warLimit)).toBe('4 regions fighting');
   });
 });
 
@@ -114,5 +117,32 @@ describe('seeds', () => {
   it('are short and readable', () => {
     let i = 0;
     expect(randomSeed(() => (i++ % 10) / 10)).toMatch(/^[A-Z2-9]{3}-[A-Z2-9]{3}$/);
+  });
+});
+
+describe('the screens\' small lines (the recheck)', () => {
+  it('starts the note with a capital whatever filled its first slot', () => {
+    expect(capitalised('two places taken unanswered · now PUSHING')).toBe('Two places taken unanswered · now PUSHING');
+    expect(capitalised('')).toBe('');
+  });
+
+  it('fills the calendar\'s "of {weeks}" with the rules\' count of weeks', () => {
+    expect(weekOfLine(S, RULES.weeks)).toBe(`of ${RULES.weeks}`);
+    expect(RULES.weeks).toBe(10);
+  });
+
+  it('counts the WAR boxes from the places fighting on the sheet', () => {
+    const s = newGame(null, 'T');
+    const regions = { ...s.regions, LTL: { state: 'fighting' as const, pressedWeeks: 0, quietWeeks: 0 }, SHL: { state: 'fighting' as const, pressedWeeks: 0, quietWeeks: 0 }, KLP: { state: 'pressed' as const, pressedWeeks: 0, quietWeeks: 0 } };
+    expect(fightingCount({ regions })).toBe(2);
+  });
+
+  it('puts the influence in hand on the call, and says in a form\'s own line why it cannot be had', () => {
+    expect(inHandLine(S, 5)).toBe('5 influence in hand');
+    expect(formLine(S, 'move the brigade up · costs 12 influence · we keep our word', { needs: 12, influence: 5 })).toBe('move the brigade up · costs 12 influence · we keep our word · needs 12 · you have 5');
+    expect(formLine(S, 'a week', null)).toBe('a week');
+    // The hand writes the number larger: the line in three parts around it, read from the pack's own template.
+    expect(inHandParts(S, 5)).toEqual(['', '5', ' influence in hand']);
+    expect(inHandParts(S, 5).join('')).toBe(inHandLine(S, 5));
   });
 });

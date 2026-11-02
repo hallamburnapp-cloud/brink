@@ -1,4 +1,5 @@
 /** The simulator's printed tables (plain text or Markdown). */
+import { RULES } from '../engine/rules.ts';
 import type { BotName } from './bots.ts';
 import type { BotStats, Gate } from './gates.ts';
 import { pct, share } from './stats.ts';
@@ -50,7 +51,7 @@ export function ladderTable(stats: Partial<Record<BotName, BotStats>>, fmt: Form
 }
 
 export function treatyWeeksTable(s: BotStats, fmt: Format): string {
-  const weeks = [1, 2, 3, 4, 5, 6, 7, 8];
+  const weeks = Array.from({ length: RULES.weeks }, (_, i) => i + 1);
   return table([['week', ...weeks.map(String)], ['treaties', ...weeks.map((w) => String(s.treatyWeeks[String(w)] ?? 0))]], fmt);
 }
 
@@ -63,4 +64,24 @@ export function dialsTable(s: BotStats, fmt: Format): string {
     ],
     fmt,
   );
+}
+
+/** The careful hand, beside the gates and not one of them (SPEC-SMALL "Hand play is reported, not gated"). */
+export function handTable(s: BotStats, fmt: Format): string {
+  return table(
+    [
+      ['hand', 'games', 'treaty', 'war', 'frozen', 'treaty week (median)', 'a solid test unbacked for influence'],
+      [s.bot, String(s.games), pct(share(s.treaty, s.games)), pct(share(s.war, s.games)), pct(share(s.frozen, s.games)), f0(s.medianTreatyWeek), pct(share(s.shortSolidGames, s.games))],
+    ],
+    fmt,
+  );
+}
+
+/** The rules every game must keep (invariants.ts): broken counts by bot. */
+export function invariantsLine(stats: Partial<Record<BotName, BotStats>>): string {
+  const all = Object.values(stats).filter((x): x is BotStats => !!x);
+  const games = all.reduce((a, x) => a + x.games, 0);
+  const broken = all.reduce((a, x) => a + x.broken, 0);
+  const first = all.find((x) => x.brokenFirst)?.brokenFirst;
+  return broken ? `${broken} broken in ${games.toLocaleString('en-GB')} games; the first: ${first}` : `none broken in ${games.toLocaleString('en-GB')} games (cause before effect, no place falls and recovers in a week, WAR beside every line, the clock against the real fall)`;
 }

@@ -1,16 +1,18 @@
 /**
- * The statistics of a batch of games and the gates judged on them (2,000 games per bot). BUILD.md's:
+ * The statistics of a batch of games and the gates judged on them (2,000 games per bot), as SPEC-SMALL's ruling
+ * "Ten weeks, not eight" states them:
  * - G1 passive loses (war or frozen) in more than 70%;
- * - G2 the far-promise opening wins no more often than sensible;
- * - G3 sensible wins (treaty) between a third and a half; G4 ends FROZEN in fewer than 20% (BUILD said 15;
- *   SPEC-SMALL lets it sit at 20 if the gentler spread needs it);
+ * - G2 the far-promise opening (the review's: a promise two moves from both pieces, backed from afar) wins at
+ *   most half as often as sensible;
+ * - G3 sensible wins (treaty) between a third and a half; G4 ends FROZEN in fewer than 20%;
  * - G5 the median sensible treaty is signed in week 5 to 7;
  * - G6 every game's debrief has at least six hidden lines;
- * - G7 no game stalls.
- * SPEC-SMALL's rulings after the first review add:
+ * - G7 no game stalls;
  * - G8 the no-orders bot (sitting still) wins at most half as often as sensible;
  * - G9 the seller (a far promise sold back) wins at least ten points less often than sensible;
  * - G10 no line reaches the player with a slot unfilled.
+ * The careful hand is reported beside them, never gated (SPEC-SMALL "Hand play is reported, not gated"), and
+ * every game's invariants (invariants.ts) are counted apart: any broken one fails --strict.
  */
 import type { BotName } from './bots.ts';
 import type { GameRecord } from './play.ts';
@@ -48,6 +50,11 @@ export interface BotStats {
   unfilled: number;
   /** Share of weeks in which the bot gave no orders at all. */
   idleShare: number;
+  /** Games in which a solid test went unbacked for want of influence. */
+  shortSolidGames: number;
+  /** Rules broken over the batch (must be 0), and the first one in words. */
+  broken: number;
+  brokenFirst: string | null;
 }
 
 function third(x: number): 0 | 1 | 2 {
@@ -98,6 +105,9 @@ export function summarise(bot: BotName, games: readonly GameRecord[]): BotStats 
     byJumpiness: byJ.map((n, i) => share(n, nJ[i])) as [number, number, number],
     unfilled: games.reduce((a, g) => a + g.unfilled, 0),
     idleShare: share(games.reduce((a, g) => a + g.idleWeeks, 0), games.reduce((a, g) => a + g.weeks, 0)),
+    shortSolidGames: games.filter((g) => g.shortSolid > 0).length,
+    broken: games.reduce((a, g) => a + g.broken, 0),
+    brokenFirst: games.find((g) => g.brokenFirst)?.brokenFirst ?? null,
   };
 }
 
@@ -110,8 +120,10 @@ export interface Gate {
 
 export const GATES = {
   passiveLoseMin: 0.7,
+  /** SPEC-SMALL ruling: the far-promise opening wins at most half as often as sensible. */
+  farShare: 0.5,
   sensibleTreaty: [1 / 3, 1 / 2] as const,
-  /** BUILD.md said 15%; SPEC-SMALL ("The other side") lets the frozen gate sit at 20% to keep the gentler spread. */
+  /** SPEC-SMALL ruling ("Ten weeks, not eight"): FROZEN under 20%. */
   sensibleFrozenMax: 0.2,
   treatyWeek: [5, 7] as const,
   minHidden: 6,
@@ -134,7 +146,7 @@ export function evaluateGates(stats: Partial<Record<BotName, BotStats>>): Gate[]
   if (f && s) {
     const a = share(f.treaty, f.games);
     const b = share(s.treaty, s.games);
-    out.push({ id: 'G2', text: 'The far-promise opening wins no more often than sensible', value: `${pct(a)} vs ${pct(b)}`, pass: a <= b });
+    out.push({ id: 'G2', text: 'The far-promise opening wins at most half as often as sensible', value: `${pct(a)} vs ${pct(b)}`, pass: a <= b * GATES.farShare });
   }
   if (s) {
     const win = share(s.treaty, s.games);

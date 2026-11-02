@@ -5,9 +5,9 @@
 import type { Rng } from '../../engine/rng.ts';
 import type { PhoneTemplate, RedlinesContent } from './content.ts';
 import { blockedLastWeek } from './agent.ts';
-import { holdInfo, isAnswered, pieceAt, pressedRegions, promiseAt } from './board.ts';
+import { holdInfo, isAnswered, pieceAt, pressedRegions, promiseAt, stepAtWeekStart } from './board.ts';
 import { RULES, fallWeeksAt } from './rules.ts';
-import type { GameState, Line, Phone, PhoneKind, RegionId, Step } from './types.ts';
+import type { GameState, Line, Phone, PhoneKind, RegionId } from './types.ts';
 import { fill, type Slots } from './words.ts';
 import { NEAR_CAP, REGION, REGION_IDS, regionName } from './world.ts';
 
@@ -147,8 +147,4 @@ export function pickEvent(c: RedlinesContent, s: GameState, rng: Rng, bluff: { l
   return null;
 }
 
-/** The step the week started at: the log entry `beginWeek` opens records it before anything moves (SPEC-SMALL ruling: the fall clock reads that step). */
-export function stepAtWeekStart(s: GameState): Step {
-  const log = s.log[s.log.length - 1];
-  return log && log.week === s.week ? log.danger.step : s.fed.step;
-}
+export { stepAtWeekStart };

@@ -3,7 +3,7 @@
 # here: it is BRAND.name in src/config.ts, one constant. Capitals are the typed and stamped words.
 # The first sections are the engine's (src/redlines/engine/content.ts `Strings`), key for key; the
 # sections from `title` on are the screens'. Slots: {region} {promise} {from} {piece} {cost} {step}
-# {line} {why} {n} {term} {bloc} {at} {week} {fighting} {because} {cause} {a} {b} {hold}.
+# {line} {why} {n} {term} {bloc} {at} {week} {fighting} {because} {cause} {a} {b} {hold} {influence} {weeks} {limit}.
 
 # ---------------------------------------------------------------- the engine's words
 words:
@@ -25,8 +25,10 @@ words:
   week: WEEK
   influence: influence
 
+# The first line matches the sheet (SPEC-SMALL rulings): pressed places are hatched in red pencil, fighting ones
+# washed red, and a hatched place carries its weeks left as pencil ticks.
 explanation:
-  - "The Federation is pushing. Where it pushes, the map turns amber, then red."
+  - "The Federation is pushing. Where it pushes, the map is hatched; where it wins, it turns red. Ticks count the weeks before it wins."
   - "You lead the Republic. Promise to defend what you can hold, and keep your word when they test you."
   - "Give them a way to stop and they sign. Let them win, or back them into a corner, and it is war."
 
@@ -74,7 +76,7 @@ endings:
     - "Signed in week {week} with {fighting}."
     - "{because}"
   frozen:
-    - "Week eight ends. Nothing was signed."
+    - "Week ten ends. Nothing was signed."
     - "{fighting}"
   war:
     - "Week {week}."
@@ -160,13 +162,12 @@ headlines:
   wayOutAccepted: "Wintermast accepts: {term}"
   wayOutRefused: "Wintermast refuses: {term}"
   wayOutRefusedWhy: "Wintermast: {why}"
-  blocSigned: "{bloc} signs · Wintermast feels the pull"
+  blocSigned: "{bloc} signs the call for a treaty"
   quietWeek: "A quiet week · they gained nothing"
-  heldWeek: "Nothing taken · {n} unanswered"
   gainedWeek: "They took {n} this week"
   treatySigned: TREATY SIGNED
   worldWar: "The eighth place is fighting · WORLD WAR"
-  frozen: "Week eight ends · nothing was signed"
+  frozen: "Week ten ends · nothing was signed"
   alertOn: "You went on alert over {region}"
   alertOff: "Stood down over {region} · it was nothing"
   alertWaited: "You waited for a second source · none came"
@@ -182,6 +183,7 @@ headlines:
   unpromisedHeld: "What you sent to {region} held"
   unpromisedFailed: "What you sent to {region} was too far"
   unpromisedLet: "You let {region} go"
+  unpromisedProtested: "You protested at {region}"
 
 # The player's own orders, as the log writes them for the debrief.
 acts:
@@ -190,6 +192,35 @@ acts:
   move: "You moved {piece} to {region}."
   wayOut: "You offered a way out: {term}."
   none: "You gave no orders."
+
+# The player's answer on the phone, as the debrief and the note print it: the act, never the form's forecast
+# (SPEC-SMALL: "What you did is printed as what you did"). By the call (the three test kinds share `test`), then
+# BACK IT / BACK DOWN / WAIT or the call's own three words in that order. A third WAIT on a test prints `test.down`.
+answers:
+  test:
+    back: "You backed your promise at {region}."
+    down: "You backed down at {region}."
+    wait: "You asked for a week at {region}."
+  false-alarm:
+    back: "You went on alert over {region}."
+    down: "You stood down over {region}."
+    wait: "You waited for a second source on {region}."
+  trawler:
+    back: "You backed {region} over the trawler."
+    down: "You disowned {region} over the trawler."
+    wait: "You leaned on {region} quietly."
+  bluff-crossed:
+    back: "You held your ground at {region}."
+    down: "You pulled back from {region}."
+    wait: "You waited at {region}."
+  summit:
+    back: "You accepted their summit."
+    down: "You refused their summit."
+    wait: "You asked them for terms."
+  fall-unpromised:
+    back: "You sent what you had to {region}."
+    down: "You let {region} go."
+    wait: "You protested at {region}."
 
 # Why an order was refused (the engine returns the code; the screens show the words).
 refusals:
@@ -221,14 +252,16 @@ title:
   play: PLAY
   continue: CONTINUE
   howToPlay: HOW TO PLAY
-  blurb: "Eight weeks. Promise what you can hold. Keep your word."
+  blurb: "Ten weeks. Promise what you can hold. Keep your word."
 
+# {weeks} is the rules' count of weeks and {limit} the place that is world war (RULES.weeks, RULES.warLimit): the
+# calendar and the index card read the numbers from the rules, never from here.
 screen:
   pressed: PRESSED
-  weekOf: of 8
-  warNone: "nothing fighting · world war at 8"
-  warOne: "1 region fighting · world war at 8"
-  warMany: "{n} regions fighting · world war at 8"
+  weekOf: "of {weeks}"
+  warNone: "nothing fighting · world war at {limit}"
+  warOne: "1 region fighting · world war at {limit}"
+  warMany: "{n} regions fighting · world war at {limit}"
   treatySub: "the Federation's willingness to sign"
   ordersSent: ORDERS SENT
   heading: heading here
@@ -236,6 +269,7 @@ screen:
   skip: SKIP
   next: NEXT
   begin: BEGIN
+  upright: Turn your phone upright
 
 act:
   promise: PROMISE TO DEFEND
@@ -270,11 +304,15 @@ note:
   tested: "Your promise at {region} is being tested now."
   heading: "Their forces are heading for {region}."
 
+# The call. `inHand` is the influence scribbled beside the three forms; `needs` ends the typed line of a form you
+# cannot afford (SPEC-SMALL: "Influence is on the call").
 phone:
   ringing: INCOMING
   round2: the second week of this
   round3: the third week of this
   answered: ANSWERED
+  inHand: "{influence} influence in hand"
+  needs: "needs {cost} · you have {influence}"
 
 menu:
   menu: MENU
@@ -290,7 +328,7 @@ menu:
 
 debrief:
   title: THE DEBRIEF
-  intro: "The eight weeks again, with what they were thinking."
+  intro: "The ten weeks again, with what they were thinking."
   week: "Week {week}"
   youDid: what you did
   theyThought: what they were thinking
@@ -305,13 +343,13 @@ debrief:
 howToPlay:
   title: HOW TO PLAY
   lines:
-    - "The Federation is pushing. Where it pushes, the map turns amber, then red."
+    - "The Federation is pushing. Where it pushes, the map is hatched; where it wins, it turns red. Pencil ticks beside the hatching count the weeks before it wins."
     - "You lead the Republic. Each week, promise to defend places (press and hold a place to promise it), move your fleet and your brigade, and send your orders."
     - "A promise is solid where something of yours is within reach, dashed where it is not. They test promises they do not believe."
     - "When they test a promise, the phone rings: BACK IT, BACK DOWN or WAIT. Keep your word and they believe you more. Back down and they believe you less."
-    - "The word on the stamp says how far up the ladder they are: TESTING, PUSHING, MASSING, FIGHTING, ALL-OUT."
-    - "WAR counts the places fighting. Eight is world war. TREATY is their willingness to sign: up when they take nothing and nothing is left unanswered, down for each place taken. At 100 they sign."
-    - "Give them a way to stop (drop a promise, pull a piece back, a summit) and the treaty moves. A refusal costs you nothing but the price. Eight weeks."
+    - "The word on the stamp says how far up the ladder they are: TESTING, PUSHING, MASSING, FIGHTING, ALL-OUT. The higher they climb, the sooner a hatched place falls."
+    - "WAR counts the places fighting. Eight is world war. TREATY is their willingness to sign: up when they take nothing, down for each place taken. At 100 they sign."
+    - "Give them a way to stop (drop a promise, pull a piece back, a summit) and the treaty moves. A refusal costs you nothing but the price. Ten weeks."
 
 flavour:
   - "Farsouth recalls its envoy"

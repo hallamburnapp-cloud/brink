@@ -77,6 +77,11 @@ export function isGameState(x: unknown): x is GameState {
   for (const w of x.log) {
     if (!isObject(w) || !isInt(w.week, 1) || !isStrings(w.visible) || !isStrings(w.hidden) || !isStrings(w.acts)) return false;
     if (!isObject(w.danger) || !isInt(w.danger.war) || !isNum(w.danger.treaty) || !isInt(w.danger.step, 1, 5)) return false;
+    // Beyond BUILD.md (after the recheck): one beat per tape line. A save from before them has none.
+    if (w.beats !== undefined) {
+      if (!Array.isArray(w.beats) || w.beats.length !== (w.visible as string[]).length) return false;
+      if (!w.beats.every((b) => isObject(b) && isStr(b.kind) && (b.region === null || isRegion(b.region)) && isInt(b.war, 0, REGION_IDS.length) && isInt(b.step, 1, 5) && isNum(b.treaty, 0, 100))) return false;
+    }
   }
   const ending = x.ending;
   if (ending !== null) {

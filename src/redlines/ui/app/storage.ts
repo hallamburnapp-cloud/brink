@@ -2,7 +2,7 @@
  * Local storage: the settings and the one saved game (brink.redlines.v1.save), nothing else. Every
  * access is in try/catch, so a private window or blocked storage never breaks the game.
  */
-import { loadGame, SAVE_KEY, saveGame, type GameState } from './engine';
+import { loadGame, RULES, SAVE_KEY, saveGame, type GameState } from './engine';
 
 export const PREFS_KEY = 'brink.redlines.v1.prefs';
 
@@ -48,7 +48,7 @@ function write(key: string, value: string | null): void {
 /** Only well-formed fields survive a read. */
 export function sanitize(v: unknown): Prefs {
   const o = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
-  const page = typeof o.debriefPage === 'number' && Number.isInteger(o.debriefPage) && o.debriefPage >= 0 && o.debriefPage <= 12 ? o.debriefPage : null;
+  const page = typeof o.debriefPage === 'number' && Number.isInteger(o.debriefPage) && o.debriefPage >= 0 && o.debriefPage <= RULES.weeks ? o.debriefPage : null;
   return { explained: o.explained === true, sound: o.sound === true, debriefPage: page };
 }
 

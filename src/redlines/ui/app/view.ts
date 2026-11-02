@@ -5,7 +5,7 @@
  */
 import { computed } from '@preact/signals';
 import { EMPTY_VIEW, sameView, viewFromState, type PaperView } from '../paper';
-import { holdable } from './engine';
+import { holdable, weeksLeft } from './engine';
 import { held, lifted, play, screen, shown, titleWorld } from './store';
 
 let last: PaperView = EMPTY_VIEW;
@@ -16,7 +16,7 @@ export const mapView = computed<PaperView>(() => {
   if (p) next = p.view;
   else {
     const s = screen.value === 'game' ? shown.value : titleWorld.value;
-    next = s ? viewFromState(s, (r) => holdable(s, r).ok, { pressed: held.value, lifted: lifted.value }) : EMPTY_VIEW;
+    next = s ? viewFromState(s, (r) => holdable(s, r).ok, { pressed: held.value, lifted: lifted.value, weeksLeft: (r) => weeksLeft(s, r) }) : EMPTY_VIEW;
   }
   if (sameView(last, next)) return last;
   last = next;

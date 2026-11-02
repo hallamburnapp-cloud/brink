@@ -44,6 +44,13 @@ caller only (the inherited promise, the summit). The slip header is the id and t
   tape: "Wintermast: no Republic forces in the Sound"   # 46 characters or fewer; the teleprinter prints capitals
 ```
 
+**The tape form is true on the sheet** (SPEC-SMALL "Rulings after the recheck"): it names exactly what crosses the
+line (proximity: forces; sea: the fleet or warships; missiles: the brigade; alliance: promises) and exactly where:
+the places by name, or a phrase whose places are exactly the line's regions ("the Sound", "the Scatter",
+"Farsouth", "Farsouth's ports", "north of Edda Vale", "the outer islands"). `load.test.ts` reads every tape back to
+its regions and compares; a tape that drops the word that makes it true ("in the Scatter" for a line that leaves
+out Tern Isle, where the fleet starts) fails. No line of either pack is crossed by the pieces where they start.
+
 `kind` is what of yours crosses it, in the covered regions (the engine's rule): `proximity` either piece standing
 there, `sea` the fleet there, `missiles` the brigade there (it carries them), `alliance` a WE DEFEND ring there.
 Regions are the map's three-letter ids and never in the Cap. Exactly eight lines; the engine draws three before
@@ -51,11 +58,16 @@ week 1 (two real, one a bluff), prints each on the tape (`headlines.declared`) a
 from one of the real ones. `text` is Wintermast's own words (30 words or fewer); `tape` is the pack's extra, the
 headline form, because a whole declaration does not fit the teleprinter (see "For the engine").
 
-The eight shipped: `sound-forces` (proximity · the Sound), `scatter-forces` (proximity · the Scatter), `cap-lanes`
-(sea · Driftholm, Kelpmouth), `shoal-strait` (sea · Shoal, Lintel), `farsouth-alliance` (alliance · Farsouth),
-`scatter-promises` (alliance · the Scatter), `north-missiles` (missiles · Vessary, Rimeholt), `south-ports` (sea ·
-Brindle Coast, Marram, Floe End). The MOMENT.md collision is an inherited promise to Lintel against
-`sound-forces`: keeping the promise puts the brigade in the Sound.
+The eight shipped, with their tape forms: `sound-forces` (proximity · the Sound: "Wintermast: no Republic forces in
+the Sound"), `scatter-forces` (proximity · the outer islands, Driftholm, Lantern Key and Shoal, the Scatter's
+seaward column out from the Republic's coast: "Wintermast: no forces on the outer islands"; Tern Isle, Gullrest and
+Pebbleby face the Republic, so the fleet starts outside it and its first moves cross nothing), `cap-lanes` (sea ·
+Driftholm, Kelpmouth: "Wintermast: no fleet at Driftholm or Kelpmouth"), `shoal-strait` (sea · Shoal, Lintel:
+"Wintermast: no warships at Shoal or Lintel"), `farsouth-alliance` (alliance · Farsouth: "Wintermast: no promises
+to Farsouth"), `scatter-promises` (alliance · the Scatter: "Wintermast: no promises to the Scatter"),
+`north-missiles` (missiles · Vessary, Rimeholt: "Wintermast: no brigade north of Edda Vale"), `south-ports` (sea ·
+Brindle Coast, Marram, Floe End: "Wintermast: no fleet in Farsouth's ports"). The MOMENT.md collision is an inherited
+promise to Lintel against `sound-forces`: keeping the promise puts the brigade in the Sound.
 
 ## Phones
 
@@ -106,7 +118,8 @@ Brindle Coast, Marram, Floe End). The MOMENT.md collision is an inherited promis
 
 The engine's `fill` does not capitalise, so no sentence may start with `{piece}` (the validator refuses it).
 Thoughts may also use `{why}` (a reason from `strings.why`) and `{n}`; strings may use any of these plus
-`{term} {bloc} {at} {week} {fighting} {because} {cause} {a} {b} {hold}`. A kind's required slot: every kind but
+`{term} {bloc} {at} {week} {fighting} {because} {cause} {a} {b} {hold} {influence} {weeks} {limit}` (`{weeks}` and `{limit}` are
+the rules' count of weeks and world war's place, `RULES.weeks` and `RULES.warLimit`, filled by the screens). A kind's required slot: every kind but
 `summit` names `{region}`.
 
 ### What each kind is, and what the three keys do (`src/redlines/engine/content.ts`, `phone.ts`, `resolve.ts`)
@@ -153,21 +166,32 @@ sections from `title` on are the screens'. Every section of `strings.yaml` and w
 | section | holds | reader |
 | --- | --- | --- |
 | `words` | WE DEFEND, TESTED, FIGHTING, BACK IT, BACK DOWN, WAIT, `steps` (TESTING PUSHING MASSING FIGHTING ALL-OUT), `waitIsBackDown`, SEND ORDERS, A WAY OUT, THEY ARE, WAR, TREATY, WORLD WAR, FROZEN, WEEK, influence | engine, map, screens |
-| `explanation` | the three lines of SPEC-SMALL "The game in three sentences" | screens |
+| `explanation` | the three lines of SPEC-SMALL "The game in three sentences"; the first matches the sheet (SPEC-SMALL ruling): "The Federation is pushing. Where it pushes, the map is hatched; where it wins, it turns red." and the clock: "Ticks count the weeks before it wins." (HOW TO PLAY's first line says the same) | screens |
 | `collision` | the opening's dilemma by what collides: `alliance`, `forces`, `near` (slots `{region}`, `{line}`, `{piece}`), `heading` | engine (`GameState.collision`) |
 | `blocs`, `pieces`, `terms`, `numbers`, `counts` | "the Sound"; "the brigade", "your alert", "your promise"; the way-out nouns; number words 0..12; "one place still fighting" | engine |
 | `endings`, `because`, `causes` | the two typed lines of each ending (`{week}`, `{fighting}`, `{because}`, `{region}`, `{cause}`); the treaty's reasons; the world war's "when ..." clauses | engine (`Ending.lines`) |
 | `dials` | the dial words, "They were {a} and {b}." and `lineOne` for a game that never showed jumpiness | engine (`Ending.dials`) |
 | `why` | the 16 reasons that fill `{why}` in the debrief | engine |
 | `wintermast` | Wintermast's own short quoted words for a refused way out (`noNeed gaining indifferent noThreat notAfraid hungry`), 34 characters once filled: the tape's "Wintermast: 'nothing to talk about yet'" after "Wintermast refuses: a summit" | engine (`headlines.wayOutRefusedWhy`) |
-| `headlines` | the 50 tape lines the engine writes, 46 characters once filled. Every mover of the ladder says "· now {step}" (`lineCrossed`, `takenStepUp`, `jumpy`, `accident`, `backedDown`, `summitAccepted`); the new ones of round 13: `lineCrossedAt` (what crossed a line and where), `fellOutOfReach` ("{region} out of reach · still {step}"), `takenStepUp` with `{n}` (the place, or "two places"), `feintGone`, `pushedAgain`, `heldWeek` ("Nothing taken · {n} unanswered": no +5), `wayOutRefusedWhy`, `backedDownEased` | engine (`headline`, `WeekLog.visible`) |
-| `acts` | the player's orders as the log writes them | engine (`WeekLog.acts`) |
+| `headlines` | the 49 tape lines the engine writes, 46 characters once filled with the widest values each slot takes (the spread with every real pair of neighbours; `load.test.ts` "keeps every line the teleprinter prints within its width"). Every mover of the ladder says "· now {step}" (`lineCrossed`, `takenStepUp`, `jumpy`, `accident`, `backedDown`, `summitAccepted`); `lineCrossedAt` (what crossed a line and where), `fellOutOfReach` ("{region} out of reach · still {step}"), `takenStepUp` with `{n}` (the place, or "two places"), `feintGone`, `pushedAgain`, `wayOutRefusedWhy`, `backedDownEased`; `blocSigned` says what they sign ("{bloc} signs the call for a treaty"); an answer prints as the act it was on the tape too (PROTEST about a place nobody promised is `unpromisedProtested`, "You protested at {region}", not `unpromisedLet`'s "You let {region} go"); `frozen` "Week ten ends · nothing was signed". Round 13's `heldWeek` is gone with its rule (the +5 is paid whenever nothing was taken). The engine writes them cause before effect (`ENGINE.md` "A week") | engine (`headline`, `WeekLog.visible`, `WeekLog.beats`) |
+| `acts` | the player's orders as the log writes them | engine (`WeekLog.acts`, `actLine`) |
+| `answers` | the player's answer on the phone as the act it was, by the call (`test` for the three test kinds, `false-alarm`, `trawler`, `bluff-crossed`, `summit`, `fall-unpromised`) and the key (`back`, `down`, `wait`): "You backed your promise at {region}.", "You protested at {region}.", "You accepted their summit." (SPEC-SMALL: "What you did is printed as what you did"; never the form's forecast, which the validator refuses: no "will", "may", "likely"). A third WAIT on a test prints `test.down` | engine (`WeekLog.acts`, `actLine`), screens (the note) |
 | `refusals`, `hold` | the words for a refused order and for a solid or dashed ring (the engine returns codes) | screens |
-| `title`, `screen`, `act`, `note`, `phone`, `menu`, `debrief`, `howToPlay`, `flavour` | PLAY / CONTINUE / HOW TO PLAY, the WAR note, PROMISE TO DEFEND / WITHDRAW / MOVE HERE, the way-out form, the handwritten situation note ("They are pushing {bloc}." "They have taken {region}." "Your promise at {region} is being tested now."), INCOMING, the menu, THE DEBRIEF's words, the seven rules a player can read, in-world headlines for a thin week | screens |
+| `title`, `screen`, `act`, `note`, `phone`, `menu`, `debrief`, `howToPlay`, `flavour` | PLAY / CONTINUE / HOW TO PLAY and "Ten weeks. …", the calendar's "of {weeks}" and the WAR note's "world war at {limit}" (the numbers come from `RULES`, never from the pack), the notice over a phone held sideways (`screen.upright`, "Turn your phone upright"), PROMISE TO DEFEND / WITHDRAW / MOVE HERE, the way-out form, the handwritten situation note ("They are pushing {bloc}." "They have taken {region}." "Your promise at {region} is being tested now."), INCOMING and the call's influence (`phone.inHand` "{influence} influence in hand"; `phone.needs`, the end of a form you cannot afford, "needs {cost} · you have {influence}"), the menu, THE DEBRIEF's words ("The ten weeks again, …"), the seven rules a player can read, in-world headlines for a thin week | screens |
 
 The validator holds the fixed words to the spec: the ladder words, WE DEFEND, WORLD WAR, SEND ORDERS, BACK IT /
 BACK DOWN / WAIT, PROMISE TO DEFEND, the slots each sentence needs, thirteen number words, tape lines within 46
-characters once filled, capitals on every word that sits on a form or a stamp.
+characters once filled, capitals on every word that sits on a form or a stamp, answers that are acts.
+
+**Number words follow the rules.** `load.test.ts` "binds every number word about a rule to RULES": every
+sentence that names a rule's number ("Ten weeks", "Week ten ends", "Eight is world
+war", "The eighth place is fighting", "At 100 they sign", "three promises is the most", "costs 1 influence a week",
+"costs 3 influence · one move a week") is read back and compared with `RULES` (`weeks`, `warLimit`, `willSign`,
+`maxPromises`, `upkeep`, `moveCost`), and any other number word in `strings.yaml` must be bound or listed as free
+(a count, the call's second and third week, a flavour line). A rule change fails the test until the words follow.
+The two numbers the screens print beside a rule are not words at all: the calendar's `screen.weekOf` is "of {weeks}"
+and the WAR note's `screen.warNone` / `warOne` / `warMany` end "world war at {limit}", filled from `RULES.weeks` and
+`RULES.warLimit` (the validator requires both slots).
 
 ## The voice
 
@@ -214,8 +238,10 @@ filled; an unknown region; a line in the Cap, fewer than eight lines, a declarat
 feints, one each of the rest); a trawler template for a promised island without one for an unpromised island (or
 one that fits both), an unpromised trawler call that claims "our promise"; Wintermast's words over 34 characters;
 a missing adviser or voice; a missing debrief kind, a thought over 30 words; the ladder words, WE DEFEND, WORLD
-WAR, SEND ORDERS, PROMISE TO DEFEND, the sentence slots, the number words; the brand name or a real-world name in
-any text; and anything the engine's own `checkContent` lists. Warnings: an "if" of any
+WAR, SEND ORDERS, PROMISE TO DEFEND, the sentence slots (`phone.inHand` names {influence}, `phone.needs` {cost} and
+{influence}), the number words; an answer that forecasts ("will", "may", "likely") instead of saying what you did;
+the brand name or a real-world name in any text; and anything the engine's own `checkContent` lists (every
+`answers` key among them). Warnings: an "if" of any
 other kind, a tape line over 46 characters, a cost over 92, a missing ` · `, a thought that addresses nobody or
 uses the future, a lower-case word on a form, a test without `again`, a test labelled other than BACK IT / BACK
 DOWN / WAIT, a why or cause clause that does not continue its sentence. The shipped pack is strict-clean.
@@ -250,6 +276,6 @@ DOWN / WAIT, a why or cause clause that does not continue its sentence. The ship
 
 4 advisers · 8 lines (2 proximity, 3 sea, 2 alliance, 1 missiles) · 13 phone templates (2 `test-inherited`,
 2 `test`, 2 `feint`, 2 `trawler` (promised and unpromised), 2 `summit`, 1 each of `false-alarm`, `bluff-crossed`,
-`fall-unpromised`) · 47 thoughts across the 39 hidden event kinds (nine of them the closing card's lessons) · 264
-strings (50 headlines, 16 reasons, 6 of Wintermast's words, 14 refusals, 10 flavour lines). Strict-clean, and the
-engine's `checkContent` returns nothing.
+`fall-unpromised`) · 47 thoughts across the 39 hidden event kinds (nine of them the closing card's lessons) · 285
+strings (49 headlines, 18 answers, 16 reasons, 6 of Wintermast's words, 14 refusals, 10 flavour lines). Strict-clean,
+and the engine's `checkContent` returns nothing.
