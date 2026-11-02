@@ -108,6 +108,46 @@ one reading):
   beside the gates and its treaty share printed; six hand-played games produced no treaty, so the owner and the
   cold testers judge whether influence is too tight before any retune.
 
+**Rulings after the second review** (five critics played the rebuilt build; a deep-strategy player found a
+formula that wins about four games in five from what is on screen. Decided here so the fixers follow one reading;
+the owner can overrule any of them):
+- **No formula wins.** The balance is tuned against the strongest visible-information player, not only the
+  sensible bot. The critic's "shark" (rings on places already hatched, never on an arrow's target, a summit after
+  every quiet week from week 3) joins the simulator as a gated bot: it signs at most 60% on seeds R, S and T, no
+  one-rule bot (summits only; never move a piece) signs more than 45%, and the sensible bot stays between a third
+  and a half. The levers stay in the fiction and on the sheet: **they do not talk while they are winning** (a
+  way out, yours or theirs, is accepted less while places they press stand unanswered; the "they have been
+  stopped" pull counts only when nothing is hatched; at most one way out accepted in any two weeks, because they
+  must sell it at home); **a ring drawn on a place already under siege is a provocation** (they test it unless
+  they believe you, so it costs a call, not a pause); and any other lever the tuning log justifies.
+- **The treaty is signed over a quiet map, or says what it leaves.** At 100 they sign if nothing fell that week
+  and no hatched place stands unanswered; the TREATY card names the places they still hold under pressure.
+- **The feint keeps its mystery.** The call rings before the other column's line prints (that line prints after
+  the answer); feints continue after week 4, rarer; the debrief blames their timetable, not their appetite, when
+  both arrows were real by rule.
+- **The bluff is not a free read.** The opening's collision is drawn from any of the three lines; crossing a real
+  line rings a call too, with its step; every word on a form or a slip is true of what the engine does (WAIT's
+  "they may move first" happens or is not said).
+- **The three lines stay on the sheet.** Wintermast's three declarations are always visible (pinned at the head
+  of the tape or on the index card), and the MOVE and PROMISE slips name a line the order would cross, in the
+  line's own tape words.
+- **Doubt is visible where it matters.** The price on BACK IT steps at the belief that changes their targeting
+  (40), so the cheaper price is the sign that they believe you; the Director's slip on a call says so in
+  character.
+- **Out of reach means out of reach.** A route that crosses a declared line is not a route: a place only such a
+  route reaches is out of reach, and its fall carries no step. The collision's "nothing of ours can reach it" is
+  then always true.
+- **Backing down is never the best answer.** The scared Federation's step down after a back-down happens at most
+  once a game and never returns a place; jumpiness shows on the sheet in the main loop (a piece next to their
+  door slows a scared Federation's push and provokes a bold one).
+- **A form that will fail says so before you pay.** A way out they cannot accept yet (too early; nothing of yours
+  to pull back) is dimmed with its reason; a move that would leave a ring dashed says so on the MOVE slip; a
+  ring on an arrow's target says on the PROMISE slip that it will be a call; the note on the eve of a fall that
+  would end the game says so.
+- **The debrief reads motives when they were formed.** Each heading's reason is recorded when it is planned; a
+  thought about a ring they did not test is said only of rings the plan did not target; a lesson is drawn only
+  from what happened (no-orders only when something fell), is never false, and prints once, on the closing card.
+
 ## The two bars
 
 - **WAR**: regions fighting, drawn as eight pencil boxes; the eighth is WORLD WAR and the game is lost there. (The first draft said twelve of thirty; in eight weeks twelve is out of reach and a collapse ran out of weeks instead of ending, so the engine's tuning set the line at eight. One box a week, legible.)
