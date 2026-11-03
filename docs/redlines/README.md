@@ -9,7 +9,8 @@ brigade is within reach, dashed where it is not, and everyone can see which), yo
 places it can reach are pencilled round with dots), you may give them a way out from week three (drop a promise, pull a
 piece back, a summit), and you SEND ORDERS. Wintermast's three declared lines stay pinned at the head of the tape in red
 all game. An order that would cross one of them, leave a ring dashed, leave a hatched place to fall this week, or turn their
-arrow into a call says so on its slip before it is paid for (a move like that asks MOVE HERE first; a ring on a place already
+arrow into a call says so on its slip before it is paid for (every move asks MOVE HERE first, with its price and any such warning, and a
+piece that has moved says "one move a week" on its slip; a ring on a place already
 hatched says it is a provocation, backed at the full price; a ring on a place at its last tick says it will be a call, or, when
 another test has the week, that it is too late to pause it). A dashed ring's PROMISE and WITHDRAW slips say how many moves the
 nearest piece is from holding it and what backing it will cost; an inherited ring inside a declared line says on its WITHDRAW
@@ -25,7 +26,8 @@ rings: the room goes dark, the handset is off the hook, a caller's forty words, 
 arguing in character (nobody annotates), and three typed forms: BACK IT, BACK DOWN, WAIT, with the influence in hand scribbled beside them (a
 form you cannot afford says why in its own typed line; WAIT says what backing it will cost next week). The sheet slides under the
 handset so the tested place's red ring and the whole TESTED word show between the handset and the caller card. WAR counts the places fighting on the sheet on eight
-pencil boxes (the eighth is WORLD WAR); TREATY is their willingness to sign (at 100
+pencil boxes (the eighth is WORLD WAR); TREATY is their willingness to sign (up 5 a week they take nothing, down 5 for each place taken that something of
+yours could have reached; a place that falls out of reach fills its WAR box and costs nothing on the bar; at 100
 they sign, if no place fell that week); the red rubber stamp says how far up the ladder they are: TESTING,
 PUSHING, MASSING, FIGHTING, ALL-OUT (a bar at 100 that does not sign says why on the tape and names the places it would
 not sign over when the line fits the teleprinter). Three endings (TREATY, WORLD WAR, FROZEN at the end of week 10) on a
@@ -66,8 +68,11 @@ build.
 The hotel (`src/ui`, `src/engine`, `content/`), the war room (`src/war`) and THIRTY DAYS (`src/thirty`) are
 untouched and dormant; Red Lines reuses the shared map's thirty regions (`src/thirty/ui/map/data.ts`) and the
 seeded RNG (`src/engine/rng.ts`) by import, never by changing them. Its three self-hosted fonts are
-`public/redlines/fonts` (Special Elite for type, Caveat for the hand, Gelasio for the printed sheet's names), all
-under the Open Font License.
+`public/redlines/fonts` (Special Elite for type, Caveat for the hand, Gelasio for the printed sheet's names), each
+shipped with its licence beside it and packed with the page: Special Elite under the Apache License 2.0
+(`LICENSE-SpecialElite.txt`, Astigmatic's copyright line from the font's name table), Caveat and Gelasio under the SIL
+Open Font License 1.1 (`OFL-Caveat.txt`, `OFL-Gelasio.txt`, each with its project's copyright line). The A WAY OUT
+form keeps their last answer under its intro, with its week, in the tape's words.
 
 ## Run
 
@@ -99,16 +104,17 @@ npm run sim:redlines                 # 2,000 games per bot on the real pack agai
 npm run e2e:redlines                 # Playwright: builds with the hook, serves on port 4610, Chromium
 ```
 
-The counts of this build: `npm run test:redlines` 24 files and 366 tests (engine, sim, content, paper map, UI logic,
-the two `review2.test.ts` files holding the second review's findings and the two `recheck2.test.ts` files the second
-recheck's, to the real engine and pack); `npm run e2e:redlines` 21 tests (20 on the phone, one in a desktop window).
+The counts of this build: `npm run test:redlines` 26 files and 388 tests (engine, sim, content, paper map, UI logic,
+the two `review2.test.ts` files holding the second review's findings, the two `recheck2.test.ts` files the second
+recheck's, and `engine/recheck3.test.ts` and `ui/app/roundb.test.ts` the third recheck's, to the real engine and pack;
+`npm test`, the whole project, 91 files and 1,362 tests); `npm run e2e:redlines` 21 tests (20 on the phone, one in a desktop window).
 
 `e2e/redlines.spec.ts` drives the game with real taps: the title, the three explanation lines over the live
 map and the collision on its slip, week 1 (the calendar's "of 10", the note, the index card's words, SEND ORDERS,
 the tape, Wintermast's three declared lines pinned at its head); a promise by tap-and-hold (the slip says solid and why; the ring and WE DEFEND appear), a withdraw
 of a ring drawn the same week (no belief line on its slip; the 2 come back, belief unchanged), the inherited ring's WITHDRAW slip (keeping it crosses a
 declared line, in the line's tape words; the nearest piece's distance and BACK IT's price), a dashed promise with its price on the slip, the refusals in the content's words, a counter tapped and moved (the places it can reach pencilled round, the MOVE
-word inert, a tap on the rest of the slip heard by the sheet under it); a plain tap on a place putting its slip down; a move that
+word inert, every move asking MOVE HERE first with its price and nothing paid until it is tapped, the asked place kept clear of its slip, CANCEL at least 44 px tall, the moved counter saying "one move a week for each piece", a tap on the rest of the slip heard by the sheet under it); a plain tap on a place putting its slip down; a move that
 crosses a declared line and leaves a ring dashed asking MOVE HERE first in the line's tape words; a ring on a place already
 hatched saying on its slip that it is a provocation (and drawn as one); said before you pay (the second recheck's rulings): a MOVE HERE slip naming the hatched
 place the brigade would leave to fall this week, a ring at a last tick that is "too late to pause it" when another test has the week and a call when none does,
@@ -118,7 +124,7 @@ eve of a fall (what a piece can still reach and what nothing can, kept under an 
 box, and the spread's own warning at FIGHTING); a slip put down under the finger (a hold on Hearth or
 Floe End, at the foot of the sheet) taking nothing from the lift of that finger, and the next press promising; A WAY OUT's form
 dimmed in week 1 with their reason, dimmed the week after a way out was accepted, then in week 3 naming only the piece away
-from home, and an offer; a thumb drumming every 150 ms
+from home, and an offer, and their answer kept on the form with its week after the week plays out; a thumb drumming every 150 ms
 through a playback never answering the call; SEND ORDERS and the playback (the tape feeds, the note repeats the line, the hatching scribbles in with its
 weeks-left ticks, the WAR boxes the sheet's own count, week 2's pins); the phone (the room dark, the handset, the clock, the caller's forty words, the three advisers, the
 three forms with their costs, WAIT saying "backing it next week costs 30", the tested place marked) answered BACK IT; a WAIT carried into the next week
@@ -128,7 +134,7 @@ bar +15 beside its line and the stamp back to TESTING; it never rings over a way
 an island under a ring of yours, or in words that claim no promise, answered BACK THEM; cause before effect on the
 sheet, read beat by beat (the tape's newest line, the WAR boxes, the places drawn fighting and their red stamps, the
 stamp, the bar) against the engine's own lines for two staged weeks: BACK DOWN at a dashed ring facing a scared
-Federation ("they stand down", then "Driftholm has fallen", then the place that fell a week earlier quiet) and a summit
+Federation ("they ease off", then "Driftholm has fallen", then the place that fell a week earlier quiet) and a summit
 offered by its typed form in a week a pressed place's single ringed tick runs out (the fall, then "Wintermast
 accepts" with the bar, then "They ease off · now TESTING" with the stamp, then only the earlier place back); a bar at 100 that does not
 sign (the tape's newest line "No treaty · Vessary and Quillon unanswered", the bar at 100%, the two places hatched on the sheet); every line the engine can
@@ -155,7 +161,7 @@ python3 tools/redlines-page.py dist-redlines-page <out>   # <out>/red-lines.html
 `dist-redlines/index.html` can be served from any static host or sub-path (`BRINK_BASE` sets the base; the
 scripts use `./`). The page build is for an embedded artifact page: `red-lines.html` is the head and body
 without the document skeleton (1,716 bytes; title `BRINK: Red Lines`, the page's title BRAND.name from the build),
-and `files.json` maps every asset the page loads (14 files, 439 KB, the three fonts included) to its file on disk.
+and `files.json` maps every asset the page loads (16 files, 457 KB, the three fonts and their three licence texts included) to its file on disk.
 The app's scripts and styles are about 88 KB gzipped on the wire (263 KB raw).
 
 ## Balance
@@ -168,25 +174,31 @@ nerve pays, G13: the door-reader beats the shark against a scared Federation; an
 places" is worth at most 25 points to the shark by ablation); `--seed S` and `--seed T` judge two more seed sets. Every
 game is also checked against the invariants (cause before effect, no place that falls and comes back inside a week, the
 WAR count beside every line, the clock against the real fall, no turn-away after a feint or a provocation); a broken one
-fails `--strict`. The figures of this build (round 16 of `ENGINE.md`'s tuning log; the integration re-ran seeds R on the final tree and
-got the same output, and the engine is unchanged since S and T were run), treaty share unless said:
+fails `--strict`. The figures of this build (round 17 of `ENGINE.md`'s tuning log; the integration re-ran R, S and T on the final tree and
+got the engine fixer's figures to the decimal), treaty share unless said:
 
 | | seeds R | seeds S | seeds T | gate |
 | --- | --- | --- | --- | --- |
-| sensible: treaty / war / frozen | 40.4 / 46.0 / 13.7 | 41.7 / 45.0 / 13.4 | 40.7 / 44.4 / 14.9 | G3 treaty 33 to 50; G4 frozen under 20 |
+| sensible: treaty / war / frozen | 47.6 / 37.6 / 14.8 | 47.3 / 37.6 / 15.0 | 47.1 / 36.4 / 16.6 | G3 treaty 33 to 50; G4 frozen under 20 |
 | sensible: median treaty week | 5 | 5 | 5 | G5 week 5 to 7 |
-| far-promise opening | 7.0 | 6.8 | 6.6 | G2 at most half of sensible |
-| no orders; the sold far promise (seller) | 0.5; 0.4 | 0.5; 0.2 | 0.6; 0.6 | G8 at most half of sensible; G9 ten points under |
+| far-promise opening | 9.6 | 9.6 | 9.1 | G2 at most half of sensible |
+| no orders; the sold far promise (seller) | 0.8; 0.6 | 0.8; 0.6 | 0.8; 0.8 | G8 at most half of sensible; G9 ten points under |
 | passive: loses | 100 | 100 | 100 | G1 more than 70 |
-| promise-everything | 0.1 | 0.3 | 0.2 | |
-| shark; the quiet shark (the strongest) | 30.7; 41.3 | 31.6; 41.3 | 31.5; 42.4 | G11 at most 55 |
-| summit-only; shark-still (never moves a piece) | 1.6; 6.7 | 1.3; 6.4 | 1.3; 7.6 | G12 at most 45 |
-| door-reader against a scared Federation, against the shark | 68.9 vs 32.5 | 68.8 vs 32.7 | 70.3 vs 33.4 | G13 the reader wins |
-| "ring the hatched places", worth to the shark | 17.6 points | 18.1 | 19.8 | G14 at most 25 |
+| promise-everything | 0.4 | 0.4 | 0.3 | |
+| shark; the quiet shark (the strongest) | 36.0; 51.5 | 36.8; 50.9 | 36.0; 50.3 | G11 at most 55 |
+| summit-only; shark-still (never moves a piece) | 1.7; 8.6 | 1.5; 8.2 | 1.4; 9.6 | G12 at most 45 |
+| door-reader against a scared Federation, against the shark | 74.8 vs 39.4 | 74.6 vs 38.9 | 77.2 vs 39.7 | G13 the reader wins |
+| "ring the hatched places", worth to the shark | 20.9 points | 21.3 | 22.0 | G14 at most 25 |
+| the same, worth to the quiet shark (reported) | 38.1 points | 36.9 | 37.4 | none |
 | fewest hidden lines in a debrief; stalls; unfilled slots; broken invariants | 7; 0; 0; 0 | 8; 0; 0; 0 | 8; 0; 0; 0 | G6 six; G7, G10 none |
-| **careful hand** (reported, not gated): treaty / war / frozen | 20.2 / 60.6 / 19.3 | 20.2 / 61.5 / 18.4 | 21.6 / 59.1 / 19.4 | none |
+| **careful hand** (reported, not gated): treaty / war / frozen | 27.8 / 52.4 / 19.8 | 27.3 / 53.8 / 18.9 | 29.2 / 51.9 / 18.9 | none |
 
-All fourteen gates pass on all three seed sets. Round 16's levers are in `ENGINE.md`: a provocation backed at the full
+All fourteen gates pass on all three seed sets. Round 17 (the third recheck's rulings) moved the numbers by two rules: a
+place is out of reach by the note's own reckoning (the weeks of orders it stood hatched, no route through a declared line,
+and never reachable once the week's note called it out of reach), and a place that falls out of reach fills its WAR box but
+costs nothing on the TREATY bar. Together they lift every treaty-seeking line by five to nine points (sensible 40.7 to 47.1 on
+T); the reckoning alone would have failed G4 (FROZEN 22.1%). G3's upper bound has 2.4 to 2.9 points of margin, G11's 3.5 to
+4.7. Round 16's levers stay: a provocation backed at the full
 price buys the pause only (no step down, no turn-away), believed at 70; a step up takes one tick off a running clock and
 never the last; a piece at a scared Federation's door holds a push back every week it stands there, and a pull-back from
 there is almost always accepted. The careful hand (withdraw the far inherited rings, walk a piece to the front, promise
@@ -307,19 +319,31 @@ beside it.
   in the same frame as the index card beside it (a layout effect), so a fall's WAR box and its red wash appear together.
 - The intel slip of the mock ("They think you'll back down. We are fairly sure.") is not on the week screen:
   it reads the Federation's mind, which the review ruled out, and the spec's screen has no place for it.
+- Left from the third recheck (minor, words or layout; none changes a rule): the closing card's "Backing a bluff bought you
+  nothing" does not name its week when the same place was a feint one week and real the next; a page can print "the silence
+  of a bluff" over a place where a real line was crossed that week; the TREATY card can list a place that saw "they turn
+  away" the same week; "By now they thought you would back down" can follow withdrawals rather than back-downs; a passive
+  game's closing card can carry a single lesson (no lesson is drawn from a declined SEND THEM); a way out's refusal names the
+  general reason ("nothing to talk about yet"), not the place; the same false alarm can ring in two weeks running; the score
+  has no scale line; a counter's spot on an island can differ from game to game, and the fleet at Driftholm can sit off its
+  island beside KELPMOUTH's name.
 - Not built, by the brief: sound (SOUND in the menu is a stored preference), the cabinet draft, the Coalition
   and private warnings of `SPEC.md` v5.1, "a sea lane open" (lanes are always open), a hand-routed arrow path
   for long headings (the arrow is a gently curved pencil stroke, and a hop between neighbouring islands a bowed one).
 
-## Questions for the owner (open after the second recheck)
+## Questions for the owner (open after the third recheck)
 
 Each with the build's recommendation; none blocks a build. The balance questions of 0.8.1 (the provocation's belief and
 price, the FROZEN gate, the summit at the foot of the ladder) were decided by the rulings after the second recheck and are
-in `ENGINE.md`'s round 16.
+in `ENGINE.md`'s round 16; the out-of-reach fall, MASSING and influence by the rulings after the third recheck (round 17).
 
 1. **"Stands unanswered" is read as a place a piece could hold with one line-free move, whose clock has ticked.** Read
-   literally (any hatched place), nobody signs. Recommendation: keep; the tape now names the places, and the TREATY card
-   names the places they keep their forces at.
+   literally (any hatched place), nobody signs. A solid ring they believe answers a place; a provocation ring they do not
+   yet believe does not (the cold recheck saw "No treaty · two places unanswered" over two such rings). The word is not
+   defined on screen: HOW TO PLAY holds at most eight lines of at most 36 words (the schema), all eight are used, and the
+   definition did not fit. Recommendation: keep the rule, and allow a ninth HOW TO PLAY line ("Unanswered: hatched a week,
+   nothing of yours holding it, a piece a move away"); that needs the schema's maximum raised and the card's type set a
+   little smaller, since the eight lines already fill it to within about 30 px of the tape at 390 x 844.
 2. **A far promise offered up as A WAY OUT the first time is paid for and refused, not dimmed**: dimming it before the
    first refusal would say which alliance line is real. Once refused ("a small thing") it is dimmed with those words.
    Recommendation: keep.
@@ -337,19 +361,57 @@ in `ENGINE.md`'s round 16.
    confident and sometimes wrong, in character. Recommendation: keep.
 9. **The places a bar at 100 did not sign over are named on the tape but not marked on the sheet** beyond their hatching.
    Recommendation: keep; a second mark on a hatched place would crowd the Scatter, and the tape line names them.
-10. **Which shark "about 25 points" applies to.** G14 gates the plain shark: ringing the hatched places is worth it 17.6 /
-    18.1 / 19.8 points on seeds R / S / T. For the quiet shark (no way out of its own) the same rule is worth 29.8 / 29.4 /
-    31.7 points; that is reported, not gated. Recommendation: accept it; without a way out, ringing the hatched places is
+10. **Which shark "about 25 points" applies to.** G14 gates the plain shark: ringing the hatched places is worth it 20.9 /
+    21.3 / 22.0 points on seeds R / S / T. For the quiet shark (no way out of its own) the same rule is worth 38.1 / 36.9 /
+    37.4 points since the third recheck's bar ruling (29.4 to 31.7 before); that is reported, not gated. The niche recheck's
+    own bot family confirms it (a summit-only-when-it-signs line: 35.5 against 9.7 without the rings on R). Recommendation: accept it; without a way out, ringing the hatched places is
     how that player answers them. If it must be 25, the levers left are a cheaper summit, or letting a provocation draw a
     feint in some weeks.
 11. **The tape after a ring that came too late.** A ring drawn on a place at its last tick while another test has the week
     says "too late to pause it" on its slip before you pay, and the debrief says "Your ring at X came too late"; the tape
     still says "X taken unanswered · now STEP" of a place promised that week (17 of 1,200 bot games on seeds T).
     Recommendation: leave it; the ring did not answer the place and the step is real. If it should change, a headline such
-    as "X taken · your ring came too late · now {step}" fits the 46 characters.
+    as "X taken · your ring came too late · now {step}" fits the 46 characters. The niche recheck found the same tape line for
+    a provocation ring drawn a week earlier, not yet believed, that falls with no call while another test has the week
+    (sensible: 4 of 1,000 games on seeds T); the same headline would serve both.
 12. **A way out taken in a week they took one place.** The rule refuses outright only at two places gained that week (one
     halves the chance, `RULES.wayOut.gainedRefuse` 2, `gainedScale` 0.5); in such a week the debrief's reason is "they
     wanted to stop while they were ahead", which is true of the place just taken (the niche recheck's scan flagged 118 of
     3,000 games because it counted only earlier weeks; 172 of 733 such reasons on seeds T follow a fall the same week and
     none follows nothing taken at all). Recommendation: keep; SPEC-SMALL says "accepted less while" they are winning, not
     never.
+13. **Influence at income 6 and 7** (the third recheck's ruling: numbers, nothing changed; 2,000 games per bot, R / S / T;
+    `ENGINE.md` "Round 17 in detail"). Every gate passes at 6, 7 and 8.
+
+    | income | sensible treaty (frozen) | careful hand treaty (a solid test it could not afford) | shark | quiet shark | ring rule (shark) |
+    | --- | --- | --- | --- | --- | --- |
+    | 8 (as built) | 47.6 / 47.3 / 47.1 (14.8 / 15.0 / 16.6) | 27.8 / 27.3 / 29.2 (0.4 / 0.4 / 0.5%) | 36.0 / 36.8 / 36.0 | 51.5 / 50.9 / 50.3 | 20.9 / 21.3 / 22.0 |
+    | 7 | 42.5 / 43.4 / 42.9 (14.4 / 14.1 / 15.0) | 26.7 / 26.9 / 28.1 (1.6 / 1.4 / 1.7%) | 28.8 / 30.1 / 28.8 | 47.4 / 46.9 / 46.7 | 15.3 / 16.2 / 15.3 |
+    | 6 | 40.4 / 41.1 / 39.3 (11.8 / 11.6 / 12.3) | 25.1 / 24.4 / 25.8 (4.5 / 3.8 / 4.3%) | 19.8 / 20.2 / 21.3 | 41.9 / 41.4 / 41.4 | 7.1 / 6.7 / 8.6 |
+
+    The niche recheck measured influence piling up for most lines (20 or more unspent at both ends of 81 to 87% of weeks for
+    the careful, quiet-shark and door-reading lines; a reserve of 0, 6 or 12 moved its bot's treaty share by under a point).
+    A lower income hits the plain shark hardest and shrinks the ring rule's worth (it can no longer pay for the calls its
+    rings draw), and the careful hand least. Recommendation: keep 8 and say in HOW TO PLAY that influence is for the calls,
+    the summit and the provocation; if influence should bind every week, 7 keeps every line within its gate and puts the ring
+    rule at 15 to 16 points.
+14. **"Out of reach" is judged by the note at the week's start, before orders.** In the cold recheck's FKM-7SB week 10 the
+    note said Marram could still be reached; the player moved the fleet to Driftholm instead, the note then said "Marram falls
+    this week; nothing of ours can reach it now", and Marram fell "taken unanswered", with its step and its cost on the bar.
+    Read literally ("a place the note called out of reach in any week"), any move away would make that fall free of both,
+    which empties the step for unanswered falls. Recommendation: keep the week-start reading; the note's "now" says it is
+    true of the orders as given. Not simulated.
+15. **An out-of-reach fall still stops the signing that week** ("At 100 they sign, if no place fell this week"); the tape says
+    "No treaty · they took a place this week" and the closing card names the first week the bar stood at 100. Not
+    simulated. Recommendation: keep; they do not sign in a week they are winning.
+16. **"At their door" on the MOVE HERE slip.** HOW TO PLAY now says a piece at their door slows a nervous Federation and
+    provokes a bold one, and the tape names the cause ("Provoked by us at Driftholm · now PUSHING"); the MOVE HERE slip does
+    not yet say a place is at their door (the cold recheck's suggestion). Recommendation: add it (the engine already exports
+    the door places, `NEAR_CAP`; it needs one `act` string and one slip line).
+17. **A summit they are certain to refuse.** When the places falling out of reach this week already reach the outright
+    refusal (`RULES.wayOut.gainedRefuse`, two), A SUMMIT is still offered undimmed; a step down from this week's call can
+    lengthen a clock, so it is not certain from the screen. The form now keeps their last answer with its week. Recommendation:
+    leave it; if wanted, the engine can export the fixed refusals (too early, too soon, two places already lost beyond a
+    step's reach) and the form dims the term with "why stop while we are winning".
+18. **The title screen's tape** shows the sample world's three declared lines, which differ from the game PLAY then deals.
+    Recommendation: show the title's tape without pinned lines, with two decorative lines from a new `title.tape` list.

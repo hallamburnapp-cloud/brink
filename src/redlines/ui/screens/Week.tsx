@@ -12,7 +12,7 @@ import { Calendar, IndexCard, Note, PencilUnderline, Tape } from '../paper';
 import { seedOf } from '../paper/rand';
 import { armRegion, cancelAct, doPromise, doWithdraw, holdEnd, holdStart, moveTo, openMenu, openWayOut, sendOrders, skipPlayback, tapSheet } from '../app/actions';
 import { blocOf, content, holdable, kindMoves, pieceOf, promiseAt, regionName, RULES, type PieceKind, type RegionId } from '../app/engine';
-import { moveWarnings, promiseWarnings, tryMove, withdrawCostLine, withdrawWarnings } from '../app/orders';
+import { moveHintFor, moveWarnings, promiseWarnings, tryMove, withdrawCostLine, withdrawWarnings } from '../app/orders';
 import { slipTakes } from '../app/armed';
 import { HoldGesture } from '../app/gesture';
 import { toFramePoint } from '../app/layout';
@@ -187,8 +187,9 @@ const ASK_W = 236;
 
 /**
  * The slip beside a lifted counter: MOVE, the cost, CANCEL; the places it can reach are pencilled round on the
- * sheet. A tap on a place it can reach moves it, unless the move would cross a declared line or leave a ring
- * dashed: then the MOVE HERE slip is put down at that place and says so before anything is paid.
+ * sheet. A tap on a place it can reach puts the MOVE HERE slip down at that place, with the price and anything the
+ * move would cross, leave dashed or leave to fall; nothing is paid until MOVE HERE. A piece that has moved this week
+ * says so on its slip (one move a week) instead of asking for a place it cannot go to.
  */
 function MoveSlip(): JSX.Element | null {
   const kind = lifted.value;
@@ -200,7 +201,9 @@ function MoveSlip(): JSX.Element | null {
   const ask = moveAsk.value?.kind === kind ? moveAsk.value : null;
   if (ask) {
     const warns = moveWarnings(tryMove(s, kind, ask.region));
-    const pos = slipPlace(ask.region, ASK_W, 74 + 24 * warns.length, [piece.at]);
+    // The place it asks about stays in sight beside the slip (round B: at Gullrest the slip, pushed off the sheet's edge,
+    // was drawn over the place and its name), and so does the counter's own place.
+    const pos = slipPlace(ask.region, ASK_W, 74 + 24 * warns.length, [piece.at, ask.region]);
     return (
       <div class="rl-slip rl-move rl-ask pp-obj pp-ty" style={{ left: `${pos.left}px`, top: `${pos.top}px`, width: `${ASK_W}px` }}>
         <div class="hd">
@@ -223,8 +226,11 @@ function MoveSlip(): JSX.Element | null {
     );
   }
   // The slip leaves every place the counter could move to clear for the tap that moves it (or is refused: one move a week).
+  // A piece that has moved this week says so on its slip, with no price; its slip still leaves its neighbours clear, so a
+  // tap on one is heard (and refused in the content's words) rather than taken by CANCEL.
+  const moved = s.moved.includes(kind);
   const pos = slipPlace(piece.at, MOVE_W, MOVE_H, kindMoves(kind, piece.at, pieceOf(s, 'fleet')?.at ?? null));
-  const hint = S.act.moveHint;
+  const hint = moveHintFor(s, kind);
   return (
     // The slip lets a tap through to the sheet under it (a place it covers can still be tapped); CANCEL takes taps, and
     // the MOVE word is inert (a tap on it once fell through to a refusal: the second review).
@@ -236,7 +242,7 @@ function MoveSlip(): JSX.Element | null {
         </button>
       </div>
       <div class="w rl-inert">{S.act.move}</div>
-      <div class="c">{S.act.moveCost}</div>
+      {!moved && <div class="c">{S.act.moveCost}</div>}
       <div class="c rl-hint">{hint}</div>
     </div>
   );

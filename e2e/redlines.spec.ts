@@ -483,7 +483,30 @@ test('a promise by tap-and-hold (solid, WE DEFEND), a withdraw, a counter moved,
     const clear = c.x < slipBox.x0 - 10 || c.x > slipBox.x1 + 10 || c.y < slipBox.y0 - 10 || c.y > slipBox.y1 + 10;
     expect(clear, `${r} under the MOVE slip`).toBe(true);
   }
+  // Round B: every move asks MOVE HERE first, warned or not; nothing is paid until MOVE HERE, and the place it asks
+  // about stays in sight beside the slip.
   await tapPlace(page, 'VSY');
+  const ask = page.locator('.rl-slip.rl-ask');
+  await expect(ask.getByRole('button', { name: S.act.moveHere })).toBeVisible();
+  await expect(ask.locator('.c').first()).toHaveText(S.act.moveCost);
+  await expect(ask.locator('.rl-warn')).toHaveCount(0);
+  expect((await state(page)).influence).toBe(before.influence);
+  const askBox = await frameBox(page, '.rl-slip.rl-ask');
+  const vsy = (await page.evaluate((id) => window.__redlines!.centre(id), 'VSY'))!;
+  expect(vsy.x < askBox.x0 || vsy.x > askBox.x1 || vsy.y < askBox.y0 || vsy.y > askBox.y1, 'Vessary under its MOVE HERE slip').toBe(true);
+  // CANCEL takes a thumb: 44 px tall or more round the small typed word (elementFromPoint up and down its middle).
+  const cancelTall = await page.evaluate(() => {
+    const sel = '.rl-slip.rl-ask .rl-x';
+    const b = document.querySelector(sel)!.getBoundingClientRect();
+    const cx = b.left + b.width / 2, cy = b.top + b.height / 2;
+    const hits = (y: number) => !!document.elementFromPoint(cx, y)?.closest(sel);
+    let up = 0, down = 0;
+    while (hits(cy - up - 1) && up < 60) up++;
+    while (hits(cy + down + 1) && down < 60) down++;
+    return up + down + 1;
+  });
+  expect(cancelTall).toBeGreaterThanOrEqual(44);
+  await ask.getByRole('button', { name: S.act.moveHere }).tap();
   await expect(slip(page)).toHaveCount(0);
   await expect(page.locator('.pp-l-hold [data-key^="reach:"]')).toHaveCount(0);
   s = await state(page);
@@ -494,6 +517,9 @@ test('a promise by tap-and-hold (solid, WE DEFEND), a withdraw, a counter moved,
   await page.waitForTimeout(600);
   await tapCounter(page, 'brigade');
   await expect(page.locator('.pp-piece[data-kind="brigade"]')).toHaveClass(/pp-lift/);
+  // Its slip says so instead of asking for a place (round B), and nothing is pencilled round.
+  await expect(slip(page).locator('.c.rl-hint')).toHaveText(S.refusals['moved-already']);
+  await expect(page.locator('.pp-l-hold [data-key^="reach:"]')).toHaveCount(0);
   // Quillon, a place the brigade could reach, is clear of the MOVE slip by construction; one move a week is refused before reach is looked at.
   await tapPlace(page, 'QLN');
   await expect(page.locator('.rl-refusal')).toHaveText(S.refusals['moved-already']);
@@ -590,6 +616,8 @@ test('A WAY OUT: the typed form with the three terms and their prices; one offer
   const form = page.getByRole('dialog', { name: S.words.wayOut });
   await expect(form).toBeVisible();
   await expect(form.locator('.ln')).toHaveText(S.act.wayOutIntro);
+  // No way out offered yet: no answer is kept on the form.
+  await expect(form.locator('.rl-answer')).toHaveCount(0);
   for (const term of ['drop-promise', 'pull-back', 'summit'] as const) await expect(form.getByRole('button', { name: new RegExp(`^${S.act.termLabels[term]}`) })).toBeVisible();
   await expect(form.getByRole('button', { name: new RegExp(`^${S.act.termLabels.summit}`) })).toContainText(`costs ${RULES.wayOutPrice.summit} influence`);
   await expect(form.getByRole('button', { name: new RegExp(`^${S.act.termLabels['pull-back']}`) })).toContainText(`costs ${RULES.wayOutPrice['pull-back']} influence`);
@@ -630,6 +658,20 @@ test('A WAY OUT: the typed form with the three terms and their prices; one offer
   await expect(wayOut).toContainText(S.act.termLabels['pull-back']);
   await expect(wayOut).toContainText(S.act.wayOutOffered);
   await expect(wayOut).toBeDisabled();
+  // Round B: once the week has played out, their answer stays on the form with its week, in the tape's own words.
+  const asked = (await state(page)).week;
+  let after = await sendOrders(page);
+  while (after.phase === 'phone') after = await answer(page, after.phone!.options.some((o) => o.key === 'down') ? 'down' : after.phone!.options[0].key);
+  if (after.phase === 'act') {
+    const told = after.log.find((l) => l.week === asked)!;
+    const lines = told.visible.filter((_, i) => ['wayOutAccepted', 'wayOutRefused', 'wayOutRefusedWhy'].includes(told.beats?.[i]?.kind ?? ''));
+    expect(lines.length).toBeGreaterThan(0);
+    await page.getByRole('button', { name: new RegExp(`^${S.words.wayOut}`) }).tap();
+    const kept = form.locator('.rl-answer');
+    await expect(kept).toContainText(`${S.words.week} ${asked} · ${lines[0]}`);
+    for (const line of lines.slice(1)) await expect(kept).toContainText(line);
+    await form.getByRole('button', { name: S.act.cancel }).tap();
+  }
 });
 
 test('said before you pay: MOVE HERE names the place a move leaves to fall; a ring at a last tick is a call, or too late; a provocation costs the full price and buys the pause only', async ({ page }) => {

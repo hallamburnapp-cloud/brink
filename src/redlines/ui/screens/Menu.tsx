@@ -8,7 +8,7 @@ import { Paperclip, PencilUnderline } from '../paper';
 import { seedOf } from '../paper/rand';
 import { closeSheet, howToPlay, newGameNow, offer, quitToTitle, toggleSound } from '../app/actions';
 import { content, regionName, RULES, type WayOutTerm } from '../app/engine';
-import { pullable, wayOutBlock } from '../app/orders';
+import { lastWayOutAnswer, pullable, wayOutBlock } from '../app/orders';
 import { prefs, run, sheet, shown, wayOutTerm } from '../app/store';
 import { termLine } from '../app/words';
 import { HowToPlay } from './HowToPlay';
@@ -107,11 +107,20 @@ function WayOutForm(): JSX.Element | null {
   const s = shown.value;
   if (!s) return null;
   const open = wayOutTerm.value;
+  // Their last answer stays on the form, with its week, in the tape's own words.
+  const last = lastWayOutAnswer(s);
   return (
     <div class="rl-card rl-form pp-obj pp-ty" role="dialog" aria-label={S.words.wayOut}>
       <Paperclip />
       <div class="rl-head">{S.words.wayOut}</div>
       <div class="ln">{S.act.wayOutIntro}</div>
+      {last && (
+        <div class="rl-answer" data-week={last.week}>
+          {last.lines.map((line, i) => (
+            <div key={i}>{i === 0 ? `${S.words.week} ${last.week} · ${line}` : line}</div>
+          ))}
+        </div>
+      )}
       {TERMS.map((term) => {
         const price = RULES.wayOutPrice[term];
         const line = termLine(S, term, price, null);

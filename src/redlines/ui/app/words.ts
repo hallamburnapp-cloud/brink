@@ -120,7 +120,7 @@ export function eveEndsGame(s: GameState): boolean {
 /**
  * The note on the eve of a fall (SPEC-SMALL "the note on the eve of a fall that would end the game says so"):
  * "Shoal falls this week unless something of ours reaches it." for the places a piece of ours could still answer this
- * week, "Tallowmere falls this week; nothing of ours can reach it." for the rest (the second recheck: the note offered an
+ * week, "Tallowmere falls this week; nothing of ours can reach it now." for the rest (the second recheck: the note offered an
  * answer that did not exist), and "That would be world war." when the falls, with the spread that follows them, would
  * fill the eighth box; when the spread alone would, it says so ("The fighting will spread when the week ends. That would
  * be world war.").

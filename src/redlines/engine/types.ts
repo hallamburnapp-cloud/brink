@@ -84,6 +84,14 @@ export interface RegionRec {
   /** Beyond BUILD.md: whether something of yours could have reached it when it fell (a fall out of reach climbs no step; the tape says so). */
   fellReach?: boolean;
   /**
+   * Beyond BUILD.md (SPEC-SMALL "An out-of-reach fall is war, not a failure": the reckoning is checked against the note):
+   * set at the start of a week whose note called this place out of reach (it falls this week and no piece could answer it
+   * with the move it had), and kept while it stands hatched. Such a place is never counted as reachable when it falls.
+   */
+  noteFar?: boolean;
+  /** Beyond BUILD.md: the week whose note, at its start, said this place falls "unless something of ours reaches it" (a piece could). */
+  noteNear?: number;
+  /**
    * Beyond BUILD.md (SPEC-SMALL "The ladder is not a cliff, at any rung"): the length of this place's fall clock, in weeks,
    * set when it is pressed (the step's clock then) and moved at most one tick by each step of the ladder while it runs. It
    * falls when `pressedWeeks` reaches it. Missing in an old save: the clock of the step the week started at.
@@ -282,5 +290,7 @@ export interface Tally {
   smallThings?: RegionId[];
   /** Whether the debrief has said the timetable's two real arrows once (it is said once a game). */
   timetableSaid?: boolean;
+  /** The plain "both arrows were real" line, said once a game too (the third recheck: it printed on four pages of five). */
+  bothRealSaid?: boolean;
 }
 export type Result = { ok: true; state: GameState } | { ok: false; reason: string };

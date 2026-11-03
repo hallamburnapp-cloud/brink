@@ -3,7 +3,8 @@
 content of index.html without the document skeleton, plus a files map of every asset the page loads.
 
 usage: npm run build:redlines-page && python3 tools/redlines-page.py dist-redlines-page <out dir>
-Writes <out dir>/red-lines.html and <out dir>/files.json ({published path: source path}).
+Writes <out dir>/red-lines.html and <out dir>/files.json ({published path: source path}). Each font goes with its
+licence text (redlines/fonts/*.txt); a font without one stops the pack.
 """
 import json, re, sys
 from pathlib import Path
@@ -37,5 +38,12 @@ for f in sorted(dist.rglob("*")):
     # public/ is shared by the games; the war room's fonts (war/) are not this page's.
     if f.is_file() and rel not in skip and not rel.startswith("workbox-") and not rel.startswith("war/") and not rel.endswith(".map") and not rel.endswith(".md") and rel != "manifest.webmanifest":
         files[rel] = str(f)
+# The self-hosted fonts ship with their licence texts (Special Elite: Apache 2.0; Caveat and Gelasio: SIL OFL 1.1).
+LICENCES = {"SpecialElite-400.woff2": "LICENSE-SpecialElite.txt", "Caveat-variable.woff2": "OFL-Caveat.txt", "Gelasio-variable.woff2": "OFL-Gelasio.txt"}
+for rel in [r for r in files if r.startswith("redlines/fonts/") and r.endswith(".woff2")]:
+    face = rel.rsplit("/", 1)[1]
+    lic = f"redlines/fonts/{LICENCES.get(face, '?')}"
+    if lic not in files:
+        sys.exit(f"{rel} has no licence beside it ({lic}): add it to public/redlines/fonts/ and LICENCES here")
 (out / "files.json").write_text(json.dumps(files, indent=1))
 print(f"page {len(page)} bytes, {len(files)} files, {sum(Path(p).stat().st_size for p in files.values()) // 1024} KB")

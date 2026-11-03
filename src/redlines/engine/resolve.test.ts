@@ -248,7 +248,9 @@ describe('places', () => {
     expect(s.log[2].visible).toContain('Tallowmere was out of reach. They are still TESTING.');
     expect(s.log[2].visible.some((v) => v.includes('nobody came'))).toBe(false);
     expect(s.log[2].hidden.some((h) => h.includes('Nothing of yours could reach Tallowmere'))).toBe(true);
-    expect(s.log[2].danger.treaty).toBeLessThan(s.log[1].danger.treaty);
+    // SPEC-SMALL "An out-of-reach fall is war, not a failure": it fills its WAR box but costs nothing on the bar (and the
+    // week is not a quiet week: they gained a place).
+    expect(s.log[2].danger.treaty).toBe(s.log[1].danger.treaty);
     expect(s.tally!.outOfReach).toBe(1);
   });
   it('a pressed place something of yours could have reached falls with one step up that names it', () => {
@@ -270,8 +272,10 @@ describe('places', () => {
       { kind: 'fleet', at: 'TRN' },
       { kind: 'brigade', at: 'EDV' },
     ];
-    // Kelpmouth is four fleet moves from Tern Isle (Lantern Key, Shoal, Lintel, then alongside): three weeks pressed and a week's warning.
+    // Kelpmouth is three fleet moves from holding it from Tern Isle: three weeks of orders reach it, two do not (round 17:
+    // the arrow's week of warning no longer counts as a move the player had).
     expect(couldHaveReached(s, 'KLP', 3)).toBe(true);
+    expect(couldHaveReached(s, 'KLP', 2)).toBe(false);
     expect(couldHaveReached(s, 'KLP', 1)).toBe(false);
     // Brackwater is inland: no piece can ever get there.
     expect(couldHaveReached(s, 'BRK', 8)).toBe(false);
@@ -483,7 +487,8 @@ describe('a way out', () => {
     expect(n.log[0].visible.some((v) => v.startsWith('Wintermast refused the way out'))).toBe(true);
     // SPEC-SMALL: a refused way out costs nothing on the bar; the tape prints their reason.
     expect(n.log[0].visible).toContain("Wintermast: 'why stop while we are winning'");
-    expect(n.treaty).toBe(before - RULES.willPerGain * 2);
+    // Tallowmere and Dunmarrow fell out of reach: nothing on the bar for them either (SPEC-SMALL, the third recheck).
+    expect(n.treaty).toBe(before);
     expect(n.log[0].hidden.some((h) => h.includes('still gaining'))).toBe(true);
   });
   it('a far promise cannot be sold: a dropped promise moves them only when it is within their reach or under test', () => {
@@ -583,14 +588,24 @@ describe('the bars and the endings', () => {
     expect(h.regions.VSY.state).toBe('pressed');
     expect(h.treaty).toBe(RULES.willStart + RULES.willQuiet);
     expect(h.log[0].visible).toContain('A quiet week. They gained nothing.');
-    // A place taken: −5 and no quiet week.
+    // A place taken that something of ours could reach: −5 and no quiet week.
     const taken = staged(quiet);
-    taken.regions.TLM = { state: 'pressed', pressedWeeks: 2, quietWeeks: 0 };
+    taken.regions.VSY = { state: 'pressed', pressedWeeks: 2, quietWeeks: 0 };
     let t = endWeek(c, taken);
     while (t.phase === 'phone') t = answerPhone(c, t, 'down');
-    expect(t.regions.TLM.state).toBe('fighting');
+    expect(t.regions.VSY.state).toBe('fighting');
+    expect(t.regions.VSY.fellReach).toBe(true);
     expect(t.treaty).toBe(RULES.willStart - RULES.willPerGain);
     expect(t.log[0].visible.some((v) => v.startsWith('A quiet week'))).toBe(false);
+    // One out of reach (Tallowmere, inland in the Sound): its WAR box, nothing on the bar, and still no quiet week.
+    const far = staged(quiet);
+    far.regions.TLM = { state: 'pressed', pressedWeeks: 2, quietWeeks: 0 };
+    let f = endWeek(c, far);
+    while (f.phase === 'phone') f = answerPhone(c, f, 'down');
+    expect(f.regions.TLM.state).toBe('fighting');
+    expect(f.war).toBe(1);
+    expect(f.treaty).toBe(RULES.willStart);
+    expect(f.log[0].visible.some((v) => v.startsWith('A quiet week'))).toBe(false);
   });
   it('their summit refused is the one humiliation: −10; accepted it is a way out', () => {
     const s = staged(quiet);

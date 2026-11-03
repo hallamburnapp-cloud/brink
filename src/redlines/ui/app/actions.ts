@@ -26,7 +26,7 @@ import {
 } from './engine';
 import { cancelPlayback, playResolve, skipPlayback } from './playback';
 import { clearSave, hasSave, readSave, writeSave } from './storage';
-import { moveNeedsAsk, tryMove } from './orders';
+import { tryMove } from './orders';
 import { armed, busy, debriefPage, explain, held, lifted, moveAsk, movedDashed, play as playing, prefs, refusal, run, saved, screen, setPrefs, sheet, shown, titleWorld, wayOutTerm, type ExplainStep } from './store';
 import { fill, randomSeed } from './words';
 
@@ -244,9 +244,11 @@ export function moveTo(kind: PieceKind, region: RegionId): boolean {
 }
 
 /**
- * Tap a counter, then a place. A move that would cross a declared line or leave a ring dashed is not paid for yet:
- * the MOVE HERE slip is put down at the place and says so first (SPEC-SMALL "A form that will fail says so before
- * you pay"); any other move is made at once, and one the engine refuses says why.
+ * Tap a counter, then a place. Nothing is paid yet: the MOVE HERE slip is put down at the place with the price and
+ * whatever the move would do (a declared line crossed, a ring left dashed, a place left to fall: SPEC-SMALL "A form
+ * that will fail says so before you pay"), and MOVE HERE makes it. Every move asks, warned or not (round B, the cold
+ * player: a tap to look moved the fleet at once and a move cannot be taken back, while a warned one asked first, so
+ * the same tap sometimes asked and sometimes acted). One the engine refuses says why.
  */
 export function askMove(kind: PieceKind, region: RegionId): void {
   const s = canAct();
@@ -257,11 +259,7 @@ export function askMove(kind: PieceKind, region: RegionId): void {
     refuse(o.reason as RefusalCode, o.reason === 'no-influence' ? needsLine(RULES.moveCost, s.influence) : undefined);
     return;
   }
-  if (moveNeedsAsk(o)) {
-    moveAsk.value = { kind, region };
-    return;
-  }
-  moveTo(kind, region);
+  moveAsk.value = { kind, region };
 }
 
 /**
