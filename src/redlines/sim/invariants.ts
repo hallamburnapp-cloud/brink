@@ -12,7 +12,7 @@ import type { GameState, LogBeat, RegionId } from '../engine/types.ts';
 /** The tape kinds that make a place fall (WAR +1). */
 export const FALL_KINDS: readonly string[] = ['fell', 'waitedFell', 'spread'];
 /** The tape kinds that step the ladder down, and so may quiet a place (the cause of a "Guns quiet at X"). */
-export const STEP_DOWN_KINDS: readonly string[] = ['backed', 'backedFar', 'backedDownEased', 'summitAccepted', 'wayOutAccepted'];
+export const STEP_DOWN_KINDS: readonly string[] = ['backed', 'backedFar', 'backedDownEased', 'summitAccepted', 'wayOutAccepted', 'easedStep'];
 /** The answers that lose a place (the cause of its "X has fallen" in the same week). */
 const LOSING_ANSWERS: readonly string[] = ['backedDown', 'backedDownEased', 'backFailed', 'bluffPulled'];
 /** The lines that end a game, always last. */
@@ -52,6 +52,9 @@ export function brokenInvariants(s: GameState): string[] {
         if (b.region) back.add(b.region);
       }
       if (b.kind === 'calmed' && b.region && fell.has(b.region)) at(`${b.region} fell and was calm again in the same week`);
+      // A step down is said on its own line, right after its cause, and the stamp eases on that line (the cold recheck).
+      if (b.kind === 'easedStep' && !(i > 0 && ['backed', 'backedFar', 'wayOutAccepted'].includes(beats[i - 1].kind) && beats[i - 1].step === b.step + 1)) at(`"${w.visible[i]}" not right after the backing or the way out that eased them`);
+      if (['backed', 'backedFar', 'wayOutAccepted'].includes(b.kind) && i > 0 && b.step < beats[i - 1].step) at(`"${w.visible[i]}" eases the stamp before its own line`);
       if (b.kind === 'lineCrossed' && !kinds.includes('lineCrossedAt')) at(`"${w.visible[i]}" before the line it names was crossed`);
       if (b.kind === 'takenStepUp' && !kinds.some((k) => k === 'fell' || k === 'waitedFell')) at(`"${w.visible[i]}" before any place fell`);
       if (b.kind === 'fellOutOfReach' && !before.some((x) => x.kind === 'fell' && x.region === b.region)) at(`"${w.visible[i]}" before the fall it explains`);

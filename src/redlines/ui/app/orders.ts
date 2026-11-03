@@ -6,12 +6,18 @@
  * canOfferWayOut, through the seam), so a slip says exactly what the engine will do. No DOM, no signals.
  */
 import {
+  backCost,
   canOfferWayOut,
   content,
+  holdable,
   isProvocation,
+  leavesToFall,
   linesCrossedByMove,
   linesCrossedByPromise,
   movePiece,
+  nearestHold,
+  netActs,
+  promiseTooLate,
   promiseWillRing,
   pullBackPieces,
   regionName,
@@ -22,7 +28,7 @@ import {
   type RegionId,
   type WayOutTerm,
 } from './engine';
-import { fill } from './words';
+import { dashedPriceLine, fill } from './words';
 
 export interface MoveOutcome {
   /** The move is allowed (else the engine's refusal code). */
@@ -32,18 +38,20 @@ export interface MoveOutcome {
   crossings: string[];
   /** The rings that are solid now and would be dashed after it. */
   dashed: RegionId[];
+  /** The pressed places it answers now that it would leave at their last tick (they fall this week). */
+  falls: RegionId[];
 }
 
 /** A move, asked of the engine before it is made: allowed or why not, the lines it would cross, the rings it would leave dashed. */
 export function tryMove(s: GameState, kind: PieceKind, region: RegionId): MoveOutcome {
   const res = movePiece(s, kind, region);
-  if (!res.ok) return { ok: false, reason: res.reason, crossings: [], dashed: [] };
-  return { ok: true, crossings: linesCrossedByMove(s, kind, region), dashed: ringsLeftDashed(s, kind, region) };
+  if (!res.ok) return { ok: false, reason: res.reason, crossings: [], dashed: [], falls: [] };
+  return { ok: true, crossings: linesCrossedByMove(s, kind, region), dashed: ringsLeftDashed(s, kind, region), falls: leavesToFall(s, kind, region) };
 }
 
-/** Whether a move needs the MOVE HERE slip first (it crosses a declared line or leaves a ring dashed). */
+/** Whether a move needs the MOVE HERE slip first (it crosses a declared line, leaves a ring dashed, or leaves a pressed place to fall this week). */
 export function moveNeedsAsk(o: MoveOutcome): boolean {
-  return o.ok && (o.crossings.length > 0 || o.dashed.length > 0);
+  return o.ok && (o.crossings.length > 0 || o.dashed.length > 0 || (o.falls ?? []).length > 0);
 }
 
 /** "crosses a line · Wintermast: no Republic forces in the Sound": the pack's act.crosses with the line's tape words. */
@@ -56,9 +64,14 @@ export function dashedLine(region: RegionId): string {
   return fill(content.strings.act.leavesDashed, { region: regionName(region) });
 }
 
-/** Every warning a move's MOVE HERE slip carries, in order: the lines it crosses, then the rings it leaves dashed. */
+/** "leaves Lantern Key to fall this week": the pack's act.leavesToFall (SPEC-SMALL "The note keeps its warning"). */
+export function fallsLine(region: RegionId): string {
+  return fill(content.strings.act.leavesToFall, { region: regionName(region) });
+}
+
+/** Every warning a move's MOVE HERE slip carries, in order: the lines it crosses, the rings it leaves dashed, the places it leaves to fall. */
 export function moveWarnings(o: MoveOutcome): string[] {
-  return [...o.crossings.map(crossingLine), ...o.dashed.map(dashedLine)];
+  return [...o.crossings.map(crossingLine), ...o.dashed.map(dashedLine), ...(o.falls ?? []).map(fallsLine)];
 }
 
 /**
@@ -67,10 +80,61 @@ export function moveWarnings(o: MoveOutcome): string[] {
  * no clock, and they test it unless they believe it).
  */
 export function promiseWarnings(s: GameState, region: RegionId): string[] {
+  const S = content.strings;
   const out = linesCrossedByPromise(s, region).map(crossingLine);
-  if (promiseWillRing(s, region)) out.push(content.strings.act.promiseCall);
-  if (isProvocation(s, region)) out.push(content.strings.act.promiseProvokes);
+  if (promiseWillRing(s, region)) out.push(S.act.promiseCall);
+  else if (promiseTooLate(s, region)) out.push(S.act.tooLate);
+  const provokes = isProvocation(s, region);
+  if (provokes) out.push(S.act.promiseProvokes);
+  // A dashed ring, or one drawn into their siege (backed at the full price whatever they believe): how far the nearest
+  // piece is from holding it, and what backing it will cost (the second recheck: the price was only seen once the phone rang).
+  const ringed: GameState = { ...s, promises: [...s.promises, { region, since: s.week, inherited: false, ...(provokes ? { provocation: true } : {}) }] };
+  const price = priceLine(ringed, region);
+  if (price) out.push(price);
   return out;
+}
+
+/**
+ * The price of keeping a ring, where the player decides whether to keep it (the PROMISE and WITHDRAW slips): for a
+ * dashed ring, how far the nearest piece is and what BACK IT will cost when they test it; for a ring drawn into their
+ * siege, the full price it is backed at. Null for a solid ring they would back at the usual price.
+ */
+export function priceLine(s: GameState, region: RegionId): string | null {
+  const dashed = !holdable(s, region).ok;
+  const provoked = !!s.promises.find((p) => p.region === region)?.provocation;
+  if (!dashed && !provoked) return null;
+  return dashedPriceLine(content.strings, dashed ? nearestHold(s, region) : null, backCost(s, region, 1));
+}
+
+/**
+ * A promise drawn this week and withdrawn before the orders are sent is no order at all (the engine's withdraw gives
+ * its 2 back and takes no belief): the WITHDRAW slip says so instead of "they'll believe us a little less".
+ */
+export function withdrawIsUndo(s: GameState, region: RegionId): boolean {
+  const p = s.promises.find((q) => q.region === region);
+  return !!p && !p.inherited && p.since === s.week && netActs(s.acts).some((a) => a.kind === 'promise' && a.region === region);
+}
+
+/**
+ * What the WITHDRAW slip warns of: a ring that will cross a declared line when the week resolves (an inherited ring on a
+ * place an alliance line covers: "keeping it crosses a line · Wintermast: no promises to the Scatter"), and what keeping
+ * a dashed ring will cost when they test it ("the fleet is 3 moves away · backing it costs 24").
+ */
+export function withdrawWarnings(s: GameState, region: RegionId): string[] {
+  const out = linesCrossedByPromise(s, region).map((line) => fill(content.strings.act.keepCrosses, { line }));
+  const price = priceLine(s, region);
+  if (price) out.push(price);
+  return out;
+}
+
+/**
+ * The WITHDRAW slip's cost line: quietly, at a little belief; or, for a ring drawn this week, the undo words
+ * (act.undoCost: no order has gone, and the engine gives the promise's price back).
+ */
+export function withdrawCostLine(s: GameState, region: RegionId): string {
+  const S = content.strings;
+  if (!withdrawIsUndo(s, region)) return S.act.withdrawCost;
+  return fill(S.act.undoCost, { cost: RULES.promiseCost });
 }
 
 /**

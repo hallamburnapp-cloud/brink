@@ -77,9 +77,15 @@ function fellAnswerable(s: GameState): boolean {
  * stood out. "No orders" is drawn only when a place fell that something of yours could have reached, counting only the
  * idle weeks in which an order could have answered a hatched place.
  */
-export function lessonsOf(c: RedlinesContent, s: GameState): string[] {
+export function lessonsOf(c: RedlinesContent, s: GameState, kind: EndingKind | null = s.ending?.kind ?? null): string[] {
   const T = tallyOf(s);
   const out: Array<[HiddenKind, Record<string, string>]> = [];
+  // SPEC-SMALL "a bar at 100 that did not sign is a lesson when it decided the game": first, in a game that was not a treaty.
+  if (T.noSign && kind !== 'treaty') {
+    const n = T.noSign;
+    if (n.taken) out.push(['lessonNoSignTaken', { week: String(n.week) }]);
+    else if (n.regions.length) out.push(['lessonNoSign', { week: String(n.week), region: listNames(n.regions) }]);
+  }
   if (T.feintsBacked > 0 && T.feintBackedFirst) out.push(['lessonFeintBacked', { region: regionName(T.feintBackedFirst) }]);
   const down = backDownLesson(s);
   if (down) out.push([down[0], { region: regionName(down[1]) }]);
@@ -89,9 +95,13 @@ export function lessonsOf(c: RedlinesContent, s: GameState): string[] {
   if (idle >= 2 && fellAnswerable(s)) out.push(['lessonNoOrders', { n: numberWord(c, idle) }]);
   else if (T.moves === 0 && s.week >= 4) out.push(['lessonNoMoves', {}]);
   if (T.testsDashed >= 2 && T.testsSolid === 0) out.push(['lessonDashedTested', {}]);
-  if (T.outOfReach > 0 && T.outOfReachFirst) out.push(['lessonOutOfReach', { region: regionName(T.outOfReachFirst) }]);
-  if (T.backed >= 2 && T.backedDown === 0 && T.feintsBacked === 0) out.push(['lessonKeptWord', {}]);
+  // SPEC-SMALL "A lesson answers something the player did or could see": a place out of reach is a lesson when the player
+  // had ringed it; one never touched only when nothing else happened.
+  if (T.outOfReachRinged) out.push(['lessonOutOfReach', { region: regionName(T.outOfReachRinged) }]);
+  // "By the end they believed you": only when they did (a provocation backed buys the pause, not their belief).
+  if (T.backed >= 2 && T.backedDown === 0 && T.feintsBacked === 0 && s.fed.belief >= RULES.beliefTest) out.push(['lessonKeptWord', {}]);
   if (T.stoppedThenTalked > 0) out.push(['lessonStoppedThenTalked', {}]);
+  if (!out.length && T.outOfReach > 0 && T.outOfReachFirst) out.push(['lessonOutOfReach', { region: regionName(T.outOfReachFirst) }]);
   return out
     .slice(0, MAX_LESSONS)
     .map(([kind, slots]) => cap(fill(c.debrief[kind]?.[0] ?? '', slots)))
@@ -109,14 +119,17 @@ export function endingOf(c: RedlinesContent, s: GameState, kind: EndingKind): En
   const score = scoreOf({ kind, week, fighting });
   const E = c.strings.endings;
   const dials = dialsLine(c, s.fed, tallyOf(s).jumpinessSeen);
-  const lessons = lessonsOf(c, s);
+  const lessons = lessonsOf(c, s, kind);
   if (kind === 'treaty') {
     const B = c.strings.because;
-    // SPEC-SMALL "Sentences are true": "they could not take X" only of a place backed on a real test that never fell after.
-    const held = s.lastBacked && s.regions[s.lastBacked]?.state !== 'fighting' ? regionName(s.lastBacked) : null;
-    let because = held && s.waysOut ? fill(B.heldAndWayOut, { region: held }) : held ? fill(B.held, { region: held }) : s.waysOut ? B.wayOut : B.quiet;
-    // SPEC-SMALL "The treaty is signed over a quiet map, or says what it leaves": the places still hatched at the signing.
+    // SPEC-SMALL "Sentences are true": "they could not take X" only of a place backed on a real test that never fell after,
+    // and not of one they still press at the signing (the card names it among the places they keep their forces at).
     const pressed = pressedRegions(s);
+    const held = s.lastBacked && s.regions[s.lastBacked]?.state === 'calm' ? regionName(s.lastBacked) : null;
+    // "Nothing cheap was left to take" only over a map with nothing hatched; with places still pressed, they had stopped gaining.
+    const quiet = pressed.length ? B.stalled : B.quiet;
+    let because = held && s.waysOut ? fill(B.heldAndWayOut, { region: held }) : held ? fill(B.held, { region: held }) : s.waysOut ? B.wayOut : quiet;
+    // SPEC-SMALL "The treaty is signed over a quiet map, or says what it leaves": the places still hatched at the signing.
     if (pressed.length) because = `${because} ${fill(B.leaves, { places: listNames(pressed) })}`;
     return { kind, week, fighting, score, lines: [fill(E.treaty[0], { week, fighting: fightingPhrase(c, fighting) }), fill(E.treaty[1], { because })], because, dials, lessons };
   }
@@ -125,7 +138,10 @@ export function endingOf(c: RedlinesContent, s: GameState, kind: EndingKind): En
     return { kind, week, fighting, score, lines: [fill(E.frozen[0], { week }), fill(E.frozen[1], { fighting: because })], because, dials, lessons };
   }
   const region = firstFallen(s);
-  const cause = c.strings.causes[(region && s.regions[region].fellBy) || 'unanswered'];
+  // A first fall nothing of ours could reach is said as one (the tape said "out of reach"), never "while nobody answered".
+  const rec = region ? s.regions[region] : null;
+  const by = (rec && rec.fellBy) || 'unanswered';
+  const cause = c.strings.causes[by === 'unanswered' && rec && rec.fellReach === false ? 'out-of-reach' : by];
   return {
     kind,
     week,

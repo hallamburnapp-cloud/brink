@@ -16,6 +16,7 @@ import {
   offerWayOut,
   promise,
   promiseAt,
+  RULES,
   withdraw,
   type GameState,
   type PieceKind,
@@ -27,7 +28,7 @@ import { cancelPlayback, playResolve, skipPlayback } from './playback';
 import { clearSave, hasSave, readSave, writeSave } from './storage';
 import { moveNeedsAsk, tryMove } from './orders';
 import { armed, busy, debriefPage, explain, held, lifted, moveAsk, movedDashed, play as playing, prefs, refusal, run, saved, screen, setPrefs, sheet, shown, titleWorld, wayOutTerm, type ExplainStep } from './store';
-import { randomSeed } from './words';
+import { fill, randomSeed } from './words';
 
 export { cancelPlayback, randomSeed, skipPlayback };
 
@@ -168,7 +169,14 @@ export function armRegion(region: RegionId): void {
     return;
   }
   const can = canPromise(s, region);
-  armed.value = can.ok ? { region, act: 'promise' } : { region, act: 'refused', reason: R[can.reason ?? 'not-this-phase'] };
+  // Short of influence, the slip gives the numbers, as the call and the way-out form do ("needs 2 · you have 1").
+  const why = can.reason === 'no-influence' ? needsLine(RULES.promiseCost, s.influence) : R[can.reason ?? 'not-this-phase'];
+  armed.value = can.ok ? { region, act: 'promise' } : { region, act: 'refused', reason: why };
+}
+
+/** "needs 3 · you have 1": the call's own words for a price the influence in hand cannot meet. */
+function needsLine(cost: number, influence: number): string {
+  return fill(content.strings.phone.needs, { cost, influence });
 }
 
 /** Put the slip away, put the counter down. */
@@ -181,9 +189,9 @@ let refusalKey = 0;
 let refusalTimer: ReturnType<typeof setTimeout> | null = null;
 export const REFUSAL_MS = 2400;
 
-/** A refused order, in the content's words, on a slip for a moment. */
-export function refuse(code: RefusalCode): void {
-  refusal.value = { text: content.strings.refusals[code], key: ++refusalKey };
+/** A refused order, in the content's words, on a slip for a moment (a price short of influence gives its numbers). */
+export function refuse(code: RefusalCode, text?: string): void {
+  refusal.value = { text: text ?? content.strings.refusals[code], key: ++refusalKey };
   if (refusalTimer) clearTimeout(refusalTimer);
   refusalTimer = setTimeout(() => {
     refusal.value = null;
@@ -246,7 +254,7 @@ export function askMove(kind: PieceKind, region: RegionId): void {
   const o = tryMove(s, kind, region);
   if (!o.ok) {
     moveAsk.value = null;
-    refuse(o.reason as RefusalCode);
+    refuse(o.reason as RefusalCode, o.reason === 'no-influence' ? needsLine(RULES.moveCost, s.influence) : undefined);
     return;
   }
   if (moveNeedsAsk(o)) {

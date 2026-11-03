@@ -1,7 +1,7 @@
 /** The simulator's printed tables (plain text or Markdown). */
 import { RULES } from '../engine/rules.ts';
 import type { BotName } from './bots.ts';
-import type { BotStats, Gate } from './gates.ts';
+import { ablations, type BotStats, type Gate } from './gates.ts';
 import { pct, share } from './stats.ts';
 
 export type Format = 'text' | 'md';
@@ -83,5 +83,12 @@ export function invariantsLine(stats: Partial<Record<BotName, BotStats>>): strin
   const games = all.reduce((a, x) => a + x.games, 0);
   const broken = all.reduce((a, x) => a + x.broken, 0);
   const first = all.find((x) => x.brokenFirst)?.brokenFirst;
-  return broken ? `${broken} broken in ${games.toLocaleString('en-GB')} games; the first: ${first}` : `none broken in ${games.toLocaleString('en-GB')} games (cause before effect, no place falls and recovers in a week, WAR beside every line, the clock against the real fall)`;
+  return broken ? `${broken} broken in ${games.toLocaleString('en-GB')} games; the first: ${first}` : `none broken in ${games.toLocaleString('en-GB')} games (cause before effect, no place falls and recovers in a week, WAR beside every line, the clock against the real fall, no turn-away after a feint or a provocation)`;
+}
+
+/** What one rule is worth to the strongest players, by ablation (gates.ts `ablations`): reported beside the gates. */
+export function ablationsTable(stats: Partial<Record<BotName, BotStats>>, fmt: Format): string {
+  const rows = ablations(stats);
+  if (!rows.length) return '';
+  return table([['the rule', 'with', 'without', 'worth (points of treaty share)'], ...rows.map((r) => [r.what, r.with, r.without, f1(r.points)])], fmt);
 }

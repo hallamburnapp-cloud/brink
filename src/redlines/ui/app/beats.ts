@@ -71,7 +71,7 @@ export function newFacts(before: GameState, after: GameState): LogBeat[] | null 
  */
 export const STEP_UP: ReadonlySet<HeadlineKind> = new Set<HeadlineKind>(['lineCrossed', 'takenStepUp', 'jumpy', 'accident', 'backedDown']);
 export const STEP_DOWN: ReadonlySet<HeadlineKind> = new Set<HeadlineKind>(['wayOutAccepted', 'summitAccepted', 'backedDownEased']);
-/** Kinds that may move the ladder down (a backed promise that was not a feint). */
+/** Kinds that may move the ladder down (a backed promise that was not a feint, nor a provocation's pause). */
 const STEP_MAYBE_DOWN: ReadonlySet<HeadlineKind> = new Set<HeadlineKind>(['backed', 'backedFar']);
 /**
  * The TREATY bar's movers (SPEC-SMALL "The two bars": a quiet week, a bloc signing, a way out or their summit
@@ -140,18 +140,31 @@ export function countFighting(v: PaperView): number {
 }
 
 /**
- * The ticks a beat draws (the second review: ticks changed beside sentences that were not theirs). A pressed place
- * keeps the clock it had at the start of the week all through the playback, the last beat included: the week's own
- * tick, and the shorter clock of a step climbed, land when the week turns (the calendar, the pins and the ticks move
- * together as the playback settles). A place with no clock at the start (pressed this week, or its clock paused by a
- * piece or a solid ring) shows the clock it ends the week with only from the beat that says why: their push into it,
- * the test of its ring, the answer that left it.
+ * The ticks a running clock shows after a step up the ladder (the engine's `shiftedLeft`, SPEC-SMALL "a place keeps the
+ * clock it had less one"), in the playback's reckoning: the clock as it stood at SEND ORDERS, this week's own tick not yet
+ * taken. A step takes one tick off a clock that has more than one week-end left after this week's; one that will fall
+ * next week (two ticks now) keeps its two until the week turns, and the last single ringed tick is never taken.
  */
-function clocksFor(v: PaperView, start: PaperView, end: PaperView, said: ReadonlySet<RegionId>): Record<RegionId, number> {
+export function ticksAfterStepUp(n: number): number {
+  return n <= 2 ? n : n - 1;
+}
+
+/**
+ * The ticks a beat draws (the second review: ticks changed beside sentences that were not theirs). A pressed place
+ * keeps the clock it had at the start of the week through the playback, except that a step up the ladder takes its tick
+ * off on the very beat that says "· now {step}" (the second recheck: every drop came at the turn of the week); the
+ * week's own tick lands when the week turns (the calendar, the pins and the ticks move together as the playback
+ * settles). A place with no clock at the start (pressed this week, or its clock paused by a piece or a solid ring) shows
+ * the clock it ends the week with only from the beat that says why: their push into it, the test of its ring, the
+ * answer that left it.
+ */
+function clocksFor(v: PaperView, start: PaperView, end: PaperView, said: ReadonlySet<RegionId>, cut: number): Record<RegionId, number> {
   const out: Record<RegionId, number> = {};
   for (const [id, st] of Object.entries(v.states)) {
     if (st !== 'pressed') continue;
-    const n = start.clocks?.[id] ?? (said.has(id) ? end.clocks?.[id] : undefined);
+    let n = start.clocks?.[id];
+    if (n !== undefined) for (let i = 0; i < cut; i++) n = ticksAfterStepUp(n);
+    else if (said.has(id)) n = end.clocks?.[id];
     if (n !== undefined) out[id] = n;
   }
   return out;
@@ -199,6 +212,8 @@ export function weekBeats(input: BeatInput): Beat[] {
 
   let view = cloneView(startView);
   const said = new Set<RegionId>();
+  // Steps climbed so far this week: each takes a tick off the running clocks on its own beat.
+  let cut = 0;
   let step: number = before.fed.step;
   let treaty = before.treaty;
   const out: Beat[] = [];
@@ -248,14 +263,17 @@ export function weekBeats(input: BeatInput): Beat[] {
         break;
       case 'backed':
       case 'backedFar':
+      case 'backedOnly':
         if (region) {
           view.tested = null;
           set(region, afterState(region));
         }
         break;
       case 'waited':
+        // A real test waited on stays pressed; a feint never pressed the place, so WAIT hatches nothing (the second
+        // recheck: a feint's hatching vanished at the ending with no line).
         if (region) {
-          if (view.states[region] !== 'fighting') set(region, 'pressed');
+          if (view.states[region] !== 'fighting' && (after.pendingTest === region || afterState(region) !== 'calm')) set(region, 'pressed');
           view.tested = after.pendingTest ?? view.tested;
         }
         break;
@@ -274,7 +292,7 @@ export function weekBeats(input: BeatInput): Beat[] {
       if (view.tested && !view.promises.some((p) => p.region === view.tested)) view.tested = null;
     } else if (kind && (FALLS.has(kind as HeadlineKind) || kind === 'backedDown' || kind === 'backedDownSame' || kind === 'backedDownEased' || kind === 'backFailed')) resolid();
     if (region && kind && CLOCK_SAID.has(kind as HeadlineKind)) said.add(region);
-    view.clocks = clocksFor(view, startView, endView, said);
+    const stepBefore = step;
 
     if (fact) {
       // The engine's numbers right after this line: the stamp and the bar move exactly where the rules moved them.
@@ -296,10 +314,13 @@ export function weekBeats(input: BeatInput): Beat[] {
       }
     }
 
+    if (step > stepBefore) cut += step - stepBefore;
+    view.clocks = clocksFor(view, startView, endView, said, cut);
+
     const last = i === matched.length - 1;
     if (last) {
-      // The last line settles on the engine's state, but for the ticks: those turn with the week, as the playback settles.
-      view = { ...cloneView(endView), clocks: clocksFor(endView, startView, endView, said) };
+      // The last line settles on the engine's state, but for the ticks: the week's own tick turns with the week, as the playback settles.
+      view = { ...cloneView(endView), clocks: clocksFor(endView, startView, endView, said, cut) };
       step = after.fed.step;
       treaty = after.treaty;
     }

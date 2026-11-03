@@ -18,19 +18,34 @@ import { promiseMinded } from '../engine/agent.ts';
 import { holdInfo, isAnswered, pieceOf, pressedRegions, promiseAt, weeksLeft } from '../engine/board.ts';
 import type { RedlinesContent } from '../engine/content.ts';
 import { answerCost } from '../engine/phone.ts';
+import { promiseTooLate } from '../engine/forecast.ts';
 import { RULES } from '../engine/rules.ts';
 import { canAnswer, canOfferWayOut, canPromise, movePiece, movesFor, offerWayOut, promise, withdraw } from '../engine/run.ts';
 import type { GameState, PieceKind, RegionId, WayOutTerm } from '../engine/types.ts';
 import { CAP_REGIONS, NEAR_CAP, REGION_IDS, distance, isCap, isHome, pieceDistance, reachOf } from '../engine/world.ts';
 
-export type BotName = 'passive' | 'promise-everything' | 'far-promise' | 'sensible' | 'no-orders' | 'seller' | 'careful' | 'shark' | 'summit-only' | 'shark-still';
-export const BOT_NAMES: readonly BotName[] = ['passive', 'promise-everything', 'far-promise', 'sensible', 'no-orders', 'seller', 'careful', 'shark', 'summit-only', 'shark-still'];
+export type BotName =
+  | 'passive'
+  | 'promise-everything'
+  | 'far-promise'
+  | 'sensible'
+  | 'no-orders'
+  | 'seller'
+  | 'careful'
+  | 'shark'
+  | 'summit-only'
+  | 'shark-still'
+  | 'shark-door'
+  | 'shark-noring'
+  | 'shark-quiet'
+  | 'shark-quiet-noring';
+export const BOT_NAMES: readonly BotName[] = ['passive', 'promise-everything', 'far-promise', 'sensible', 'no-orders', 'seller', 'careful', 'shark', 'summit-only', 'shark-still', 'shark-door', 'shark-noring', 'shark-quiet', 'shark-quiet-noring'];
 /**
  * The bots the gates judge (the careful hand is reported beside them, not gated: SPEC-SMALL "Hand play is reported").
  * SPEC-SMALL "No formula wins" adds the strongest visible-information player the second review found (the shark) and
  * its one-rule cousins (summits only; never move a piece).
  */
-export const GATED_BOTS: readonly BotName[] = ['passive', 'promise-everything', 'far-promise', 'sensible', 'no-orders', 'seller', 'shark', 'summit-only', 'shark-still'];
+export const GATED_BOTS: readonly BotName[] = ['passive', 'promise-everything', 'far-promise', 'sensible', 'no-orders', 'seller', 'shark', 'summit-only', 'shark-still', 'shark-door', 'shark-noring', 'shark-quiet'];
 export function isBotName(x: string): x is BotName {
   return (BOT_NAMES as readonly string[]).includes(x);
 }
@@ -464,8 +479,10 @@ function quietLastWeek(s: GameState): boolean {
  * phone: back a solid test it can pay for, wait on a dashed one, take their summit, send what it has to a place nobody
  * promised only with influence to spare. `move: false` is the one-rule cousin that never moves a piece.
  */
-export function sharkBot(name: BotName, opts: { move?: boolean } = {}): Bot {
+export function sharkBot(name: BotName, opts: { move?: boolean; ringHatched?: boolean; wayOut?: boolean } = {}): Bot {
   const move = opts.move ?? true;
+  const ringHatched = opts.ringHatched ?? true;
+  const wayOut = opts.wayOut ?? true;
   return {
     name,
     act(c, s0) {
@@ -522,8 +539,9 @@ export function sharkBot(name: BotName, opts: { move?: boolean } = {}): Bot {
         }
       }
       // 3. Ring the hatched, unanswered places a piece holds (never an arrow's target that is not hatched).
-      const want = pressedRegions(s)
-        .filter((r) => !isAnswered(s, r) && !promiseAt(s, r) && holdInfo(s, r).ok && canPromise(s, r).ok && !avoidPromise.has(r))
+      const want = (ringHatched ? pressedRegions(s) : [])
+        // Never a ring the PROMISE slip says is too late to pause the place (SPEC-SMALL "Too late is said before you pay").
+        .filter((r) => !isAnswered(s, r) && !promiseAt(s, r) && holdInfo(s, r).ok && canPromise(s, r).ok && !avoidPromise.has(r) && !promiseTooLate(s, r))
         .sort((a, b) => urgency(b) - urgency(a));
       for (const r of want) {
         if (s.promises.length >= RULES.maxPromises) {
@@ -546,7 +564,7 @@ export function sharkBot(name: BotName, opts: { move?: boolean } = {}): Bot {
         }
       }
       // 4. The summit, from week 3, after every quiet week.
-      if (!s.offer && s.fed.will < RULES.willSign && quietLastWeek(s) && canOfferWayOut(s, 'summit').ok) {
+      if (wayOut && !s.offer && s.fed.will < RULES.willSign && quietLastWeek(s) && canOfferWayOut(s, 'summit').ok) {
         const wouldSign = s.fed.will + RULES.willWayOut >= RULES.willSign;
         if (s.influence - RULES.wayOutPrice.summit >= (wouldSign ? 0 : RULES.backCostBelieved)) {
           const r = offerWayOut(s, 'summit');
@@ -606,6 +624,80 @@ export const summitOnlyBot: Bot = {
   },
 };
 
+/** Whether the tape has said this (a headline kind), anywhere in the game so far; `where` narrows it to places. */
+function taped(s: GameState, kind: string, where?: readonly RegionId[]): boolean {
+  return s.log.some((w) => (w.beats ?? []).some((b) => b.kind === kind && (!where || (b.region !== null && where.includes(b.region)))));
+}
+
+/**
+ * SPEC-SMALL "Reading their nerve pays" (rulings after the second recheck): the shark that reads their jumpiness from
+ * the tape. Until the tape shows a bold Federation ("'Provocation' at" a door), it stands a piece at their door by a
+ * route that crosses no declared line for it (the brigade at Vessary, else the fleet at Driftholm or Kelpmouth),
+ * never stranding a solid ring; once the tape says "Their forces hold back near" a door, it knows them scared and offers
+ * to pull that piece back as its way out (instead of the shark's summit), then walks it back. Once the tape shows them
+ * bold, it takes the piece away and never goes back. Everything else is the shark. Gated: it must sign more than the
+ * shark against a scared Federation.
+ */
+export function doorBot(name: BotName): Bot {
+  const base = sharkBot(name);
+  return {
+    name,
+    act(c, s0, rng) {
+      let s = s0;
+      const bold = taped(s, 'jumpy', NEAR_CAP);
+      const scared = taped(s, 'wary', NEAR_CAP);
+      const strands = (kind: PieceKind, to: RegionId) => {
+        const would: GameState = { ...s, pieces: s.pieces.map((p) => (p.kind === kind ? { ...p, at: to } : p)) };
+        return s.promises.some((p) => holdInfo(s, p.region).ok && !holdInfo(would, p.region).ok);
+      };
+      const atDoor = s.pieces.find((p) => NEAR_CAP.includes(p.at));
+      if (bold) {
+        // A bold Federation: off their doorstep, and never back.
+        if (atDoor && s.influence >= RULES.moveCost) {
+          const away = movesFor(s, atDoor.kind).find((to) => !NEAR_CAP.includes(to) && !lineRegions(c, s, atDoor.kind === 'fleet' ? ['proximity', 'sea'] : ['proximity', 'missiles']).has(to) && !strands(atDoor.kind, to));
+          if (away) {
+            const r = movePiece(s, atDoor.kind, away);
+            if (r.ok) s = r.state;
+          }
+        }
+        return base.act(c, s, rng);
+      }
+      if (atDoor) {
+        // A scared Federation: the piece at the door is what they will pay to see go home.
+        if (scared && !s.offer && canOfferWayOut(s, 'pull-back', atDoor.kind).ok && s.influence - RULES.wayOutPrice['pull-back'] >= RULES.backCostBelieved) {
+          const r = offerWayOut(s, 'pull-back', atDoor.kind);
+          if (r.ok) s = r.state;
+        }
+        // It stays: the shark's own moves leave it where it is.
+        if (!s.moved.includes(atDoor.kind)) s = { ...s, moved: [...s.moved, atDoor.kind] };
+        const out = base.act(c, s, rng);
+        return { ...out, moved: s0.moved.includes(atDoor.kind) ? out.moved : out.moved.filter((k, i) => !(k === atDoor.kind && i === out.moved.indexOf(atDoor.kind))) };
+      }
+      // Walk a piece to a door, by a route that crosses no declared line for it.
+      for (const kind of ['brigade', 'fleet'] as PieceKind[]) {
+        if (s.moved.includes(kind) || s.influence - RULES.moveCost < RULES.backCostBelieved) continue;
+        const avoid = lineRegions(c, s, kind === 'fleet' ? ['proximity', 'sea'] : ['proximity', 'missiles']);
+        const piece = pieceOf(s, kind)!;
+        const doors = NEAR_CAP.filter((d) => !avoid.has(d) && Number.isFinite(pieceDistance(kind, piece.at, d)));
+        if (!doors.length) continue;
+        const target = doors.sort((a, b) => pieceDistance(kind, piece.at, a) - pieceDistance(kind, piece.at, b))[0];
+        const step = movesFor(s, kind)
+          .filter((to) => !avoid.has(to) && !strands(kind, to) && pieceDistance(kind, to, target) < pieceDistance(kind, piece.at, target))
+          .sort((a, b) => pieceDistance(kind, a, target) - pieceDistance(kind, b, target))[0];
+        if (step) {
+          const r = movePiece(s, kind, step);
+          if (r.ok) {
+            s = r.state;
+            break;
+          }
+        }
+      }
+      return base.act(c, s, rng);
+    },
+    answer: base.answer,
+  };
+}
+
 export const BOTS: Record<BotName, Bot> = {
   passive: passiveBot,
   'promise-everything': promiseEverythingBot,
@@ -617,4 +709,8 @@ export const BOTS: Record<BotName, Bot> = {
   shark: sharkBot('shark'),
   'summit-only': summitOnlyBot,
   'shark-still': sharkBot('shark-still', { move: false }),
+  'shark-door': doorBot('shark-door'),
+  'shark-noring': sharkBot('shark-noring', { ringHatched: false }),
+  'shark-quiet': sharkBot('shark-quiet', { wayOut: false }),
+  'shark-quiet-noring': sharkBot('shark-quiet-noring', { wayOut: false, ringHatched: false }),
 };

@@ -6,8 +6,8 @@
  */
 import type { Rng } from '../../engine/rng.ts';
 import type { LineDef, WhyKind } from './content.ts';
-import { believedRing, fightingRegions, provocationBelieved, holdInfo, isAnswered, pieceAt, pieceOf, pressedRegions, promiseAt, unansweredRegions } from './board.ts';
-import { RULES, fallWeeksAt, pushesAt } from './rules.ts';
+import { believedRing, clockOf, fightingRegions, provocationBelieved, holdInfo, isAnswered, pieceAt, pieceOf, pressedRegions, promiseAt, unansweredRegions } from './board.ts';
+import { RULES, isScared, pushesAt } from './rules.ts';
 import type { GameState, Heading, PieceKind, RegionId, WayOutOffer } from './types.ts';
 import { CAP_REGIONS, NEAR_CAP, NEIGHBOURS, REGION_IDS, blocOf, distance, isCap, isHome, mapOrder } from './world.ts';
 
@@ -65,7 +65,7 @@ export function weightOf(s: GameState, r: RegionId, dist: number): number {
  */
 export function clockRunDown(s: GameState, r: RegionId): boolean {
   const rec = s.regions[r];
-  return rec.state === 'pressed' && !isAnswered(s, r) && rec.pressedWeeks + 1 >= fallWeeksAt(s.fed.step);
+  return rec.state === 'pressed' && !isAnswered(s, r) && rec.pressedWeeks + 1 >= clockOf(s, r);
 }
 
 /** Why they chose this place, for the debrief. */
@@ -211,7 +211,10 @@ export function planHeadings(s: GameState, rng: Rng, force: RegionId | null = nu
   }
   // A believed, solid ring in their reach that the plan does not point at (SPEC-SMALL: said only of rings they did not target).
   const targeted = new Set(headings.map((h) => h.to));
-  const believedLeft = pool.filter((c) => !targeted.has(c.region) && promiseAt(s, c.region) && holdInfo(s, c.region).ok && s.fed.belief >= RULES.beliefTest).map((c) => c.region);
+  // A provocation ring they do not yet believe (RULES.provocationBelief) was left alone for want of an arrow, not for belief.
+  const believedLeft = pool
+    .filter((c) => !targeted.has(c.region) && promiseAt(s, c.region) && holdInfo(s, c.region).ok && s.fed.belief >= RULES.beliefTest && (!promiseAt(s, c.region)?.provocation || provocationBelieved(s, c.region)))
+    .map((c) => c.region);
   const notTested = believedLeft.length ? mapOrder(believedLeft)[0] : null;
   return { headings, notTested };
 }
@@ -264,11 +267,14 @@ export function promiseMinded(s: GameState, region: RegionId, lines: readonly Li
 
 /**
  * Why they offered or took a summit, as it was: both sides afraid from MASSING; else stopping while ahead only when
- * they held a place they had taken; else they had gained nothing (never "while they were ahead" over nothing).
+ * they held a place they had taken; else they had gained nothing (never "while they were ahead" over nothing), and saw
+ * nothing cheap left only when nothing was hatched.
  */
 export function summitWhy(s: GameState): WhyKind {
   if (s.fed.step >= 3) return 'afraid';
-  return fightingRegions(s).length > 0 ? 'wantedToStop' : 'noGain';
+  if (fightingRegions(s).length > 0) return 'wantedToStop';
+  // "Saw nothing cheap left to take" only over a map with nothing hatched (the niche recheck: said with three places hatched).
+  return pressedRegions(s).length ? 'noGainYet' : 'noGain';
 }
 
 /** A way out (yours or their summit) was accepted last week: they will not take another yet (at most one in any two weeks). */
@@ -285,10 +291,12 @@ export interface WayOutAnswer {
   accept: boolean;
   why: WhyKind;
   chance: number;
+  /** A standing promise refused as "a small thing" (not one drawn this week): the form dims it from then on. */
+  small?: boolean;
 }
 
 /**
- * Whether they take the way out (ruling). Never while they gained a place this week. Otherwise a
+ * Whether they take the way out (ruling). Never in a week they gained two places (one halves the chance). Otherwise a
  * chance by term: dropping a promise they minded (one they were heading for, testing, or that could
  * not be held) is likely taken; pulling back a piece on their doorstep is taken as often as they are
  * jumpy; a summit is taken more the higher the ladder and the fuller the bar. A hungry Federation
@@ -309,7 +317,7 @@ export function acceptWayOut(s: GameState, offer: WayOutOffer, gained: number, r
     const standing = (promiseAt(s, region)?.since ?? s.week) < s.week;
     // SPEC-SMALL "A far promise cannot be sold": a dropped promise moves them only when they minded it; otherwise the
     // offer is indifferent to them (refused, and the tape says so). It is never "the thing in their way".
-    if (!(standing && promiseMinded(s, region, lines))) return { accept: false, why: 'indifferent', chance: 0 };
+    if (!(standing && promiseMinded(s, region, lines))) return { accept: false, why: 'indifferent', chance: 0, ...(standing ? { small: true } : {}) };
     p = R.dropGrievance;
     yes = 'grievance';
     no = 'indifferent';
@@ -317,6 +325,12 @@ export function acceptWayOut(s: GameState, offer: WayOutOffer, gained: number, r
     const piece = pieceOf(s, offer.detail as PieceKind);
     // "Near" is read from the piece itself: on their doorstep, or standing where a line it crossed is drawn.
     const near = !!piece && (NEAR_CAP.includes(piece.at) || crossedLineAt(s, piece.at, lines));
+    // SPEC-SMALL "Reading their nerve pays": a pull-back from a scared Federation's door is accepted almost always.
+    if (piece && NEAR_CAP.includes(piece.at) && isScared(s.fed.jumpiness)) {
+      const chance = R.pullScaredDoor;
+      const accept = rng.next() < chance;
+      return { accept, why: accept ? 'threat' : 'notAfraid', chance };
+    }
     p = near ? R.pullNearBase + R.pullNearJumpy * s.fed.jumpiness : R.pullFar;
     yes = 'threat';
     no = 'noThreat';

@@ -149,7 +149,9 @@ describe('cause before effect, path by path', () => {
     fellBefore(s, 'KLP', 1, 1);
     const n = answerPhone(c, endWeek(c, s), 'back');
     const log = n.log[1];
-    expect(at(log, 'You backed Vessary. They turned away. They are PUSHING.')).toBeLessThan(at(log, 'Guns quiet at Kelpmouth.'));
+    // The backing, then the step down on its own line (the stamp eases there), then the place it quiets.
+    expect(at(log, 'You backed Vessary. They turned away.')).toBeLessThan(at(log, 'They ease off. They are PUSHING.'));
+    expect(at(log, 'They ease off. They are PUSHING.')).toBeLessThan(at(log, 'Guns quiet at Kelpmouth.'));
     expect(brokenInvariants(n)).toEqual([]);
   });
 
@@ -164,7 +166,7 @@ describe('cause before effect, path by path', () => {
       if (n.promises.some((p) => p.region === 'LTL')) {
         held++;
         // "It held": its clock starts again, so the same week never prints "Lintel has fallen".
-        expect(log.visible).toContain('You backed Lintel from far away, and it held. They are TESTING.');
+        expect(log.visible).toContain('You backed Lintel from far away, and it held.');
         expect(log.visible).not.toContain('Lintel has fallen.');
         expect(n.regions.LTL).toMatchObject({ state: 'pressed', pressedWeeks: 0 });
       } else {

@@ -5,15 +5,27 @@
 import type { Rng } from '../../engine/rng.ts';
 import type { PhoneTemplate, RedlinesContent } from './content.ts';
 import { blockedLastWeek, wayOutTooSoon } from './agent.ts';
-import { holdInfo, isAnswered, nearestPiece, pieceAt, pressedRegions, promiseAt, stepAtWeekStart, unansweredRegions } from './board.ts';
-import { RULES, fallWeeksAt } from './rules.ts';
+import { clockOf, holdInfo, isAnswered, nearestPiece, pieceAt, pressedRegions, promiseAt, stepAtWeekStart, unansweredRegions } from './board.ts';
+import { RULES } from './rules.ts';
 import type { GameState, Line, Phone, PhoneKind, RegionId } from './types.ts';
-import { fill, type Slots } from './words.ts';
+import { fill, listNames, type Slots } from './words.ts';
+import { leavesToFall, withRing } from './forecast.ts';
 import { NEAR_CAP, REGION, REGION_IDS, regionName } from './world.ts';
 
-/** BUILD: 12 to back a holdable promise (6 once belief ≥ 60), 24 a non-holdable one; each WAIT adds the stakes. */
+/**
+ * What BACK IT would cost on the first round if a ring drawn here now were tested (SPEC-SMALL "A provocation costs what it
+ * claims" and the cold recheck: the price is on the PROMISE slip before it is paid): the full price for a ring drawn into
+ * their siege, the far price for a dashed one, the believed price for a solid ring they believe.
+ */
+export function ringBackCost(s: GameState, region: RegionId): number {
+  return backCost(withRing(s, region), region, 1);
+}
+
+/** BUILD: 12 to back a holdable promise (6 once belief ≥ 40), 24 a non-holdable one; each WAIT adds the stakes. */
 export function backCost(s: GameState, region: RegionId, round: number): number {
-  const base = holdInfo(s, region).ok ? (s.fed.belief >= RULES.believedAt ? RULES.backCostBelieved : RULES.backCost) : RULES.backFarCost;
+  // SPEC-SMALL "A provocation costs what it claims": a ring drawn into their siege is backed at the full price, whatever they believe.
+  const provoked = RULES.provocationFullPrice && !!promiseAt(s, region)?.provocation;
+  const base = holdInfo(s, region).ok ? (s.fed.belief >= RULES.believedAt && !provoked ? RULES.backCostBelieved : RULES.backCost) : RULES.backFarCost;
   return base + RULES.waitStakes * Math.max(0, round - 1);
 }
 
@@ -40,9 +52,15 @@ export function answerCost(s: GameState, key: 'back' | 'down' | 'wait'): number 
   }
 }
 
-/** A test's templates: one pool for a real push, a feint and an inherited promise alike (no tell); inherited first when it fits. */
-function testPool(c: RedlinesContent, inherited: boolean): PhoneTemplate[] {
-  const all = c.phones.filter((p) => p.kind === 'test' || p.kind === 'test-inherited' || p.kind === 'feint');
+/**
+ * A test's templates: one pool for a real push, a feint and an inherited promise alike (no tell); inherited first when
+ * it fits. Only templates whose words fit the place (`place`: ships off an island, never off a land place).
+ */
+function testPool(c: RedlinesContent, inherited: boolean, region: RegionId | null): PhoneTemplate[] {
+  const tests = c.phones.filter((p) => p.kind === 'test' || p.kind === 'test-inherited' || p.kind === 'feint');
+  const place = region ? (REGION[region]?.island ? 'island' : 'land') : null;
+  const fits = tests.filter((p) => !p.place || !place || p.place === place);
+  const all = fits.length ? fits : tests;
   if (inherited) {
     const own = all.filter((p) => p.kind === 'test-inherited');
     if (own.length) return own;
@@ -69,7 +87,7 @@ export function trawlerPool(c: RedlinesContent, promised: boolean): PhoneTemplat
  */
 export function makePhone(c: RedlinesContent, s: GameState, rng: Rng, ctx: PhoneContext): Phone | null {
   const isTest = ctx.kind === 'test' || ctx.kind === 'test-inherited' || ctx.kind === 'feint';
-  let pool = isTest ? testPool(c, !!(ctx.region && promiseAt(s, ctx.region)?.inherited)) : ctx.kind === 'trawler' ? trawlerPool(c, !!(ctx.region && promiseAt(s, ctx.region))) : c.phones.filter((p) => p.kind === ctx.kind);
+  let pool = isTest ? testPool(c, !!(ctx.region && promiseAt(s, ctx.region)?.inherited), ctx.region) : ctx.kind === 'trawler' ? trawlerPool(c, !!(ctx.region && promiseAt(s, ctx.region))) : c.phones.filter((p) => p.kind === ctx.kind);
   if (!pool.length) return null;
   const last = s.phonesUsed[s.phonesUsed.length - 1];
   const carried = isTest && ctx.round > 1 ? c.phones.find((p) => p.id === last && (p.kind === 'test' || p.kind === 'test-inherited' || p.kind === 'feint')) : undefined;
@@ -92,21 +110,29 @@ export function makePhone(c: RedlinesContent, s: GameState, rng: Rng, ctx: Phone
     step: c.strings.words.steps[s.fed.step - 1],
   };
   const caller = c.advisers[t.caller];
-  const waitCost = isTest && ctx.round >= 3 ? c.strings.words.waitIsBackDown : fill(t.options.wait.cost, slots);
+  // The WAIT form says what BACK IT will cost next week (each WAIT raises it): the price is on the call before it rises,
+  // read with the belief the WAIT itself costs (a price at the believed rate can step up to the full one).
+  const waited: GameState = { ...s, fed: { ...s.fed, belief: Math.max(0, s.fed.belief - RULES.waitBelief) }, beliefWas: Math.max(0, s.fed.belief - RULES.waitBelief) };
+  const waitNext = isTest && region && c.strings.words.waitNext ? ` · ${fill(c.strings.words.waitNext, { cost: backCost(waited, region, ctx.round + 1) })}` : '';
+  const waitCost = isTest && ctx.round >= 3 ? c.strings.words.waitIsBackDown : fill(t.options.wait.cost, slots) + waitNext;
+  // SEND THEM about a place nobody promised moves a piece: when that piece answers a place at its last tick, the form says it leaves it to fall.
+  const sender = ctx.kind === 'fall-unpromised' && region ? holdInfo(s, region).piece : undefined;
+  const leaves = sender && c.strings.words.leavesToFall ? leavesToFall(s, sender.kind, region!) : [];
+  const backCostLine = fill(t.options.back.cost, slots) + (leaves.length ? ` · ${fill(c.strings.words.leavesToFall, { region: listNames(leaves) })}` : '');
   // A carried call's slips are a week on (againAdvisers); the Director's slip, while they doubt your promises, says
   // what she has seen of it (SPEC-SMALL "Doubt is visible where it matters").
-  const slips = isTest && ctx.round > 1 && t.againAdvisers ? t.againAdvisers : t.advisers;
+  const slips = isTest && ctx.round >= 3 && t.lastAdvisers ? t.lastAdvisers : isTest && ctx.round > 1 && t.againAdvisers ? t.againAdvisers : t.advisers;
   const intel = isTest && s.fed.belief < RULES.beliefTest && t.intelDoubted ? t.intelDoubted : slips.intel;
   return {
     template: t.id,
     kind: isTest ? t.kind : ctx.kind,
     caller: { name: caller.name, role: caller.role, tag: caller.tag },
-    text: fill(isTest && ctx.round > 1 && t.again ? t.again : t.text, slots),
+    text: fill(isTest && ctx.round >= 3 && t.lastAgain ? t.lastAgain : isTest && ctx.round > 1 && t.again ? t.again : t.text, slots),
     advisers: { hawk: fill(slips.hawk, slots), dove: fill(slips.dove, slots), intel: fill(intel, slots) },
     region,
     round: ctx.round,
     options: [
-      { key: 'back', label: fill(t.options.back.label, slots), cost: fill(t.options.back.cost, slots) },
+      { key: 'back', label: fill(t.options.back.label, slots), cost: backCostLine },
       { key: 'down', label: fill(t.options.down.label, slots), cost: fill(t.options.down.cost, slots) },
       { key: 'wait', label: fill(t.options.wait.label, slots), cost: waitCost },
     ],
@@ -134,8 +160,7 @@ export function pickEvent(c: RedlinesContent, s: GameState, rng: Rng, bluff: { l
   const has = (k: PhoneKind) => c.phones.some((p) => p.kind === k);
   const E = RULES.events;
   if (bluff && has('bluff-crossed')) return { kind: 'bluff-crossed', region: bluff.region, line: bluff.line.text };
-  const clock = fallWeeksAt(stepAtWeekStart(s));
-  const doomed = pressedRegions(s).filter((r) => !promiseAt(s, r) && !isAnswered(s, r) && s.regions[r].pressedWeeks >= clock && holdInfo(s, r).ok);
+  const doomed = pressedRegions(s).filter((r) => !promiseAt(s, r) && !isAnswered(s, r) && s.regions[r].pressedWeeks >= clockOf(s, r) && holdInfo(s, r).ok);
   if (doomed.length && has('fall-unpromised')) return { kind: 'fall-unpromised', region: doomed[0] };
   const stopped = s.fed.step >= 2 || blockedLastWeek(s);
   const summits = s.phonesUsed.filter((id) => c.phones.find((p) => p.id === id)?.kind === 'summit').length;

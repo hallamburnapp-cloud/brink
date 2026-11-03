@@ -11,7 +11,7 @@ import { RULES as REAL_RULES, scoreOf } from '../../engine/rules';
 export { actLine, netActs, weeksLeft } from '../../engine';
 export { fallOrder } from '../../engine/board';
 /** The engine's own forecast (pure questions about a state: what an order would cross or leave dashed, what falls this week). */
-export { declaredTapes, fallsEndTheGame, fallsThisWeek, isProvocation, linesCrossedByMove, linesCrossedByPromise, listNames, promiseWillRing, ringsLeftDashed } from '../../engine';
+export { declaredTapes, fallsAnswerable, fallsEndTheGame, fallsThisWeek, isProvocation, leavesToFall, linesCrossedByMove, linesCrossedByPromise, listNames, nearestHold, promiseTooLate, promiseWillRing, ringsLeftDashed, spreadEndsTheGame } from '../../engine';
 
 /** Where a piece starts the fake game. */
 const HOME: Record<PieceKind, RegionId> = { fleet: 'SHL', brigade: 'EDV' };
@@ -145,12 +145,33 @@ export const content = {
       promiseDashed: 'dashed · {hold} · a dashed ring invites a test',
       moveCost: 'costs 3 influence · one move a week',
       withdrawCost: "quietly · they'll believe us a little less",
+      undoCost: 'no order yet · the {cost} influence comes back',
       wayOutIntro: 'Give them a way to stop.',
       wayOutOffered: 'offered',
       termLabels: { 'drop-promise': 'DROP A PROMISE', 'pull-back': 'PULL A PIECE BACK', summit: 'A SUMMIT' },
       termCosts: { 'drop-promise': 'costs {cost} influence', 'pull-back': '{piece} goes home · costs {cost} influence', summit: 'no preconditions · costs {cost} influence' },
+      tooLate: 'too late to pause it · it falls this week unless a piece stands there',
+      movesAway: '{piece} is {n} moves away',
+      movesAwayOne: '{piece} is one move away',
+      backPrice: 'backing it costs {cost}',
+      keepCrosses: 'keeping it crosses a line · {line}',
+      leavesToFall: 'leaves {region} to fall this week',
     },
-    note: { pushing: 'They are pushing {bloc}.', pushingTwo: 'They are pushing {a} and {b}.', taken: 'They have taken {region}.', takenMany: 'They have taken {n} places.', tested: 'Your promise at {region} is being tested now.', heading: 'Their forces are heading for {region}.' },
+    note: {
+      pushing: 'They are pushing {bloc}.',
+      pushingTwo: 'They are pushing {a} and {b}.',
+      taken: 'They have taken {region}.',
+      takenMany: 'They have taken {n} places.',
+      tested: 'Your promise at {region} is being tested now.',
+      heading: 'Their forces are heading for {region}.',
+      fallsOne: '{region} falls this week unless something of ours reaches it.',
+      fallsMany: '{places} fall this week unless something of ours reaches them.',
+      fallsOneFar: '{region} falls this week; nothing of ours can reach it.',
+      fallsManyFar: '{places} fall this week; nothing of ours can reach them.',
+      worldWarEve: 'That would be world war.',
+      spreadWorldWar: 'The fighting will spread when the week ends. That would be world war.',
+      movedDashed: "{region}'s ring is dashed now: nothing of ours can reach it.",
+    },
     phone: { ringing: 'INCOMING', round2: 'the second week of this', round3: 'the third week of this', answered: 'ANSWERED', inHand: '{influence} influence in hand', needs: 'needs {cost} · you have {influence}' },
     menu: { menu: 'MENU', resume: 'RESUME', howToPlay: 'HOW TO PLAY', sound: 'SOUND', off: 'OFF', on: 'ON', quit: 'QUIT TO TITLE', quitSure: 'Quit?', yes: 'YES', no: 'NO' },
     debrief: { title: 'THE DEBRIEF', intro: 'again', week: 'Week {week}', youDid: 'what you did', theyThought: 'what they were thinking', nothingHidden: 'Nothing hidden.', next: 'NEXT', back: 'BACK', done: 'DONE', score: 'SCORE', again: 'PLAY AGAIN', toTitle: 'TITLE' },

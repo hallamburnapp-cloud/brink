@@ -99,11 +99,16 @@ export const phoneSchema = z.strictObject({
   caller: z.enum(ADVISER_IDS),
   /** Trawler templates: about an island you promised ('promised': the words may claim the promise) or one you did not ('unpromised': they claim none). Absent: either. */
   when: z.enum(['promised', 'unpromised']).optional(),
+  /** Test kinds: a template whose words fit only an island ('island': ships off it) or only a land place ('land'). Absent: either. */
+  place: z.enum(['island', 'land']).optional(),
   text: line,
   again: line.optional(),
   advisers: z.strictObject({ hawk: line, dove: line, intel: line }),
   /** Test kinds: the slips on the second and third round of a carried call (WAIT bought a week; the slips say what changed). */
   againAdvisers: z.strictObject({ hawk: line, dove: line, intel: line }).optional(),
+  /** Test kinds: the message and the slips on the third and last round of a carried call (a second WAIT bought a second week). */
+  lastAgain: line.optional(),
+  lastAdvisers: z.strictObject({ hawk: line, dove: line, intel: line }).optional(),
   /** Test kinds: the Director's slip while they do not believe your promises (BACK IT at its higher price). */
   intelDoubted: line.optional(),
   options: z.strictObject({ back: phoneOptionSchema, down: phoneOptionSchema, wait: phoneOptionSchema }),
@@ -126,6 +131,8 @@ export const stringsSchema = z.strictObject({
     wait: s,
     steps: z.tuple([s, s, s, s, s]),
     waitIsBackDown: s,
+    waitNext: s,
+    leavesToFall: s,
     sendOrders: s,
     wayOut: s,
     theyAre: s,
@@ -144,8 +151,8 @@ export const stringsSchema = z.strictObject({
   numbers: z.array(s).length(13, { message: 'number words for 0 to 12 (the WAR bar counts to twelve)' }),
   counts: z.strictObject({ none: s, one: s, many: s, sentenceNone: s, sentenceOne: s, sentenceMany: s, placesOne: s, placesMany: s }),
   endings: z.strictObject({ treaty: z.tuple([s, s]), frozen: z.tuple([s, s]), war: z.tuple([s, s]) }),
-  because: z.strictObject({ heldAndWayOut: s, held: s, wayOut: s, quiet: s, leaves: s }),
-  causes: recordOf(FALL_CAUSES),
+  because: z.strictObject({ heldAndWayOut: s, held: s, wayOut: s, quiet: s, stalled: s, leaves: s }),
+  causes: recordOf([...FALL_CAUSES, 'out-of-reach'] as const),
   dials: z.strictObject({
     appetite: z.strictObject({ low: s, mid: s, high: s }),
     jumpiness: z.strictObject({ low: s, mid: s, high: s }),
@@ -188,6 +195,7 @@ export const stringsSchema = z.strictObject({
     promiseDashed: s,
     moveCost: s,
     withdrawCost: s,
+    undoCost: s,
     wayOutIntro: s,
     wayOutOffered: s,
     termLabels: recordOf(WAY_OUT_TERMS),
@@ -197,8 +205,28 @@ export const stringsSchema = z.strictObject({
     leavesDashed: s,
     promiseCall: s,
     promiseProvokes: s,
+    tooLate: s,
+    movesAway: s,
+    movesAwayOne: s,
+    backPrice: s,
+    keepCrosses: s,
+    leavesToFall: s,
   }),
-  note: z.strictObject({ pushing: s, pushingTwo: s, taken: s, takenMany: s, tested: s, heading: s, fallsOne: s, fallsMany: s, worldWarEve: s, movedDashed: s }),
+  note: z.strictObject({
+    pushing: s,
+    pushingTwo: s,
+    taken: s,
+    takenMany: s,
+    tested: s,
+    heading: s,
+    fallsOne: s,
+    fallsMany: s,
+    fallsOneFar: s,
+    fallsManyFar: s,
+    worldWarEve: s,
+    spreadWorldWar: s,
+    movedDashed: s,
+  }),
   phone: z.strictObject({ ringing: s, round2: s, round3: s, answered: s, inHand: s, needs: s }),
   menu: z.strictObject({ menu: s, resume: s, howToPlay: s, sound: s, off: s, on: s, quit: s, quitSure: s, yes: s, no: s }),
   debrief: z.strictObject({ title: s, intro: s, week: s, youDid: s, theyThought: s, nothingHidden: s, next: s, back: s, done: s, score: s, again: s, toTitle: s }),
@@ -303,8 +331,11 @@ export function compileRedlines(raw: RawRedlines): { content: RedlinesPack | nul
     };
     if (p.again) phone.again = p.again;
     if (p.againAdvisers) phone.againAdvisers = { hawk: p.againAdvisers.hawk, dove: p.againAdvisers.dove, intel: p.againAdvisers.intel };
+    if (p.lastAgain) phone.lastAgain = p.lastAgain;
+    if (p.lastAdvisers) phone.lastAdvisers = { hawk: p.lastAdvisers.hawk, dove: p.lastAdvisers.dove, intel: p.lastAdvisers.intel };
     if (p.intelDoubted) phone.intelDoubted = p.intelDoubted;
     if (p.when) phone.when = p.when;
+    if (p.place) phone.place = p.place;
     phones.push(phone);
   });
 

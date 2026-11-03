@@ -465,6 +465,14 @@ body {
   animation: rl-in 220ms ease-out both;
   z-index: 10;
 }
+/* line 3: the slip moves up over the sheet's foot, so the index card and A WAY OUT it names show below it */
+.rl-explain.rl-up {
+  top: 404px;
+}
+.rl-wayout.rl-shown {
+  display: block;
+  pointer-events: none;
+}
 .rl-explain:after {
   content: '';
   position: absolute;

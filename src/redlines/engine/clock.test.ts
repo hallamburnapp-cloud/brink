@@ -100,8 +100,8 @@ describe('weeksLeft: the pencil ticks beside a hatched place', () => {
     const provoked = promise(s, 'VSY');
     if (!provoked.ok) throw new Error(provoked.reason);
     expect(weeksLeft(provoked.state, 'VSY')).toBe(2);
-    // Believed (RULES.provocationBelief), a solid promise answers it: its clock pauses, no ticks.
-    const answered = promise({ ...s, fed: { ...s.fed, belief: RULES.provocationBelief } }, 'VSY');
+    // Believed (RULES.provocationBelief, as the week began: beliefWas), a solid promise answers it: its clock pauses, no ticks.
+    const answered = promise({ ...s, fed: { ...s.fed, belief: RULES.provocationBelief }, beliefWas: RULES.provocationBelief }, 'VSY');
     if (!answered.ok) throw new Error(answered.reason);
     expect(weeksLeft(answered.state, 'VSY')).toBeNull();
     // Under test it is not answered: the ticks come back.

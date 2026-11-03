@@ -131,6 +131,11 @@ export interface PaperMap {
   bounds(id: RegionId): { x0: number; y0: number; x1: number; y1: number } | null;
   /** Slide the whole sheet (frame px): up or down, and sideways when given; callShiftFor() puts a tested place under the handset's band. */
   setShift(y: number, x?: number): void;
+  /**
+   * The call's shift for a call about `id` (callShiftFor): the place in the band under the handset, slid further so the
+   * TESTED word and its red ring, as the current view places them, show between the handset and the caller card.
+   */
+  callShift(id: RegionId | null): { x: number; y: number };
   setReducedMotion(reduced: boolean): void;
   /** The sheet's SVG element (for the screens' pointer listeners). */
   readonly svg: SVGSVGElement;

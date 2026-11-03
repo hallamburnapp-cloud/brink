@@ -5,8 +5,8 @@
  * it are in strings.refusals). endWeek and answerPhone take the content, because the week writes words.
  */
 import { Rng } from '../../engine/rng.ts';
-import { planHeadings, wayOutTooSoon } from './agent.ts';
-import { draft, emptyTally, holdInfo, nearestPiece, pieceAt, pieceOf, promiseAt, reachableWithoutLines, say, type HoldInfo } from './board.ts';
+import { planHeadings, promiseMinded, wayOutTooSoon } from './agent.ts';
+import { netActs, draft, emptyTally, holdInfo, nearestPiece, pieceAt, pieceOf, promiseAt, reachableWithoutLines, say, tally, tallyOf, type HoldInfo } from './board.ts';
 import type { LineDef, RedlinesContent, RefusalCode } from './content.ts';
 import { answerCost } from './phone.ts';
 import { BRIGADE_START, FLEET_START, applyAnswer, beginWeek, finishWeek, homeOf } from './resolve.ts';
@@ -131,6 +131,7 @@ export function newGame(content: RedlinesContent, seed: string): GameState {
     if (pool.length) inherited.push({ region: rng.pick(pool), since: 0, inherited: true });
   }
   s.promises = inherited;
+  s.tally!.ringed = inherited.map((p) => p.region);
   // The opening's tape: the inherited promises, then the three declared lines last, so the tape's last three lines are
   // the three declarations (SPEC-SMALL "The three lines stay on the sheet"). The pack's short form of a declaration is
   // printed when it has one; the whole line runs off the paper.
@@ -173,6 +174,8 @@ export function promise(s: GameState, region: RegionId): Result {
   n.promises.push({ region, since: n.week, inherited: false, ...(isProvocation(n, region) ? { provocation: true } : {}) });
   n.influence -= RULES.promiseCost;
   n.acts.push({ kind: 'promise', region });
+  const T = tally(n);
+  if (!(T.ringed ?? []).includes(region)) T.ringed = [...(T.ringed ?? []), region];
   return ok(n);
 }
 
@@ -191,8 +194,13 @@ export function withdraw(s: GameState, region: RegionId): Result {
   if (!promiseAt(s, region)) return no('not-promised');
   if (s.pendingTest === region) return no('under-test');
   const n = draft(s);
+  const pm = promiseAt(s, region)!;
   n.promises = n.promises.filter((p) => p.region !== region);
-  n.fed.belief = Math.max(0, n.fed.belief - RULES.withdrawBelief);
+  // A promise drawn this week and taken back before the orders are sent is no order at all (the note and the debrief
+  // already print none): its 2 are given back and it costs no belief. Any other withdrawal is seen, and costs belief.
+  const undo = !pm.inherited && pm.since === s.week && netActs(s.acts).some((a) => a.kind === 'promise' && a.region === region);
+  if (undo) n.influence += RULES.promiseCost;
+  else n.fed.belief = Math.max(0, n.fed.belief - RULES.withdrawBelief);
   n.acts.push({ kind: 'withdraw', region });
   return ok(n);
 }
@@ -238,6 +246,8 @@ export function canOfferWayOut(s: GameState, term: WayOutTerm, detail?: RegionId
     const droppable = s.promises.filter((p) => p.region !== s.pendingTest);
     if (!droppable.length) return { ok: false, reason: 'no-promises' };
     if (detail !== undefined && !promiseAt(s, detail)) return { ok: false, reason: 'not-promised' };
+    // A promise they already called a small thing, still out of their way: the tape said so, and the form says it again.
+    if (detail !== undefined && smallThing(s, detail)) return { ok: false, reason: 'small-thing' };
   } else if (term === 'pull-back') {
     if (detail !== undefined && detail !== 'fleet' && detail !== 'brigade') return { ok: false, reason: 'no-such-piece' };
     const away = s.pieces.filter((p) => p.at !== homeOf(p.kind) && (detail === undefined || p.kind === detail));
@@ -245,6 +255,16 @@ export function canOfferWayOut(s: GameState, term: WayOutTerm, detail?: RegionId
   }
   if (s.influence < price) return { ok: false, reason: 'no-influence' };
   return { ok: true };
+}
+
+/**
+ * A promise offered up once and refused as "a small thing" that is still out of their way (no arrow at it, no test, not
+ * in their reach next week): offering it again would be refused the same way. Reads nothing the tape has not said: the
+ * refusal already showed that no real line of theirs covers it.
+ */
+export function smallThing(s: GameState, region: RegionId): boolean {
+  if (!(tallyOf(s).smallThings ?? []).includes(region)) return false;
+  return !promiseMinded(s, region);
 }
 
 /** The pieces a pull-back can name: those away from home (a piece at home has nowhere to be pulled back to). */

@@ -189,7 +189,9 @@ describe('the note on the eve of a fall', () => {
     for (const r of a.slice(0, 2)) eve.regions[r] = { ...eve.regions[r], state: 'pressed', pressedWeeks: 5 };
     expect(a.slice(0, 2).every((r) => weeksLeft(eve, r) === 1)).toBe(true);
     const line = eveSentence(eve, S, regionName);
-    expect(line).toContain(`${regionName(a[0])} and ${regionName(a[1])} fall this week unless something of ours reaches them.`);
+    // Each named once, in the "unless" sentence when a piece of ours could still reach it this week, else "nothing of ours can reach".
+    for (const r of a.slice(0, 2)) expect(line).toMatch(new RegExp(`${regionName(r)}[^.]* fall`));
+    expect(line).toMatch(/fall this week/);
     expect(line).not.toContain(S.note.worldWarEve);
     // With six already fighting, two more is the eighth box.
     for (const r of a.slice(2, 8)) eve.regions[r] = { ...eve.regions[r], state: 'fighting', pressedWeeks: 0, fellWeek: 2 };

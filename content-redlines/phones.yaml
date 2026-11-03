@@ -11,8 +11,11 @@
 # same, on a test); {cost} the influence BACK IT costs this round (only meaningful on back.cost and in
 # the text); {piece} your nearest piece, with its article ("the brigade"); {from} the other heading's
 # place; {step} the ladder word; {line} the line's text (long: quote it nowhere in a call).
-# `again` (test kinds) is the message on the second and third week of the same call, after WAIT.
+# `again` (test kinds) is the message on the second week of the same call, after WAIT; `lastAgain` and `lastAdvisers`
+# the third and last (after a second WAIT; waiting again is backing down).
 # Options are a map back · down · wait: `label` is the word on the typed form, `cost` the line under it.
+# `place` (test kinds): `island` for words that fit only an island (ships off it), `land` for only a land place;
+# absent, either. The pool keeps its no-tell: the place, never the kind of push, narrows it.
 
 # ---------------------------------------------------------------- the inherited promise, tested
 - id: test-inherited-armour
@@ -28,6 +31,11 @@
     hawk: "A week gone and they are still there. Every day we wait, the promise is worth less."
     dove: "Waiting has not made it smaller. Decide what we are, and say it."
     intel: "The armour at {region} has not moved. Fuel trucks came up in the night. The lights are still on."
+  lastAgain: "Two weeks now at {region}. The armour has dug in for the winter, and people are leaving by the coast road. There is no more waiting in this."
+  lastAdvisers:
+    hawk: "Two weeks of silence is an answer already. Change it tonight."
+    dove: "The time we bought is spent. Whatever we say now, we say for good."
+    intel: "The armour at {region} has dug in. Families are leaving by the coast road."
   intelDoubted: "Two brigades at {region}. Their papers stopped printing our warnings last week."
   options:
     back: { label: BACK IT, cost: "we stand by it in public · costs {cost} influence · we keep our word" }
@@ -47,6 +55,11 @@
     hawk: "The mayor has had a week of our silence. Send {piece}, or tell him plainly."
     dove: "An old promise kept late is still kept. One dropped late is dropped twice."
     intel: "The troops at {region} have dug in since last week. Trenches now, not tents. Nobody has crossed."
+  lastAgain: "Two weeks. The mayor of {region} has stopped ringing. His deputy rang instead, to ask whether he should pack. I said I would call him back tonight."
+  lastAdvisers:
+    hawk: "The deputy is packing. Send {piece}, or let him go."
+    dove: "An old promise, two weeks unanswered. Say yes or no; silence is worse."
+    intel: "The troops at {region} have brought up bridging gear. The town hall lights are out."
   intelDoubted: "Troops on the {region} border. Their envoy no longer asks what our rings mean."
   options:
     back: { label: BACK IT, cost: "we honour it in public · costs {cost} influence · we keep an old word" }
@@ -67,6 +80,11 @@
     hawk: "They dug in because we let them. Another week and they own it."
     dove: "We bought a week. Spend it on an answer, not on another week."
     intel: "The column at {region} has dug in. A second one formed up behind it on Thursday."
+  lastAgain: "Two weeks the columns have sat inside {region}, and their papers call it a border adjustment now. Another week of silence and we have answered."
+  lastAdvisers:
+    hawk: "Two columns and a new name for our ground. Answer, now."
+    dove: "We have bought all the time there was. Spend it."
+    intel: "Both columns at {region} have dug in. Their engineers are marking out a new border."
   intelDoubted: "Forty vehicles a mile inside {region}. Their staff have stopped asking about our rings."
   options:
     back: { label: BACK IT, cost: "we stand by it in public · costs {cost} influence · we keep our word" }
@@ -75,6 +93,7 @@
 
 - id: test-ships
   kind: test
+  place: island
   caller: dove
   text: "Federation ships are off {region}, inside the promise you drew. They have not fired. Their captain has asked, politely, whether we meant it."
   again: "The ships off {region} are still there. Two more joined them in the night. The captain has stopped asking."
@@ -86,6 +105,11 @@
     hawk: "Five ships now. Every night we wait, they bring another."
     dove: "Quiet ships, still. That door is open, but it is closing."
     intel: "Five ships off {region} now, two of them transports. Nothing has landed. Their crews sleep on deck."
+  lastAgain: "Two weeks off {region}. The transports have anchored inshore. Their captain sent one line tonight: he will take our silence as our answer."
+  lastAdvisers:
+    hawk: "Anchored inshore, one order from landing. Give ours first."
+    dove: "The quiet door has shut. Now we choose which loud one."
+    intel: "The transports off {region} have anchored inshore. Landing craft are on their decks."
   intelDoubted: "Three ships off {region}. Their captain asked once, politely. He has not asked again."
   options:
     back: { label: BACK IT, cost: "we tell their captain we meant it · costs {cost} influence · we keep our word" }
@@ -106,6 +130,11 @@
     hawk: "A week of engines, and they are still there. That is not noise any more."
     dove: "Last week it was noise. It has stayed. Decide on what is there now."
     intel: "The armour at {region} is still on the line. Their fuel trucks arrived on Monday."
+  lastAgain: "Two weeks of engines at {region}, and now the fuel is in place. The whole Cap has stopped hearing it. I have not. This is the last night to decide."
+  lastAdvisers:
+    hawk: "Two weeks, fuel and armour on the line. Move everything."
+    dove: "It is not noise any more. Our silence will be heard as an answer."
+    intel: "The armour at {region} has fuel up. Bridging gear came forward last night."
   intelDoubted: "Engines at {region} since dusk. Their envoy laughed at our last note. Their other column is at {from}."
   options:
     back: { label: BACK IT, cost: "we stand by it in public · costs {cost} influence · we keep our word" }
@@ -125,6 +154,11 @@
     hawk: "Still there a week on. Nobody keeps flags up that long for show."
     dove: "Whatever it was last week, it has stayed. That changes the question."
     intel: "Our count at {region} is two regiments now, up from one. Their radio has gone quiet."
+  lastAgain: "Two weeks of flags at {region}. Two regiments by our own count now, and a third on the road. Their radio says nothing at all. We answer tonight."
+  lastAdvisers:
+    hawk: "Three regiments soon. Nobody keeps that up for show."
+    dove: "Another week of waiting is a decision. Make it on purpose."
+    intel: "Two regiments at {region} by our count, a third on the road. Their radio is silent."
   intelDoubted: "One regiment at {region} by our count. Their envoy no longer returns our calls about our rings."
   options:
     back: { label: BACK IT, cost: "we stand by it in public · costs {cost} influence · we keep our word" }

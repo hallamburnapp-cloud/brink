@@ -87,6 +87,8 @@ export interface PhoneTemplate {
    * claim the promise), 'unpromised' about one you never promised (its words claim none). Absent: either.
    */
   when?: 'promised' | 'unpromised';
+  /** Test kinds only: words that fit only an island ('island': ships off it) or only a land place ('land'). Absent: either. */
+  place?: 'island' | 'land';
   /** The caller's message, 40 words or fewer. */
   text: string;
   /** Test kinds, optional: the message on the second and third round of the same call (after WAIT). */
@@ -98,6 +100,12 @@ export interface PhoneTemplate {
    * wait reads as a week gone by (the first round's slips are not repeated word for word).
    */
   againAdvisers?: { hawk: string; dove: string; intel: string };
+  /**
+   * Test kinds, optional: the message and the slips on the third and last round (a second WAIT bought a second week; the
+   * shoulder recheck found round three repeating round two word for word). Absent: round three reads round two's.
+   */
+  lastAgain?: string;
+  lastAdvisers?: { hawk: string; dove: string; intel: string };
   /**
    * Test kinds, optional: the Director's slip when they do not believe your promises (belief under RULES.beliefTest,
    * the price on BACK IT is the higher one). SPEC-SMALL "Doubt is visible where it matters": she says what she has
@@ -120,7 +128,7 @@ export const HIDDEN_KINDS = [
   'notTested', // They left {region} alone because they believed you.
   'feintBacked', // They were bluffing at {region}. You backed it anyway; it cost {cost} and they took note.
   'feintBackedDown', // They were bluffing at {region}. Backing it would have cost nothing.
-  'feintWaited', // They were bluffing at {region}. You waited, and they left.
+  'feintWaited', // They were bluffing at {region}. You waited, and the column went home (the tape says so, the week after or before the ending).
   'realBacked', // They meant it at {region}. You backed it and they turned away.
   'realBackFailed', // They meant it at {region}. You backed it from too far away, and it failed.
   'realBackedDown', // They meant it at {region}. You backed down, and they climbed a step.
@@ -145,6 +153,11 @@ export const HIDDEN_KINDS = [
   'bluffPhone', // Their silence over {region} was the silence of a bluff.
   'fallOutOfReach', // Nothing of yours could reach {region}. It fell, and they climbed no step for it.
   'realBackedDownEased', // They meant it at {region}, but a fight scared them too. When you stepped back, so did they.
+  'realBackedDownTop', // They meant it at {region}. You backed down; at the top of the ladder there was no step left to climb.
+  'headingThen', // When they chose {region}, {why}. (the reason as it stood when they chose; the place has changed since)
+  'lastTick', // {region} was at its last week and nothing of yours answered it, so they came to take it (a call).
+  'provokedBacked', // Your ring at {region} was drawn into their siege; backing it bought a pause, not a retreat.
+  'fallTooLate', // Your ring at {region} came too late: its clock had run out, and they took it.
   // The closing card's lessons (two or three a game, drawn from the game's own events; SPEC-SMALL "The debrief teaches").
   'lessonFeintBacked', // You backed {region}, where they were bluffing ...
   'lessonBackedDown', // You backed down at {region} ... (the place fell, and stayed fallen)
@@ -159,6 +172,8 @@ export const HIDDEN_KINDS = [
   'lessonOutOfReach', // {region} fell with nothing of yours in reach ...
   'lessonKeptWord', // You kept every promise they tested ...
   'lessonStoppedThenTalked', // They took the way out after a week in which they took nothing ...
+  'lessonNoSign', // The bar reached 100 in week {week}, but {region} stood hatched and unanswered ...
+  'lessonNoSignTaken', // The bar reached 100 in week {week}, but they took a place that week ...
 ] as const;
 export type HiddenKind = (typeof HIDDEN_KINDS)[number];
 
@@ -180,7 +195,8 @@ export const WHY_KINDS = [
   'noNeed', // they saw no need to talk yet
   'hungry', // they were hungry
   'wantedToStop', // they wanted to stop while they were ahead (only when they held a place they had taken)
-  'noGain', // they had taken nothing and saw nothing cheap left to take
+  'noGain', // they had taken nothing and saw nothing cheap left to take (nothing hatched)
+  'noGainYet', // they had taken nothing yet, and their sieges were not paying (places still hatched)
   'tooSoon', // they had taken a way out the week before and could not sell another at home yet
 ] as const;
 export type WhyKind = (typeof WHY_KINDS)[number];
@@ -197,8 +213,10 @@ export const HEADLINE_KINDS = [
   'pushedAgain', // More Federation forces into {region} (the pressure kept on a place already pressed)
   'stoppedShort', // Their column near {region} stopped short.
   'tested', // They are testing your promise at {region}.
-  'backed', // You backed {region}. They turned away. They are {step}.
-  'backedFar', // You backed {region} from far away, and it held. They are {step}.
+  'backed', // You backed {region} · they turn away (a real test held; the step down follows on its own line, easedStep)
+  'backedFar', // You backed {region} from afar · it held (the step down follows on its own line)
+  'backedOnly', // You backed {region} (a feint backed, or a provocation's pause: no turn-away, no step)
+  'easedStep', // They ease off · now {step} (a step down after a backing that held or a way out accepted, on its own line)
   'backFailed', // You backed {region} from too far away. It failed.
   'backedDown', // Backed down at {region} · now {step}
   'backedDownSame', // Backed down at {region} · still {step} (the ladder already at its top)
@@ -209,6 +227,7 @@ export const HEADLINE_KINDS = [
   'fellOutOfReach', // {region} out of reach · still {step} (a fall nothing of yours could have reached climbs no step)
   'takenStepUp', // {n} taken unanswered · now {step} ({n}: the place, or "two places")
   'feintGone', // {region}: their column has gone home (the week after you waited on a feint)
+  'feintGoneNew', // {region}: new column · the last went home (the column went home, and this week's arrow points there again)
   'spread', // The fighting at {from} spread to {region}.
   'recovered', // Guns quiet at {region}.
   'calmed', // {region} is calm again.
@@ -286,6 +305,8 @@ export const REFUSAL_CODES = [
   'too-soon',
   'piece-home',
   'no-promises',
+  // A standing promise they already called "a small thing" when it was offered up (the tape said so; the form dims it).
+  'small-thing',
 ] as const;
 export type RefusalCode = (typeof REFUSAL_CODES)[number];
 
@@ -309,6 +330,10 @@ export interface Strings {
     steps: [string, string, string, string, string];
     /** The WAIT form's cost text on the third round, when waiting is backing down. */
     waitIsBackDown: string;
+    /** Appended to a test's WAIT form while another round is left: what BACK IT will cost next week (slot {cost}). */
+    waitNext: string;
+    /** Appended to a form or a slip whose move would leave a pressed place at its last tick unanswered (slot {region}). */
+    leavesToFall: string;
     sendOrders: string; // SEND ORDERS
     wayOut: string; // A WAY OUT
     theyAre: string; // THEY ARE
@@ -350,9 +375,9 @@ export interface Strings {
    * a piece or a solid ring on each), slot {places}: SPEC-SMALL "the TREATY card names the places they still hold
    * under pressure".
    */
-  because: { heldAndWayOut: string; held: string; wayOut: string; quiet: string; leaves: string };
+  because: { heldAndWayOut: string; held: string; wayOut: string; quiet: string; stalled: string; leaves: string };
   /** The world war's "when ...". */
-  causes: Record<FallCause, string>;
+  causes: Record<FallCause | 'out-of-reach', string>;
   /**
    * The two dials in words, the sentence that joins them, and the sentence for a game in which nothing let
    * jumpiness show (slot {a} only: "They were hungry. You never came close enough to see whether they scare.").
@@ -412,11 +437,12 @@ export function checkContent(c: RedlinesContent): string[] {
   for (const k of REFUSE_WHYS) if (!s.wintermast?.[k]) out.push(`strings › wintermast: missing ${k}`);
   if (!s.dials?.lineOne) out.push('strings › dials: missing lineOne');
   for (const p of c.phones ?? []) if (p.when && p.kind !== 'trawler') out.push(`phones › ${p.id}: "when" is only read on a trawler template`);
+  for (const p of c.phones ?? []) if (p.place && p.kind !== 'test' && p.kind !== 'test-inherited' && p.kind !== 'feint') out.push(`phones › ${p.id}: "place" is only read on a test template`);
   for (const k of ACT_KINDS) if (!s.acts?.[k]) out.push(`strings › acts: missing ${k}`);
   for (const g of ANSWER_GROUPS) for (const key of ['back', 'down', 'wait'] as const) if (!s.answers?.[g]?.[key]) out.push(`strings › answers: missing ${g}.${key}`);
   for (const k of REFUSAL_CODES) if (!s.refusals?.[k]) out.push(`strings › refusals: missing ${k}`);
   for (const k of HOLD_CODES) if (!s.hold?.[k]) out.push(`strings › hold: missing ${k}`);
-  for (const k of FALL_CAUSES) if (!s.causes?.[k]) out.push(`strings › causes: missing ${k}`);
+  for (const k of [...FALL_CAUSES, 'out-of-reach'] as const) if (!s.causes?.[k]) out.push(`strings › causes: missing ${k}`);
   for (const k of WAY_OUT_TERMS) if (!s.terms?.[k]) out.push(`strings › terms: missing ${k}`);
   if (!s.numbers || s.numbers.length < 13) out.push('strings › numbers: need the words for 0 to 12');
   if (s.words?.steps?.length !== 5) out.push('strings › words.steps: need five words');

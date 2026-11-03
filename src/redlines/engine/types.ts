@@ -83,6 +83,12 @@ export interface RegionRec {
   fellSeq?: number;
   /** Beyond BUILD.md: whether something of yours could have reached it when it fell (a fall out of reach climbs no step; the tape says so). */
   fellReach?: boolean;
+  /**
+   * Beyond BUILD.md (SPEC-SMALL "The ladder is not a cliff, at any rung"): the length of this place's fall clock, in weeks,
+   * set when it is pressed (the step's clock then) and moved at most one tick by each step of the ladder while it runs. It
+   * falls when `pressedWeeks` reaches it. Missing in an old save: the clock of the step the week started at.
+   */
+  clock?: number;
 }
 export type FallCause = 'back-down' | 'back-down-inherited' | 'unanswered' | 'failed' | 'spread' | 'waited';
 export type Phase = 'act' | 'phone' | 'ended';
@@ -266,5 +272,15 @@ export interface Tally {
   jumpyFirst?: { piece: PieceKind; region: RegionId } | null;
   /** Times a scared Federation stood down after a back-down (at most once a game: SPEC-SMALL "Backing down is never the best answer"). */
   eased?: number;
+  /** Every place the player promised over the game, inherited rings included (a lesson about a place answers only one the player touched). */
+  ringed?: RegionId[];
+  /** The first fall out of reach of a place the player had promised at some time. */
+  outOfReachRinged?: RegionId | null;
+  /** The last week the TREATY bar stood at 100 and they did not sign, and why (a place taken that week, or the places still unanswered). */
+  noSign?: { week: number; taken: boolean; regions: RegionId[] } | null;
+  /** Places offered up as a dropped promise and refused as "a small thing" (the form dims them after: the tape already said so). */
+  smallThings?: RegionId[];
+  /** Whether the debrief has said the timetable's two real arrows once (it is said once a game). */
+  timetableSaid?: boolean;
 }
 export type Result = { ok: true; state: GameState } | { ok: false; reason: string };

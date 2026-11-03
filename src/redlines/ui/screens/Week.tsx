@@ -12,7 +12,7 @@ import { Calendar, IndexCard, Note, PencilUnderline, Tape } from '../paper';
 import { seedOf } from '../paper/rand';
 import { armRegion, cancelAct, doPromise, doWithdraw, holdEnd, holdStart, moveTo, openMenu, openWayOut, sendOrders, skipPlayback, tapSheet } from '../app/actions';
 import { blocOf, content, holdable, kindMoves, pieceOf, promiseAt, regionName, RULES, type PieceKind, type RegionId } from '../app/engine';
-import { moveWarnings, promiseWarnings, tryMove } from '../app/orders';
+import { moveWarnings, promiseWarnings, tryMove, withdrawCostLine, withdrawWarnings } from '../app/orders';
 import { slipTakes } from '../app/armed';
 import { HoldGesture } from '../app/gesture';
 import { toFramePoint } from '../app/layout';
@@ -146,7 +146,7 @@ function ActSlip(): JSX.Element | null {
   const S = content.strings;
   // What the promise would set off, before it is paid for: a declared line it crosses, in the line's own tape words,
   // that a ring on their arrow's target will be a call, and that a ring on a besieged place is a provocation.
-  const warns = a.act === 'promise' ? promiseWarnings(s, a.region) : [];
+  const warns = a.act === 'promise' ? promiseWarnings(s, a.region) : a.act === 'withdraw' ? withdrawWarnings(s, a.region) : [];
   const pos = slipPlace(a.region, SLIP_W, SLIP_H + 24 * warns.length);
   // What a watcher wants first: their forces heading here; then the place's state; then whose promise it is.
   const tags: string[] = [];
@@ -156,7 +156,7 @@ function ActSlip(): JSX.Element | null {
   if (rec?.state === 'fighting') tags.push(S.words.fighting);
   if (promiseAt(s, a.region)?.inherited) tags.push(S.screen.inherited);
   const head = [regionName(a.region).toUpperCase(), ...tags].join(' · ');
-  const cost = a.act === 'promise' ? promiseLine(S, holdable(s, a.region), regionName) : a.act === 'withdraw' ? S.act.withdrawCost : a.reason ?? '';
+  const cost = a.act === 'promise' ? promiseLine(S, holdable(s, a.region), regionName) : a.act === 'withdraw' ? withdrawCostLine(s, a.region) : a.reason ?? '';
   const word = a.act === 'promise' ? S.act.promise : a.act === 'withdraw' ? S.act.withdraw : null;
   return (
     <div class="rl-slip pp-obj pp-ty" style={{ left: `${pos.left}px`, top: `${pos.top}px`, width: `${SLIP_W}px` }}>
@@ -172,7 +172,7 @@ function ActSlip(): JSX.Element | null {
           <PencilUnderline seed={seedOf('rl:' + a.act)} />
         </button>
       ) : null}
-      <div class="c">{cost}</div>
+      {cost ? <div class="c">{cost}</div> : null}
       {warns.map((w, i) => (
         <div class="c rl-warn" key={i}>
           {w}

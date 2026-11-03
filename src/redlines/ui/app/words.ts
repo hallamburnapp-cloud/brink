@@ -6,7 +6,7 @@
  * Pure: no DOM, no signals; the engine's own pieces (netActs, actLine) come through the seam, which the
  * tests replace with the fake engine as the store's tests do.
  */
-import { actLine, fallsEndTheGame, fallsThisWeek, holdable, listNames, netActs, type Act, type GameState, type HoldInfo, type Phone, type PieceKind, type PackStrings, type RegionId, type WayOutTerm } from './engine';
+import { actLine, fallsAnswerable, fallsEndTheGame, fallsThisWeek, holdable, listNames, netActs, spreadEndsTheGame, type Act, type GameState, type HoldInfo, type Phone, type PieceKind, type PackStrings, type RegionId, type WayOutTerm } from './engine';
 
 export interface TapeLine {
   tag?: string;
@@ -99,7 +99,8 @@ export function noteFor(s: GameState, S: PackStrings, name: Namer, bloc: Namer, 
   if (acts.length) {
     // A move that left a ring dashed says so where it happened (the second review: the ring redrew dashed in silence).
     const dashed = movedDashed.filter((r) => s.promises.some((p) => p.region === r) && !holdable(s, r).ok).map((r) => fill(S.note.movedDashed, { region: name(r) }));
-    return [...acts, ...dashed, ...(eve && eveEndsGame(s) ? [eve] : [])].join(' ');
+    // SPEC-SMALL "The note keeps its warning": the falls sentence stays under the player's acts every week.
+    return [...acts, ...dashed, ...(eve ? [eve] : [])].join(' ');
   }
   if (s.week === 1 && s.collision) return s.collision;
   const now = situation(s, S, name, bloc);
@@ -118,15 +119,27 @@ export function eveEndsGame(s: GameState): boolean {
 
 /**
  * The note on the eve of a fall (SPEC-SMALL "the note on the eve of a fall that would end the game says so"):
- * "Shoal falls this week unless something of ours reaches it." / "Shoal and Lintel fall this week unless something
- * of ours reaches them.", and "That would be world war." when they would fill the eighth box.
+ * "Shoal falls this week unless something of ours reaches it." for the places a piece of ours could still answer this
+ * week, "Tallowmere falls this week; nothing of ours can reach it." for the rest (the second recheck: the note offered an
+ * answer that did not exist), and "That would be world war." when the falls, with the spread that follows them, would
+ * fill the eighth box; when the spread alone would, it says so ("The fighting will spread when the week ends. That would
+ * be world war.").
  */
 export function eveSentence(s: GameState, S: PackStrings, name: Namer): string {
   const eve = eveOfFall(s);
-  if (!eve.length) return '';
-  const parts = [eve.length === 1 ? fill(S.note.fallsOne, { region: name(eve[0]) }) : fill(S.note.fallsMany, { places: listNames(eve) })];
-  if (eveEndsGame(s)) parts.push(S.note.worldWarEve);
-  return parts.join(' ');
+  const parts: string[] = [];
+  if (eve.length) {
+    const near = new Set(fallsAnswerable(s));
+    const can = eve.filter((r) => near.has(r));
+    const far = eve.filter((r) => !near.has(r));
+    if (can.length) parts.push(can.length === 1 ? fill(S.note.fallsOne, { region: name(can[0]) }) : fill(S.note.fallsMany, { places: listNames(can) }));
+    if (far.length) parts.push(far.length === 1 ? fill(S.note.fallsOneFar, { region: name(far[0]) }) : fill(S.note.fallsManyFar, { places: listNames(far) }));
+  }
+  if (eve.length && eveEndsGame(s)) {
+    if (spreadEndsTheGame(s)) parts.push(S.note.spreadWorldWar);
+    else parts.push(S.note.worldWarEve);
+  } else if (spreadEndsTheGame(s)) parts.push(S.note.spreadWorldWar);
+  return parts.map(capitalised).join(' ');
 }
 
 /**
@@ -198,6 +211,18 @@ export function holdWords(S: PackStrings, hold: HoldInfo, name: Namer): string {
 export function promiseLine(S: PackStrings, hold: HoldInfo, name: Namer): string {
   const why = holdWords(S, hold, name);
   return `${S.act.promiseCost} · ${fill(hold.ok ? S.act.promiseSolid : S.act.promiseDashed, { hold: why })}`;
+}
+
+/**
+ * A dashed ring's second line, before it is paid for (the second recheck: a price only seen once the phone rang): how
+ * far the nearest piece is from holding it ("the fleet is 3 moves away", by a route that crosses no declared line; left
+ * out when none can) and what backing it will cost when they test it ("backing it costs 24").
+ */
+export function dashedPriceLine(S: PackStrings, far: { piece: PieceKind; moves: number } | null, cost: number): string {
+  const parts: string[] = [];
+  if (far && Number.isFinite(far.moves) && far.moves > 0) parts.push(fill(far.moves === 1 ? S.act.movesAwayOne : S.act.movesAway, { piece: S.pieces[far.piece], n: far.moves }));
+  parts.push(fill(S.act.backPrice, { cost }));
+  return parts.join(' · ');
 }
 
 /** The cost line under a way-out term. With no piece named yet, the clauses that would name one are left out ("costs 15 influence"). */

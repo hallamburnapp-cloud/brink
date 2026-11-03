@@ -11,8 +11,14 @@
  * - G8 the no-orders bot (sitting still) wins at most half as often as sensible;
  * - G9 the seller (a far promise sold back) wins at least ten points less often than sensible;
  * - G10 no line reaches the player with a slot unfilled;
- * - G11 the shark (SPEC-SMALL "No formula wins": the strongest visible-information line the second review found) signs
- *   at most 60%; G12 no one-rule bot (summits only; never move a piece) signs more than 45%.
+ * - G11 no shark (SPEC-SMALL "No formula wins": the strongest visible-information line the second review found, the same
+ *   shark offering no way out, and the shark that reads their nerve) signs more than 55% (SPEC-SMALL "A provocation costs
+ *   what it claims"; the shark alone at 60% until the second recheck); G12 no one-rule bot (summits only; never move a
+ *   piece) signs more than 45%;
+ * - G13 (SPEC-SMALL "Reading their nerve pays") the door-reading shark signs more than the shark against a scared
+ *   Federation; G14 ("A provocation costs what it claims") the one rule "ring the hatched places" is worth at most 25
+ *   points to the shark (the shark against the shark that never rings one). The same ablation in the shark that offers no
+ *   way out is reported beside the gates (`ablations`), not gated: an owner's question in ENGINE.md.
  * The careful hand is reported beside them, never gated (SPEC-SMALL "Hand play is reported, not gated"), and
  * every game's invariants (invariants.ts) are counted apart: any broken one fails --strict.
  */
@@ -133,10 +139,35 @@ export const GATES = {
   noOrdersShare: 0.5,
   /** The seller sits at least this many points of treaty share under sensible. */
   sellerGap: 0.1,
-  /** SPEC-SMALL "No formula wins": the shark signs at most 60%; no one-rule bot (summits only; never move a piece) more than 45%. */
-  sharkMax: 0.6,
+  /** SPEC-SMALL "No formula wins": no one-rule bot (summits only; never move a piece) more than 45%. The rulings after the second recheck: the shark at most 55% (60 before). */
+  sharkMax: 0.55,
   oneRuleMax: 0.45,
+  /** SPEC-SMALL "A provocation costs what it claims": "ring the hatched places" worth no more than about 25 points by ablation. */
+  ringRuleMax: 0.25,
 } as const;
+
+/** The sharks G11 judges: the second review's shark, the shark that offers no way out, and the one that reads their nerve. */
+export const SHARK_FAMILY: readonly BotName[] = ['shark', 'shark-quiet', 'shark-door'];
+
+/**
+ * What one rule is worth to the strongest players, by ablation (the bot against itself without the rule), reported beside
+ * the gates: ringing the hatched places to the shark (G14 gates it) and to the shark that offers no way out (reported: an
+ * owner's question), moving the pieces to the shark, and reading their nerve against a scared Federation (G13).
+ */
+export function ablations(stats: Partial<Record<BotName, BotStats>>): Array<{ what: string; with: string; without: string; points: number }> {
+  const out: Array<{ what: string; with: string; without: string; points: number }> = [];
+  const t = (b: BotStats) => share(b.treaty, b.games);
+  const pair = (what: string, a: BotName, b: BotName, f: (x: BotStats) => number = t) => {
+    const x = stats[a];
+    const y = stats[b];
+    if (x && y) out.push({ what, with: a, without: b, points: 100 * (f(x) - f(y)) });
+  };
+  pair('ring the hatched places (G14)', 'shark', 'shark-noring');
+  pair('ring the hatched places (reported)', 'shark-quiet', 'shark-quiet-noring');
+  pair('move the pieces', 'shark', 'shark-still');
+  pair('read their nerve, against a scared Federation (G13)', 'shark-door', 'shark', (x) => x.byJumpiness[2]);
+  return out;
+}
 
 /** Judge the gates on the batch; a gate whose bot was not played is left out. */
 export function evaluateGates(stats: Partial<Record<BotName, BotStats>>): Gate[] {
@@ -189,9 +220,24 @@ export function evaluateGates(stats: Partial<Record<BotName, BotStats>>): Gate[]
     out.push({ id: 'G10', text: 'No line reaches the player with a slot unfilled', value: String(unfilled), pass: unfilled === 0 });
   }
   const shark = stats.shark;
-  if (shark) {
-    const a = share(shark.treaty, shark.games);
-    out.push({ id: 'G11', text: 'The shark (the strongest visible line found) signs at most 60%', value: pct(a), pass: a <= GATES.sharkMax });
+  // The shark and its cousins that play from the same sheet (the one that offers no way out, the one that reads their nerve):
+  // the strongest of them is judged (SPEC-SMALL "No formula wins": tuned against the strongest visible-information player).
+  const sharks = SHARK_FAMILY.map((b) => stats[b]).filter((x): x is BotStats => !!x);
+  if (sharks.length) {
+    const best = sharks.reduce((a, b) => (share(b.treaty, b.games) > share(a.treaty, a.games) ? b : a));
+    const a = share(best.treaty, best.games);
+    out.push({ id: 'G11', text: 'No shark (the strongest visible lines found) signs more than 55%', value: `${pct(a)} (${best.bot})`, pass: a <= GATES.sharkMax });
+  }
+  const door = stats['shark-door'];
+  if (shark && door) {
+    const a = door.byJumpiness[2];
+    const b = shark.byJumpiness[2];
+    out.push({ id: 'G13', text: 'Reading their nerve pays: the door-reader beats the shark against a scared Federation', value: `${pct(a)} vs ${pct(b)}`, pass: a > b });
+  }
+  const noRing = stats['shark-noring'];
+  if (shark && noRing) {
+    const gap = share(shark.treaty, shark.games) - share(noRing.treaty, noRing.games);
+    out.push({ id: 'G14', text: 'Ringing the hatched places is worth at most 25 points to the shark', value: `${(gap * 100).toFixed(1)} points`, pass: gap <= GATES.ringRuleMax });
   }
   const oneRule = (['summit-only', 'shark-still'] as BotName[]).map((b) => stats[b]).filter((x): x is BotStats => !!x);
   if (oneRule.length) {
@@ -199,5 +245,7 @@ export function evaluateGates(stats: Partial<Record<BotName, BotStats>>): Gate[]
     const a = share(best.treaty, best.games);
     out.push({ id: 'G12', text: 'No one-rule bot (summits only; never move a piece) signs more than 45%', value: `${pct(a)} (${best.bot})`, pass: a <= GATES.oneRuleMax });
   }
+  // Gates sort by number (G13 and G14 were pushed after G11).
+  out.sort((x, y) => Number(x.id.slice(1)) - Number(y.id.slice(1)));
   return out;
 }

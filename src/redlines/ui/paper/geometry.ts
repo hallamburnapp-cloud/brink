@@ -328,11 +328,117 @@ export const CALL_SHIFT = -170;
  */
 export const CALL_BAND = { x0: 205, x1: 330, y: 116 } as const;
 
-/** The sheet's shift for a call about `centre` (a place's centre in the day frame), or the mock's when no place is named. */
-export function callShiftFor(centre: { x: number; y: number } | null): { x: number; y: number } {
+/**
+ * What covers the sheet on the call (frame px), as parts.tsx and paper.css draw it: the handset off the hook (its bar,
+ * its two cups and their shadow, its cord), the week's clock tag at the top right, and the caller card's top edge.
+ * HANDSET_FOOT[x] is the lowest y the handset covers in the column x (-Infinity where it covers nothing).
+ */
+const HANDSET_FOOT: number[] = (() => {
+  const foot = Array.from({ length: 392 }, () => -Infinity);
+  const th = (-24 * Math.PI) / 180;
+  const put = (u: number, v: number) => {
+    const x = Math.round(150 + u * Math.cos(th) - v * Math.sin(th));
+    const y = 78 + u * Math.sin(th) + v * Math.cos(th);
+    if (x >= 0 && x < foot.length && y > foot[x]) foot[x] = y;
+  };
+  const rect = (u0: number, u1: number, v0: number, v1: number) => {
+    for (let u = u0; u <= u1; u += 1) for (let v = v0; v <= v1; v += 1) put(u, v);
+  };
+  const ellipse = (cu: number, cv: number, ru: number, rv: number) => {
+    for (let u = -ru; u <= ru; u += 1) for (let v = -rv; v <= rv; v += 1) if ((u / ru) ** 2 + (v / rv) ** 2 <= 1) put(cu + u, cv + v);
+  };
+  rect(-98, 98, -12, 12);
+  ellipse(-104, 2, 31, 23);
+  ellipse(104, 2, 31, 23);
+  // The shadow, drawn 6 px left and 14 px down in the handset's own frame.
+  rect(-102, 90, 4, 26);
+  ellipse(-106, 18, 30, 22);
+  ellipse(94, 18, 30, 22);
+  // The cord, from the near cup off the frame's left edge.
+  for (let t = 0; t <= 1; t += 0.02) {
+    const x = Math.round(31 - 35 * t);
+    for (let dx = -6; dx <= 6; dx++) if (x + dx >= 0 && x + dx < foot.length) foot[x + dx] = Math.max(foot[x + dx], 131 + 35 * t + 6);
+  }
+  return foot;
+})();
+/** The week's clock tag (frame px). */
+const CALL_CLOCK = { x0: 238, y0: 8, x1: 382, y1: 68 };
+/** The caller card's top edge at x (frame px; the card is turned a degree). */
+const cardTop = (x: number) => 163 - 0.0192 * (x - 17);
+
+/** Whether a frame point is hidden on the call: under the handset, the clock tag or the caller card, or off the frame. */
+export function callHidden(x: number, y: number, margin = 2): boolean {
+  if (x < margin || x > FRAME_W - margin || y < margin) return true;
+  if (y > cardTop(x) - margin) return true;
+  if (x >= CALL_CLOCK.x0 - margin && x <= CALL_CLOCK.x1 + margin && y >= CALL_CLOCK.y0 - margin && y <= CALL_CLOCK.y1 + margin) return true;
+  for (let dx = -Math.ceil(margin); dx <= Math.ceil(margin); dx++) {
+    const f = HANDSET_FOOT[Math.round(x) + dx];
+    if (f !== undefined && y <= f + margin) return true;
+  }
+  return false;
+}
+const FRAME_W = 390;
+
+/** The tested place's marks in the day frame (frame px): the TESTED word's boxes and the red ring round its place. */
+export interface CallMarks {
+  word: ReadonlyArray<{ x0: number; y0: number; x1: number; y1: number }>;
+  ring: { cx: number; cy: number; rx: number; ry: number };
+}
+
+/** How much of the TESTED word and the red ring a shift leaves hidden: the word's share and the ring's. */
+export function callCover(m: CallMarks, dx: number, dy: number): { word: number; ring: number } {
+  let wn = 0;
+  let wh = 0;
+  for (const b of m.word) {
+    for (let i = 0; i <= 4; i++) {
+      for (let j = 0; j <= 2; j++) {
+        wn++;
+        if (callHidden(b.x0 + ((b.x1 - b.x0) * i) / 4 + dx, b.y0 + ((b.y1 - b.y0) * j) / 2 + dy)) wh++;
+      }
+    }
+  }
+  let rh = 0;
+  const RN = 32;
+  for (let k = 0; k < RN; k++) {
+    const a = (k * 2 * Math.PI) / RN;
+    if (callHidden(m.ring.cx + m.ring.rx * Math.cos(a) + dx, m.ring.cy + m.ring.ry * Math.sin(a) + dy, 0)) rh++;
+  }
+  return { word: wn ? wh / wn : 0, ring: rh / RN };
+}
+
+/**
+ * The sheet's shift for a call about `centre` (a place's centre in the day frame), or the mock's when no place is
+ * named. Given the tested place's marks (`marks`, day-frame px), the place's centre goes into the band under the
+ * handset as before, then the sheet slides the least it must so that the whole TESTED word, and as much of the red
+ * ring as can be, show between the handset, the clock tag and the caller card (the look recheck: TESTED was under
+ * the handset on 21 of 956 calls, Marram on 4 of 4).
+ */
+export function callShiftFor(centre: { x: number; y: number } | null, marks?: CallMarks | null): { x: number; y: number } {
   if (!centre) return { x: 0, y: CALL_SHIFT };
-  const x = centre.x < CALL_BAND.x0 ? CALL_BAND.x0 - centre.x : centre.x > CALL_BAND.x1 ? CALL_BAND.x1 - centre.x : 0;
-  return { x: Math.round(x), y: Math.round(CALL_BAND.y - centre.y) };
+  // With the marks, the red ring's middle goes into the band (a long plate's ring sits far from its pin: Shoal's is 84 px below it).
+  const c = marks ? { x: marks.ring.cx, y: marks.ring.cy } : centre;
+  const x = c.x < CALL_BAND.x0 ? CALL_BAND.x0 - c.x : c.x > CALL_BAND.x1 ? CALL_BAND.x1 - c.x : 0;
+  const base = { x: Math.round(x), y: Math.round(CALL_BAND.y - c.y) };
+  if (!marks) return base;
+  const at = callCover(marks, base.x, base.y);
+  if (at.word === 0 && at.ring === 0) return base;
+  let best = { dx: 0, dy: 0 };
+  let bestCost = Infinity;
+  const tryAt = (ddx: number, ddy: number) => {
+    const move = (Math.abs(ddx) + Math.abs(ddy)) * 0.6;
+    if (move >= bestCost) return;
+    const c = callCover(marks, base.x + ddx, base.y + ddy);
+    const cost = c.word * 1000 + c.ring * 200 + move;
+    if (cost < bestCost) {
+      bestCost = cost;
+      best = { dx: ddx, dy: ddy };
+    }
+  };
+  // A coarse search, then a fine one round the best of it.
+  for (let ddy = -120; ddy <= 120; ddy += 6) for (let ddx = -150; ddx <= 150; ddx += 10) tryAt(ddx, ddy);
+  const { dx: cx, dy: cy } = best;
+  for (let ddy = cy - 6; ddy <= cy + 6; ddy += 1) for (let ddx = cx - 10; ddx <= cx + 10; ddx += 2) tryAt(ddx, ddy);
+  return { x: base.x + best.dx, y: base.y + best.dy };
 }
 
 export function toFrame(f: FrameTransform, x: number, y: number): [number, number] {

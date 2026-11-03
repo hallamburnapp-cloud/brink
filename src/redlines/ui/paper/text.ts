@@ -23,6 +23,8 @@ export const TEXT = {
   hand: { face: 'hand', size: 12.5, spacing: 0.02 },
   /** TESTED (.pp-hw.pp-hwred). */
   handRed: { face: 'hand', size: 13.5, spacing: 0.02 },
+  /** A WORLD WAR chain number (.pp-hw.pp-hwred.pp-chain-n). */
+  chain: { face: 'hand', size: 15, spacing: 0.02 },
   /** A counter's label (.pp-ct). */
   counter: { face: 'type', size: 6.6, spacing: 0.1 },
   /** FIGHTING on the small stamp (.pp-stamp-sm), before the stamp's own scale. */

@@ -10,6 +10,13 @@
     - "They went for {region} because {why}."
     - "{region} was their choice that week because {why}."
 
+# The heading's reason as it stood when they chose the place, once the place has changed since (you promised it after
+# their orders were given): never a present reason the page's own WHAT YOU DID contradicts.
+- kind: headingThen
+  thoughts:
+    - "When they chose {region}, {why}."
+    - "{region} was picked before your orders, when {why}."
+
 - kind: feint
   thoughts:
     - "Their column at {region} was a feint. The real push was at {from}."
@@ -39,7 +46,7 @@
 
 - kind: feintWaited
   thoughts:
-    - "They were bluffing at {region}. You waited, and they left."
+    - "They were bluffing at {region}. You waited, and the column went home: it was never coming."
 
 - kind: realBacked
   thoughts:
@@ -54,6 +61,18 @@
   thoughts:
     - "They meant it at {region}. You backed down, and they climbed a step."
     - "At {region} you protested and did nothing. They had expected exactly that, and planned the next week around it."
+
+- kind: realBackedDownTop
+  thoughts:
+    - "They meant it at {region}. You backed down; they were at the top of the ladder already, and there was no step left to climb."
+
+- kind: provokedBacked
+  thoughts:
+    - "Your ring at {region} was drawn into their siege. Backing it bought a pause there, not a retreat: they gave up nothing for it."
+
+- kind: lastTick
+  thoughts:
+    - "{region} was at its last week and nothing of yours answered it, so they came to take it, ring or no ring."
 
 - kind: realWaited
   thoughts:
@@ -79,6 +98,10 @@
   thoughts:
     - "You left {region} unanswered, and they took it."
     - "Nobody answered at {region}. They took it, and a place taken for nothing told them the next one was free too."
+
+- kind: fallTooLate
+  thoughts:
+    - "Your ring at {region} came too late: its clock had run out, and they took it."
 
 - kind: fallOutOfReach
   thoughts:
@@ -195,3 +218,11 @@
 - kind: lessonStoppedThenTalked
   thoughts:
     - "They took the way out after a week in which they took nothing. A Federation that has been stopped talks; one that is winning does not."
+
+- kind: lessonNoSign
+  thoughts:
+    - "The bar reached 100 in week {week}, but {region} stood hatched and unanswered. They do not sign over a place they are still taking."
+
+- kind: lessonNoSignTaken
+  thoughts:
+    - "The bar reached 100 in week {week}, but they took a place that week. They do not sign in a week they are winning."

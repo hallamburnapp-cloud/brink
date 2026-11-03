@@ -9,6 +9,7 @@
  */
 import type { MapWords, PaperView, PieceKind, RegionId } from './contract';
 import type { Bounds } from './geometry';
+import type { Box } from './place';
 import { arrange, arrowFor, LABEL_AT, LEADER_GAP, leaderSegment, ringGeom, testRingGeom, TICK_GAP, type Arrangement } from './arrange';
 import { rnd, seedOf } from './rand';
 import type { SheetGeom } from './sheet';
@@ -123,7 +124,7 @@ let lastGeom: SheetGeom | null = null;
 let lastWords: MapWords | null = null;
 let last: Arrangement | null = null;
 function arranged(view: PaperView, geom: SheetGeom, words: MapWords): Arrangement {
-  const key = JSON.stringify([view.states, view.promises, view.headings, view.pieces, view.tested, view.clocks ?? {}]);
+  const key = JSON.stringify([view.states, view.promises, view.headings, view.pieces, view.tested, view.clocks ?? {}, view.chain ?? []]);
   if (last && key === lastKey && geom === lastGeom && words === lastWords) return last;
   // The last arrangement is passed in: a mark whose spot is still clear stays put (a pencil mark does not walk).
   last = arrange(view, geom, words, undefined, geom === lastGeom && words === lastWords ? last : null);
@@ -131,6 +132,18 @@ function arranged(view: PaperView, geom: SheetGeom, words: MapWords): Arrangemen
   lastGeom = geom;
   lastWords = words;
   return last;
+}
+
+/**
+ * The tested place's marks as this view places them (the day frame's px): the TESTED word's boxes and the red ring. The call
+ * slides the sheet by these (geometry.ts callShiftFor), so the word is never under the handset or the caller card.
+ */
+export function testedMarks(given: PaperView, geom: SheetGeom, words: MapWords): { id: RegionId; word: Box[]; ring: { cx: number; cy: number; rx: number; ry: number } } | null {
+  const { view } = withGhost(given);
+  const id = view.tested;
+  if (!id || !(id in geom.shape)) return null;
+  const at = arranged(view, geom, words);
+  return { id, word: at.placed.filter((p) => p.key === `tested:${id}`).map((p) => p.box), ring: testRingGeom(geom, id) };
 }
 
 /** The marks for a view. `p` is the id prefix of the sheet's defs. */
@@ -227,17 +240,14 @@ export function marksOf(given: PaperView, geom: SheetGeom, words: MapWords, p: s
 
   // The WORLD WAR chain: each place that fell numbered in red pencil in the order it fell, the first ringed.
   const chain = (view.chain ?? []).filter((id) => known(id) && view.states[id] === 'fighting');
+  // Where each number goes is arrange.ts: beside its own stamp, clear of every other mark.
   chain.forEach((id, i) => {
-    const st = at.stamps.get(id);
-    if (!st) return;
-    const a = (st.rot * Math.PI) / 180;
-    const hx = -27 * st.scale - 5;
-    const x = st.x + hx * Math.cos(a) + 3 * Math.sin(a);
-    const y = st.y + hx * Math.sin(a) - 3 * Math.cos(a);
+    const c = at.chain.get(id);
+    if (!c) return;
     m.stamp.push({
       key: `chain:${id}:${i + 1}`,
       enter: 'fade',
-      html: `<g class="pp-mk pp-chain"><text class="pp-hw pp-hwred pp-chain-n" x="${f1(x)}" y="${f1(y + 4)}" text-anchor="middle">${i + 1}</text></g>`,
+      html: `<g class="pp-mk pp-chain"><text class="pp-hw pp-hwred pp-chain-n" x="${f1(c.x)}" y="${f1(c.y)}" text-anchor="middle">${c.n}</text></g>`,
     });
     if (i === 0) {
       const r = testRingGeom(geom, id);

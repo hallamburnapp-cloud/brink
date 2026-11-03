@@ -62,7 +62,7 @@ export function samplesFor(c: RedlinesPack | null): Record<string, string> {
 
 /** Slots each file may use (src/redlines/engine/content.ts). */
 export const PHONE_SLOTS: readonly string[] = ['region', 'promise', 'line', 'cost', 'waitCost', 'piece', 'from', 'step'];
-export const DEBRIEF_SLOTS: readonly string[] = [...PHONE_SLOTS, 'why', 'n'];
+export const DEBRIEF_SLOTS: readonly string[] = [...PHONE_SLOTS, 'why', 'n', 'week'];
 export const STRING_SLOTS: readonly string[] = Object.keys(SLOT_WIDTH);
 
 /** Slots a phone kind's message must carry, so the call always says where. */
@@ -170,6 +170,10 @@ export function validateRedlines(content: RedlinesPack): ContentIssue[] {
   }
   for (const p of content.phones) validatePhone(content, p, issues, samples);
   // The trawler rings about an island you promised or one you did not; a template marked for one case needs a partner for the other (or one marked for neither).
+  const tests = content.phones.filter((p) => p.kind === 'test' || p.kind === 'feint');
+  for (const place of ['island', 'land'] as const) {
+    if (tests.length && !tests.some((p) => !p.place || p.place === place)) err('phones.yaml', `no test or feint template fits ${place === 'island' ? 'an island' : 'a land place'} ("place: ${place}", or one without "place")`);
+  }
   const trawlers = content.phones.filter((p) => p.kind === 'trawler');
   for (const when of ['promised', 'unpromised'] as const) {
     if (trawlers.length && !trawlers.some((p) => !p.when || p.when === when)) err('phones.yaml', `no trawler template for an island you ${when === 'promised' ? 'promised' : 'did not promise'} ("when: ${when}", or one without "when")`);
@@ -210,6 +214,7 @@ function validatePhone(content: RedlinesPack, p: PackPhone, issues: ContentIssue
 
   if (!content.advisers[p.caller]) err(where, `unknown caller "${p.caller}"`);
   if (p.when && p.kind !== 'trawler') warn(where, '"when" is only read on a trawler template');
+  if (p.place && p.kind !== 'test' && p.kind !== 'test-inherited' && p.kind !== 'feint') warn(where, '"place" is only read on a test, inherited test or feint template');
   if (p.kind === 'trawler' && p.when === 'unpromised' && /\bour promise\b/i.test(`${p.text} ${p.advisers.hawk} ${p.advisers.dove} ${p.advisers.intel}`)) err(where, 'an unpromised trawler call must not claim "our promise"');
 
   const checkText = (label: string, text: string) => {
@@ -229,10 +234,17 @@ function validatePhone(content: RedlinesPack, p: PackPhone, issues: ContentIssue
   if (p.again) checkText('again', p.again);
   else if (isTest) warn(where, `a "${p.kind}" call reads better with "again": the message for the second week after WAIT`);
   if (!isTest && p.again) warn(where, '"again" is only read on a test (an event is answered once)');
+  if (p.lastAgain) checkText('lastAgain', p.lastAgain);
+  else if (isTest && p.again) warn(where, `a "${p.kind}" call reads better with "lastAgain": the message for the third week, after a second WAIT`);
+  if (!isTest && (p.lastAgain || p.lastAdvisers)) warn(where, '"lastAgain" and "lastAdvisers" are only read on a test');
+  if (p.lastAgain && p.lastAgain === p.again) err(where, 'lastAgain: the same words as "again"; a second week on, the call says what changed');
 
   // The slips: the first round's, the carried rounds' (againAdvisers) and the Director's slip while they doubt you.
   const slips: Array<[role: 'hawk' | 'dove' | 'intel', text: string, label: string]> = (['hawk', 'dove', 'intel'] as const).map((r) => [r, p.advisers[r], `advisers.${r}`]);
   if (p.againAdvisers) for (const r of ['hawk', 'dove', 'intel'] as const) slips.push([r, p.againAdvisers[r], `againAdvisers.${r}`]);
+  if (p.lastAdvisers) for (const r of ['hawk', 'dove', 'intel'] as const) slips.push([r, p.lastAdvisers[r], `lastAdvisers.${r}`]);
+  if (isTest && p.lastAgain && !p.lastAdvisers) warn(where, 'a third round reads better with "lastAdvisers": the slips a second week on');
+  if (isTest && p.lastAdvisers) for (const r of ['hawk', 'dove', 'intel'] as const) if (p.lastAdvisers[r] === p.againAdvisers?.[r] || p.lastAdvisers[r] === p.advisers[r]) err(where, `lastAdvisers.${r}: the same words as an earlier round; a second week on, the slip says what changed`);
   if (p.intelDoubted) slips.push(['intel', p.intelDoubted, 'intelDoubted']);
   if (!isTest && (p.againAdvisers || p.intelDoubted)) warn(where, '"againAdvisers" and "intelDoubted" are only read on a test');
   if (isTest && p.again && !p.againAdvisers) warn(where, 'a carried call reads better with "againAdvisers": the slips a week on');

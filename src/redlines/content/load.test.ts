@@ -124,6 +124,7 @@ describe('the shipped pack', () => {
       [/\bthe (\w+) place is fighting\b/gi, RULES.warLimit, 'warLimit'],
       [/\bat (\d+) they sign\b/gi, RULES.willSign, 'willSign'],
       [/\b(\w+) promises is the most\b/gi, RULES.maxPromises, 'maxPromises'],
+      [/\b(\w+) promises at most\b/gi, RULES.maxPromises, 'maxPromises'],
       [/\bcosts (\d+) influence a week\b/gi, RULES.upkeep, 'upkeep'],
       [/\bcosts (\d+) influence · one move a week\b/gi, RULES.moveCost, 'moveCost'],
       [/\bcosts (\d+) now\b/gi, RULES.promiseCost, 'promiseCost'],
@@ -261,6 +262,12 @@ describe('the shipped pack', () => {
     expect(all).toMatch(new RegExp(`gain ${RULES.income} a week`));
     expect(all).toMatch(/unless they took a place that week or a hatched place stands unanswered/);
     expect(all).toMatch(/provocation/);
+    // The second recheck's cold tester: the limit of three promises, the full price of a provocation, WAIT's rising price,
+    // and which falls move the ladder (a place you could have reached) are on the card, not found by paying.
+    expect(all).toMatch(new RegExp(`${S.numbers[RULES.maxPromises]} promises at most`));
+    expect(all).toMatch(/provocation, backed at full price/);
+    expect(all).toMatch(/WAIT raises the price/);
+    expect(all).toMatch(/losing a place you could have reached, moves them up/);
     expect(S.explanation[1]).toMatch(/press and hold/i);
     // The slips' and the note's words for what an order would do (the screens wire them; SPEC-SMALL "A form that will fail says so").
     for (const k of ['moveHint', 'crosses', 'leavesDashed', 'promiseCall', 'promiseProvokes'] as const) expect(S.act[k].length).toBeGreaterThan(5);

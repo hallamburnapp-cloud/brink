@@ -2,6 +2,30 @@
 
 All notable changes to BRINK. Dates are UTC.
 
+## 0.8.2 — 2026-11-03 (Red Lines, second recheck)
+
+Four critics rechecked 0.8.1 with real taps (over the shoulder, deep strategy, the art director, a new first-time player). Rulings after the second recheck in `SPEC-SMALL.md` (D-119) decided the design questions; the fixes were finished across two container restarts in short resumable steps.
+
+### Balance
+- A provocation (a ring drawn on a place already under siege) is backed at the full price and buys only the pause. The strongest formula found now signs about 41% on seeds R, S and T, level with the sensible player; ringing hatched places is worth under 20 points to it (gated at 25). Two reviews ago a formula signed about 80%.
+- Reading their nerve pays: a piece at a scared Federation's door holds back a push every week, and against a scared Federation the door reader signs about 69% where the formula signs 33% (gated).
+- The ladder is not a cliff at any rung: a step up takes at most one tick off a running clock; each pressed place keeps its own clock.
+- Fourteen gates pass on all three seed sets; the invariant checker (now also: no turn-away after a feint or a provocation) is clean in 84,000 games.
+
+### The truth on the sheet
+- "They turn away" is printed only after a real test; a backed feint or provocation prints "You backed X".
+- Too late is said before you pay: a ring on a place at its last tick either brings their test that week or the PROMISE slip says it is too late.
+- The note keeps its falls warning under your orders every week and counts the spread; MOVE HERE and SEND THEM name a place the move would leave to fall.
+- BACK IT's price is shown before the phone rings (on the PROMISE and WITHDRAW slips) and WAIT says what backing will cost next week; a dashed slip says how far the nearest piece is.
+- "No treaty" names the places it counts, and exactly those are hatched; a ring drawn and withdrawn in the same week costs nothing.
+- The debrief reads each heading's reason as of the moment they chose; lessons answer what the player did or could see, including a bar at 100 that did not sign.
+
+### The look
+- WE DEFEND nearer another island or plate than its own ring in 2.9% of placements (15% at the recheck), nearer another place's name in 0.1%; the WORLD WAR chain numbers are placed by the solver; TESTED stays visible on the call; printed boundaries break under bloc titles.
+
+### Checks
+- 1,340 unit tests across the project (366 for Red Lines), 21 end-to-end tests with real taps, a full real-tap game read beat by beat, the art director's placement fuzz over 13,121 sheets.
+
 ## 0.8.1 — 2026-11-02 (Red Lines, second review)
 
 Five critics played 0.8.0 with real taps before the owner (over the shoulder, a deep-strategy player, the art director, QA across 34 shadowed games, and a first-time player who read nothing first); two fixers and an integrator worked through what they found under new rulings in `SPEC-SMALL.md` (D-118).

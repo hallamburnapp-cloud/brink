@@ -51,7 +51,8 @@ const BLOC_POS: Array<[keyof MapWords['blocs'], number, number, boolean]> = [
   ['CAP', 300, 52, false],
   ['HMR', 68, 223, false],
   ['SND', 336, 273, false],
-  ['FRS', 196, 346, false],
+  // Farsouth sits a few px above the Marram/Saltwhite boundary (the look recheck: the line ran along its baseline).
+  ['FRS', 196, 339.5, false],
   ['SCT', 202, 284, true],
 ];
 /** The hachured hills (map x, y; frame width; count; seed). */
@@ -233,8 +234,12 @@ export function buildSheet(words: MapWords, p = 'pp', frame: FrameTransform = FR
   o.push(`<g class="pp-l pp-l-press" filter="url(#${p}-rough)"></g>`);
   o.push('<g class="pp-l pp-l-fight"></g>');
 
-  // Internal borders (dashed) and the coasts (ink, roughened).
-  o.push(`<g class="pp-borders" fill="none" stroke="${INK}" stroke-width="0.55" stroke-dasharray="2.2 1.6" stroke-opacity="0.75">`);
+  // Internal borders (dashed) and the coasts (ink, roughened). A printed boundary breaks for a bloc title: the titles are
+  // letter-spaced, so a halo has nothing to cover between the letters and the Highmarch boundary showed through them (the
+  // look recheck); the borders are masked out under each title's ink box instead. The marks are not masked.
+  const knock = blocBoxes.map((b) => `<rect x="${(b.x0 - 0.6).toFixed(1)}" y="${(b.y0 - 0.4).toFixed(1)}" width="${(b.x1 - b.x0 + 1.2).toFixed(1)}" height="${(b.y1 - b.y0 + 0.8).toFixed(1)}" rx="1.5" fill="#000"/>`).join('');
+  o.push(`<mask id="${p}-knock" maskUnits="userSpaceOnUse" x="-200" y="-200" width="1000" height="1400"><rect x="-200" y="-200" width="1000" height="1400" fill="#fff"/>${knock}</mask>`);
+  o.push(`<g class="pp-borders" fill="none" stroke="${INK}" stroke-width="0.55" stroke-dasharray="2.2 1.6" stroke-opacity="0.75" mask="url(#${p}-knock)">`);
   for (const r of land) o.push(`<path d="${shape[r.id]}"/>`);
   o.push('</g>');
   o.push(`<g class="pp-coasts" fill="none" stroke="${INK}" stroke-width="1.05" stroke-linejoin="round" filter="url(#${p}-rough)">`);
@@ -268,7 +273,7 @@ export function buildSheet(words: MapWords, p = 'pp', frame: FrameTransform = FR
     const t = `<text x="${fx.toFixed(1)}" y="${fy.toFixed(1)}" text-anchor="middle"${small ? ' class="pp-bloc-sm"' : ''}>${esc(words.blocs[bloc])}</text>`;
     o.push(t);
     // The bloc titles are set over the rings and arrows too, with the names.
-    nameOver.push(`<g class="pp-blocs pp-over">${t}</g>`);
+    nameOver.push(`<g class="pp-blocs pp-over" data-bloc="${bloc}">${t}</g>`);
   }
   o.push('</g>');
 

@@ -181,7 +181,9 @@ describe('words on a form are true (shoulder majors)', () => {
     expect(r2.template).toBe(r1.template);
     expect(r2.advisers.hawk).not.toBe(r1.advisers.hawk);
     expect(r2.advisers.intel).not.toBe(r1.advisers.intel);
-    const doubted = makePhone(pack, { ...s, fed: { ...s.fed, belief: RULES.beliefTest - 1 }, phonesUsed: [] }, new Rng('a'), { kind: 'test', region: 'VSY', round: 1 })!;
+    // Their other column at Kelpmouth, so a template's {from} has a place to name (a call only draws templates that fit the place).
+    const two = [{ from: 'VSY', to: 'VSY', real: true }, { from: 'KLP', to: 'KLP', real: true }] as Heading[];
+    const doubted = makePhone(pack, { ...s, fed: { ...s.fed, belief: RULES.beliefTest - 1, headings: two }, phonesUsed: [] }, new Rng('a'), { kind: 'test', region: 'VSY', round: 1 })!;
     const tpl = pack.phones.find((p) => p.id === doubted.template)!;
     expect(doubted.advisers.intel).toBe(tpl.intelDoubted!.replace('{region}', 'Vessary').replace('{from}', 'Kelpmouth'));
   });
@@ -433,8 +435,10 @@ describe('no formula wins: a ring on a hatched place, the treaty over a quiet ma
       expect(plan.headings.some((h) => h.real && h.to === 'RMH')).toBe(true);
     }
     // Believed, it is an ordinary ring: it pauses the clock.
-    const believed = { ...p, fed: { ...p.fed, belief: RULES.provocationBelief } };
+    // (Read as the week began, beliefWas: a belief won on this week's call counts from the turn of the week.)
+    const believed = { ...p, fed: { ...p.fed, belief: RULES.provocationBelief }, beliefWas: RULES.provocationBelief };
     expect(isAnswered(believed, 'RMH')).toBe(true);
+    expect(isAnswered({ ...p, fed: { ...p.fed, belief: RULES.provocationBelief } }, 'RMH')).toBe(false);
     // A piece standing in it already answers it: no provocation.
     expect(isProvocation({ ...s, pieces: [s.pieces[0], { kind: 'brigade', at: 'RMH' }] }, 'RMH')).toBe(false);
   });
@@ -450,7 +454,7 @@ describe('no formula wins: a ring on a hatched place, the treaty over a quiet ma
     s.regions.VSY = { state: 'pressed', pressedWeeks: 1, quietWeeks: 0 };
     const n = finishWeek(pack, s);
     expect(n.ending).toBeNull();
-    expect(n.log.at(-1)!.visible).toContain('No treaty · Vessary still unanswered');
+    expect(n.log.at(-1)!.visible).toContain('No treaty · Vessary unanswered');
     const answered = staged([]);
     Object.assign(answered, { week: 6 });
     answered.fed.will = 100;

@@ -11,11 +11,13 @@ import { writeFileSync } from 'node:fs';
 import { BRAND } from '../src/config.ts';
 import { checkContent, type RedlinesContent } from '../src/redlines/engine/content.ts';
 import { FIXTURE_CONTENT } from '../src/redlines/engine/testkit.ts';
-import { BOT_NAMES, dialsTable, gatesTable, handTable, invariantsLine, isBotName, ladderTable, outcomesTable, phonesTable, simulate, treatyWeeksTable, type BotName, type Format } from '../src/redlines/sim/index.ts';
+import { BOT_NAMES, ablationsTable, dialsTable, gatesTable, handTable, invariantsLine, isBotName, ladderTable, outcomesTable, phonesTable, simulate, treatyWeeksTable, type BotName, type Format } from '../src/redlines/sim/index.ts';
 
 const USAGE = `usage: npx tsx tools/redlines-sim.ts [options]
   --games N     games per bot (default 2000)
-  --bots LIST   passive, promise-everything, far-promise, sensible, no-orders, seller, careful, shark, summit-only, shark-still (default all ten; the gates need passive, far-promise, sensible, no-orders, seller, shark, summit-only and shark-still; careful is reported, not gated)
+  --bots LIST   passive, promise-everything, far-promise, sensible, no-orders, seller, careful, shark, summit-only, shark-still,
+                shark-door, shark-noring, shark-quiet, shark-quiet-noring (default all fourteen; careful and shark-quiet-noring are
+                reported, not gated)
   --seed P      seed prefix: games are P0 ... P{N-1} for every bot (default R)
   --pack DIR    a content-redlines directory to load through src/redlines/content/load.ts (default: the engine's fixture pack)
   --md          tables as Markdown
@@ -154,6 +156,8 @@ async function main(): Promise<void> {
   ];
   const hand = res.stats.careful;
   if (hand) out.splice(out.indexOf('OUTCOMES'), 0, 'HAND PLAY (SPEC-SMALL: reported beside the gates, not gated)', handTable(hand, fmt), '');
+  const abl = ablationsTable(res.stats, fmt);
+  if (abl) out.splice(out.indexOf('OUTCOMES'), 0, 'ABLATIONS (one rule taken from the strongest players; G13 and G14 gate two, the rest are reported)', abl, '');
   const s = res.stats.sensible;
   if (s) out.push('', 'TREATIES BY WEEK (sensible)', treatyWeeksTable(s, fmt), '', 'WHAT THEY WERE LIKE (sensible)', dialsTable(s, fmt));
   console.log(out.join('\n'));

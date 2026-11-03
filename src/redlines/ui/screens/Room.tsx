@@ -8,7 +8,7 @@
 import type { JSX } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import { BRAND } from '../../../config';
-import { callShiftFor, centreOf, FRAME, Grain, Lamp, NeatLine, PaperMapView, PaperRoom, SheetTitle, Tape, testedOf, type PaperMapRef } from '../paper';
+import { Grain, Lamp, NeatLine, PaperMapView, PaperRoom, SheetTitle, Tape, testedOf, type PaperMapRef } from '../paper';
 import { BLOC_TITLES, content } from '../app/engine';
 import { setMap } from '../app/mapRef';
 import { curtain, debriefPage, explain, inGame, play, reduced, screen, shown, titleWorld } from '../app/store';
@@ -34,15 +34,18 @@ export function Room(): JSX.Element {
   const r = reduced.value;
   // The place the call is about (the tested place, or the event's), slid into the band under the handset.
   const about = call ? (s.phone?.region ?? testedOf(s)) : null;
-  const shift = call ? callShiftFor(about ? centreOf(FRAME, about) : null) : { x: 0, y: 0 };
+  const view = mapView.value;
 
-  // The call: the sheet slides under the handset so the place is in view, and the desk's compass goes.
+  // The call: the sheet slides under the handset so the place is in view, and the desk's compass goes. The shift is
+  // read after the sheet has drawn this view (the map's layout effect runs first), so it slides by where TESTED is
+  // written now: the whole word shows between the handset and the caller card (the look recheck).
   useEffect(() => {
     const m = mapRef.current;
     if (!m) return;
+    const shift = call ? m.callShift(about) : { x: 0, y: 0 };
     m.setShift(shift.y, shift.x);
     m.svg.classList.toggle('pp-nodesk', call);
-  }, [call, shift.x, shift.y]);
+  }, [call, about, view]);
 
   useEffect(() => {
     mapRef.current?.setReducedMotion(r);
@@ -63,7 +66,7 @@ export function Room(): JSX.Element {
       <Grain />
       {!call && <NeatLine />}
       <PaperMapView
-        view={mapView.value}
+        view={view}
         mapRef={mapRef}
         options={{ reducedMotion: r, words, label: BRAND.name }}
         // The controller is handed to the screens' pointer handlers through mapRef.ts.

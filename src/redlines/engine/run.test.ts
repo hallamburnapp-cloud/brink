@@ -153,7 +153,7 @@ describe('promises', () => {
     s.influence = 1;
     expect(canPromise(s, 'LTL')).toEqual({ ok: false, reason: 'no-influence' });
   });
-  it('promise costs the first week and is logged; withdraw costs belief only', () => {
+  it('promise costs the first week and is logged; taken back the same week it is no order (refunded, no belief); withdrawn later it costs belief only', () => {
     const s = fresh();
     const r = promise(s, 'VSY');
     expect(r.ok).toBe(true);
@@ -162,13 +162,21 @@ describe('promises', () => {
     expect(r.state.promises).toEqual([{ region: 'VSY', since: 1, inherited: false }]);
     expect(r.state.acts).toEqual([{ kind: 'promise', region: 'VSY' }]);
     expect(s.promises).toEqual([]); // the given state is never changed
+    // The cold tester's mistake: a ring drawn by mistake and taken back before SEND ORDERS costs nothing (the note prints no order).
     const w = withdraw(r.state, 'VSY');
     expect(w.ok).toBe(true);
     if (!w.ok) return;
     expect(w.state.promises).toEqual([]);
-    expect(w.state.fed.belief).toBe(r.state.fed.belief - RULES.withdrawBelief);
-    expect(w.state.influence).toBe(r.state.influence);
+    expect(w.state.fed.belief).toBe(r.state.fed.belief);
+    expect(w.state.influence).toBe(s.influence);
     expect(withdraw(w.state, 'VSY')).toEqual({ ok: false, reason: 'not-promised' });
+    // A promise from an earlier week, withdrawn: belief −5, nothing else.
+    const old = { ...r.state, week: 2, acts: [] };
+    const w2 = withdraw(old, 'VSY');
+    expect(w2.ok).toBe(true);
+    if (!w2.ok) return;
+    expect(w2.state.fed.belief).toBe(old.fed.belief - RULES.withdrawBelief);
+    expect(w2.state.influence).toBe(old.influence);
   });
   it('a promise under test cannot be withdrawn: answer the phone', () => {
     const s = fresh();

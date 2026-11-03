@@ -41,6 +41,9 @@ function copyTally(t: Tally): Tally {
   const out: Tally = { ...t };
   if (t.backDowns) out.backDowns = t.backDowns.map((b) => ({ ...b }));
   if (t.jumpyFirst) out.jumpyFirst = { ...t.jumpyFirst };
+  if (t.ringed) out.ringed = [...t.ringed];
+  if (t.noSign) out.noSign = { ...t.noSign, regions: [...t.noSign.regions] };
+  if (t.smallThings) out.smallThings = [...t.smallThings];
   return out;
 }
 
@@ -120,7 +123,9 @@ export function isAnswered(s: GameState, region: RegionId): boolean {
   const pm = promiseAt(s, region);
   if (!pm || s.pendingTest === region || !holdInfo(s, region).ok) return false;
   // A ring drawn on a place already under siege pauses nothing until they believe it or it is backed (a call, not a pause).
-  return !pm.provocation || !RULES.provocationRings || provocationBelieved(s, region);
+  // Whether they believe it is read at the week's start (beliefWas): a belief won or lost on this week's call changes it
+  // at the turn of the week, so the clock the sheet and the slips showed at SEND ORDERS is the clock the week runs.
+  return !pm.provocation || !RULES.provocationRings || (s.beliefWas ?? s.fed.belief) >= RULES.provocationBelief;
 }
 
 /** A ring they believe: solid, and their belief in your promises at RULES.beliefTest or more (what BACK IT's lower price shows). */
@@ -153,7 +158,7 @@ export function fellIn(s: GameState, week: number): RegionId[] {
   return mapOrder(Object.keys(s.regions).filter((r) => s.regions[r].state === 'fighting' && s.regions[r].fellWeek === week));
 }
 
-/** Their forces move in: calm becomes pressed (clock at 0); pressed stays pressed with its quiet weeks reset. */
+/** Their forces move in: calm becomes pressed (clock at 0, its length the step's clock now); pressed stays pressed with its quiet weeks reset. */
 export function press(s: GameState, region: RegionId): boolean {
   const rec = s.regions[region];
   if (rec.state === 'fighting') return false;
@@ -161,7 +166,47 @@ export function press(s: GameState, region: RegionId): boolean {
   if (rec.state === 'pressed') return false;
   rec.state = 'pressed';
   rec.pressedWeeks = 0;
+  rec.clock = fallWeeksAt(s.fed.step);
   return true;
+}
+
+/**
+ * SPEC-SMALL "The ladder is not a cliff, at any rung": the length of a pressed place's fall clock. Each place keeps its
+ * own, set when it was pressed and moved at most one tick by each step of the ladder (`shiftClocks`); an old save
+ * without one reads the clock of the step the week started at, as before.
+ */
+export function clockOf(s: GameState, region: RegionId): number {
+  return s.regions[region]?.clock ?? fallWeeksAt(stepAtWeekStart(s));
+}
+
+/** A clock starts again (a promise backed and held, an island backed, a piece sent in): no ticks run, the step's clock now. */
+export function restartClock(s: GameState, region: RegionId): void {
+  const rec = s.regions[region];
+  if (rec.state !== 'pressed') return;
+  rec.pressedWeeks = 0;
+  rec.clock = fallWeeksAt(s.fed.step);
+}
+
+/**
+ * The weeks a running clock has left after a step of the ladder (SPEC-SMALL "A step up shortens a running clock by at
+ * most one tick; a place keeps the clock it had less one"): up, the shorter of what it had and the new step's clock, but
+ * never more than one tick less; down, the longer, never more than one tick more. `left` counts the week-ends still to
+ * run; a clock with one left keeps it (a step never makes a place fall a week sooner than its last tick said).
+ */
+export function shiftedLeft(left: number, step: Step, dir: 1 | -1): number {
+  const c = fallWeeksAt(step);
+  if (dir > 0) return left <= 1 ? left : RULES.clockUpOneTick ? left - 1 : Math.max(left - 1, Math.min(left, c));
+  return left < 1 ? left : Math.min(left + 1, Math.max(left, c));
+}
+
+/** Every running clock (a pressed place nothing of yours answers) moves with a step of the ladder: at most one tick. */
+function shiftClocks(s: GameState, dir: 1 | -1): void {
+  for (const r of Object.keys(s.regions)) {
+    const rec = s.regions[r];
+    if (rec.state !== 'pressed' || isAnswered(s, r)) continue;
+    const clock = clockOf(s, r);
+    rec.clock = rec.pressedWeeks + shiftedLeft(clock - rec.pressedWeeks, s.fed.step, dir);
+  }
 }
 
 /**
@@ -178,6 +223,7 @@ export function fall(s: GameState, region: RegionId, by: FallCause): void {
   rec.fellWeek = s.week;
   rec.pressedWeeks = 0;
   rec.quietWeeks = 0;
+  delete rec.clock;
   if (!rec.fellBy || by === 'spread') rec.fellBy = by;
   removePromise(s, region);
   if (s.pendingTest === region) s.pendingTest = null;
@@ -285,7 +331,7 @@ export function isSpared(s: GameState, region: RegionId): boolean {
   if (pieceAt(s, region)) return true;
   return !!promiseAt(s, region) && holdInfo(s, region).ok;
 }
-/** The step the week started at: the log entry `beginWeek` opens records it before anything moves (SPEC-SMALL ruling: the fall clock reads that step). */
+/** The step the week started at: the log entry `beginWeek` opens records it before anything moves (until round 16 every fall clock read that step; now only a clock an old save does not carry, `clockOf`). */
 export function stepAtWeekStart(s: GameState): Step {
   const log = s.log[s.log.length - 1];
   return log && log.week === s.week ? log.danger.step : s.fed.step;
@@ -293,8 +339,8 @@ export function stepAtWeekStart(s: GameState): Step {
 
 /**
  * SPEC-SMALL ruling ("A pressed place shows its clock"): the week-ends left before a pressed, unanswered place
- * falls on the fall clock, as the engine counts it: 3, 2 or 1 by the step the week starts at (1: it falls when
- * this week resolves, unless something of yours answers it first). Null for a place that is not pressed, is
+ * falls on its own fall clock, as the engine counts it (`clockOf`: 3, 2 or 1 by the step it was pressed at, less at most
+ * one tick for each step up since; 1: it falls when this week resolves, unless something of yours answers it first). Null for a place that is not pressed, is
  * already fighting, or is answered now (a piece of yours stands in it, or a solid promise covers it and is not
  * the one under test: its clock is paused), and once the game has ended. In the act phase it reads the clock the
  * coming resolve will read; on the phone (this week's tick already counted) it counts this week's end as one.
@@ -303,7 +349,7 @@ export function weeksLeft(s: GameState, region: RegionId): number | null {
   const rec = s.regions[region];
   if (!rec || rec.state !== 'pressed' || s.phase === 'ended') return null;
   if (isAnswered(s, region)) return null;
-  const clock = fallWeeksAt(stepAtWeekStart(s));
+  const clock = clockOf(s, region);
   const left = clock - rec.pressedWeeks + (s.phase === 'phone' ? 1 : 0);
   return Math.min(clock, Math.max(1, left));
 }
@@ -312,10 +358,13 @@ export function removePromise(s: GameState, region: RegionId): void {
   s.promises = s.promises.filter((p) => p.region !== region);
 }
 
+/** A step up the ladder; every running clock is shortened by at most one tick (SPEC-SMALL "The ladder is not a cliff, at any rung"). */
 export function stepUp(s: GameState): boolean {
   const before = s.fed.step;
   s.fed.step = clampStep(before + 1);
-  return s.fed.step !== before;
+  if (s.fed.step === before) return false;
+  shiftClocks(s, 1);
+  return true;
 }
 
 /**
@@ -326,7 +375,9 @@ export function stepUp(s: GameState): boolean {
 export function stepDown(s: GameState): boolean {
   const before = s.fed.step;
   s.fed.step = clampStep(before - 1);
-  return s.fed.step !== before;
+  if (s.fed.step === before) return false;
+  if (RULES.clockShiftDown) shiftClocks(s, -1);
+  return true;
 }
 
 /**
@@ -355,6 +406,7 @@ export function recover(s: GameState, region: RegionId): boolean {
   rec.recoveredWeek = s.week;
   rec.pressedWeeks = 0;
   rec.quietWeeks = 0;
+  rec.clock = fallWeeksAt(s.fed.step);
   delete rec.fellBy;
   countWar(s);
   return true;

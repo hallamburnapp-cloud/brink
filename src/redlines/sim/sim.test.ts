@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Rng } from '../../engine/rng.ts';
 import { FIXTURE_CONTENT } from '../engine/testkit.ts';
 import { BOTS, BOT_NAMES, GATED_BOTS, farPromiseTarget } from './bots.ts';
-import { GATES, evaluateGates } from './gates.ts';
+import { GATES, SHARK_FAMILY, ablations, evaluateGates } from './gates.ts';
 import { brokenInvariants } from './invariants.ts';
 import { playGame } from './play.ts';
 import { simulate } from './simulate.ts';
@@ -85,15 +85,42 @@ describe('the simulator', () => {
     expect(at(20, 40)).toBe(true);
     expect(at(21, 40)).toBe(false);
   });
-  it('G11 and G12 are the second review\'s ruling: the shark at most 60%, no one-rule bot over 45%', () => {
-    expect(GATES.sharkMax).toBe(0.6);
+  it('G11 and G12 are the rulings: the shark at most 55% (the second recheck), no one-rule bot over 45%', () => {
+    expect(GATES.sharkMax).toBe(0.55);
     expect(GATES.oneRuleMax).toBe(0.45);
     const g = (shark: number, still: number, summit: number) =>
       evaluateGates({ shark: { bot: 'shark', treaty: shark, games: 100 } as never, 'shark-still': { bot: 'shark-still', treaty: still, games: 100 } as never, 'summit-only': { bot: 'summit-only', treaty: summit, games: 100 } as never }).filter((x) => x.id === 'G11' || x.id === 'G12');
-    expect(g(60, 45, 10).every((x) => x.pass)).toBe(true);
-    expect(g(61, 10, 10).find((x) => x.id === 'G11')!.pass).toBe(false);
+    expect(g(55, 45, 10).every((x) => x.pass)).toBe(true);
+    expect(g(56, 10, 10).find((x) => x.id === 'G11')!.pass).toBe(false);
     expect(g(50, 10, 46).find((x) => x.id === 'G12')!.pass).toBe(false);
-    expect(GATED_BOTS).toEqual(expect.arrayContaining(['shark', 'summit-only', 'shark-still']));
+    expect(GATED_BOTS).toEqual(expect.arrayContaining(['shark', 'summit-only', 'shark-still', 'shark-door', 'shark-noring', 'shark-quiet']));
+    // G11 judges the strongest of the sharks: the one that offers no way out counts as much as the second review's.
+    const fam = evaluateGates({ shark: { bot: 'shark', treaty: 40, games: 100 } as never, 'shark-quiet': { bot: 'shark-quiet', treaty: 56, games: 100 } as never }).find((x) => x.id === 'G11')!;
+    expect(fam.pass).toBe(false);
+    expect(fam.value).toContain('shark-quiet');
+    expect(SHARK_FAMILY).toEqual(['shark', 'shark-quiet', 'shark-door']);
+  });
+  it('reports what one rule is worth to the strongest players, by ablation (the ring rule in both sharks, the pieces, the read)', () => {
+    const st = (bot: string, treaty: number, scared = 0) => ({ bot, treaty, games: 100, byJumpiness: [0, 0, scared] }) as never;
+    const rows = ablations({ shark: st('shark', 40, 0.4), 'shark-noring': st('shark-noring', 15), 'shark-quiet': st('shark-quiet', 44), 'shark-quiet-noring': st('shark-quiet-noring', 10), 'shark-still': st('shark-still', 8), 'shark-door': st('shark-door', 41, 0.7) });
+    expect(rows.map((r) => [r.with, r.without, Math.round(r.points)])).toEqual([
+      ['shark', 'shark-noring', 25],
+      ['shark-quiet', 'shark-quiet-noring', 34],
+      ['shark', 'shark-still', 32],
+      ['shark-door', 'shark', 30],
+    ]);
+  });
+  it('G13 and G14 are the second recheck\'s rulings: reading their nerve pays against a scared Federation; ringing the hatched places is worth at most 25 points', () => {
+    expect(GATES.ringRuleMax).toBe(0.25);
+    const g = (sharkScared: number, doorScared: number, shark: number, noRing: number) =>
+      evaluateGates({
+        shark: { bot: 'shark', treaty: shark, games: 100, byJumpiness: [0, 0, sharkScared] } as never,
+        'shark-door': { bot: 'shark-door', treaty: 30, games: 100, byJumpiness: [0, 0, doorScared] } as never,
+        'shark-noring': { bot: 'shark-noring', treaty: noRing, games: 100 } as never,
+      }).filter((x) => x.id === 'G13' || x.id === 'G14');
+    expect(g(0.4, 0.6, 40, 15).every((x) => x.pass)).toBe(true);
+    expect(g(0.6, 0.6, 40, 15).find((x) => x.id === 'G13')!.pass).toBe(false);
+    expect(g(0.4, 0.6, 41, 15).find((x) => x.id === 'G14')!.pass).toBe(false);
   });
   it('the shark and its one-rule cousins play every game to an ending, from what is on the sheet', () => {
     const r = simulate(c, { games: 40, bots: ['shark', 'summit-only', 'shark-still'], prefix: 'SH' });

@@ -11,8 +11,8 @@
  *   map.setShift(dy, dx);            // the call: the sheet slides under the handset (callShiftFor)
  */
 import { EMPTY_VIEW, MAP_WORDS, type MapWords, type PaperMap, type PaperMapOptions, type PaperView, type RegionId, type UpdateOptions } from './contract';
-import { FRAME, boundsOf, centreOf, getGeometry, hitFrame } from './geometry';
-import { Layer, SETTLE_MS, marksOf } from './marks';
+import { FRAME, boundsOf, callShiftFor, centreOf, getGeometry, hitFrame } from './geometry';
+import { Layer, SETTLE_MS, marksOf, testedMarks } from './marks';
 import { buildSheet } from './sheet';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -48,6 +48,14 @@ export function createPaperMap(host: HTMLElement, opts: PaperMapOptions = {}): P
   // Each printed name twice: under the marks (the sheet's own) and over the rings and arrows (pp-names-over); both go red.
   const names: Record<RegionId, Array<SVGTextElement | null>> = {};
   for (const id of Object.keys(sheet.geom.shape)) names[id] = [svg.querySelector(`#${p}-nm-${id}`), svg.querySelector(`#${p}-no-${id}`)];
+  // Each bloc title over the marks, and the plate under its middle: over a fighting plate its paper halo gives way to the
+  // wash's colour (the look recheck: pale blotches on the red wash under THE SOUND).
+  const titles = [...svg.querySelectorAll<SVGGElement>('.pp-blocs.pp-over')].map((g) => {
+    const t = g.querySelector('text');
+    const x = Number(t?.getAttribute('x') ?? 0);
+    const y = Number(t?.getAttribute('y') ?? 0);
+    return { g, under: sheet.geom.regionAt(x, y - 3) };
+  });
   let red = new Set<RegionId>();
 
   const systemReduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -55,6 +63,7 @@ export function createPaperMap(host: HTMLElement, opts: PaperMapOptions = {}): P
   let shift = 0;
   let shiftX = 0;
   let first = true;
+  let lastView: PaperView | null = null;
   let destroyed = false;
 
   const applyShift = () => {
@@ -68,6 +77,7 @@ export function createPaperMap(host: HTMLElement, opts: PaperMapOptions = {}): P
 
   function update(view: PaperView, o: UpdateOptions = {}): Promise<void> {
     if (destroyed) return Promise.resolve();
+    lastView = view;
     const m = marksOf(view, sheet.geom, words, p);
     // The first view is the state of the world as the sheet is found: it is already on the paper.
     const animate = (o.animate ?? true) && !reduced && !first;
@@ -86,6 +96,7 @@ export function createPaperMap(host: HTMLElement, opts: PaperMapOptions = {}): P
     for (const id of red) if (!m.redNames.has(id)) for (const n of names[id] ?? []) n?.classList.remove('pp-red');
     for (const id of m.redNames) if (!red.has(id)) for (const n of names[id] ?? []) n?.classList.add('pp-red');
     red = m.redNames;
+    for (const t of titles) t.g.classList.toggle('pp-washed', t.under !== null && red.has(t.under));
     return any ? new Promise((r) => setTimeout(r, SETTLE_MS)) : Promise.resolve();
   }
 
@@ -99,6 +110,12 @@ export function createPaperMap(host: HTMLElement, opts: PaperMapOptions = {}): P
     bounds: (id) => {
       const b = boundsOf(geo, FRAME, id);
       return b && { x0: b.x0 + shiftX, y0: b.y0 + shift, x1: b.x1 + shiftX, y1: b.y1 + shift };
+    },
+    callShift: (id) => {
+      const centre = id ? centreOf(FRAME, id) : null;
+      const t = id && lastView ? testedMarks(lastView, sheet.geom, words) : null;
+      // The sheet's marks are placed in the day frame's px already (sheet.ts sets the map through FRAME).
+      return !t || t.id !== id ? callShiftFor(centre) : callShiftFor(centre, { word: t.word, ring: t.ring });
     },
     setShift: (y, x = 0) => {
       shift = y;

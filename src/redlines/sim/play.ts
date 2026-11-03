@@ -3,7 +3,8 @@
  * read. A game that does not end within the action budget is a stall (the gates forbid any).
  */
 import { Rng } from '../../engine/rng.ts';
-import { fightingRegions, holdInfo, pressedRegions, weeksLeft } from '../engine/board.ts';
+import { fightingRegions, holdInfo, pressedRegions, promiseAt, weeksLeft } from '../engine/board.ts';
+import { isFeintTest } from '../engine/resolve.ts';
 import type { RedlinesContent } from '../engine/content.ts';
 import { answerPhone, canAnswer, endWeek, newGame } from '../engine/run.ts';
 import type { EndingKind, GameState, RegionId, Step } from '../engine/types.ts';
@@ -118,8 +119,17 @@ export function playGame(content: RedlinesContent, bot: Bot, seed: string): Game
         if (key !== 'back' && p.region && s.influence < 12) short++;
         if (key !== 'back' && p.region && holdInfo(s, p.region).ok && !canAnswer(s, 'back').ok) shortSolid++;
       }
+      // SPEC-SMALL "'They turn away' only when they do" and "A provocation costs what it claims": a feint backed, or a ring
+      // drawn into their siege backed, prints "You backed X" alone and moves the ladder not at all.
+      const pauseOnly = isTest && key === 'back' && !!p.region && (isFeintTest(s, p.region, p.round) || !!promiseAt(s, p.region)?.provocation);
+      const beatsBefore = s.log.at(-1)?.beats?.length ?? 0;
       const next = answerPhone(content, s, key);
       if (next === s) throw new Error(`${bot.name} on ${seed} week ${s.week}: answer ${key} refused`);
+      if (pauseOnly) {
+        const said = (next.log.find((w) => w.week === s.week)?.beats ?? []).slice(beatsBefore);
+        if (said.some((b) => b.kind === 'backed')) broken.push(`week ${s.week}: "they turn away" after backing a feint or a provocation at ${p.region}`);
+        if (said.length && said[0].step < s.fed.step) broken.push(`week ${s.week}: a step down after backing a feint or a provocation at ${p.region}`);
+      }
       // What the answer touched is the answer's: the place it was about, and a place a piece left to go there.
       if (clock) {
         if (p.region) clock.left[p.region] = null;

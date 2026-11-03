@@ -96,17 +96,52 @@ export const RULES = {
    * the clock reads the step the week STARTED at, never a step climbed inside the same week.
    */
   fallWeeks: [0, 3, 2, 1, 1, 1] as const,
+  /**
+   * SPEC-SMALL "The ladder is not a cliff, at any rung" (rulings after the second recheck): each pressed place keeps its
+   * own clock, set when it is pressed; a step up shortens a running clock by at most one tick, and a step down
+   * lengthens it by at most one when this is true (towards the new step's clock). False (the final fixer's choice): a
+   * step down leaves running clocks as they are ("a place keeps the clock it had"); with it true, FROZEN rose to 16-24%.
+   */
+  clockShiftDown: false,
+  /**
+   * The ruling's "a place keeps the clock it had less one" read literally (true, chosen): a step up takes one tick off
+   * every running clock that has more than one left. False: only a clock longer than the new step's own is shortened
+   * (towards it); with that reading the gentler ladder ran collapses out of weeks (sensible FROZEN 18-21%, G4 failed on
+   * seeds S and T).
+   */
+  clockUpOneTick: true,
   /** SPEC-SMALL "The treaty is signed over a quiet map" (round 15): at 100 they sign only when no hatched place stands unanswered. */
   treatyNeedsQuietMap: true,
   /** SPEC-SMALL "No formula wins" (round 15): a ring drawn on a place already under siege is a provocation (tested unless believed; no pause until then). */
   provocationRings: true,
   /**
-   * Round 15: the belief at which they believe a provocation ring and leave it alone: the "they believed you would keep
-   * your word" line (RULES.believedLine), not the 40 at which they stop testing a ring on an open place. A ring drawn
-   * into their siege asks more of their belief than one drawn ahead of it. At 40 the shark signed 61.8% (G11 fails).
-   * An owner's question in the tuning log.
+   * The belief at which they believe a provocation ring and leave it alone, read as the week began (beliefWas): not the 40
+   * at which they stop testing a ring on an open place. A ring drawn into their siege asks more of their belief than one
+   * drawn ahead of it. Round 15 set it at the "they believed you" line (60; at 40 the shark signed 61.8%); round 16 (the
+   * second recheck) at 70: with the full price and the pause only, 60 left the ring rule worth 24.8 points to the shark on
+   * seeds T (G14's 25 by 0.2); 70 takes it to 17.6 to 19.8. An owner's question in the tuning log.
    */
-  provocationBelief: 60,
+  provocationBelief: 70,
+  /**
+   * SPEC-SMALL "A provocation costs what it claims" (rulings after the second recheck): BACK IT on a ring drawn as a
+   * provocation costs the full price (backCost) whatever they believe, and backing it buys the pause only: no step down,
+   * no turn-away, no belief.
+   */
+  provocationFullPrice: true,
+  provocationPauseOnly: true,
+  /**
+   * SPEC-SMALL "backing it buys the pause only": a provocation backed on its call stops its place's clock where it stands
+   * (false, chosen) instead of starting it again as any other backed ring that holds does (true). The place is answered from
+   * then on, so it cannot fall while the ring stands solid; a ring later left dashed finds the clock as it was. No measurable
+   * change to any bot (the tuning log, the second recheck).
+   */
+  provocationRestart: false,
+  /**
+   * SPEC-SMALL "Too late is said before you pay": a promised place at its last tick that nothing of yours answers (a
+   * provocation not yet believed, or a dashed ring) is not left to fall in silence: they come to take it that week, and the
+   * call rings, unless another test has the week (then the PROMISE slip said "too late" before it was paid for).
+   */
+  lastTickRingCalls: true,
   /** Round 15: a hatched place "stands unanswered" once its clock has ticked this many times with nothing of yours there (a place pushed this week is not yet yours to answer). */
   standingWeeks: 1,
   /**
@@ -176,8 +211,13 @@ export const RULES = {
   /** spec: at MASSING and above, an accident one chance in twenty a week. */
   accidentFrom: 3 as Step,
   accidentChance: 1 / 20,
-  /** Ruling: a piece of yours on their doorstep (NEAR_CAP) climbs the ladder with chance jumpiness × this, each week. */
+  /** Ruling: a piece of yours on their doorstep (NEAR_CAP) provokes a bold Federation with chance (1 − jumpiness) × this, each week (and an alarm answered, jumpiness × this). */
   jumpyScale: 0.45,
+  /**
+   * SPEC-SMALL "Reading their nerve pays" (rulings after the second recheck): a piece at a scared Federation's door holds
+   * back one of their pushes every week it stands there (true), not some weeks (false: jumpiness × jumpyScale, round 15).
+   */
+  scaredDoorHolds: true,
 
   // ---- their choice of where to push (weights) ----
   weight: {
@@ -230,6 +270,8 @@ export const RULES = {
     pullNearBase: 0.35,
     pullNearJumpy: 0.6,
     pullFar: 0.2,
+    /** SPEC-SMALL "Reading their nerve pays" (the final fixer): a pull-back from a scared Federation's door (jumpiness over dialHigh) is accepted this often, whatever else stands. */
+    pullScaredDoor: 0.95,
     /**
      * summit by step (index = step). Round 12 raised the two low steps from 0.3 / 0.45: a Federation that has been stopped
      * talks. Round 15, integrated: 0.35 at TESTING (0.45 before), the price of refusing a sure refusal before it is paid

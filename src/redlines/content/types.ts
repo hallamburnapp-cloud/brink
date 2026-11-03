@@ -110,6 +110,8 @@ export interface ScreenStrings {
     promiseDashed: string;
     moveCost: string;
     withdrawCost: string;
+    /** The WITHDRAW slip of a ring drawn this week: an undo, the price comes back (slot {cost}). */
+    undoCost: string;
     wayOutIntro: string;
     wayOutOffered: string;
     termLabels: Record<WayOutTerm, string>;
@@ -124,6 +126,17 @@ export interface ScreenStrings {
     promiseCall: string;
     /** A ring on a hatched place is a provocation (the engine's `isProvocation`): they may test it first (the PROMISE slip). */
     promiseProvokes: string;
+    /** SPEC-SMALL "Too late is said before you pay": a ring that cannot save a place at its last tick (the engine's `promiseTooLate`). */
+    tooLate: string;
+    /** A dashed ring's slip: how many moves a piece is from holding the place (slots {piece} {n}; one move has its own words). */
+    movesAway: string;
+    movesAwayOne: string;
+    /** A dashed ring's slip: what backing it will cost when they test it (slot {cost}). */
+    backPrice: string;
+    /** The WITHDRAW slip of a ring that will cross a declared line when the week resolves (slot {line}). */
+    keepCrosses: string;
+    /** The MOVE HERE slip of a move that leaves a pressed place at its last tick unanswered (slot {region}). */
+    leavesToFall: string;
   };
   /** The handwritten note when no orders have been given this week: the world in a sentence. Slots {bloc} {a} {b} {region} {n}. */
   note: {
@@ -136,8 +149,13 @@ export interface ScreenStrings {
     /** The eve of a fall (the engine's `fallsThisWeek`): one place (slot {region}) or several (slot {places}, a listed phrase). */
     fallsOne: string;
     fallsMany: string;
+    /** The same for places nothing of ours can reach this week (the engine's `fallsAnswerable` says which can be). */
+    fallsOneFar: string;
+    fallsManyFar: string;
     /** After fallsOne / fallsMany when those falls would make the eighth place fighting (the engine's `fallsEndTheGame`). */
     worldWarEve: string;
+    /** When the fighting's spread this week (the engine's `spreadEndsTheGame`) is what would fill the eighth box. */
+    spreadWorldWar: string;
     /** After a move that left a ring dashed (slot {region}). */
     movedDashed: string;
   };

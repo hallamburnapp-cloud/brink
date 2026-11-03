@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { REGION, REGIONS } from '../../../thirty/ui/map/data';
 import { EMPTY_VIEW, MAP_WORDS, type PaperView } from './contract';
-import { CALL_BAND, CALL_SHIFT, FRAME, boundsOf, callShiftFor, centreOf, computeGeometry, hitFrame, hitMap, regionAt, toFrame, toMap } from './geometry';
-import { arrowEnds, defendPos, leaderFor, marksOf, piecePos, pinPos, ringGeom, ringSize, SHEET_FOOT, stampPos, testedPos } from './marks';
+import { CALL_BAND, CALL_SHIFT, FRAME, boundsOf, callCover, callShiftFor, centreOf, computeGeometry, hitFrame, hitMap, regionAt, toFrame, toMap } from './geometry';
+import { arrowEnds, defendPos, leaderFor, marksOf, piecePos, pinPos, ringGeom, ringSize, SHEET_FOOT, stampPos, testedMarks, testedPos } from './marks';
 import { arrange, testRingGeom, type Arrangement, type Placed } from './arrange';
 import { overlap } from './place';
 import { inkBox, TEXT } from './text';
 import { GLYPHS } from './metrics';
 import { rnd, seedOf } from './rand';
-import { buildSheet } from './sheet';
+import { buildSheet, type SheetGeom } from './sheet';
 import { greaseRing, island, pencilArrow, pencilLine } from './strokes';
 import { sameView, testedOf, viewFromState } from './view';
 import type { GameState } from '../../engine/types';
@@ -94,6 +94,22 @@ describe('hit testing', () => {
 });
 
 describe('the sheet', () => {
+  it('breaks the printed plate boundaries under each bloc title, and masks nothing else', () => {
+    // The look recheck: HIGHMARCH is letter-spaced, so its boundary showed between the letters, where a halo has nothing to cover.
+    const mask = /<mask id="pp-knock"[^>]*>(.*?)<\/mask>/.exec(sheet.markup);
+    expect(mask).not.toBeNull();
+    const holes = [...mask![1].matchAll(/<rect x="([\d.-]+)" y="([\d.-]+)" width="([\d.]+)" height="([\d.]+)" rx="1.5" fill="#000"\/>/g)];
+    expect(holes.length).toBe(sheet.geom.blocBoxes.length);
+    holes.forEach((h, i) => {
+      const b = sheet.geom.blocBoxes[i];
+      expect(Number(h[1])).toBeLessThanOrEqual(b.x0);
+      expect(Number(h[1]) + Number(h[3])).toBeGreaterThanOrEqual(b.x1 - 0.05);
+      expect(Number(h[2])).toBeLessThanOrEqual(b.y0);
+      expect(Number(h[2]) + Number(h[4])).toBeGreaterThanOrEqual(b.y1 - 0.05);
+    });
+    expect(sheet.markup.match(/mask="url\(#pp-knock\)"/g)).toHaveLength(1);
+    expect(sheet.markup).toMatch(/<g class="pp-borders"[^>]*mask="url\(#pp-knock\)"/);
+  });
   it('prints every region name, the five bloc titles, the two flags and the compass', () => {
     for (const r of REGIONS) expect(sheet.markup).toContain(`id="pp-nm-${r.id}"`);
     for (const t of Object.values(MAP_WORDS.blocs)) expect(sheet.markup).toContain(`>${t}<`);
@@ -214,9 +230,14 @@ describe('the marks for a view', () => {
       expect(s.ry).toBeGreaterThanOrEqual(20);
       expect(s.ry).toBeLessThanOrEqual(38);
     }
-    // Lantern Key's name is under the island, so WE DEFEND goes over it; every place's WE DEFEND touches its own ring
-    // (its ink within a few px of the ring's line: the second review found words written 10 to 20 px off, by other names).
-    expect(defendPos(sheet.geom, 'LNK').y).toBeLessThan(sheet.geom.centre.LNK[1]);
+    // Lantern Key's name is under the island, so WE DEFEND is written above the name, across its own island inside its
+    // ring (the second recheck: a Scatter island's word pushed round its ring read as the next island's). Every place's
+    // WE DEFEND touches its own ring (its ink within a few px of the ring's line: the second review found words written
+    // 10 to 20 px off, by other names), and no other place's land comes nearer it than its own ring and its own land.
+    const lnk = defendPos(sheet.geom, 'LNK');
+    const lnkInk = inkBox(TEXT.hand, MAP_WORDS.defend, lnk.x, lnk.y, 'middle', lnk.rot);
+    expect(lnkInk.y1).toBeLessThan(sheet.geom.labelBox.LNK.y0);
+    expect(sheet.geom.regionAt(lnk.x, (lnkInk.y0 + lnkInk.y1) / 2)).toBe('LNK');
     for (const r of REGIONS) {
       if (r.bloc === 'CAP') continue; // no promise is drawn inside the Cap
       const v = defendPos(sheet.geom, r.id);
@@ -230,9 +251,40 @@ describe('the marks for a view', () => {
         }
       }
       expect(off, `${r.id}'s WE DEFEND off its ring`).toBeLessThan(10);
+      expect(whoseNearer(sheet.geom, r.id, b, [e]), `${r.id}'s WE DEFEND nearer another place's land`).toBe(0);
     }
   });
 });
+
+/**
+ * The look critic's whose-is-it test, measured apart from the solver: how much nearer another place's land (a plate or an
+ * island, as the sheet reads it) comes to a word's ink box than its own ring's line and its own land, in px, with the
+ * critic's 2 px of grace (0 when its own are as near). The box grows a px at a time until it meets each.
+ */
+function whoseNearer(geom: SheetGeom, id: string, b: { x0: number; y0: number; x1: number; y1: number }, rings: ReadonlyArray<{ cx: number; cy: number; rx: number; ry: number }>): number {
+  const reach = (hit: (r: string | null) => boolean): number => {
+    for (let g = 0; g <= 40; g++) {
+      const x0 = b.x0 - g, x1 = b.x1 + g, y0 = b.y0 - g, y1 = b.y1 + g;
+      const nx = Math.max(4, Math.ceil((x1 - x0) / 2)), ny = Math.max(3, Math.ceil((y1 - y0) / 2));
+      for (let i = 0; i <= nx; i++) for (let j = 0; j <= ny; j++) {
+        if (g > 0 && i > 0 && i < nx && j > 0 && j < ny) continue;
+        if (hit(geom.regionAt(x0 + ((x1 - x0) * i) / nx, y0 + ((y1 - y0) * j) / ny))) return g;
+      }
+    }
+    return Infinity;
+  };
+  let ring = Infinity;
+  for (const e of rings) {
+    for (let k = 0; k < 120; k++) {
+      const a = (k * Math.PI * 2) / 120;
+      const x = e.cx + e.rx * Math.cos(a), y = e.cy + e.ry * Math.sin(a);
+      ring = Math.min(ring, Math.hypot(Math.max(b.x0 - x, 0, x - b.x1), Math.max(b.y0 - y, 0, y - b.y1)));
+    }
+  }
+  const other = reach((r) => r !== null && r !== id);
+  const own = reach((r) => r === id);
+  return Math.max(0, Math.min(ring, own) - other - 2);
+}
 
 describe('the strokes', () => {
   it('are seeded and well formed', () => {
@@ -472,6 +524,38 @@ describe('the marks keep clear of the sheet (the critics\' collisions)', () => {
     }
     expect(callShiftFor(null)).toEqual({ x: 0, y: CALL_SHIFT });
   });
+
+  it('slides the sheet on a call so the whole TESTED word shows clear of the handset, the clock tag and the caller card (the look recheck: Marram 4 of 4)', () => {
+    const g = rnd('call-fuzz');
+    const open = REGIONS.filter((r) => r.bloc !== 'CAP').map((r) => r.id);
+    const pick = <T,>(xs: readonly T[]) => xs[Math.floor(g.random() * xs.length)];
+    let calls = 0;
+    let hidden = 0;
+    let ringHalf = 0;
+    const worst: string[] = [];
+    for (let i = 0; i < 160; i++) {
+      // Every place tested on the bare sheet first, then seeded crowded sheets.
+      const id = i < open.length ? open[i] : pick(open);
+      const states: PaperView['states'] = {};
+      if (i >= open.length) for (let k = 0; k < Math.floor(g.random() * 6); k++) states[pick(open.filter((r) => r !== id))] = g.random() < 0.5 ? 'pressed' : 'fighting';
+      const promises = [{ region: id, solid: g.random() < 0.5 }, ...(i >= open.length ? [{ region: pick(open.filter((r) => r !== id && !states[r])), solid: true }] : [])];
+      const free = open.filter((r) => states[r] !== 'fighting');
+      const pieces = i >= open.length ? [{ kind: 'fleet' as const, at: pick(free) }, { kind: 'brigade' as const, at: pick(free.filter((r) => !REGION[r].island)) }] : [];
+      const v: PaperView = { ...EMPTY_VIEW, states, promises, pieces, tested: id };
+      const t = testedMarks(v, G, MAP_WORDS)!;
+      const r = t.ring;
+      // The sheet's marks are in the day frame's px already.
+      const marks = { word: t.word, ring: r };
+      const sh = callShiftFor(centreOf(FRAME, id), marks);
+      const c = callCover(marks, sh.x, sh.y);
+      calls++;
+      if (c.word > 0) (hidden++, worst.push(`${id} ${c.word.toFixed(2)}`));
+      if (c.ring > 0.5) ringHalf++;
+    }
+    expect(hidden, `TESTED partly hidden: ${worst.slice(0, 8).join(', ')}`).toBe(0);
+    expect(ringHalf, 'red ring more than half hidden').toBe(0);
+    expect(calls).toBe(160);
+  }, 60_000);
 });
 
 describe('every mark keeps clear (the recheck\'s findings: real glyph boxes, every mark an obstacle for the next)', () => {
@@ -618,6 +702,8 @@ describe('every mark keeps clear (the recheck\'s findings: real glyph boxes, eve
     const open = REGIONS.filter((r) => r.bloc !== 'CAP').map((r) => r.id);
     const pick = <T,>(xs: readonly T[]) => xs[Math.floor(g.random() * xs.length)];
     let bad = 0;
+    let words = 0;
+    let whose = 0;
     const runs = 60;
     for (let i = 0; i < runs; i++) {
       const states: PaperView['states'] = {};
@@ -631,9 +717,68 @@ describe('every mark keeps clear (the recheck\'s findings: real glyph boxes, eve
       const clocks: Record<string, number> = {};
       for (const [r, st] of Object.entries(states)) if (st === 'pressed') clocks[r] = 1 + Math.floor(g.random() * 3);
       const v = view({ states, promises, pieces, headings: [{ from: pick(ids), to: pick(open) }, { from: pick(ids), to: pick(open) }].filter((h) => h.from !== h.to), tested: promises.length && g.random() < 0.5 ? promises[0].region : null, clocks });
-      if (clashes(arrange(v, G, MAP_WORDS), 1.5).length) bad++;
+      const a = arrange(v, G, MAP_WORDS);
+      if (clashes(a, 1.5).length) bad++;
+      // The second recheck's whose-is-it test: no WE DEFEND with another place's land nearer than its own ring and land.
+      for (const id of a.defend.keys()) {
+        const bs = a.placed.filter((p) => p.key === `defend:${id}` && p.kind === 'word').map((p) => p.box);
+        const u = { x0: Math.min(...bs.map((b) => b.x0)), y0: Math.min(...bs.map((b) => b.y0)), x1: Math.max(...bs.map((b) => b.x1)), y1: Math.max(...bs.map((b) => b.y1)) };
+        words++;
+        if (whoseNearer(G, id, u, v.tested === id ? [ringGeom(G, id), testRingGeom(G, id)] : [ringGeom(G, id)]) > 0) whose++;
+      }
     }
     expect(bad).toBeLessThanOrEqual(1);
+    expect(whose / words, `${whose} of ${words} WE DEFENDs nearer another place's land`).toBeLessThan(0.03);
+  });
+
+  it('numbers the WORLD WAR chain beside each stamp, clear of every other mark and nearer its own stamp than any other (the look recheck: 136 of 237 endings)', () => {
+    const g = rnd('chain-fuzz');
+    const open = REGIONS.filter((r) => r.bloc !== 'CAP').map((r) => r.id);
+    const pick = <T,>(xs: readonly T[]) => xs[Math.floor(g.random() * xs.length)];
+    const gapOf = (a: { x0: number; y0: number; x1: number; y1: number }, b: { x0: number; y0: number; x1: number; y1: number }) => Math.hypot(Math.max(b.x0 - a.x1, 0, a.x0 - b.x1), Math.max(b.y0 - a.y1, 0, a.y0 - b.y1));
+    let sheets = 0;
+    let onOther = 0;
+    let onOwn = 0;
+    let nearerOther = 0;
+    let numbers = 0;
+    const seen: string[] = [];
+    for (let i = 0; i < 80; i++) {
+      const order = [...open].sort(() => g.random() - 0.5);
+      const n = 8 + Math.floor(g.random() * 5);
+      const chain = order.slice(0, n);
+      const states: PaperView['states'] = Object.fromEntries(chain.map((id) => [id, 'fighting' as const]));
+      const clocks: Record<string, number> = {};
+      for (const id of order.slice(n, n + Math.floor(g.random() * 4))) {
+        states[id] = 'pressed';
+        clocks[id] = 1 + Math.floor(g.random() * 3);
+      }
+      const free = open.filter((r) => states[r] !== 'fighting');
+      const promises = [...new Set(Array.from({ length: Math.floor(g.random() * 4) }, () => pick(open)))].map((region) => ({ region, solid: g.random() < 0.5 }));
+      const pieces = [
+        { kind: 'fleet' as const, at: pick(free) },
+        { kind: 'brigade' as const, at: pick(free.filter((r) => !REGION[r].island)) },
+      ];
+      const a = arrange(view({ states, promises, pieces, headings: [], tested: null, clocks, chain }), G, MAP_WORDS);
+      sheets++;
+      let bad = false;
+      for (const id of chain) {
+        const nb = a.placed.find((p) => p.key === `chain:${id}`)!.box;
+        numbers++;
+        for (const [nm, b] of printed()) if (overlap(nb, b) > 1.5) (bad = true), seen.push(`chain:${id} on ${nm}`);
+        for (const p of a.placed) {
+          if (p.key === `chain:${id}` || overlap(nb, p.box) <= 1.5) continue;
+          if (p.key === `stamp:${id}`) onOwn++;
+          else (bad = true), seen.push(`chain:${id} on ${p.key}`);
+        }
+        const own = Math.min(...a.placed.filter((p) => p.key === `stamp:${id}`).map((p) => gapOf(nb, p.box)));
+        if (chain.some((o) => o !== id && Math.min(...a.placed.filter((p) => p.key === `stamp:${o}`).map((p) => gapOf(nb, p.box))) < own)) nearerOther++;
+      }
+      if (bad) onOther++;
+    }
+    expect(numbers).toBeGreaterThan(600);
+    expect(onOther, `${onOther} of ${sheets} sheets: ${seen.slice(0, 8).join(', ')}`).toBeLessThanOrEqual(1);
+    expect(onOwn, 'numbers on their own stamp').toBeLessThanOrEqual(0);
+    expect(nearerOther, 'numbers nearer another stamp than their own').toBeLessThanOrEqual(0);
   });
 
   it('rings the tested place five px wider than its promise', () => {

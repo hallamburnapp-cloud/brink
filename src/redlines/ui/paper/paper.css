@@ -148,11 +148,18 @@
 .pp-map .pp-blocs:not(.pp-over) text {
   opacity: 0;
 }
+/* An opaque paper halo: a printed boundary breaks for a bloc title as it does for a name (the look recheck: the Highmarch
+   boundary ran through its letters); over a fighting plate the halo takes the wash's colour, not pale blotches. */
 .pp-map .pp-blocs.pp-over text {
   paint-order: stroke;
   stroke: #ecdfba;
-  stroke-width: 2.2px;
-  stroke-opacity: 0.7;
+  stroke-width: 3px;
+  stroke-opacity: 0.95;
+  stroke-linejoin: round;
+}
+.pp-map .pp-blocs.pp-over.pp-washed text {
+  stroke: #d49a86;
+  stroke-opacity: 0.55;
 }
 .pp-map .pp-names-over .pp-nm {
   stroke: #ecdfba;
@@ -219,10 +226,11 @@
   letter-spacing: 0.1em;
   fill: #2b2418;
   fill-opacity: 0.85;
+  /* the hand words' paper halo, full: an island's dark coast breaks under the letters (the look recheck: FLEET on Tern Isle) */
   paint-order: stroke;
-  stroke: #e9dcb8;
-  stroke-width: 1.6px;
-  stroke-opacity: 0.8;
+  stroke: #ecdfba;
+  stroke-width: 2.4px;
+  stroke-opacity: 0.95;
   stroke-linejoin: round;
 }
 /* a pressed place's weeks left: graphite ticks with a paper halo, so they read over the red hatching */

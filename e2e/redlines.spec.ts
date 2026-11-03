@@ -1,6 +1,43 @@
 import { expect, test, type Page } from '@playwright/test';
 import { loadRedlinesContent } from '../src/redlines/content/load';
-import { answerCost, answerPhone, blocOf, declaredTapes, endWeek, HEADLINE_KINDS, isCap, isProvocation, linesCrossedByMove, loadGame, movesFor, NEIGHBOURS, newGame, offerWayOut, promiseWillRing, regionName, REGION_IDS, ringsLeftDashed, RULES, saveGame, weeksLeft, type GameState, type RegionId } from '../src/redlines/engine';
+import {
+  answerCost,
+  answerPhone,
+  backCost,
+  blocOf,
+  declaredTapes,
+  endWeek,
+  fallsAnswerable,
+  fallsEndTheGame,
+  fallsThisWeek,
+  fallWeeksAt,
+  HEADLINE_KINDS,
+  holdable,
+  isCap,
+  isProvocation,
+  leavesToFall,
+  linesCrossedByMove,
+  linesCrossedByPromise,
+  loadGame,
+  movesFor,
+  nearestHold,
+  NEIGHBOURS,
+  newGame,
+  offerWayOut,
+  promise,
+  promiseTooLate,
+  promiseWillRing,
+  regionName,
+  REGION_IDS,
+  ringsLeftDashed,
+  RULES,
+  saveGame,
+  spreadEndsTheGame,
+  unansweredRegions,
+  weeksLeft,
+  type GameState,
+  type RegionId,
+} from '../src/redlines/engine';
 import type { RedlinesHook } from '../src/redlines/ui/app/devHook';
 
 /**
@@ -64,7 +101,9 @@ const S = content.strings;
  * - QUIET: week 1 resolves without a call (a push that lands, a column stopping short), for the playback.
  * - RULING-A0 / RULING-B1: with backDownPatch / fallWeekPatch staged, the recheck's two paths (a back-down at a dashed
  *   ring facing a scared Federation; a summit accepted in a week a place fell), each with a place fallen a week before.
- * What those weeks say and do is computed in Node from the same pack and seed, never written out here.
+ * What those weeks say and do is computed in Node from the same pack and seed, never written out here. The second recheck's
+ * tests (said before you pay, the eve note, the bar at 100) stage a desk on the WEEK seed (`desk`) and ask the engine's own
+ * forecasts in Node what the slips and the note must say. All seeds re-checked against round 16's engine.
  */
 const SEED_WEEK = 'E2E-WEEK-21';
 const SEED_QUIET = 'E2E-QUIET-15';
@@ -244,6 +283,51 @@ const trawlerPatch = (s: GameState, promised: boolean): Partial<GameState> => ({
 /** A headline template filled: what the engine prints. */
 const line = (kind: keyof typeof S.headlines, slots: Record<string, string> = {}) => S.headlines[kind].replace(/\{(\w+)\}/g, (m, k: string) => slots[k] ?? m);
 const calm = (s: GameState): GameState['regions'] => Object.fromEntries(Object.keys(s.regions).map((k) => [k, { state: 'calm' as const, pressedWeeks: 0, quietWeeks: 0 }]));
+/** A pack string with its slots filled (the screens' own fill). */
+const fill = (template: string, slots: Record<string, string | number>) => template.replace(/\{(\w+)\}/g, (m, k: string) => (slots[k] !== undefined ? String(slots[k]) : m));
+/**
+ * A desk staged on the WEEK seed: week 4 at TESTING, belief 50, nothing pressed or fighting, no promise, no heading, no
+ * event left to ring (events 4), the pieces where the seed put them; `patch` and `fed` on top.
+ */
+const desk = (s: GameState, patch: Partial<GameState> = {}, fed: Partial<GameState['fed']> = {}): Partial<GameState> => ({
+  regions: calm(s),
+  pieces: s.pieces,
+  influence: s.influence,
+  promises: [],
+  pendingTest: null,
+  offer: null,
+  events: 4,
+  phonesUsed: [],
+  phone: null,
+  acts: [],
+  moved: [],
+  week: 4,
+  war: 0,
+  treaty: 50,
+  ...patch,
+  fed: { ...s.fed, will: 50, step: 1, belief: 50, headings: [], ...fed },
+});
+/** A pressed place with this many weeks left on its clock at this step (one: its single ringed tick runs out this week). */
+const pressedLeft = (left: number, step: 1 | 2 | 3 | 4 | 5 = 1) => ({ state: 'pressed' as const, pressedWeeks: fallWeeksAt(step) - left, quietWeeks: 0 });
+/** Places fighting since week 2, in this order (their fellSeq), for a desk on the edge of WORLD WAR. */
+const fighting = (s: GameState, ids: readonly RegionId[]): GameState['regions'] => {
+  const regions = calm(s);
+  ids.forEach((r, i) => (regions[r] = { state: 'fighting', pressedWeeks: 0, quietWeeks: 0, fellWeek: 2, fellSeq: i + 1, fellBy: 'unanswered' }));
+  return regions;
+};
+/**
+ * A ring's price line on its PROMISE or WITHDRAW slip (dashed, or drawn into their siege): how far the nearest piece is
+ * from holding it, by a route that crosses no declared line, and what BACK IT will cost; computed from the engine.
+ */
+function priceText(s: GameState, region: RegionId): string {
+  const ringed: GameState = s.promises.some((p) => p.region === region) ? s : { ...s, promises: [...s.promises, { region, since: s.week, inherited: false, ...(isProvocation(s, region) ? { provocation: true } : {}) }] };
+  // The distance is said of a dashed ring only (a solid one drawn into their siege has a piece in reach already).
+  const near = holdable(ringed, region).ok ? null : nearestHold(s, region);
+  const parts: string[] = [];
+  if (near && near.moves > 0) parts.push(fill(near.moves === 1 ? S.act.movesAwayOne : S.act.movesAway, { piece: S.pieces[near.piece], n: near.moves }));
+  parts.push(fill(S.act.backPrice, { cost: backCost(ringed, region, 1) }));
+  return parts.join(' · ');
+}
 
 // ---------------------------------------------------------------- the first minute
 
@@ -334,13 +418,31 @@ test('a promise by tap-and-hold (solid, WE DEFEND), a withdraw, a counter moved,
   // The note says what the player did, in the log's words.
   await expect(page.locator('.pp-note')).toContainText(`You promised to defend ${regionName('VSY')}.`);
 
-  // Hold it again: WITHDRAW, with its cost line.
+  // Hold it again: WITHDRAW. A ring drawn this week and taken back before the orders go is no order at all: the slip
+  // does not say "they'll believe us a little less" (the pack's undo words when it has them), and the engine gives the
+  // 2 back and takes no belief (the cold recheck: the note said nothing happened while it cost both).
   await hold(page, 'VSY');
-  await expect(slip(page).locator('.c')).toHaveText(S.act.withdrawCost);
+  await expect(slip(page).getByRole('button', { name: S.act.withdraw })).toBeVisible();
+  await expect(slip(page)).not.toContainText(S.act.withdrawCost);
+  await expect(slip(page).locator('.c').first()).toHaveText(S.act.undoCost.replace('{cost}', String(RULES.promiseCost)));
   await slip(page).getByRole('button', { name: S.act.withdraw }).tap();
   s = await state(page);
   expect(s.promises.map((p) => p.region)).toEqual(['DRF']);
+  expect(s.influence).toBe(s0.influence);
+  expect(s.fed.belief).toBe(s0.fed.belief);
   await expect(page.locator('.pp-l-prom .pp-solid')).toHaveCount(0);
+
+  // The inherited ring at Driftholm: WITHDRAW at a little belief. Its slip says that keeping it crosses a declared line
+  // (in the line's tape words), how far the nearest piece is and what backing it will cost when they test it (the cold
+  // recheck: BACK IT's price was only seen once the phone rang). Then CANCEL.
+  const keep = linesCrossedByPromise(s0, 'DRF');
+  expect(keep.length).toBeGreaterThan(0);
+  await hold(page, 'DRF');
+  await expect(slip(page).locator('.c').first()).toHaveText(S.act.withdrawCost);
+  await expect(slip(page).locator('.c.rl-warn')).toHaveText([...keep.map((l) => fill(S.act.keepCrosses, { line: l })), priceText(s0, 'DRF')]);
+  expect(priceText(s0, 'DRF')).toContain(fill(S.act.backPrice, { cost: RULES.backFarCost }));
+  await slip(page).getByRole('button', { name: S.act.cancel }).tap();
+  await expect(slip(page)).toHaveCount(0);
 
   // Hold the Federation's capital: the refusal, in the content's words, and no PROMISE TO DEFEND.
   await hold(page, 'WMS');
@@ -353,6 +455,8 @@ test('a promise by tap-and-hold (solid, WE DEFEND), a withdraw, a counter moved,
   await hold(page, 'SHL');
   await expect(slip(page).locator('.c').first()).toContainText('dashed');
   await expect(slip(page).locator('.c').first()).toContainText(S.hold['out-of-reach']);
+  // Before it is paid for, the dashed ring's price: the nearest piece's distance and BACK IT's cost, last on the slip.
+  await expect(slip(page).locator('.c.rl-warn').last()).toHaveText(priceText(await state(page), 'SHL'));
   await slip(page).getByRole('button', { name: S.act.promise }).tap();
   s = await state(page);
   expect(s.promises.map((p) => p.region)).toEqual(['DRF', 'SHL']);
@@ -528,6 +632,130 @@ test('A WAY OUT: the typed form with the three terms and their prices; one offer
   await expect(wayOut).toBeDisabled();
 });
 
+test('said before you pay: MOVE HERE names the place a move leaves to fall; a ring at a last tick is a call, or too late; a provocation costs the full price and buys the pause only', async ({ page }) => {
+  await open(page);
+  const g = await seed(page, SEED_WEEK);
+  const warns = slip(page).locator('.c.rl-warn');
+
+  // The brigade stands in Vessary, hatched, its clock stopped while it stands there; it has one week left once the
+  // brigade goes. The move to Rimeholt asks MOVE HERE first and says Vessary falls this week (SPEC-SMALL "The note keeps
+  // its warning"); nothing is paid until MOVE HERE.
+  const standPatch = desk(g, { regions: { ...calm(g), VSY: pressedLeft(1) }, pieces: [{ kind: 'fleet', at: 'TRN' }, { kind: 'brigade', at: 'VSY' }] });
+  const stand = staged(g, standPatch);
+  expect(weeksLeft(stand, 'VSY')).toBeNull();
+  expect(leavesToFall(stand, 'brigade', 'RMH')).toEqual(['VSY']);
+  await set(page, standPatch);
+  await tapCounter(page, 'brigade');
+  await tapPlace(page, 'RMH');
+  await expect(slip(page).getByRole('button', { name: S.act.moveHere })).toBeVisible();
+  await expect(warns.filter({ hasText: fill(S.act.leavesToFall, { region: regionName('VSY') }) })).toHaveCount(1);
+  expect((await state(page)).pieces.find((p) => p.kind === 'brigade')?.at).toBe('VSY');
+  expect((await state(page)).influence).toBe(stand.influence);
+  await slip(page).getByRole('button', { name: S.act.cancel }).tap();
+  await expect(slip(page)).toHaveCount(0);
+
+  // Morrow Downs at its last tick, hatched, nothing of ours in it, and their arrow at Driftholm's ring has the week's one
+  // test: a ring at Morrow Downs cannot pause it, and the PROMISE slip says so before it is paid for (SPEC-SMALL "Too late
+  // is said before you pay"), with the provocation and its price.
+  const latePatch = desk(g, { regions: { ...calm(g), MRD: pressedLeft(1) }, promises: [{ region: 'DRF', since: 1, inherited: true }] }, { headings: [{ from: 'GLM', to: 'DRF', real: true }] });
+  const late = staged(g, latePatch);
+  expect(promiseTooLate(late, 'MRD')).toBe(true);
+  expect(promiseWillRing(late, 'MRD')).toBe(false);
+  await set(page, latePatch);
+  await hold(page, 'MRD');
+  await expect(slip(page).locator('.hd span')).toContainText(regionName('MRD').toUpperCase());
+  await expect(warns.filter({ hasText: S.act.tooLate })).toHaveCount(1);
+  await expect(warns.filter({ hasText: S.act.promiseCall })).toHaveCount(0);
+  await expect(warns.filter({ hasText: S.act.promiseProvokes })).toHaveCount(1);
+  await expect(warns.last()).toHaveText(priceText(late, 'MRD'));
+  await slip(page).getByRole('button', { name: S.act.cancel }).tap();
+  await expect(slip(page)).toHaveCount(0);
+
+  // The same place with no other test this week, at PUSHING: the ring is a call, they come to take it (the call is the
+  // ruling's preferred answer). The slip says so; the price is the full one (12) although they believe us enough (50)
+  // that a solid ring is backed at 6.
+  const callPatch = desk(g, { regions: { ...calm(g), MRD: pressedLeft(1, 2) } }, { step: 2 });
+  const callAt = staged(g, callPatch);
+  expect(promiseWillRing(callAt, 'MRD')).toBe(true);
+  expect(isProvocation(callAt, 'MRD')).toBe(true);
+  const ringed = (promise(callAt, 'MRD') as { ok: true; state: GameState }).state;
+  const unprovoked: GameState = { ...ringed, promises: ringed.promises.map((p) => ({ region: p.region, since: p.since, inherited: p.inherited })) };
+  expect(backCost(unprovoked, 'MRD', 1)).toBe(RULES.backCostBelieved);
+  expect(backCost(ringed, 'MRD', 1)).toBe(RULES.backCost);
+  await set(page, callPatch);
+  await hold(page, 'MRD');
+  await expect(warns.filter({ hasText: S.act.promiseCall })).toHaveCount(1);
+  await expect(warns.filter({ hasText: S.act.tooLate })).toHaveCount(0);
+  await expect(warns.filter({ hasText: S.act.promiseProvokes })).toHaveCount(1);
+  await expect(warns.last()).toHaveText(fill(S.act.backPrice, { cost: RULES.backCost }));
+  await slip(page).getByRole('button', { name: S.act.promise }).tap();
+  await expect(slip(page)).toHaveCount(0);
+  expect((await state(page)).promises.find((p) => p.region === 'MRD')?.provocation).toBe(true);
+  const rung = await sendOrders(page);
+  expect(rung.phase).toBe('phone');
+  expect(rung.phone?.region).toBe('MRD');
+  // BACK IT at the full price on its typed form, and WAIT says what waiting would make it.
+  await expect(page.locator('.pp-ch').nth(0).locator('.c')).toContainText(`costs ${RULES.backCost} influence`);
+  await expect(page.locator('.pp-ch').nth(2).locator('.c')).toContainText(fill(S.words.waitNext, { cost: RULES.backCost + RULES.waitStakes }));
+  // Backing it buys the pause only (SPEC-SMALL "A provocation costs what it claims"): "You backed Morrow Downs" alone, no
+  // turn-away, no step down; the place stays hatched with its clock stopped. The week is the one the engine plays in Node.
+  const node = answerPhone(content, endWeek(content, ringed), 'back');
+  const after = await answer(page, 'back');
+  const lines = after.log.find((w) => w.week === 4)!.visible;
+  expect(lines).toEqual(node.log.find((w) => w.week === 4)!.visible);
+  expect(lines).toContain(line('backedOnly', { region: regionName('MRD') }));
+  expect(lines).not.toContain(line('backed', { region: regionName('MRD') }));
+  expect(lines.some((l) => said([l], S.headlines.easedStep))).toBe(false);
+  expect(after.fed.step).toBe(2);
+  expect(after.regions.MRD.state).toBe('pressed');
+  await expect(page.getByRole('img', { name: S.words.steps[1] })).toBeVisible();
+  await expect(page.locator('.pp-l-press [data-key="press:MRD"]')).toBeAttached();
+  await expect(page.locator('.pp-l-clock [data-key^="clock:MRD:"]')).toHaveCount(0);
+});
+
+test('the note keeps its warning: the eve of a fall names what a piece can still reach and what nothing can, stays under the orders, and says when it would be world war', async ({ page }) => {
+  await open(page);
+  const g = await seed(page, SEED_WEEK);
+  const note = page.locator('.pp-note');
+
+  // Week 4: Vessary and Lintel both at their last tick. The brigade can still reach Vessary this week; nothing of ours
+  // can reach Lintel. The note says each truly (the shoulder recheck: it offered an answer that did not exist).
+  const evePatch = desk(g, { regions: { ...calm(g), VSY: pressedLeft(1), LTL: pressedLeft(1) } });
+  const eve = staged(g, evePatch);
+  expect(fallsThisWeek(eve).sort()).toEqual(['LTL', 'VSY']);
+  expect(fallsAnswerable(eve)).toEqual(['VSY']);
+  expect(fallsEndTheGame(eve)).toBe(false);
+  const warning = `${fill(S.note.fallsOne, { region: regionName('VSY') })} ${fill(S.note.fallsOneFar, { region: regionName('LTL') })}`;
+  await set(page, evePatch);
+  await expect(note).toContainText(warning);
+  await expect(note).not.toContainText(S.note.worldWarEve);
+  // The pencil ticks agree: one, ringed, beside each.
+  for (const r of ['VSY', 'LTL']) await expect(page.locator(`.pp-l-clock [data-key="clock:${r}:1"] .pp-tick`)).toHaveCount(2);
+  // An order does not wipe it (the niche recheck): the act first, the warning under it.
+  await hold(page, 'QLN');
+  await slip(page).getByRole('button', { name: S.act.promise }).tap();
+  await expect(note).toHaveText(`You promised to defend ${regionName('QLN')}. ${warning}`);
+
+  // Seven places fighting and Vessary at its last tick: that fall would be the eighth, and the note says it would be world war.
+  const seven = ['KLP', 'BRK', 'LTL', 'TLM', 'DNM', 'ORN', 'SHL'] as RegionId[];
+  const wwPatch = desk(g, { regions: { ...fighting(g, seven), VSY: pressedLeft(1) }, war: 7 });
+  const ww = staged(g, wwPatch);
+  expect(fallsEndTheGame(ww)).toBe(true);
+  expect(spreadEndsTheGame(ww)).toBe(false);
+  await set(page, wwPatch);
+  await expect(note).toContainText(`${fill(S.note.fallsOne, { region: regionName('VSY') })} ${S.note.worldWarEve}`);
+
+  // The same seven at FIGHTING with nothing hatched: no fall, but the fighting's own spread would fill the eighth box,
+  // and the note says that too (the shoulder recheck: the eve missed the spread).
+  const spreadPatch = desk(g, { regions: fighting(g, seven), war: 7 }, { step: 4, will: 30 });
+  const spread = staged(g, spreadPatch);
+  expect(fallsThisWeek(spread)).toEqual([]);
+  expect(spreadEndsTheGame(spread)).toBe(true);
+  await set(page, spreadPatch);
+  await expect(note).toContainText(S.note.spreadWorldWar);
+  await expect(page.getByRole('img', { name: S.words.steps[3] })).toBeVisible();
+});
+
 // ---------------------------------------------------------------- the week resolves, the phone
 
 test('SEND ORDERS plays the week back a beat at a time: the tape feeds, the note says the same, the hatching scribbles in; week 2 drops new pins', async ({ page }) => {
@@ -630,6 +858,10 @@ test('the phone: the inherited promise is tested, the room goes dark, forty word
   expect(phone.options[0].cost).toContain('costs 24 influence');
   await expect(forms.nth(1).locator('.w')).toHaveText(S.words.down);
   await expect(forms.nth(2).locator('.w')).toHaveText(S.words.wait);
+  // WAIT says what waiting costs: BACK IT a week later, at the stakes (the cold recheck: the form hid the rise).
+  expect(backCost(expected, 'DRF', 2)).toBe(30);
+  await expect(forms.nth(2).locator('.c')).toHaveText(phone.options[2].cost);
+  await expect(forms.nth(2).locator('.c')).toContainText(fill(S.words.waitNext, { cost: 30 }));
   await expect(forms.nth(0)).toBeEnabled();
   // The tested place is over-circled on the sheet with TESTED, and the sheet has slid so it shows in the band between the handset and the caller card.
   await expect(page.locator('.pp-l-test [data-key="test:DRF"]')).toBeAttached();
@@ -801,6 +1033,40 @@ test('the trawler rings about an island under a ring of yours, or in words that 
   expect(back.label).toBeTruthy();
 });
 
+test('a bar at 100 that does not sign says why on the tape and names the places it would not sign over; the sheet hatches them', async ({ page }) => {
+  await open(page);
+  const g = await seed(page, SEED_WEEK);
+  // Week 5, the bar at 95; Vessary and Quillon hatched a week, nothing of ours in them, each one line-free move from a
+  // piece: "unanswered". A quiet week takes the bar to 100 and they do not sign (SPEC-SMALL "The treaty is signed over a
+  // quiet map"); the tape names the two places (the cold recheck: it counted places the sheet did not mark).
+  const patch = desk(g, { week: 5, treaty: 95, regions: { ...calm(g), VSY: pressedLeft(2), QLN: pressedLeft(2) } }, { will: 95 });
+  const st = staged(g, patch);
+  expect(unansweredRegions(st).sort()).toEqual(['QLN', 'VSY']);
+  const node = endWeek(content, st);
+  expect(node.phase).toBe('act');
+  expect(node.fed.will).toBeGreaterThanOrEqual(RULES.willSign);
+  const week5 = node.log.find((w) => w.week === 5)!.visible;
+  const noSign = week5.find((l) => said([l], S.headlines.noSignPressed));
+  expect(noSign, week5.join(' | ')).toBeTruthy();
+  expect(noSign).toContain(regionName('VSY'));
+  expect(noSign).toContain(regionName('QLN'));
+  expect(noSign!.length).toBeLessThanOrEqual(46);
+  await set(page, patch);
+  const s = await sendOrders(page);
+  expect(s.phase).toBe('act');
+  expect(s.week).toBe(6);
+  expect(s.log.find((w) => w.week === 5)!.visible).toEqual(week5);
+  // The newest line on the tape is the reason, and the bar reads 100.
+  const tape = await page.locator('.pp-tape .ln:not(.pp-decl)').allTextContents();
+  expect(tape[tape.length - 1].toUpperCase()).toContain(week5[week5.length - 1].toUpperCase());
+  expect(week5[week5.length - 1]).toBe(noSign);
+  await expect(page.locator('.pp-card .val')).toHaveText(`${s.treaty}%`);
+  expect(s.treaty).toBeGreaterThanOrEqual(RULES.willSign);
+  // The places it names are the hatched places on the sheet.
+  for (const r of ['VSY', 'QLN']) await expect(page.locator(`.pp-l-press [data-key="press:${r}"]`)).toBeAttached();
+  await expect(page.locator('.pp-l-press [data-key^="press:"]')).toHaveCount(2);
+});
+
 /** What the screen shows at one beat of a playback: the tape's newest line, the WAR boxes, the places the sheet draws fighting (and its red stamps), the stamp, the bar. */
 interface BeatSeen {
   tape: string;
@@ -957,11 +1223,14 @@ test('cause before effect on the sheet: a back-down at a dashed ring facing a sc
   expect(seenB.map((b) => b.tape)).toEqual(linesB);
   const fellB = linesB.indexOf(line('fell', { region: regionName('BRK') }));
   const accepts = linesB.indexOf(line('wayOutAccepted', { term: S.terms.summit }));
+  const eased = linesB.indexOf(line('easedStep', { step: S.words.steps[0] }));
   const quietB = linesB.indexOf(line('recovered', { region: regionName('KLP') }));
-  // The week's fall, then their acceptance, then the place it returns: one that fell in an earlier week.
+  // The week's fall, then their acceptance, then the step down on its own line, then the place it returns: one that
+  // fell in an earlier week.
   expect(fellB).toBeGreaterThanOrEqual(0);
   expect(accepts).toBeGreaterThan(fellB);
-  expect(quietB).toBe(accepts + 1);
+  expect(eased).toBe(accepts + 1);
+  expect(quietB).toBe(eased + 1);
   expect(linesB).not.toContain(line('recovered', { region: regionName('BRK') }));
   // Brackwater stays red from its fall to the end of the week; the boxes follow the sheet every beat.
   seenB.forEach((b, i) => {
@@ -969,8 +1238,10 @@ test('cause before effect on the sheet: a back-down at a dashed ring facing a sc
     expect(b.red, b.tape).toBe(b.fighting.length);
     if (i >= fellB) expect(b.fighting, b.tape).toContain('BRK');
   });
-  expect(seenB[accepts].stamp).toBe(S.words.steps[0]);
+  // The bar moves beside the acceptance; the stamp eases beside its own line, not before it.
   expect(seenB[accepts].treaty).toBe(`${85 + RULES.willWayOut}%`);
+  expect(seenB[accepts].stamp).toBe(S.words.steps[1]);
+  expect(seenB[eased].stamp).toBe(S.words.steps[0]);
   expect(seenB[quietB].fighting).toEqual(['BRK']);
   expect(s.regions.BRK.state).toBe('fighting');
   expect(s.regions.KLP.state).toBe('pressed');
@@ -1116,8 +1387,7 @@ test('the three endings through the hook: TREATY, WORLD WAR and FROZEN on their 
   expect(s.seed).not.toBe(SEED_WEEK);
 
   // WORLD WAR: seven places fighting at ALL-OUT; the fighting spreads to the eighth.
-  const warRegions = calm(s);
-  for (const r of ['KLP', 'BRK', 'LTL', 'TLM', 'DNM', 'ORN', 'SHL']) warRegions[r] = { state: 'fighting', pressedWeeks: 0, quietWeeks: 0, fellWeek: 3, fellBy: 'unanswered' };
+  const warRegions = fighting(s, ['KLP', 'BRK', 'LTL', 'TLM', 'DNM', 'ORN', 'SHL']);
   await set(page, { ...quiet, week: 5, regions: warRegions, war: 7, fed: { ...s.fed, step: 5, will: 30, headings: [] }, treaty: 30 });
   await expect(page.locator('.pp-l-fight .pp-mk')).toHaveCount(7);
   // The WAR boxes count the places fighting on the sheet: seven hatched boxes for seven red places.
@@ -1130,6 +1400,40 @@ test('the three endings through the hook: TREATY, WORLD WAR and FROZEN on their 
   await expect(page.locator('.pp-typed .ln').nth(0)).toHaveText('Week 5.');
   await expect(page.locator('.pp-typed .sc b')).toHaveText('0');
   expect(s.log[s.log.length - 1].visible.some((l) => l.includes(S.words.worldWar))).toBe(true);
+  // The map draws the chain (SPEC-SMALL): each place fighting numbered in red pencil in the order it fell, the first
+  // ringed. Each number is placed beside its own stamp: on no stamp, and nearer its own than any other (the look recheck:
+  // numbers landed on other places' stamps).
+  const fellAt = (r: RegionId) => s.regions[r].fellSeq ?? (s.regions[r].fellWeek ?? 99) * 1000;
+  const chain = Object.keys(s.regions)
+    .filter((r) => s.regions[r].state === 'fighting')
+    .sort((a, b) => fellAt(a) - fellAt(b));
+  expect(chain.length).toBe(s.war);
+  await expect(page.locator('.pp-l-stamp [data-key^="chain:"]')).toHaveCount(chain.length);
+  for (let i = 0; i < chain.length; i++) await expect(page.locator(`.pp-l-stamp [data-key="chain:${chain[i]}:${i + 1}"]`)).toHaveText(String(i + 1));
+  await expect(page.locator('.pp-l-test [data-key^="chain-first:"]')).toHaveCount(1);
+  await expect(page.locator(`.pp-l-test [data-key="chain-first:${chain[0]}"]`)).toBeAttached();
+  const spots = await page.evaluate((ids) => {
+    type B = { x0: number; y0: number; x1: number; y1: number };
+    const box = (el: Element | null): B | null => {
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { x0: r.left, y0: r.top, x1: r.right, y1: r.bottom };
+    };
+    const gap = (a: B, b: B) => Math.hypot(Math.max(0, a.x0 - b.x1, b.x0 - a.x1), Math.max(0, a.y0 - b.y1, b.y0 - a.y1));
+    // A stamp is its inked frame (the box round FIGHTING).
+    const stamps = ids.map((id) => box(document.querySelector(`.pp-l-stamp [data-key="stamp:${id}"] rect[stroke]`)));
+    return ids.map((id, i) => {
+      const n = box(document.querySelector(`.pp-l-stamp [data-key="chain:${id}:${i + 1}"] text`));
+      if (!n || !stamps[i]) return { id, own: -1, other: -1 };
+      const others = stamps.filter((b, j): b is B => j !== i && !!b).map((b) => gap(n, b));
+      return { id, own: gap(n, stamps[i]!), other: Math.min(...others) };
+    });
+  }, chain);
+  for (const sp of spots) {
+    expect(sp.own, sp.id).toBeGreaterThanOrEqual(0);
+    expect(sp.other, `${sp.id}'s number on another stamp`).toBeGreaterThan(0);
+    expect(sp.own, `${sp.id}'s number nearer another stamp than its own`).toBeLessThan(sp.other);
+  }
   await page.locator('.rl-ending.rl-armed').waitFor({ state: 'attached', timeout: 5_000 });
   await choice(page, S.debrief.next).tap();
   await expect(page.locator('.pp-debrief')).toBeVisible();
