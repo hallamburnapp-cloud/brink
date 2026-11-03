@@ -89,7 +89,7 @@
   options:
     back: { label: BACK IT, cost: "we stand by it in public · costs {cost} influence · we keep our word" }
     down: { label: BACK DOWN, cost: "a protest and nothing else · they'll believe us less · {region} may fall" }
-    wait: { label: WAIT, cost: "a week · {region} may fall · we see what the second column does" }
+    wait: { label: WAIT, cost: "a week · {region} may fall · we see whether the column stays" }
 
 - id: test-ships
   kind: test

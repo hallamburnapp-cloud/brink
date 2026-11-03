@@ -19,6 +19,11 @@ words:
   waitNext: "backing it next week costs {cost}"
   # Appended to a form or slip whose piece would leave a pressed place at its last tick with nothing of ours answering it.
   leavesToFall: "leaves {region} to fall"
+  # Appended to SEND THEM's form when the piece it sends would leave solid rings dashed (the MOVE slip says the same).
+  leavesDashed: "leaves our ring at {region} dashed"
+  leavesDashedMany: "leaves our rings at {region} dashed"
+  # BACK IT on a test of a ring nothing of ours holds: a far back can fail, and the form says so before you pay.
+  backFar: "from too far · it may fail · costs {cost} influence"
   sendOrders: SEND ORDERS
   wayOut: A WAY OUT
   theyAre: THEY ARE
@@ -164,7 +169,7 @@ headlines:
   backFailed: "Backed {region} from too far · it failed"
   backedDown: "Backed down at {region} · now {step}"
   backedDownSame: "Backed down at {region} · still {step}"
-  backedDownEased: "Backed down at {region} · they stand down"
+  backedDownEased: "Backed down at {region} · they ease off"
   waited: "You asked for time at {region}"
   waitedFell: "You waited too long · {region} has fallen"
   fell: "{region} has fallen"
@@ -178,8 +183,8 @@ headlines:
   lineCrossedAt: "{piece} at {region} crosses a line"
   lineCrossed: "Wintermast: 'our line' · now {step}"
   lineCrossedSame: "Wintermast: 'our line' · still {step}"
-  jumpy: "'Provocation' at {region} · now {step}"
-  accident: "Stray shots at {region} · now {step}"
+  jumpy: "Provoked by us at {region} · now {step}"
+  accident: "Stray shots near {region} · now {step}"
   wary: "Their forces hold back near {region}"
   # The bar at 100 and no signing: why, on the tape (SPEC-SMALL: they sign if nothing fell that week and no hatched place stands unanswered).
   noSignTaken: "No treaty · they took a place this week"
@@ -360,8 +365,8 @@ note:
   fallsOne: "{region} falls this week unless something of ours reaches it."
   fallsMany: "{places} fall this week unless something of ours reaches them."
   # The same, for places no piece of ours can reach this week.
-  fallsOneFar: "{region} falls this week; nothing of ours can reach it."
-  fallsManyFar: "{places} fall this week; nothing of ours can reach them."
+  fallsOneFar: "{region} falls this week; nothing of ours can reach it now."
+  fallsManyFar: "{places} fall this week; nothing of ours can reach them now."
   worldWarEve: "That would be world war."
   # The fighting's own spread this week (FIGHTING and ALL-OUT) would fill the eighth box.
   spreadWorldWar: "The fighting will spread when the week ends. That would be world war."
@@ -408,11 +413,11 @@ howToPlay:
   lines:
     - "The Federation is pushing. Where it pushes, the map is hatched; where it wins, it turns red. Pencil ticks beside the hatching count the weeks before it wins."
     - "Red pins and pencil arrows show where their forces head next; one may be a feint. A piece in a hatched place stops its clock; a ring there is a provocation, backed at full price."
-    - "Press and hold a place to promise to defend it; three promises at most. Tap your fleet or brigade, then a place it can reach, to move it. SEND ORDERS ends the week."
+    - "Press and hold a place to promise it; three promises at most. Tap your fleet or brigade, then a place, to move it; at their door it slows a nervous Federation, provokes a bold one."
     - "A promise is solid where something of yours is in reach, dashed where not. They test promises they doubt: the phone rings, BACK IT, BACK DOWN or WAIT. Each WAIT raises the price."
     - "Wintermast declared three lines; one is a bluff. Crossing a real one, or losing a place you could have reached, moves them up: TESTING, PUSHING, MASSING, FIGHTING, ALL-OUT. Each step shortens the clocks by a tick."
-    - "Every order costs influence. You gain 8 a week, and each promise costs 1 a week to keep. WAR counts the places fighting; eight is world war."
-    - "TREATY is their willingness to sign: up when they take nothing, down for each place taken. At 100 they sign, unless they took a place that week or a hatched place stands unanswered."
+    - "Every order costs influence. You gain 8 a week, and each promise costs 1 a week to keep. WAR counts the places fighting; eight is world war. From MASSING up, accidents can climb a step."
+    - "TREATY is their willingness to sign: up when they take nothing, down for each place taken you could reach. At 100 they sign, unless they took a place that week or a hatched place stands unanswered."
     - "From week three you can give them a way to stop: drop a promise, pull a piece back, or a summit. A refusal costs the price and nothing else. Ten weeks."
 
 flavour:

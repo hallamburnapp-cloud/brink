@@ -137,6 +137,19 @@ export const RULES = {
    */
   provocationRestart: false,
   /**
+   * Round 17 (the third recheck): "could have reached" counted one move more than the player had (the week the arrow
+   * pointed before the push landed). False (chosen): only the weeks of orders the place stood hatched count, the fall week
+   * included, and a place the week's note called out of reach is never reachable (SPEC-SMALL "An out-of-reach fall is war,
+   * not a failure").
+   */
+  reachArrowWeek: false,
+  /**
+   * SPEC-SMALL "An out-of-reach fall is war, not a failure" (rulings after the third recheck): a place that falls out of
+   * reach fills its WAR box but costs nothing on the TREATY bar (true, the ruling). The week is still not a quiet week
+   * (they gained a place), and they still do not sign in it.
+   */
+  outOfReachFree: true,
+  /**
    * SPEC-SMALL "Too late is said before you pay": a promised place at its last tick that nothing of yours answers (a
    * provocation not yet believed, or a dashed ring) is not left to fall in silence: they come to take it that week, and the
    * call rings, unless another test has the week (then the PROMISE slip said "too late" before it was paid for).

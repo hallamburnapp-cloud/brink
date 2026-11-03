@@ -556,6 +556,16 @@ body {
 .rl-form .ln {
   margin-bottom: 4px;
 }
+/* Their last answer to a way out, as the tape printed it: typed small in the tape's graphite, under the intro. */
+.rl-form .rl-answer {
+  margin: 2px 0 6px;
+  padding-left: 6px;
+  border-left: 1px solid rgba(90, 70, 40, 0.35);
+  font-size: 9.2px;
+  line-height: 12.5px;
+  letter-spacing: 0.04em;
+  color: #6d5f49;
+}
 .rl-term {
   position: relative;
 }
@@ -698,10 +708,11 @@ body {
   top: -11px;
   bottom: -11px;
 }
+/* CANCEL: 66 x 45 or more (round B measured 66 x 41 by elementFromPoint: the word under it takes its lower edge). */
 .rl-x::before {
   left: -10px;
   right: -12px;
-  top: -16px;
+  top: -20px;
   bottom: -16px;
 }
 /* With a game saved, PLAY (which starts afresh) stands apart from CONTINUE so a thumb aimed at one does not take the other. */

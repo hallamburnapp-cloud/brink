@@ -9,7 +9,7 @@
  * ladder prints its own line on the tape (SPEC-SMALL "Rulings after the first build's review").
  *
  * SPEC-SMALL "Rulings after the recheck": cause before effect. Every path prints what you or they did before what
- * it caused ("Backed down at Shoal · they stand down", then "Shoal has fallen"; "Wintermast accepts: a summit",
+ * it caused ("Backed down at Shoal · they ease off", then "Shoal has fallen"; "Wintermast accepts: a summit",
  * then "Guns quiet at X"), and each line is said right after the change it reports, so its beat (WeekLog.beats)
  * is the sheet it describes. A place that falls stays fallen that week: a step down eases the ladder word at once,
  * but only a place that fell in an earlier week comes back (board.ts recoverOne).
@@ -20,6 +20,7 @@ import { believe, canRecover, clockOf, provocationBelieved, currentLog, fall, fe
 import type { RedlinesContent, WhyKind } from './content.ts';
 import { endingOf } from './debrief.ts';
 import { answerCost, makePhone, pickEvent, type PhoneContext } from './phone.ts';
+import { markNoteReach } from './forecast.ts';
 import { RULES, isScared, spreadAt } from './rules.ts';
 import type { Act, EndingKind, GameState, Heading, Line, PieceKind, RegionId } from './types.ts';
 import { actLine, fill, listNames, numberWord, placesPhrase } from './words.ts';
@@ -215,8 +216,12 @@ export function beginWeek(c: RedlinesContent, s: GameState): GameState {
   }
   // SPEC-SMALL "The debrief teaches": said only when it changed something; the timetable's two arrows once a game, the first week it takes over.
   if (s.fed.headings.length === 2 && s.fed.headings.every((h) => h.real)) {
-    if (!s.fed.headings.some((h) => h.timetable)) think(c, s, 'bothReal');
-    else if (!T.timetableSaid) {
+    if (!s.fed.headings.some((h) => h.timetable)) {
+      if (!T.bothRealSaid) {
+        T.bothRealSaid = true;
+        think(c, s, 'bothReal');
+      }
+    } else if (!T.timetableSaid) {
       T.timetableSaid = true;
       think(c, s, 'bothRealTimetable');
     }
@@ -290,7 +295,8 @@ export function applyAnswer(c: RedlinesContent, s: GameState, key: 'back' | 'dow
         let eases = false;
         // SPEC-SMALL "A provocation costs what it claims": a ring drawn into their siege, backed, buys the pause only.
         const pm = promiseAt(s, region);
-        const pauseOnly = !feint && hold.ok && !!pm?.provocation && RULES.provocationPauseOnly;
+        // Solid or dashed alike (the third recheck: a dashed provocation backed took the real test's step down and turn-away).
+        const pauseOnly = !feint && !!pm?.provocation && RULES.provocationPauseOnly;
         if (feint) {
           // SPEC-SMALL ruling: backing a feint earns nothing. They were not coming; the debrief says so.
           believe(s, RULES.backedFeintBelief);
@@ -315,9 +321,15 @@ export function applyAnswer(c: RedlinesContent, s: GameState, key: 'back' | 'dow
         // It held: the place is answered this week, so a clock already running there starts again ("it held", then never "has
         // fallen"). A provocation's pause only stops the clock where it stands (RULES.provocationRestart false).
         if (!pauseOnly || RULES.provocationRestart) restartClock(s, region);
+        else if (!hold.ok) {
+          // A dashed ring answers nothing from week to week, so its pause is this week's: the tick this week counted is taken
+          // back (the clock stands as the sheet showed it at SEND ORDERS), and "it held" is never followed by its fall.
+          const rec = s.regions[region];
+          if (rec.state === 'pressed') rec.pressedWeeks = Math.max(0, rec.pressedWeeks - 1);
+        }
         // Cause, then effect: the backing, then the place the step down quiets. SPEC-SMALL "'They turn away' only when they
         // do": a feint backed is "You backed X" alone, and so is a provocation's pause.
-        say(c, s, feint || pauseOnly ? 'backedOnly' : hold.ok ? 'backed' : 'backedFar', { region });
+        say(c, s, feint || (pauseOnly && hold.ok) ? 'backedOnly' : hold.ok ? 'backed' : 'backedFar', { region });
         // The step down on its own line, after its cause (the cold recheck: the stamp eased in silence on the backing's
         // beat), then the place it quiets.
         if (eases && stepDown(s)) {
@@ -633,7 +645,9 @@ export function finishWeek(c: RedlinesContent, s: GameState): GameState {
   //     plain spec rule); a bloc may sign in such a week. A place that fell this week is still fighting (nothing
   //     recovers the week it fell), so a week with a fall is never a quiet week.
   if (gained.length) {
-    willing(s, -RULES.willPerGain * gained.length);
+    // SPEC-SMALL "An out-of-reach fall is war, not a failure": a place the tape called out of reach costs nothing on the bar.
+    const charged = RULES.outOfReachFree ? gained.filter((r) => !(s.regions[r].fellBy === 'unanswered' && s.regions[r].fellReach === false)) : gained;
+    willing(s, -RULES.willPerGain * charged.length);
     say(c, s, 'gainedWeek', { n: gained.length === 1 ? c.strings.counts.placesOne : fill(c.strings.counts.placesMany, { n: numberWord(c, gained.length) }) });
   } else {
     willing(s, RULES.willQuiet);
@@ -671,7 +685,9 @@ export function finishWeek(c: RedlinesContent, s: GameState): GameState {
     if (touched) {
       if (gained.length) say(c, s, 'noSignTaken');
       else say(c, s, 'noSignPressed', { n: unansweredSlot(c, open) });
-      T.noSign = { week, taken: gained.length > 0, regions: gained.length ? [] : [...open] };
+      // The first week the bar stood at 100 without the signing is the lesson's (the third recheck: a later week's out-of-reach
+      // fall replaced the week the unanswered places decided).
+      if (!T.noSign) T.noSign = { week, taken: gained.length > 0, regions: gained.length ? [] : [...open] };
     }
     if (week >= RULES.weeks) ending = 'frozen';
   }
@@ -710,5 +726,6 @@ export function finishWeek(c: RedlinesContent, s: GameState): GameState {
   s.acts = [];
   s.offer = null;
   s.beliefWas = s.fed.belief;
+  markNoteReach(s);
   return s;
 }

@@ -42,6 +42,7 @@ import { testThisWeek, promiseTooLate, fallsAnswerable, spreadThisWeek, spreadEn
 | `scoreOf(ending): number` | Treaty `100 − 8w − 5f` (min 10; SPEC-SMALL "Ten weeks, not eight"), frozen `9 − f` (min 1), war 0. |
 | `saveGame(s): string` / `loadGame(text): GameState \| null` | Versioned JSON (`brink.redlines`, version 1); `loadGame` returns null for anything it cannot trust. Store under `SAVE_KEY` = `brink.redlines.v1.save`. |
 | `RULES`, `STEP_WORDS`, `fallWeeksAt(step)`, `pushesAt(step)`, `spreadAt(step)`, `isScared(jumpiness)` | Every number (`rules.ts`), the five words, the per-step tables, the "scared" mark on the jumpiness dial. |
+| `markNoteReach(s)` (forecast.ts) | Round 17 (SPEC-SMALL "An out-of-reach fall is war, not a failure"): at the start of each week, marks every place the note names as falling this week, out of reach (`RegionRec.noteFar`, kept while it stands hatched) or within reach this week (`noteNear`); `fall` reads the marks, so the tape and the debrief agree with the note. |
 | `couldHaveReached(s, region, weeks)`, `holdDistance(s, piece, region)`, `closedTo(s, kind)`, `reachableWithoutLines(s, region)`, `pieceDistance(kind, from, to)`, `isSpared(s, region)`, `canRecover(s, region)` | The reach rulings below: whether a piece could have got within one move of a place in the weeks it stood pressed, by a route that crosses no declared line (round 15: SPEC-SMALL "Out of reach means out of reach"); the moves that takes; the places the declared lines close to a piece of that kind; whether any line-free route holds it at all; a piece's own moves between two places; what the spread of the fighting spares; whether a fighting place may come back (only one that fell in an earlier week). |
 | `nearestPiece(s, region)`, `believedRing(s, region)`, `summitWhy(s)`, `wayOutTooSoon(s)`, `crossedLineAt(s, region)` | The piece a call names (the one that holds the place, else the nearest by its own routes: never the brigade for an island); a ring they believe; why a summit was offered or taken; a way out accepted last week; whether a crossed line is drawn round a place. |
 | `promiseMinded(s, region)`, `clockRunDown(s, region)` | Whether a dropped promise moves them (within their reach, in their arrows or under test); whether a push on a pressed place would be wasted. |
@@ -131,7 +132,7 @@ saved and loaded continues exactly as the unsaved one (`run.test.ts` "determinis
 ## A week (what `endWeek` and `answerPhone` do, in order)
 
 **Cause before effect** (SPEC-SMALL "Rulings after the recheck"): every path prints what you or they did before
-what it caused, and each line is said right after the change it reports. "Backed down at Shoal · they stand down",
+what it caused, and each line is said right after the change it reports. "Backed down at Shoal · they ease off",
 then "Shoal has fallen"; "Wintermast accepts: a summit", then "Guns quiet at X". **A place that falls stays fallen
 that week**: a step down eases the ladder word at once, but only a place that fell in an earlier week comes back
 (`recoverOne`, `canRecover`), and a place that came back this week is not spread into again the same week. The
@@ -204,7 +205,7 @@ simulator checks both on every game it plays (`src/redlines/sim/invariants.ts`, 
    the back-down's, and it is not also "taken unanswered". **Their doorstep** (round 15, SPEC-SMALL "Backing down is
    never the best answer"): a piece of yours on it slows an easily scared Federation (chance jumpiness × 0.45: "Their
    forces hold back near X", and next week's plan holds one push back, its arrow stopping short) and provokes a bold
-   one (chance (1 − jumpiness) × 0.45: "'Provocation' at X · now PUSHING"); round 16 (SPEC-SMALL "Reading their nerve
+   one (chance (1 − jumpiness) × 0.45: "Provoked by us at X · now PUSHING"); round 16 (SPEC-SMALL "Reading their nerve
    pays"): a scared Federation holds back every week the piece stands there (`scaredDoorHolds`), not some weeks; at
    MASSING and above an accident, one in twenty. A step that cannot climb (ALL-OUT) prints nothing.
 10. **Recoveries**: two quiet weeks and a pressed place is calm again.
@@ -307,7 +308,7 @@ until then): one crisis, one voice. While they doubt you (belief under 40) the D
 template's `intelDoubted`. On a real push: back and held → belief up, a step down,
 they turn away from the place for three weeks (not after a far back: that taught them nothing); back
 down → belief −15, the promise gone, the place pressed, and a step **up** ("· still ALL-OUT" at the top), or a step
-**down** when the Federation is easily scared (jumpiness over 0.6: "Backed down at X · they stand down"), at most
+**down** when the Federation is easily scared (jumpiness over 0.6: "Backed down at X · they ease off"), at most
 once a game, from PUSHING up, and returning no place (round 15, SPEC-SMALL "Backing down is never the best answer");
 backing down from a ring
 nothing of yours could hold loses the place at once (`backDownFarTakes`, round 14), printed after the back-down
@@ -354,10 +355,13 @@ Vessary will likely fall"). `actLine` writes it; the debrief's "what you did" an
 6. **Falls move the ladder at most one step a week** (SPEC-SMALL ruling; a step per place in rounds
    9–12), and only for places taken unanswered that **something of yours could have reached**: a piece
    could have been within one move of the place by the time it fell, given the weeks it stood pressed and
-   the week's warning the arrow gave (`couldHaveReached`: the piece's own distance to the place, less the
-   one move that still holds it, within weeks pressed + 1; the fleet at Tern Isle could have reached
-   Kelpmouth in the three weeks it stood pressed at TESTING; Brackwater, inland, never). A fall nothing
-   could have reached climbs no step and the tape says "out of reach".
+   the weeks of orders it stood pressed, the fall week included (`couldHaveReached`: the piece's own distance to
+   the place, less the one move that still holds it, within the weeks pressed; round 17 dropped the arrow's week of
+   warning, which gave one move more than the player had; the fleet at Tern Isle could have reached Kelpmouth in the
+   three weeks it stood pressed at TESTING, not in two; Brackwater, inland, never), and never a place the week's note
+   called out of reach (`RegionRec.noteFar`, `markNoteReach`: round 17, SPEC-SMALL "An out-of-reach fall is war, not a
+   failure"). A fall nothing could have reached climbs no step, the tape says "out of reach", and it costs nothing on
+   the TREATY bar (`outOfReachFree`).
 7. **Spread** only at FIGHTING (one place a week) and ALL-OUT (two), to neighbours of a fighting place; a
    piece standing in a place or a solid promise on it spares it, and so does a place that came back this week
    (SPEC-SMALL ruling; round 12's 3 / 5 / 8 from MASSING made the ladder a cliff; round 14's two at FIGHTING
@@ -538,7 +542,9 @@ of them, and the tuning log below says what each costs):
 49. **The ladder is not a cliff, at any rung.** Each pressed place keeps its own clock (`RegionRec.clock`, `clockOf`), set
     at the step's length when it is pressed; a step up takes one tick off every running clock that has more than one left
     (`shiftedLeft`, `clockUpOneTick`), never the last tick; a step down leaves them (`clockShiftDown` false: with it,
-    FROZEN rose to 16 to 24%). MASSING is pressure: a place at three ticks is at two after a step, not at one.
+    FROZEN rose to 16 to 24%). A place at three ticks is at two after a step, not at one. (SPEC-SMALL after the third
+    recheck: MASSING is the late warning, said plainly; reaching it is the sign the game is slipping, and the note on the
+    eve says what falls. No retune for it in this build.)
 50. **The note keeps its warning.** The engine gives the screens the falls something of ours can still reach
     (`fallsAnswerable`) and those it cannot, the spread that would fill the eighth box (`spreadThisWeek`,
     `spreadEndsTheGame`, and `fallsEndTheGame` counting it), and the pressed places a move leaves to fall this week
@@ -559,6 +565,29 @@ of them, and the tuning log below says what each costs):
     (`'small-thing'`); a promise taken back the same week is refunded; WAIT names next week's price; the third round of a
     call has its own words; HOW TO PLAY says three promises at most, the provocation's full price, WAIT's rising price and
     which falls move the ladder.
+53. **An out-of-reach fall is war, not a failure** (round 17, SPEC-SMALL "Rulings after the third recheck"). The reckoning
+    is checked against the note: at the start of each week `markNoteReach` marks every place the note names as falling
+    this week, out of reach (`noteFar`, kept while it stands hatched: no piece within the one move it has) or within reach
+    (`noteNear`, for that week); `fall` counts a `noteFar` place unreachable and a `noteNear` place reachable, and only a
+    place the note never named falls back on `couldHaveReached`, which now counts the weeks of orders it stood pressed (the
+    fall week included) without the arrow's extra week (`reachArrowWeek` false). The note is read at the week's start,
+    before orders: a piece moved away from a place the note said it could reach does not make that place's fall free (the
+    note then says "nothing of ours can reach it now"; the cold recheck's FKM-7SB week 10 is an owner question). Such a
+    fall fills its WAR box and costs nothing on the bar (`outOfReachFree`); the week is still not a quiet week, and they
+    still do not sign in it (SPEC-SMALL: "At 100 they sign, if no place fell this week").
+54. **A provocation costs what it claims, dashed too.** BACK IT on a provocation ring buys the pause only whether the ring is
+    solid or dashed (the shoulder recheck: a dashed one held took the real test's step down, its belief and "they turned
+    away"). A dashed ring answers nothing from week to week, so its pause is that week's: the tick the week counted is taken
+    back, the clock stands as the sheet showed it at SEND ORDERS, and "You backed X from afar · it held" is never followed by
+    its fall. The debrief says `provokedBacked`.
+55. **The call says what it costs.** SEND THEM appends the rings it would leave dashed (`ringsLeftDashed`,
+    `words.leavesDashed`); BACK IT on a ring nothing of ours holds reads `words.backFar` ("from too far · it may fail"), on
+    feints and real tests alike.
+56. **Said once, and truly** (the third recheck's minors). The plain "both arrows were real" thought is said once a game
+    (`Tally.bothRealSaid`), like the timetable's; the bar-at-100 lesson keeps the first week the bar stood at 100 without
+    the signing (it was overwritten by later weeks); the scared back-down's line says "they ease off" (the place still
+    falls); the WAIT form of the first call about a column says "whether the column stays"; the tape's provocation line is
+    "Provoked by us at X" and the accident's "Stray shots near X" (neither reads as the place's own state).
 
 ## The simulator and the tuning log
 
@@ -566,7 +595,7 @@ of them, and the tuning log below says what each costs):
 Fourteen bots (`src/redlines/sim/bots.ts`). Round 16 (SPEC-SMALL "Rulings after the second recheck") added four:
 **shark-door** (the shark that reads their nerve from the tape: it walks a piece to their door by a line-free route
 until the tape shows which they are; shown scared ("Their forces hold back near X") it keeps the piece there and offers
-to pull it back as its way out; shown bold ("'Provocation' at X") it takes the piece away for good; gated by G13),
+to pull it back as its way out; shown bold ("Provoked by us at X") it takes the piece away for good; gated by G13),
 **shark-noring** (the shark without its one rule, ringing no hatched place: G14's ablation), **shark-quiet** (the shark
 that offers no way out of its own, the strongest visible line now that a summit costs it the influence BACK IT needs:
 judged by G11 with the shark and the door-reader) and **shark-quiet-noring** (its ablation, reported, not gated). Every
@@ -641,6 +670,38 @@ The log, each round 400–600 games per bot unless stated, sensible's treaty / w
 | 15 (the engine fixer, after the second review: SPEC-SMALL's "Rulings after the second review"; 2,000 games per bot, seeds R; ten bots) | the truths (lessons, the treaty's place, the forms, the tape, the debrief's motives) and the rulings: the shark and its one-rule cousins gated (G11, G12); a way out accepted × 0.6 a standing unanswered place, the stopped pull only with nothing hatched, one accepted way out in two weeks; a ring on a besieged place a provocation (believed at 60); the treaty only over a map with no reachable place standing unanswered; the other column after the call, a late feint one week in ten, both arrows real from week 3; the collision from any line; a real line rings the call; BACK IT 6 from belief 40; routes through declared lines are not routes; the scared step down once, no place back; the doorstep slows the scared and provokes the bold; then the bar at 50 and blocs at 0.55 | 42.1 / 43.0 / 14.8 | all twelve gates pass on R, S and T; the shark 55.8 / 56.8 / 56.7; no invariant broken in 60,000 games |
 | 15, integrated (the integrator; 2,000 games per bot, seeds R / S / T) | a way out the week after an accepted one is refused before the price is paid (`'too-soon'`: a refusal fixed in advance, dimmed on the form); with it the shark signed 58.9 / 60.1 / 60.0 and G11 failed on S, so a summit at TESTING is taken at 0.35 (0.45); the debrief's left-alone ring on the page of the week it was left alone, once a game; no "they climbed a step" lesson for a back-down at the top | 43.6 / 41.3 / 15.0 | all twelve gates pass on R, S and T; the shark 55.9 / 57.3 / 56.8; no invariant broken in 60,000 games |
 | 16 (the final fixer, after the second recheck: SPEC-SMALL's "Rulings after the second recheck"; 2,000 games per bot, seeds R / S / T; fourteen bots) | a provocation backed at the full price, buying the pause only; believed at 70 (60), read as the week began; the last tick of a promised place rings a call, else the PROMISE slip says too late; a piece at a scared door holds back a push every week, a pull-back from it taken at 0.95; each place keeps its own clock, a step up one tick off it, never the last; the note's and slips' forecasts (`testThisWeek`, `promiseTooLate`, `fallsAnswerable`, `spreadThisWeek`, `leavesToFall`, `nearestHold`, `ringBackCost`); the truths of the recheck; G11 at 55% over three sharks, G13, G14 | 40.4 / 46.0 / 13.7 (R); 41.7 / 45.0 / 13.4 (S); 40.7 / 44.4 / 14.9 (T) | all fourteen gates pass on R, S and T; the strongest shark (shark-quiet) 41.3 / 41.3 / 42.4; the ring rule worth 17.6 / 18.1 / 19.8 points to the shark; no invariant broken in 84,000 games |
+| 17 (the engine fixer, after the third recheck: SPEC-SMALL's "Rulings after the third recheck"; 2,000 games per bot, seeds R / S / T) | the reckoning checked against the note (`markNoteReach`, `noteFar`), "could have reached" without the arrow's extra week; an out-of-reach fall free on the bar; a dashed provocation's pause only; SEND THEM's dashed rings and BACK IT's far words on the call | 47.6 / 37.6 / 14.8 (R); 47.3 / 37.6 / 15.0 (S); 47.1 / 36.4 / 16.6 (T) | all fourteen gates pass on R, S and T; shark-quiet 51.5 / 50.9 / 50.3, the shark 36.0 / 36.8 / 36.0; the ring rule worth 20.9 / 21.3 / 22.0 points to the shark (37.4 to 38.1 to the quiet shark, reported); careful 27.8 / 27.3 / 29.2; no invariant broken in 84,000 games |
+
+**Round 17 in detail** (the engine fixer, after the third recheck). The shoulder critic found "could have reached" one move
+generous (`holdDistance <= weeks + 1`, with `weeks` the pressed weeks at the fall, which already count the fall week): in
+seed U29 played with no orders the week-3 note said "Kelpmouth falls this week; nothing of ours can reach it" and the tape
+then printed "Kelpmouth taken unanswered · now MASSING"; in 800 bot games 236 such falls were counted reachable. The third
+recheck's rulings answered it and the niche critic's out-of-reach finding together. Variants on seeds T (2,000 games per bot):
+
+| variant | sensible T / W / F | careful | shark | shark-quiet | ring rule (shark) | gates |
+| --- | --- | --- | --- | --- | --- | --- |
+| round 16 (before, its log row) | 40.7 / 44.4 / 14.9 | not logged | not logged | 42.4 | 19.8 | pass |
+| the note's reckoning, no arrow week, the bar as before (`outOfReachFree` false) | 41.6 / 36.3 / 22.1 | 21.6 | 31.9 | 42.8 | 19.6 | G4 fails (FROZEN 22.1%): fewer steps, fewer wars, more bars that never fill |
+| the note's reckoning with the arrow week kept (`reachArrowWeek` true) and the bar free | 47.1 / 36.4 / 16.6 | 29.2 | 36.0 | 50.3 | 22.0 | pass: identical to the next row (the note decides every clock fall it names) |
+| **both rulings (chosen)** | 47.1 / 36.4 / 16.6 | 29.2 | 36.0 | 50.3 | 22.0 | pass |
+
+The reckoning alone moves G4 past 20%; the bar ruling ("costs nothing on the TREATY bar") brings FROZEN back to 15 to 17%
+and lifts every treaty-seeking line by five to nine points. G3's upper bound (50%) now has 2.4 to 2.9 points of margin, G11's
+(55%) 3.5 to 4.7. On R, S and T the dashed provocation's pause and the call's words moved no gate figure.
+
+**Influence at income 6 and 7** (SPEC-SMALL "Influence is left as it is, with numbers for the owner"; nothing changed;
+`RULES.income` set in a scratch run, 2,000 games per bot; treaty / war / frozen, then the careful hand's share of games with a
+solid test unbacked for want of influence):
+
+| income | seeds | sensible | careful | shark | shark-quiet | ring rule (shark) | gates |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 8 (as built) | R / S / T | 47.6 / 47.3 / 47.1 treaty; frozen 14.8 / 15.0 / 16.6 | 27.8 / 27.3 / 29.2 (short 0.4 / 0.4 / 0.5%) | 36.0 / 36.8 / 36.0 | 51.5 / 50.9 / 50.3 | 20.9 / 21.3 / 22.0 | all pass |
+| 7 | R / S / T | 42.5 / 43.4 / 42.9; frozen 14.4 / 14.1 / 15.0 | 26.7 / 26.9 / 28.1 (short 1.6 / 1.4 / 1.7%) | 28.8 / 30.1 / 28.8 | 47.4 / 46.9 / 46.7 | 15.3 / 16.2 / 15.3 | all pass |
+| 6 | R / S / T | 40.4 / 41.1 / 39.3; frozen 11.8 / 11.6 / 12.3 | 25.1 / 24.4 / 25.8 (short 4.5 / 3.8 / 4.3%) | 19.8 / 20.2 / 21.3 | 41.9 / 41.4 / 41.4 | 7.1 / 6.7 / 8.6 | all pass |
+
+A lower income hits the plain shark hardest (it backs every solid test and offers a summit after every quiet week: 36 to 20%),
+the careful hand least (28 to 25%), and shrinks the ring rule's worth (21 to 7 points) because the shark can no longer pay
+for the calls its rings draw. Every gate passes at 6 and 7.
 
 **Round 16 in detail** (the final fixer, after the second recheck; continued after two container restarts by the engine
 chain). The second recheck's niche critic measured the ring rule at +46 points to the shark that offers no way out (56.8%

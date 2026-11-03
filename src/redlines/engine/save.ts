@@ -53,6 +53,8 @@ export function isGameState(x: unknown): x is GameState {
     if (rec.recoveredWeek !== undefined && !isInt(rec.recoveredWeek)) return false;
     if (rec.fellSeq !== undefined && !isInt(rec.fellSeq, 1)) return false;
     if (rec.fellReach !== undefined && typeof rec.fellReach !== 'boolean') return false;
+    if (rec.noteFar !== undefined && typeof rec.noteFar !== 'boolean') return false;
+    if (rec.noteNear !== undefined && !isInt(rec.noteNear)) return false;
   }
   if (!Array.isArray(x.promises) || x.promises.length > RULES.maxPromises) return false;
   if (!x.promises.every((p) => isObject(p) && isRegion(p.region) && isInt(p.since) && typeof p.inherited === 'boolean')) return false;

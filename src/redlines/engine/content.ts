@@ -220,7 +220,7 @@ export const HEADLINE_KINDS = [
   'backFailed', // You backed {region} from too far away. It failed.
   'backedDown', // Backed down at {region} · now {step}
   'backedDownSame', // Backed down at {region} · still {step} (the ladder already at its top)
-  'backedDownEased', // Backed down at {region} · they stand down (a scared Federation eases a step)
+  'backedDownEased', // Backed down at {region} · they ease off (a scared Federation eases a step)
   'waited', // You waited at {region}.
   'waitedFell', // You waited too long. {region} has fallen.
   'fell', // {region} has fallen.
@@ -334,6 +334,11 @@ export interface Strings {
     waitNext: string;
     /** Appended to a form or a slip whose move would leave a pressed place at its last tick unanswered (slot {region}). */
     leavesToFall: string;
+    /** Appended to SEND THEM's form when the piece it sends would leave solid rings dashed (slot {region}; one ring, then several). */
+    leavesDashed?: string;
+    leavesDashedMany?: string;
+    /** BACK IT's form on a test of a ring nothing of ours holds (a far back may fail): replaces the template's own (slot {cost}). */
+    backFar?: string;
     sendOrders: string; // SEND ORDERS
     wayOut: string; // A WAY OUT
     theyAre: string; // THEY ARE

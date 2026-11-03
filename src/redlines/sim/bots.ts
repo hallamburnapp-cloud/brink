@@ -631,7 +631,7 @@ function taped(s: GameState, kind: string, where?: readonly RegionId[]): boolean
 
 /**
  * SPEC-SMALL "Reading their nerve pays" (rulings after the second recheck): the shark that reads their jumpiness from
- * the tape. Until the tape shows a bold Federation ("'Provocation' at" a door), it stands a piece at their door by a
+ * the tape. Until the tape shows a bold Federation ("Provoked by us at" a door: the beat kind 'jumpy'), it stands a piece at their door by a
  * route that crosses no declared line for it (the brigade at Vessary, else the fleet at Driftholm or Kelpmouth),
  * never stranding a solid ring; once the tape says "Their forces hold back near" a door, it knows them scared and offers
  * to pull that piece back as its way out (instead of the shark's summit), then walks it back. Once the tape shows them

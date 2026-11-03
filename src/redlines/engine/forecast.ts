@@ -118,6 +118,23 @@ export function fallsAnswerable(s: GameState): RegionId[] {
 }
 
 /**
+ * SPEC-SMALL "An out-of-reach fall is war, not a failure": the reckoning is checked against the note. At the start of a
+ * week (the act phase, nothing moved yet) every place the note names as falling this week is marked: out of reach when no
+ * piece could answer it with this week's move (sticky while it stands hatched), within reach otherwise (for this week).
+ * `fall` reads the marks, so the tape never climbs a step for a place the note called out of reach, and never says "out of
+ * reach" of a place the note said a piece could still reach.
+ */
+export function markNoteReach(s: GameState): void {
+  if (s.phase !== 'act') return;
+  const near = new Set(fallsAnswerable(s));
+  for (const r of fallsThisWeek(s)) {
+    const rec = s.regions[r];
+    if (near.has(r)) rec.noteNear = s.week;
+    else rec.noteFar = true;
+  }
+}
+
+/**
  * How many places the fighting would spread to when this week resolves (SPEC-SMALL: one a week at FIGHTING, two at
  * ALL-OUT, to neighbours of a fighting place, a piece or a solid ring sparing a place), counting this week's falls as
  * fighting, at the step they are on now.

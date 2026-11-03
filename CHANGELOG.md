@@ -2,6 +2,26 @@
 
 All notable changes to BRINK. Dates are UTC.
 
+## 0.8.3 — 2026-11-03 (Red Lines, third recheck)
+
+The last recheck before the owner: three fresh critics played 0.8.2 with real taps (over the shoulder, deep strategy, a new first-time player), one fixer per side and an integrator worked through what they found under the rulings after the third recheck (D-120).
+
+### The game
+- An out-of-reach fall is war, not a failure: it fills its WAR box but costs nothing on the TREATY bar and climbs no step, and "out of reach" is judged exactly as the note said it at the week's start, so the tape, the bar, the note and the debrief always agree.
+- A backed dashed provocation buys only the pause; BACK IT on a ring nothing of yours holds says "from too far · it may fail"; the call's SEND THEM names the rings it would leave dashed.
+- Every move asks first: MOVE HERE shows the price and any warning, and nothing is paid until you tap it. The answer to your last way out stays on the A WAY OUT form.
+- Words: "Provoked by us at X", "Stray shots near X", "Backed down at X · they ease off"; HOW TO PLAY says what a piece at their door does and that accidents can climb a step from MASSING up.
+
+### Balance (seeds R, S, T)
+- Sensible signs about 47%, a careful hand about 28%, the strongest formula about 51%; the door reader beats the formula against a scared Federation (about 75% against 39%). Fourteen gates pass; no invariant broken in 84,000 games.
+- Influence at income 6, 7 and 8 measured for the owner; nothing changed.
+
+### Licences
+- The three self-hosted fonts now ship with their licence texts in the published page: Caveat and Gelasio under the SIL Open Font License 1.1, Special Elite under the Apache License 2.0.
+
+### Checks
+- 1,362 unit tests across the project (388 for Red Lines), 21 end-to-end tests with real taps, a full real-tap game from a fresh device to the closing card.
+
 ## 0.8.2 — 2026-11-03 (Red Lines, second recheck)
 
 Four critics rechecked 0.8.1 with real taps (over the shoulder, deep strategy, the art director, a new first-time player). Rulings after the second recheck in `SPEC-SMALL.md` (D-119) decided the design questions; the fixes were finished across two container restarts in short resumable steps.

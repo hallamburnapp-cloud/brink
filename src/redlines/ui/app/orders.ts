@@ -49,7 +49,7 @@ export function tryMove(s: GameState, kind: PieceKind, region: RegionId): MoveOu
   return { ok: true, crossings: linesCrossedByMove(s, kind, region), dashed: ringsLeftDashed(s, kind, region), falls: leavesToFall(s, kind, region) };
 }
 
-/** Whether a move needs the MOVE HERE slip first (it crosses a declared line, leaves a ring dashed, or leaves a pressed place to fall this week). */
+/** Whether a move's MOVE HERE slip carries a warning (it crosses a declared line, leaves a ring dashed, or leaves a pressed place to fall this week). Every move asks MOVE HERE first; this says whether it warns. */
 export function moveNeedsAsk(o: MoveOutcome): boolean {
   return o.ok && (o.crossings.length > 0 || o.dashed.length > 0 || (o.falls ?? []).length > 0);
 }
@@ -153,4 +153,32 @@ export function wayOutBlock(s: GameState, term: WayOutTerm, detail?: RegionId | 
 /** The pieces PULL A PIECE BACK lists: only those away from home (the engine's pullBackPieces). */
 export function pullable(s: GameState): PieceKind[] {
   return pullBackPieces(s);
+}
+
+/** The tape kinds of a way out's answer (the engine's say(): accepted, refused, and their short words after a refusal). */
+const ANSWER_KINDS: readonly string[] = ['wayOutAccepted', 'wayOutRefused', 'wayOutRefusedWhy'];
+
+/**
+ * The answer to the last way out offered, as the tape printed it, and the week it came ("Wintermast refuses: a
+ * summit", "Wintermast: 'nothing to talk about yet'"). The A WAY OUT form keeps it (round B, the cold player: a
+ * summit answered while the week played back scrolled off the tape, and the next offer was made blind). Read from the
+ * log's beats, so a save from before them has none.
+ */
+export function lastWayOutAnswer(s: GameState): { week: number; lines: string[] } | null {
+  for (let i = s.log.length - 1; i >= 0; i--) {
+    const l = s.log[i];
+    if (!l.beats) continue;
+    const lines = l.visible.filter((_, j) => ANSWER_KINDS.includes(l.beats![j]?.kind ?? ''));
+    if (lines.length) return { week: l.week, lines };
+  }
+  return null;
+}
+
+/**
+ * The hint on a lifted counter's MOVE slip: "tap a place it can reach", or, for a piece that has moved this week,
+ * the refusal's own words "one move a week for each piece" (round B, the cold player: the slip asked for a place
+ * when nothing was pencilled).
+ */
+export function moveHintFor(s: GameState, kind: PieceKind): string {
+  return s.moved.includes(kind) ? content.strings.refusals['moved-already'] : content.strings.act.moveHint;
 }

@@ -167,6 +167,8 @@ export function press(s: GameState, region: RegionId): boolean {
   rec.state = 'pressed';
   rec.pressedWeeks = 0;
   rec.clock = fallWeeksAt(s.fed.step);
+  delete rec.noteFar;
+  delete rec.noteNear;
   return true;
 }
 
@@ -217,7 +219,11 @@ function shiftClocks(s: GameState, dir: 1 | -1): void {
  */
 export function fall(s: GameState, region: RegionId, by: FallCause): void {
   const rec = s.regions[region];
-  rec.fellReach = couldHaveReached(s, region, rec.pressedWeeks);
+  // SPEC-SMALL "An out-of-reach fall is war, not a failure": the reckoning agrees with the note. A place the note called
+  // out of reach in any week it stood hatched is never reachable; one the note said a piece could reach this week was.
+  rec.fellReach = rec.noteFar ? false : rec.noteNear === s.week ? true : couldHaveReached(s, region, rec.pressedWeeks);
+  delete rec.noteFar;
+  delete rec.noteNear;
   rec.fellSeq = nextFallSeq(s);
   rec.state = 'fighting';
   rec.fellWeek = s.week;
@@ -239,12 +245,14 @@ export function countWar(s: GameState): number {
 /**
  * SPEC-SMALL: "a place taken unanswered that something of yours could have reached" is a step up; one no piece
  * could reach falls without a step. Could have reached: a piece of yours could have been within one move of the
- * place (holding it) by the time it fell, given the weeks it stood pressed and the week's warning the arrow gave:
- * its own distance to the place, less the one move that still holds it, within `weeks` + 1.
+ * place (holding it) by the time it fell, given the weeks of orders it stood pressed (`weeks`: its pressed weeks at the
+ * fall, the fall week included, one move a week): its own distance to the place, less the one move that still holds it,
+ * within `weeks`. Round 17 (the third recheck): the week's warning the arrow gave is no longer counted (it gave one move
+ * more than the player had, and the tape climbed a step under a note that had said nothing of ours could reach it).
  */
 export function couldHaveReached(s: GameState, region: RegionId, weeks: number): boolean {
   if (holdInfo(s, region).ok) return true;
-  return s.pieces.some((p) => holdDistance(s, p, region) <= weeks + 1);
+  return s.pieces.some((p) => holdDistance(s, p, region) <= weeks + (RULES.reachArrowWeek ? 1 : 0));
 }
 
 /**

@@ -9,7 +9,7 @@ import { clockOf, holdInfo, isAnswered, nearestPiece, pieceAt, pressedRegions, p
 import { RULES } from './rules.ts';
 import type { GameState, Line, Phone, PhoneKind, RegionId } from './types.ts';
 import { fill, listNames, type Slots } from './words.ts';
-import { leavesToFall, withRing } from './forecast.ts';
+import { leavesToFall, ringsLeftDashed, withRing } from './forecast.ts';
 import { NEAR_CAP, REGION, REGION_IDS, regionName } from './world.ts';
 
 /**
@@ -118,7 +118,15 @@ export function makePhone(c: RedlinesContent, s: GameState, rng: Rng, ctx: Phone
   // SEND THEM about a place nobody promised moves a piece: when that piece answers a place at its last tick, the form says it leaves it to fall.
   const sender = ctx.kind === 'fall-unpromised' && region ? holdInfo(s, region).piece : undefined;
   const leaves = sender && c.strings.words.leavesToFall ? leavesToFall(s, sender.kind, region!) : [];
-  const backCostLine = fill(t.options.back.cost, slots) + (leaves.length ? ` · ${fill(c.strings.words.leavesToFall, { region: listNames(leaves) })}` : '');
+  // ... and when it would leave solid rings dashed, the form says so as the MOVE slip does (the third recheck: SEND THEM
+  // left two rings dashed in silence, and the next two tests could not be backed at the near price).
+  const dashed = sender ? ringsLeftDashed(s, sender.kind, region!) : [];
+  const W = c.strings.words;
+  const dashedWords = dashed.length && W.leavesDashed ? ` · ${fill(dashed.length > 1 && W.leavesDashedMany ? W.leavesDashedMany : W.leavesDashed, { region: listNames(dashed) })}` : '';
+  // BACK IT on a ring nothing of ours holds may fail (RULES.farFail): the form says so before you pay (the cold recheck: "we
+  // keep our word" on a dashed ring that then failed). Said of every far test alike, feint or real, so it is no tell.
+  const far = isTest && region && W.backFar && !holdInfo(s, region).ok;
+  const backCostLine = (far ? fill(W.backFar!, slots) : fill(t.options.back.cost, slots)) + (leaves.length ? ` · ${fill(W.leavesToFall, { region: listNames(leaves) })}` : '') + dashedWords;
   // A carried call's slips are a week on (againAdvisers); the Director's slip, while they doubt your promises, says
   // what she has seen of it (SPEC-SMALL "Doubt is visible where it matters").
   const slips = isTest && ctx.round >= 3 && t.lastAdvisers ? t.lastAdvisers : isTest && ctx.round > 1 && t.againAdvisers ? t.againAdvisers : t.advisers;

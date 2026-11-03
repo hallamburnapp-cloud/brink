@@ -14,7 +14,7 @@ import { RULES } from './fakeEngine';
 import { HOLD_MS, HoldGesture } from './gesture';
 import { TIMES, beatsFor } from './playback';
 import { clearSave, readSave } from './storage';
-import { armed, busy, debriefPage, explain, held, lifted, play, prefs, refusal, run, saved, screen, sheet, shown, titleWorld } from './store';
+import { armed, busy, debriefPage, explain, held, lifted, moveAsk, play, prefs, refusal, run, saved, screen, sheet, shown, titleWorld } from './store';
 import { mapView } from './view';
 
 class MemoryStorage {
@@ -150,10 +150,32 @@ describe('orders on the sheet', () => {
     expect(lifted.value).toBe('brigade');
     vi.advanceTimersByTime(act.REFUSAL_MS + 1);
     expect(refusal.value).toBeNull();
+    // Round B (the cold player): a tap on a place it can reach puts the MOVE HERE slip down and pays nothing yet,
+    // warned or not; MOVE HERE (moveTo) makes the move.
+    const before = run.value!;
     act.tapSheet('VSY', null);
+    expect(moveAsk.value).toEqual({ kind: 'brigade', region: 'VSY' });
+    expect(lifted.value).toBe('brigade');
+    expect(run.value?.pieces.find((p) => p.kind === 'brigade')?.at).toBe(before.pieces.find((p) => p.kind === 'brigade')?.at);
+    expect(run.value?.influence).toBe(before.influence);
+    expect(run.value?.acts).toEqual([]);
+    expect(act.moveTo('brigade', 'VSY')).toBe(true);
     expect(lifted.value).toBeNull();
+    expect(moveAsk.value).toBeNull();
     expect(run.value?.pieces.find((p) => p.kind === 'brigade')?.at).toBe('VSY');
     expect(run.value?.acts.map((a) => a.kind)).toEqual(['move']);
+  });
+
+  it('CANCEL on the MOVE HERE slip puts the counter down and pays nothing (round B)', () => {
+    const before = run.value!;
+    act.tapSheet(null, 'brigade');
+    act.tapSheet('VSY', null);
+    expect(moveAsk.value).not.toBeNull();
+    act.cancelAct();
+    expect(moveAsk.value).toBeNull();
+    expect(lifted.value).toBeNull();
+    expect(run.value?.influence).toBe(before.influence);
+    expect(run.value?.acts).toEqual([]);
   });
 
   it('a tap with a slip up only puts the slip away; a tap on the counter again puts it down', () => {
