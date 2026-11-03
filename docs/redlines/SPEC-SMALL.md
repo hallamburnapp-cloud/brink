@@ -171,6 +171,18 @@ so the final fixer follows one reading; the owner can overrule any of them):
   game; the heading reason reads as of the moment they chose ("when they chose it, nobody had promised it"); a
   ring they "believed and left" is only one they believed and that still stands at the week's end.
 
+**Rulings after the third recheck** (the last before the owner; the owner can overrule any of them):
+- **An out-of-reach fall is war, not a failure.** A place nothing of yours could reach (by the same reckoning as
+  the step: the weeks it stood hatched, no route through a declared line) still fills its WAR box when it falls,
+  but costs nothing on the TREATY bar, as it climbs no step. The tape, the bar and the debrief then agree. The
+  reckoning is checked against the note: a place the note called out of reach in any week it stood hatched is
+  never counted as reachable.
+- **MASSING is the late warning, said plainly.** The rulings do not call it pressure; reaching it is the sign
+  the game is slipping, and the note on the eve already says what falls. No retune for it in this build.
+- **Influence is left as it is, with numbers for the owner.** Run the careful hand, sensible and the shark at
+  income 6 and 7 against the gates and report the figures in the README's questions; change nothing unless the
+  owner asks.
+
 ## The two bars
 
 - **WAR**: regions fighting, drawn as eight pencil boxes; the eighth is WORLD WAR and the game is lost there. (The first draft said twelve of thirty; in eight weeks twelve is out of reach and a collapse ran out of weeks instead of ending, so the engine's tuning set the line at eight. One box a week, legible.)
